@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#00b968" />
+    <meta
+      name="description"
+      content="교내에 흩어진 공고와 전단지를 한곳에서 보고, 누구나 새 소식을 공유하는 Pine"
+    />
+    <title>Pine — 우리 학교 소식의 시작</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./config.js"></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#notice-list">공고 목록으로 건너뛰기</a>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="#" aria-label="Pine 홈">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 36 36"><use href="#icon-pine" /></svg>
+          </span>
+          <span>PINE</span>
+        </a>
+
+        <label class="header-search" for="search-input">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-search" /></svg>
+          <input
+            id="search-input"
+            type="search"
+            autocomplete="off"
+            placeholder="제목, 단체, 태그를 검색해보세요"
+          />
+          <kbd>/</kbd>
+        </label>
+
+        <div class="header-actions">
+          <span class="sync-state" id="sync-state" data-mode="loading">
+            <span class="sync-dot" aria-hidden="true"></span>
+            <span class="sync-label">연결 중</span>
+          </span>
+          <button class="button button-primary add-trigger" type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-plus" /></svg>
+            공고 올리기
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> 우리 학교 소식의 시작</p>
+          <h1 id="hero-title">놓치기 아까운 교내 소식,<br /><em>여기 다 모았어요.</em></h1>
+          <p class="hero-description">
+            복도 게시판부터 단체 채팅방까지 흩어진 공고를 한눈에.<br class="desktop-only" />
+            누구나 올리고, 모든 기기에서 바로 확인하세요.
+          </p>
+          <div class="hero-actions">
+            <button class="button button-primary button-large add-trigger" type="button">
+              첫 공고 올리기
+              <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-arrow-up-right" /></svg>
+            </button>
+            <button class="text-button" id="browse-trigger" type="button">
+              최신 소식 둘러보기
+              <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-arrow-down" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="hero-board" aria-hidden="true">
+          <div class="zigzag zigzag-top"></div>
+          <article class="hero-poster poster-main">
+            <span class="poster-pin"></span>
+            <p>2026 여름제</p>
+            <strong>별빛 아래<br />우리의 장면</strong>
+            <span>7.24 FRI · 중앙광장</span>
+            <i>모두의 무대</i>
+          </article>
+          <article class="hero-poster poster-side">
+            <span class="poster-pin"></span>
+            <p>NEW CLUB</p>
+            <strong>사진부<br />신입 모집</strong>
+            <span>처음이어도 좋아요!</span>
+          </article>
+          <div class="hero-note">
+            <svg viewBox="0 0 24 24"><use href="#icon-spark" /></svg>
+            오늘 새 소식 <strong id="today-count">4</strong>개
+          </div>
+          <div class="hero-sticker">PICK!</div>
+          <div class="zigzag zigzag-bottom"></div>
+        </div>
+      </section>
+
+      <section class="category-section" aria-label="카테고리">
+        <div class="shell category-scroll" id="category-list">
+          <button class="category-chip is-active" type="button" data-category="전체">
+            <span class="chip-icon chip-all"><svg viewBox="0 0 24 24"><use href="#icon-grid" /></svg></span>
+            전체
+          </button>
+          <button class="category-chip" type="button" data-category="학사">
+            <span class="chip-icon chip-academic"><svg viewBox="0 0 24 24"><use href="#icon-book" /></svg></span>
+            학사
+          </button>
+          <button class="category-chip" type="button" data-category="행사">
+            <span class="chip-icon chip-event"><svg viewBox="0 0 24 24"><use href="#icon-confetti" /></svg></span>
+            행사
+          </button>
+          <button class="category-chip" type="button" data-category="동아리">
+            <span class="chip-icon chip-club"><svg viewBox="0 0 24 24"><use href="#icon-people" /></svg></span>
+            동아리
+          </button>
+          <button class="category-chip" type="button" data-category="대회">
+            <span class="chip-icon chip-contest"><svg viewBox="0 0 24 24"><use href="#icon-trophy" /></svg></span>
+            대회
+          </button>
+          <button class="category-chip" type="button" data-category="진로">
+            <span class="chip-icon chip-career"><svg viewBox="0 0 24 24"><use href="#icon-briefcase" /></svg></span>
+            진로
+          </button>
+          <button class="category-chip" type="button" data-category="봉사">
+            <span class="chip-icon chip-volunteer"><svg viewBox="0 0 24 24"><use href="#icon-heart" /></svg></span>
+            봉사
+          </button>
+          <button class="category-chip" type="button" data-category="기타">
+            <span class="chip-icon chip-etc"><svg viewBox="0 0 24 24"><use href="#icon-more" /></svg></span>
+            기타
+          </button>
+        </div>
+      </section>
+
+      <section class="notice-section shell" id="notices" aria-labelledby="notice-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">방금 올라온 소식부터</p>
+            <h2 id="notice-heading">새로운 공고</h2>
+          </div>
+          <div class="list-controls">
+            <label class="select-wrap">
+              <span class="sr-only">정렬</span>
+              <select id="sort-select">
+                <option value="latest">최신순</option>
+                <option value="deadline">마감 임박순</option>
+                <option value="popular">관심 많은 순</option>
+              </select>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-chevron-down" /></svg>
+            </label>
+            <div class="view-switch" aria-label="보기 방식">
+              <button class="is-active" id="grid-view" type="button" aria-label="격자로 보기" aria-pressed="true">
+                <svg viewBox="0 0 24 24"><use href="#icon-grid" /></svg>
+              </button>
+              <button id="list-view" type="button" aria-label="목록으로 보기" aria-pressed="false">
+                <svg viewBox="0 0 24 24"><use href="#icon-list" /></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-meta">
+          <p><strong id="result-count">0</strong>개의 소식이 있어요</p>
+          <button id="reset-filter" class="text-button compact" type="button" hidden>필터 초기화</button>
+        </div>
+
+        <div class="notice-grid" id="notice-list" aria-live="polite" aria-busy="true"></div>
+
+        <div class="empty-state" id="empty-state" hidden>
+          <span><svg viewBox="0 0 36 36"><use href="#icon-pine" /></svg></span>
+          <h3>아직 이 조건의 공고가 없어요</h3>
+          <p>검색어나 카테고리를 바꾸거나, 첫 소식을 직접 알려주세요.</p>
+          <button class="button button-primary add-trigger" type="button">공고 올리기</button>
+        </div>
+      </section>
+
+      <section class="community-banner shell" aria-labelledby="community-title">
+        <div class="community-art" aria-hidden="true">
+          <span class="mini-card card-a">축제<br /><b>7.24</b></span>
+          <span class="mini-card card-b">BOOK<br /><b>CLUB</b></span>
+          <span class="mini-card card-c">함께<br /><b>해요!</b></span>
+        </div>
+        <div class="community-copy">
+          <p class="eyebrow light"><span></span> 함께 만드는 학교 게시판</p>
+          <h2 id="community-title">알고 있는 소식이 있나요?</h2>
+          <p>작은 모임부터 중요한 공지까지, 공유하면 누군가에게 꼭 필요한 소식이 됩니다.</p>
+        </div>
+        <button class="button button-cream add-trigger" type="button">
+          1분 만에 올리기
+          <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-arrow-up-right" /></svg>
+        </button>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-inner">
+        <div>
+          <a class="brand brand-footer" href="#">
+            <span class="brand-mark"><svg viewBox="0 0 36 36"><use href="#icon-pine" /></svg></span>
+            <span>PINE</span>
+          </a>
+          <p>우리 학교의 모든 소식을 연결합니다.</p>
+        </div>
+        <p class="footer-note">누구나 올릴 수 있는 공간이에요. 개인정보와 저작권을 지켜주세요.</p>
+      </div>
+    </footer>
+
+    <nav class="mobile-nav" aria-label="모바일 메뉴">
+      <a class="is-active" href="#">
+        <svg viewBox="0 0 24 24"><use href="#icon-home" /></svg>
+        <span>홈</span>
+      </a>
+      <button id="mobile-search" type="button">
+        <svg viewBox="0 0 24 24"><use href="#icon-search" /></svg>
+        <span>검색</span>
+      </button>
+      <button class="mobile-add add-trigger" type="button" aria-label="공고 올리기">
+        <svg viewBox="0 0 24 24"><use href="#icon-plus" /></svg>
+      </button>
+      <button id="mobile-saved" type="button">
+        <svg viewBox="0 0 24 24"><use href="#icon-bookmark" /></svg>
+        <span>관심</span>
+      </button>
+      <button id="mobile-info" type="button">
+        <svg viewBox="0 0 24 24"><use href="#icon-info" /></svg>
+        <span>안내</span>
+      </button>
+    </nav>
+
+    <dialog class="modal add-modal" id="add-modal" aria-labelledby="add-modal-title">
+      <form id="notice-form" method="dialog" novalidate>
+        <div class="modal-header">
+          <div>
+            <p class="modal-step">NEW NOTICE</p>
+            <h2 id="add-modal-title">새 공고 올리기</h2>
+            <p>학교 구성원이라면 누구나 소식을 공유할 수 있어요.</p>
+          </div>
+          <button class="icon-button modal-close" type="button" aria-label="닫기">
+            <svg viewBox="0 0 24 24"><use href="#icon-x" /></svg>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-column">
+            <label class="field field-full">
+              <span>공고 제목 <b>*</b></span>
+              <input name="title" maxlength="80" required placeholder="무슨 소식인지 한눈에 알 수 있게 적어주세요" />
+              <small><span id="title-length">0</span>/80</small>
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span>카테고리 <b>*</b></span>
+                <select name="category" required>
+                  <option value="">선택해주세요</option>
+                  <option>학사</option><option>행사</option><option>동아리</option><option>대회</option>
+                  <option>진로</option><option>봉사</option><option>기타</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>행사·마감일 <b>*</b></span>
+                <input name="eventDate" type="date" required />
+              </label>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>주최 단체 <b>*</b></span>
+                <input name="organization" maxlength="50" required placeholder="예: 학생회, 방송부" />
+              </label>
+              <label class="field">
+                <span>장소</span>
+                <input name="location" maxlength="50" placeholder="예: 본관 2층 시청각실" />
+              </label>
+            </div>
+
+            <label class="field field-full">
+              <span>내용</span>
+              <textarea name="summary" maxlength="500" rows="5" placeholder="대상, 일정, 신청 방법 등 꼭 필요한 내용을 알려주세요"></textarea>
+            </label>
+
+            <div class="field-row">
+              <label class="field">
+                <span>자세히 보기 링크</span>
+                <input name="externalUrl" type="url" placeholder="https://" />
+              </label>
+              <label class="field">
+                <span>태그</span>
+                <input name="tags" maxlength="80" placeholder="쉼표로 구분해주세요" />
+              </label>
+            </div>
+          </div>
+
+          <div class="poster-upload-wrap">
+            <span class="field-label">전단지 이미지</span>
+            <label class="poster-upload" id="poster-upload">
+              <input id="image-input" name="image" type="file" accept="image/png,image/jpeg,image/webp" />
+              <span class="upload-placeholder" id="upload-placeholder">
+                <i><svg viewBox="0 0 24 24"><use href="#icon-upload" /></svg></i>
+                <strong>이미지를 끌어놓거나<br />눌러서 선택하세요</strong>
+                <small>JPG, PNG, WEBP · 최대 8MB</small>
+              </span>
+              <img id="image-preview" alt="선택한 전단지 미리보기" hidden />
+            </label>
+            <p class="upload-tip"><svg viewBox="0 0 24 24"><use href="#icon-spark" /></svg> 이미지가 없어도 자동 포스터를 만들어드려요.</p>
+          </div>
+        </div>
+
+        <div class="form-consent">
+          <label>
+            <input name="consent" type="checkbox" required />
+            <span>개인정보와 타인의 저작권을 침해하지 않는 내용임을 확인합니다.</span>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button class="button button-secondary modal-close" type="button">취소</button>
+          <button class="button button-primary" id="submit-button" type="submit">
+            <span>공고 등록하기</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24"><use href="#icon-arrow-up-right" /></svg>
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal detail-modal" id="detail-modal" aria-labelledby="detail-title">
+      <div class="detail-shell">
+        <button class="icon-button detail-close" type="button" aria-label="닫기">
+          <svg viewBox="0 0 24 24"><use href="#icon-x" /></svg>
+        </button>
+        <div id="detail-content"></div>
+      </div>
+    </dialog>
+
+    <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+    <svg class="svg-defs" aria-hidden="true">
+      <symbol id="icon-pine" viewBox="0 0 36 36"><path d="M18 2.5 7.7 15.3h5.1L5 25h9.2v7.8h7.6V25H31l-7.8-9.7h5.1L18 2.5Z" fill="currentColor"/><path d="M18 7.2v19.4" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" opacity=".9"/></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="icon-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+      <symbol id="icon-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14m-6-6 6 6 6-6"/></symbol>
+      <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></symbol>
+      <symbol id="icon-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+      <symbol id="icon-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".7" fill="currentColor"/><circle cx="4.5" cy="12" r=".7" fill="currentColor"/><circle cx="4.5" cy="18" r=".7" fill="currentColor"/></symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h.5a2.5 2.5 0 0 1 2.5 2.5v-15Z"/></symbol>
+      <symbol id="icon-confetti" viewBox="0 0 24 24"><path d="m4 20 4.2-13 8.8 8.8L4 20Z"/><path d="m8 15 2 2M14 4l.5 2M20 10l-2 .5M18 3l-2 2M11 2l1 2M21 6l-2 1"/></symbol>
+      <symbol id="icon-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20v-2a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v2M15 14h1a4 4 0 0 1 4 4v2"/></symbol>
+      <symbol id="icon-trophy" viewBox="0 0 24 24"><path d="M8 4h8v4a4 4 0 0 1-8 0V4ZM12 12v5M8 21h8M9 17h6M8 6H4v1a4 4 0 0 0 4 4M16 6h4v1a4 4 0 0 1-4 4"/></symbol>
+      <symbol id="icon-briefcase" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24"><path d="M20.8 5.7a5.5 5.5 0 0 0-7.8 0L12 6.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 22l8.8-8.5a5.5 5.5 0 0 0 0-7.8Z"/></symbol>
+      <symbol id="icon-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+      <symbol id="icon-spark" viewBox="0 0 24 24"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7L12 3Z"/><path d="m19 16 .8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/></symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="icon-location" viewBox="0 0 24 24"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+      <symbol id="icon-bookmark" viewBox="0 0 24 24"><path d="M6 4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18l-6-4-6 4V4Z"/></symbol>
+      <symbol id="icon-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M5 20h14"/></symbol>
+      <symbol id="icon-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="icon-home" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9Z"/></symbol>
+      <symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></symbol>
+      <symbol id="icon-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 11 13M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></symbol>
+    </svg>
+  </body>
+</html>
