@@ -44,7 +44,11 @@ export default async function handler(request, response) {
     return response.status(403).json({ error: "ORIGIN_NOT_ALLOWED" });
   }
 
-  if (request.method === "GET" && request.query?.health === "1") {
+  const requestUrl = new URL(request.url, "https://ocr.local");
+  const healthRequested =
+    request.query?.health === "1" || requestUrl.searchParams.get("health") === "1";
+
+  if (request.method === "GET" && healthRequested) {
     return response.status(200).json({
       ok: Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
       provider: "google-cloud-vision",
