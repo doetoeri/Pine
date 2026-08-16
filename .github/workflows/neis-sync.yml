@@ -1,4 +1,4 @@
-name: NEIS timetable sync
+name: Timetable and meal sync
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pincon-neis-sync
+  group: pincon-school-sync
   cancel-in-progress: false
 
 jobs:
@@ -30,8 +30,10 @@ jobs:
           cache-dependency-path: automation/package-lock.json
       - name: Install automation dependencies
         working-directory: automation
-        run: npm ci
-      - name: Sync NEIS and send timetable alerts
+        run: |
+          npm ci
+          npm install --no-save parse-comcigan@1.1.2
+      - name: Sync Comcigan timetable, NEIS fallback and meals
         run: node automation/neis-sync.mjs
         env:
           NEIS_API_KEY: ${{ secrets.NEIS_API_KEY }}
