@@ -1,5 +1,5 @@
 /* Offline shell. Vocabulary stays in the generated same-origin bundles. */
-var CACHE_NAME = "wmgr-shell-v1";
+var CACHE_NAME = "wmgr-shell-v2";
 var SHELL = ["./", "./index.html", "./legacy.html", "./legacy/legacy.css", "./legacy/app.js", "./legacy/wordData.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", function (event) {

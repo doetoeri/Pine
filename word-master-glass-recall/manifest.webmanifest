@@ -1,6 +1,7 @@
 {
   "name": "WORD MASTER Glass Recall",
   "short_name": "Glass Recall",
+  "id": "./",
   "description": "영단어를 보고 뜻을 직접 쓰는 인출 학습 앱",
   "start_url": "./",
   "scope": "./",
