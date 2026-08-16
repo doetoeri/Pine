@@ -7,7 +7,7 @@ globalThis.PINCON_FIREBASE_CONFIG = Object.freeze({
   messagingSenderId: "747632916477",
   appId: "1:747632916477:web:60ad84854cc97deffb8b94",
   // Firebase 콘솔 → 프로젝트 설정 → 클라우드 메시징 → 웹 푸시 인증서의 공개 키
-  vapidKey: "",
+  vapidKey: "BCZxHuZ-BJKkeo3YsD64ST_FQ_HMzbV2EtmZFQIJ_SjmJBiIleZ8Fx2sDs2eRWa5XFmmEGPloi_DmiZ_swRY3ik",
 });
 
 globalThis.PINCON_SCHOOL_CONFIG = Object.freeze({
