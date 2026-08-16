@@ -41,25 +41,80 @@ service cloud.firestore {
         );
     }
 
+    function studentCanCreateFor(targets) {
+      return signedIn()
+        && targets is list
+        && targets.size() == 1
+        && targets.hasOnly(allowedTargets());
+    }
+
     function validContent(schoolId) {
       return request.resource.data.schoolId == schoolId
         && request.resource.data.kind in ['notice', 'schedule', 'supply', 'event', 'group']
         && request.resource.data.title is string
         && request.resource.data.title.size() <= 80
         && request.resource.data.body is string
-        && request.resource.data.body.size() <= 1000
-        && canPublishTo(schoolId, request.resource.data.targets);
+        && request.resource.data.body.size() <= 1000;
     }
 
     match /schools/{schoolId}/content/{contentId} {
       allow read: if true;
-      allow create, update: if validContent(schoolId);
-      allow delete: if canPublishTo(schoolId, resource.data.targets);
+      allow create: if validContent(schoolId)
+        && (
+          canPublishTo(schoolId, request.resource.data.targets)
+          || studentCanCreateFor(request.resource.data.targets)
+        );
+      allow update: if validContent(schoolId)
+        && (
+          canPublishTo(schoolId, request.resource.data.targets)
+          || (
+            signedIn()
+            && request.resource.data.targets == resource.data.targets
+            && request.resource.data.targets.hasOnly(allowedTargets())
+          )
+        );
+      allow delete: if schoolAdmin(schoolId);
+    }
+
+    match /schools/{schoolId}/history/{historyId} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.action in ['create', 'update', 'delete', 'restore']
+        && request.resource.data.contentId is string
+        && request.resource.data.targets is list
+        && request.resource.data.targets.size() > 0
+        && request.resource.data.targets.size() <= 30
+        && request.resource.data.targets.hasOnly(allowedTargets());
+      allow update, delete: if false;
     }
 
     match /schools/{schoolId}/roles/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create, update, delete: if schoolAdmin(schoolId);
+    }
+
+    match /schools/{schoolId}/neisTimetables/{timetableId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /schools/{schoolId}/meals/{mealId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /schools/{schoolId}/pushSubscriptions/{subscriptionId} {
+      allow read, delete: if false;
+      allow create, update: if
+        request.resource.data.keys().hasOnly([
+          'token', 'classKey', 'enabled', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.token is string
+        && request.resource.data.token.size() >= 20
+        && request.resource.data.token.size() <= 4096
+        && request.resource.data.classKey in allowedTargets()
+        && request.resource.data.enabled is bool;
     }
 
     match /{document=**} {
