@@ -32,10 +32,40 @@ function addDays(date, amount) {
   return next.toISOString().slice(0, 10);
 }
 
-async function fetchNeisRows(datasetName, path, rangeKeys, start, end) {
+function semesterFor(date) {
+  const [year, month] = String(date).split("-").map(Number);
+  return { year: String(year), semester: month >= 8 ? "2" : "1" };
+}
+
+function neisResult(payload, datasetName) {
+  const direct = payload?.RESULT;
+  if (direct?.CODE || direct?.MESSAGE) {
+    return { code: String(direct.CODE || ""), message: String(direct.MESSAGE || "") };
+  }
+  const head = payload?.[datasetName]?.[0]?.head;
+  if (Array.isArray(head)) {
+    const result = head.find((item) => item?.RESULT)?.RESULT;
+    if (result?.CODE || result?.MESSAGE) {
+      return { code: String(result.CODE || ""), message: String(result.MESSAGE || "") };
+    }
+  }
+  return { code: "", message: "" };
+}
+
+function throwForNeisError(payload, datasetName) {
+  const result = neisResult(payload, datasetName);
+  if (result.code.startsWith("ERROR")) {
+    throw new Error(`${datasetName} NEIS 오류 ${result.code}: ${result.message || "알 수 없는 오류"}`);
+  }
+  return result;
+}
+
+async function fetchNeisRows(datasetName, path, queryParams = {}) {
   const rows = [];
   let page = 1;
   let total = Infinity;
+  let lastResult = { code: "", message: "" };
+
   while (rows.length < total) {
     const query = new URLSearchParams({
       KEY: process.env.NEIS_API_KEY,
@@ -44,27 +74,69 @@ async function fetchNeisRows(datasetName, path, rangeKeys, start, end) {
       pSize: String(PAGE_SIZE),
       ATPT_OFCDC_SC_CODE: SCHOOL.officeCode,
       SD_SCHUL_CODE: SCHOOL.schoolCode,
-      [rangeKeys[0]]: compactDate(start),
-      [rangeKeys[1]]: compactDate(end),
+      ...queryParams,
     });
     const response = await fetch(`${NEIS_BASE_URL}/${path}?${query}`);
     if (!response.ok) throw new Error(`${datasetName} 요청 실패: HTTP ${response.status}`);
     const payload = await response.json();
+    lastResult = throwForNeisError(payload, datasetName);
     const nextRows = rowsFromPayload(payload, datasetName);
     total = totalCountFromPayload(payload, datasetName);
     rows.push(...nextRows);
     if (!nextRows.length || nextRows.length < PAGE_SIZE) break;
     page += 1;
   }
-  return rows;
+
+  return { rows, result: lastResult };
 }
 
 async function fetchTimetables(start, end) {
-  return fetchNeisRows("hisTimetable", "hisTimetable", ["TI_FROM_YMD", "TI_TO_YMD"], start, end);
+  const ranged = await fetchNeisRows("hisTimetable", "hisTimetable", {
+    TI_FROM_YMD: compactDate(start),
+    TI_TO_YMD: compactDate(end),
+  });
+  if (ranged.rows.length) {
+    return { rows: ranged.rows, mode: "date-range", result: ranged.result };
+  }
+
+  const { year, semester } = semesterFor(start);
+  const semesterWide = await fetchNeisRows("hisTimetable", "hisTimetable", {
+    AY: year,
+    SEM: semester,
+  });
+  const startCompact = compactDate(start);
+  const endCompact = compactDate(end);
+  const filtered = semesterWide.rows.filter((row) => {
+    const date = String(row.ALL_TI_YMD || "").replaceAll("-", "");
+    return /^\d{8}$/.test(date) && date >= startCompact && date <= endCompact;
+  });
+
+  if (!filtered.length) {
+    const latest = semesterWide.rows
+      .map((row) => String(row.ALL_TI_YMD || "").replaceAll("-", ""))
+      .filter((date) => /^\d{8}$/.test(date))
+      .sort()
+      .at(-1) || "none";
+    console.warn(JSON.stringify({
+      warning: "NEIS_TIMETABLE_EMPTY_FOR_RANGE",
+      start,
+      end,
+      queryResult: ranged.result,
+      semesterResult: semesterWide.result,
+      semesterRows: semesterWide.rows.length,
+      latestPublishedDate: latest,
+    }));
+  }
+
+  return { rows: filtered, mode: "semester-fallback", result: semesterWide.result };
 }
 
 async function fetchMeals(start, end) {
-  return fetchNeisRows("mealServiceDietInfo", "mealServiceDietInfo", ["MLSV_FROM_YMD", "MLSV_TO_YMD"], start, end);
+  const response = await fetchNeisRows("mealServiceDietInfo", "mealServiceDietInfo", {
+    MLSV_FROM_YMD: compactDate(start),
+    MLSV_TO_YMD: compactDate(end),
+  });
+  return response.rows;
 }
 
 async function readExisting(db, refs) {
@@ -110,7 +182,8 @@ async function sendClassNotification(db, classKey, title, body) {
 }
 
 async function syncTimetables(db, start, end) {
-  const rows = await fetchTimetables(start, end);
+  const fetched = await fetchTimetables(start, end);
+  const rows = fetched.rows;
   const documents = groupTimetableRows(rows);
   const collection = db.collection("schools").doc(SCHOOL.id).collection("neisTimetables");
   const refs = documents.map((item) => collection.doc(item.id));
@@ -160,7 +233,13 @@ async function syncTimetables(db, start, end) {
     pushes += await sendClassNotification(db, change.classKey, title, body);
   }
 
-  return { rows: rows.length, documents: documents.length, changes: changes.length, pushes };
+  return {
+    mode: fetched.mode,
+    rows: rows.length,
+    documents: documents.length,
+    changes: changes.length,
+    pushes,
+  };
 }
 
 async function syncMeals(db, start, end) {
