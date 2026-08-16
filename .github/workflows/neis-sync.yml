@@ -33,6 +33,8 @@ jobs:
         run: |
           npm ci
           npm install --no-save parse-comcigan@1.1.2
+      - name: Diagnose Comcigan response
+        run: node automation/comcigan-diagnose.mjs
       - name: Sync Comcigan timetable, NEIS fallback and meals
         run: node automation/neis-sync.mjs
         env:
