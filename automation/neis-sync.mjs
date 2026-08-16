@@ -186,9 +186,13 @@ async function syncMeals(db, start, end) {
 }
 
 async function main() {
-  if (!process.env.NEIS_API_KEY || !process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    console.log("NEIS_API_KEY 또는 FIREBASE_SERVICE_ACCOUNT_JSON이 없어 동기화를 건너뜁니다.");
-    return;
+  const missingSecrets = [
+    ["NEIS_API_KEY", process.env.NEIS_API_KEY],
+    ["FIREBASE_SERVICE_ACCOUNT_JSON", process.env.FIREBASE_SERVICE_ACCOUNT_JSON],
+  ].filter(([, value]) => !String(value || "").trim()).map(([name]) => name);
+
+  if (missingSecrets.length) {
+    throw new Error(`필수 GitHub Actions Secret이 없습니다: ${missingSecrets.join(", ")}`);
   }
 
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
