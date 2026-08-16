@@ -1,0 +1,1476 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#dff7f2">
+  <meta name="color-scheme" content="light">
+  <title>ParkPin — 내 차 위치 기억하기</title>
+  <style>
+    :root {
+      --ink: #12322f;
+      --muted: #607875;
+      --line: rgba(20, 74, 68, .12);
+      --glass: rgba(255, 255, 255, .72);
+      --glass-strong: rgba(255, 255, 255, .9);
+      --mint: #0cae91;
+      --mint-dark: #087963;
+      --mint-soft: #d8f6ef;
+      --blue: #2478f2;
+      --amber: #f3a53b;
+      --red: #f45d5d;
+      --shadow: 0 22px 55px rgba(21, 65, 60, .14), 0 4px 16px rgba(21, 65, 60, .08);
+      --radius-xl: 30px;
+      --radius-lg: 23px;
+      --radius-md: 17px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; }
+    html { height: 100%; background: #e8f7f3; }
+    body {
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 30%),
+        radial-gradient(circle at 92% 18%, rgba(169,232,255,.55) 0, rgba(169,232,255,0) 30%),
+        linear-gradient(145deg, #edf9f6 0%, #dff3ef 52%, #e9f4fb 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 3px solid rgba(36, 120, 242, .28);
+      outline-offset: 2px;
+    }
+    [hidden] { display: none !important; }
+
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      width: 340px;
+      height: 340px;
+      border-radius: 50%;
+      filter: blur(2px);
+      opacity: .5;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.96), rgba(76,221,194,.22) 48%, rgba(76,221,194,0) 72%);
+    }
+    .orb.one { left: -180px; top: 22%; }
+    .orb.two { right: -210px; bottom: 3%; background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(75,143,255,.18) 45%, rgba(75,143,255,0) 72%); }
+
+    .app {
+      position: relative;
+      width: min(1120px, 100%);
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: 18px 16px calc(112px + var(--safe-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 2px 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      border-radius: 15px;
+      color: #fff;
+      background: linear-gradient(145deg, #25cbb0, #078b73);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 10px 22px rgba(9,139,115,.25);
+    }
+    .brand-mark:after {
+      content: "";
+      position: absolute;
+      inset: 4px;
+      border: 1px solid rgba(255,255,255,.36);
+      border-radius: 12px;
+    }
+    .brand-mark svg { width: 23px; height: 23px; }
+    .brand-copy strong { display: block; font-size: 18px; letter-spacing: -.45px; }
+    .brand-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-weight: 700; }
+
+    .header-state {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid rgba(255,255,255,.86);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,.56);
+      box-shadow: 0 7px 18px rgba(27,75,69,.08), inset 0 1px 0 rgba(255,255,255,.7);
+      backdrop-filter: blur(18px) saturate(150%);
+      -webkit-backdrop-filter: blur(18px) saturate(150%);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .state-dot { width: 8px; height: 8px; border-radius: 50%; background: #9caaa8; box-shadow: 0 0 0 4px rgba(156,170,168,.13); }
+    .header-state.live { color: var(--mint-dark); }
+    .header-state.live .state-dot { background: #12b896; box-shadow: 0 0 0 4px rgba(18,184,150,.16), 0 0 14px rgba(18,184,150,.55); }
+    .header-state.demo .state-dot { background: var(--amber); box-shadow: 0 0 0 4px rgba(243,165,59,.17); }
+
+    .view { display: none; animation: viewIn .32s ease both; }
+    .view.active { display: block; }
+    @keyframes viewIn { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+
+    .map-layout { display: grid; gap: 14px; }
+    .map-shell {
+      position: relative;
+      height: 420px;
+      height: clamp(310px, 48vh, 530px);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: var(--radius-xl);
+      background: #cfe5df;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.8);
+      isolation: isolate;
+    }
+    #mapCanvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+    #mapCanvas.dragging { cursor: grabbing; }
+    .map-glaze {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        linear-gradient(130deg, rgba(255,255,255,.34), rgba(255,255,255,0) 28%),
+        radial-gradient(circle at 80% 8%, rgba(255,255,255,.25), rgba(255,255,255,0) 23%);
+    }
+    .map-chip {
+      position: absolute;
+      z-index: 4;
+      top: 14px;
+      left: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      max-width: calc(100% - 82px);
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: 15px;
+      color: #22423f;
+      background: rgba(255,255,255,.78);
+      box-shadow: 0 10px 28px rgba(31,70,66,.13);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .map-chip svg { width: 16px; height: 16px; color: var(--mint-dark); flex: 0 0 auto; }
+    .map-tools {
+      position: absolute;
+      z-index: 5;
+      top: 14px;
+      right: 14px;
+      display: grid;
+      gap: 7px;
+    }
+    .map-tool {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: 14px;
+      color: #294b47;
+      background: rgba(255,255,255,.79);
+      box-shadow: 0 9px 24px rgba(31,70,66,.13);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      cursor: pointer;
+    }
+    .map-tool:active { transform: scale(.94); }
+    .map-tool svg { width: 19px; height: 19px; }
+    .map-empty {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      justify-items: center;
+      gap: 12px;
+      padding: 34px;
+      text-align: center;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(222,242,237,.62), rgba(226,244,240,.32));
+    }
+    .map-empty .pulse {
+      display: grid;
+      place-items: center;
+      width: 62px;
+      height: 62px;
+      border: 1px solid rgba(255,255,255,.85);
+      border-radius: 22px;
+      color: #fff;
+      background: linear-gradient(145deg, rgba(31,198,169,.95), rgba(4,128,105,.95));
+      box-shadow: 0 0 0 10px rgba(20,174,145,.1), 0 16px 32px rgba(12,121,102,.24);
+    }
+    .pulse svg { width: 28px; height: 28px; }
+    .map-empty strong { font-size: 18px; letter-spacing: -.4px; }
+    .map-empty p { max-width: 260px; margin: -4px 0 0; color: #607976; font-size: 12px; line-height: 1.55; }
+    .gps-map-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: 14px;
+      color: #fff;
+      background: linear-gradient(135deg, #18b99c, #087a65);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 12px 24px rgba(8,122,101,.24);
+      font-size: 11px;
+      font-weight: 900;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .gps-map-button:active { transform: scale(.97); }
+    .gps-map-button:disabled { opacity: .58; cursor: wait; }
+    .gps-map-button svg { width: 17px; height: 17px; }
+    .attribution {
+      position: absolute;
+      z-index: 5;
+      right: 12px;
+      bottom: 10px;
+      padding: 3px 6px;
+      border-radius: 7px;
+      color: #405a57;
+      background: rgba(255,255,255,.72);
+      font-size: 9px;
+      text-decoration: none;
+    }
+    .candidate {
+      position: absolute;
+      z-index: 8;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px;
+      border: 1px solid rgba(255,255,255,.94);
+      border-radius: 20px;
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 17px 40px rgba(21,65,60,.2);
+      backdrop-filter: blur(22px) saturate(160%);
+      -webkit-backdrop-filter: blur(22px) saturate(160%);
+    }
+    .candidate-copy { min-width: 0; flex: 1; }
+    .candidate-copy strong { display: block; font-size: 13px; }
+    .candidate-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .mini-btn { min-height: 36px; padding: 0 12px; border: 0; border-radius: 12px; font-size: 11px; font-weight: 900; cursor: pointer; }
+    .mini-btn.yes { color: #fff; background: var(--mint-dark); }
+    .mini-btn.no { color: var(--muted); background: #edf3f2; }
+
+    .side-stack { display: grid; align-content: start; gap: 12px; }
+    .glass-card {
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: var(--radius-lg);
+      background: var(--glass);
+      box-shadow: 0 15px 38px rgba(24,70,64,.09), inset 0 1px 0 rgba(255,255,255,.8);
+      backdrop-filter: blur(24px) saturate(150%);
+      -webkit-backdrop-filter: blur(24px) saturate(150%);
+    }
+    .action-card { padding: 17px; }
+    .eyebrow { margin: 0 0 7px; color: var(--mint-dark); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .action-card h1 { margin: 0; font-size: clamp(22px, 6vw, 31px); line-height: 1.17; letter-spacing: -1.2px; }
+    .action-card .lead { margin: 9px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.62; }
+    .privacy-line { display: flex; align-items: center; gap: 7px; margin: 0 0 14px; color: #52716d; font-size: 10px; font-weight: 700; }
+    .privacy-line svg { width: 14px; height: 14px; color: var(--mint-dark); }
+
+    .gps-permission-button {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 58px;
+      margin-bottom: 9px;
+      padding: 9px 12px;
+      border: 1px solid rgba(12,174,145,.18);
+      border-radius: 16px;
+      color: var(--ink);
+      background: rgba(225,248,243,.72);
+      text-align: left;
+      cursor: pointer;
+    }
+    .gps-permission-button:active { transform: scale(.985); }
+    .gps-permission-button:disabled { opacity: .6; cursor: wait; }
+    .gps-permission-button.granted { border-color: rgba(36,120,242,.2); background: rgba(231,241,255,.78); }
+    .gps-permission-button.denied { border-color: rgba(244,93,93,.22); background: rgba(255,239,239,.8); }
+    .gps-permission-icon {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 auto;
+      margin-right: 10px;
+      border-radius: 13px;
+      color: #fff;
+      background: var(--mint);
+      box-shadow: 0 8px 16px rgba(12,174,145,.2);
+    }
+    .gps-permission-button.granted .gps-permission-icon { background: var(--blue); }
+    .gps-permission-button.denied .gps-permission-icon { background: var(--red); }
+    .gps-permission-icon svg { width: 18px; height: 18px; }
+    .gps-permission-copy { min-width: 0; flex: 1; }
+    .gps-permission-copy strong { display: block; font-size: 12px; }
+    .gps-permission-copy small { display: block; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+    .gps-permission-chevron { margin-left: 8px; color: var(--mint-dark); font-size: 22px; line-height: 1; }
+
+    .primary-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 54px;
+      border: 0;
+      border-radius: 17px;
+      color: #fff;
+      background: linear-gradient(135deg, #18b99c, #087a65);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 13px 25px rgba(8,122,101,.25);
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+    .primary-button:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 16px 30px rgba(8,122,101,.29); }
+    .primary-button:active { transform: scale(.98); }
+    .primary-button.pause { background: linear-gradient(135deg, #53716d, #2d4d49); }
+    .primary-button svg { width: 20px; height: 20px; }
+    .primary-button:disabled { opacity: .54; cursor: wait; }
+
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 9px; }
+    .soft-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 48px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      color: #214a45;
+      background: rgba(247,252,251,.78);
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .soft-button:active { transform: scale(.97); }
+    .soft-button svg { width: 17px; height: 17px; }
+    .soft-button.accent { color: #fff; border-color: transparent; background: linear-gradient(135deg, #3687f4, #245ec7); box-shadow: 0 10px 22px rgba(36,94,199,.18); }
+    .soft-button:disabled { opacity: .42; cursor: not-allowed; }
+
+    .parking-card { position: relative; overflow: hidden; padding: 17px; }
+    .parking-card:before {
+      content: "";
+      position: absolute;
+      width: 170px;
+      height: 170px;
+      right: -85px;
+      top: -90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(41,128,242,.22), rgba(41,128,242,0) 68%);
+      pointer-events: none;
+    }
+    .parking-top { position: relative; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .parking-label { display: flex; align-items: center; gap: 8px; color: var(--blue); font-size: 10px; font-weight: 900; letter-spacing: .06em; }
+    .parking-label span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 10px; background: rgba(36,120,242,.1); }
+    .parking-label svg { width: 16px; height: 16px; }
+    .parking-age { color: var(--muted); font-size: 10px; font-weight: 800; white-space: nowrap; }
+    .parking-title { position: relative; margin: 14px 0 2px; font-size: 19px; letter-spacing: -.5px; }
+    .parking-spot { position: relative; margin: 0; color: var(--ink); font-size: 28px; font-weight: 950; letter-spacing: -1px; }
+    .parking-spot.empty { color: #89a09d; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+    .parking-meta { position: relative; display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 9px; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .parking-meta span { display: inline-flex; align-items: center; gap: 4px; }
+    .parking-meta svg { width: 13px; height: 13px; }
+    .distance-box { position: relative; display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 11px 12px; border-radius: 14px; background: rgba(36,120,242,.08); }
+    .direction-arrow { display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto; border-radius: 12px; color: #fff; background: var(--blue); box-shadow: 0 8px 16px rgba(36,120,242,.22); transition: transform .35s ease; }
+    .direction-arrow svg { width: 17px; height: 17px; }
+    .distance-copy strong { display: block; font-size: 14px; }
+    .distance-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; }
+    .photo-thumb { position: relative; width: 100%; max-height: 180px; margin-top: 12px; border-radius: 15px; object-fit: cover; border: 1px solid rgba(255,255,255,.9); }
+
+    .page-heading { padding: 7px 3px 13px; }
+    .page-heading .eyebrow { margin-bottom: 4px; }
+    .page-heading h2 { margin: 0; font-size: 28px; letter-spacing: -1px; }
+    .page-heading p { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .history-list { display: grid; gap: 11px; }
+    .empty-list { padding: 34px 22px; text-align: center; }
+    .empty-list .empty-icon { display: grid; place-items: center; width: 55px; height: 55px; margin: 0 auto 12px; border-radius: 19px; color: var(--mint-dark); background: var(--mint-soft); }
+    .empty-icon svg { width: 25px; height: 25px; }
+    .empty-list strong { font-size: 15px; }
+    .empty-list p { margin: 6px auto 0; max-width: 270px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .history-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 15px; }
+    .history-item.current { border-color: rgba(36,120,242,.28); box-shadow: 0 15px 38px rgba(36,120,242,.1), inset 0 1px 0 rgba(255,255,255,.8); }
+    .history-main { min-width: 0; }
+    .history-kicker { display: flex; align-items: center; gap: 7px; color: var(--blue); font-size: 9px; font-weight: 900; }
+    .history-kicker .now { padding: 3px 6px; border-radius: 999px; color: #fff; background: var(--blue); }
+    .history-main h3 { margin: 8px 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
+    .history-main .spot { margin: 0; color: var(--ink); font-size: 13px; font-weight: 850; }
+    .history-main .when { margin: 8px 0 0; color: var(--muted); font-size: 9px; }
+    .history-photo { width: 74px; height: 74px; border-radius: 16px; object-fit: cover; background: #dce9e6; }
+    .history-actions { grid-column: 1 / -1; display: flex; gap: 7px; padding-top: 2px; }
+    .list-btn { flex: 1; min-height: 37px; border: 1px solid var(--line); border-radius: 12px; color: #355b56; background: rgba(255,255,255,.64); font-size: 10px; font-weight: 900; cursor: pointer; }
+    .list-btn.blue { color: #fff; border-color: transparent; background: var(--blue); }
+    .list-btn.danger { flex: 0 0 44px; color: var(--red); }
+
+    .settings-stack { display: grid; gap: 12px; }
+    .settings-card { padding: 18px; }
+    .settings-card h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 15px; }
+    .settings-card h3 svg { width: 18px; height: 18px; color: var(--mint-dark); }
+    .settings-card > p { margin: 0 0 14px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 52px; border-top: 1px solid var(--line); }
+    .setting-copy strong { display: block; font-size: 12px; }
+    .setting-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .select { min-height: 36px; padding: 0 30px 0 11px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); background: rgba(255,255,255,.72); font-size: 11px; font-weight: 800; }
+    .switch { position: relative; width: 48px; height: 28px; flex: 0 0 auto; }
+    .switch input { position: absolute; opacity: 0; }
+    .switch span { position: absolute; inset: 0; border-radius: 999px; background: #cbd8d6; transition: .2s ease; cursor: pointer; }
+    .switch span:after { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 7px rgba(27,65,60,.22); transition: .2s ease; }
+    .switch input:checked + span { background: var(--mint); }
+    .switch input:checked + span:after { transform: translateX(20px); }
+    .wide-secondary { width: 100%; min-height: 45px; margin-top: 9px; border: 1px solid var(--line); border-radius: 14px; color: #315b56; background: rgba(255,255,255,.68); font-size: 11px; font-weight: 900; cursor: pointer; }
+    .wide-secondary.danger { color: #d74848; border-color: rgba(244,93,93,.18); background: rgba(255,240,240,.72); }
+    .tech-note { display: flex; gap: 10px; padding: 13px; border-radius: 14px; color: #4f6b68; background: rgba(12,174,145,.07); font-size: 10px; line-height: 1.55; }
+    .tech-note svg { width: 17px; height: 17px; flex: 0 0 auto; color: var(--mint-dark); }
+
+    .dock {
+      position: fixed;
+      z-index: 30;
+      left: 50%;
+      bottom: calc(13px + var(--safe-bottom));
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: min(390px, calc(100% - 28px));
+      min-height: 68px;
+      padding: 7px;
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: 23px;
+      background: rgba(251,255,254,.76);
+      box-shadow: 0 20px 46px rgba(19,61,56,.2), inset 0 1px 0 rgba(255,255,255,.9);
+      backdrop-filter: blur(26px) saturate(170%);
+      -webkit-backdrop-filter: blur(26px) saturate(170%);
+      transform: translateX(-50%);
+    }
+    .nav-btn { display: grid; place-items: center; align-content: center; gap: 3px; border: 0; border-radius: 17px; color: #758b88; background: transparent; font-size: 9px; font-weight: 900; cursor: pointer; transition: .18s ease; }
+    .nav-btn svg { width: 21px; height: 21px; }
+    .nav-btn.active { color: #fff; background: linear-gradient(135deg, #23baa0, #0a816c); box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 8px 17px rgba(10,129,108,.22); }
+
+    .modal-backdrop {
+      position: fixed;
+      z-index: 80;
+      inset: 0;
+      display: grid;
+      align-items: end;
+      padding: 18px 14px calc(18px + var(--safe-bottom));
+      background: rgba(17,48,44,.28);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      opacity: 0;
+      transition: opacity .2s ease;
+    }
+    .modal-backdrop.open { opacity: 1; }
+    .sheet {
+      width: min(560px, 100%);
+      max-height: calc(100vh - 30px);
+      max-height: min(790px, calc(100dvh - 30px));
+      margin: 0 auto;
+      overflow: auto;
+      padding: 12px 17px 18px;
+      border: 1px solid rgba(255,255,255,.95);
+      border-radius: 30px;
+      background: rgba(250,254,253,.94);
+      box-shadow: 0 28px 80px rgba(13,45,41,.25), inset 0 1px 0 #fff;
+      transform: translateY(22px) scale(.985);
+      transition: transform .24s ease;
+    }
+    .modal-backdrop.open .sheet { transform: translateY(0) scale(1); }
+    .handle { width: 42px; height: 5px; margin: 2px auto 14px; border-radius: 99px; background: #cfdbd9; }
+    .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .sheet-head h2 { margin: 0; font-size: 22px; letter-spacing: -.7px; }
+    .sheet-head p { margin: 5px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .close-btn { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto; border: 0; border-radius: 50%; color: #526d69; background: #e9f0ef; cursor: pointer; }
+    .close-btn svg { width: 17px; height: 17px; }
+    .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field { display: grid; gap: 6px; margin-bottom: 11px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: #4b6864; font-size: 10px; font-weight: 900; }
+    .field input, .field textarea {
+      width: 100%;
+      min-height: 45px;
+      padding: 11px 12px;
+      border: 1px solid rgba(30,87,80,.14);
+      border-radius: 14px;
+      color: var(--ink);
+      background: rgba(255,255,255,.82);
+      box-shadow: inset 0 1px 2px rgba(19,57,52,.035);
+      font-size: 13px;
+    }
+    .field textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
+    .coord-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-bottom: 11px; border-radius: 14px; color: #536f6b; background: rgba(12,174,145,.08); font-size: 9px; }
+    .coord-row strong { display: block; margin-bottom: 2px; color: var(--ink); font-size: 10px; }
+    .lookup-btn { flex: 0 0 auto; min-height: 34px; padding: 0 10px; border: 0; border-radius: 11px; color: var(--mint-dark); background: rgba(255,255,255,.76); font-size: 9px; font-weight: 900; cursor: pointer; }
+    .photo-picker { display: grid; grid-template-columns: 76px 1fr; gap: 11px; align-items: center; padding: 10px; border: 1px dashed rgba(30,87,80,.21); border-radius: 16px; background: rgba(255,255,255,.48); }
+    .photo-preview { display: grid; place-items: center; width: 76px; height: 70px; overflow: hidden; border-radius: 13px; color: #6c8581; background: #e8f0ee; }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-preview svg { width: 23px; height: 23px; }
+    .photo-copy strong { display: block; font-size: 11px; }
+    .photo-copy span { display: block; margin: 4px 0 8px; color: var(--muted); font-size: 9px; line-height: 1.4; }
+    .file-label { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 10px; border-radius: 10px; color: #fff; background: #526e6a; font-size: 9px; font-weight: 900; cursor: pointer; }
+    .file-label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .save-button { width: 100%; min-height: 52px; margin-top: 13px; border: 0; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #2683f4, #245bc3); box-shadow: 0 12px 24px rgba(36,91,195,.2); font-weight: 900; cursor: pointer; }
+    .save-button:disabled { opacity: .5; cursor: wait; }
+
+    .route-options { display: grid; gap: 9px; }
+    .route-option { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: rgba(255,255,255,.72); text-decoration: none; cursor: pointer; }
+    .route-option .route-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; color: #fff; background: var(--blue); }
+    .route-option.kakao .route-icon { color: #2b2200; background: #fee500; }
+    .route-option.copy .route-icon { background: #6c827f; }
+    .route-option svg { width: 18px; height: 18px; }
+    .route-option strong { display: block; font-size: 12px; }
+    .route-option span { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+
+    .toast {
+      position: fixed;
+      z-index: 120;
+      left: 50%;
+      top: max(16px, env(safe-area-inset-top, 0px));
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: min(420px, calc(100% - 28px));
+      min-height: 48px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,.95);
+      border-radius: 16px;
+      color: #fff;
+      background: rgba(25,62,57,.92);
+      box-shadow: 0 18px 42px rgba(13,45,41,.25);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      font-size: 11px;
+      font-weight: 800;
+      transform: translate(-50%, -90px);
+      opacity: 0;
+      transition: .28s ease;
+    }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .toast svg { width: 18px; height: 18px; flex: 0 0 auto; }
+
+    @media (min-width: 800px) {
+      .app { padding: 26px 24px 118px; }
+      .topbar { margin-bottom: 20px; }
+      .map-layout { grid-template-columns: minmax(0, 1.5fr) minmax(310px, .72fr); gap: 18px; }
+      .map-shell { height: calc(100vh - 160px); }
+      .map-shell { height: min(680px, calc(100dvh - 160px)); min-height: 540px; }
+      .side-stack { max-height: min(680px, calc(100dvh - 160px)); overflow: auto; padding-right: 3px; }
+      .action-card h1 { font-size: 31px; }
+      .history-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .settings-stack { grid-template-columns: 1fr 1fr; }
+      .settings-card.wide { grid-column: 1 / -1; }
+      .modal-backdrop { align-items: center; }
+    }
+
+    @media (max-width: 380px) {
+      .app { padding-left: 11px; padding-right: 11px; }
+      .brand-copy span { display: none; }
+      .header-state { padding: 0 9px; }
+      .action-card { padding: 15px; }
+      .field-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+      .dock { width: calc(100% - 20px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 22s7-6.1 7-13a7 7 0 1 0-14 0c0 6.9 7 13 7 13Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="12" cy="9" r="2.5" fill="none" stroke="currentColor" stroke-width="1.9"/></symbol>
+    <symbol id="i-location" viewBox="0 0 24 24"><path d="m20 4-7.3 16-2.1-6.6L4 11.3 20 4Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+    <symbol id="i-car" viewBox="0 0 24 24"><path d="m5 11 1.7-4.2A2 2 0 0 1 8.6 5h6.8a2 2 0 0 1 1.9 1.8L19 11M4 12.5A1.5 1.5 0 0 1 5.5 11h13a1.5 1.5 0 0 1 1.5 1.5V17H4v-4.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 17v2M18 17v2M7.5 14h1M15.5 14h1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M4.7 7.5A8.5 8.5 0 1 1 3.5 14M4.7 7.5V3.7M4.7 7.5h3.8M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.4 4.1 10 2h4l.6 2.1 1.5.9 2.1-.5 2 3.5-1.5 1.5v1.8l1.5 1.5-2 3.5-2.1-.5-1.5.9L14 22h-4l-.6-2.1-1.5-.9-2.1.5-2-3.5 1.5-1.5v-1.8L3.8 11l2-3.5 2.1.5 1.5-.9Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><path d="M6 19c-2.5 0-3-2-3-3.5S4 12 6 12h12c2 0 3-1.5 3-3s-.7-4-3.5-4M6 19l3-3M6 19l3 3" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="m12 3 6 17-6-3-6 3 6-17Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-signal" viewBox="0 0 24 24"><path d="M4 18h2v2H4zM9 14h2v6H9zM14 9h2v11h-2zM19 4h2v16h-2z" fill="currentColor"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 7.5h3L8.5 5h7L17 7.5h3v12H4v-12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.2 4.2L19 6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="18" cy="19" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m8.3 10.9 7.4-4.6M8.3 13.1l7.4 4.6" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </svg>
+
+  <div class="ambient" aria-hidden="true"><div class="orb one"></div><div class="orb two"></div></div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><svg><use href="#i-pin"></use></svg></div>
+        <div class="brand-copy"><strong>ParkPin</strong><span>내 차 위치를 잊지 않도록</span></div>
+      </div>
+      <div class="header-state" id="headerState" role="status"><span class="state-dot"></span><span id="headerStateText">대기 중</span></div>
+    </header>
+
+    <main>
+      <section class="view active" id="view-map" aria-labelledby="mapTitle">
+        <div class="map-layout">
+          <div class="map-shell">
+            <canvas id="mapCanvas" aria-label="현재 위치와 주차 위치 지도"></canvas>
+            <div class="map-glaze"></div>
+            <div class="map-chip"><svg><use href="#i-signal"></use></svg><span id="mapStatus">GPS 권한 요청 필요</span></div>
+            <div class="map-tools" aria-label="지도 도구">
+              <button class="map-tool" id="zoomIn" type="button" aria-label="지도 확대"><svg><use href="#i-plus"></use></svg></button>
+              <button class="map-tool" id="zoomOut" type="button" aria-label="지도 축소"><svg><use href="#i-minus"></use></svg></button>
+              <button class="map-tool" id="centerMap" type="button" aria-label="내 위치로 이동"><svg><use href="#i-target"></use></svg></button>
+            </div>
+            <div class="map-empty" id="mapEmpty">
+              <div class="pulse"><svg><use href="#i-location"></use></svg></div>
+              <strong id="mapEmptyTitle">GPS 위치를 연결해 주세요</strong>
+              <p id="mapEmptyText">버튼을 누르면 브라우저가 위치 권한을 요청하고 현재 위치를 지도에 표시해요.</p>
+              <button class="gps-map-button" id="gpsMapBtn" type="button"><svg><use href="#i-location"></use></svg><span id="gpsMapBtnText">GPS 위치 권한 요청</span></button>
+            </div>
+            <div class="candidate" id="candidate" hidden>
+              <div class="candidate-copy"><strong>방금 주차했나요?</strong><span>운전 뒤 정차 상태가 감지됐어요. 확인해야만 저장돼요.</span></div>
+              <button class="mini-btn no" id="candidateNo" type="button">아니요</button>
+              <button class="mini-btn yes" id="candidateYes" type="button">주차했어요</button>
+            </div>
+            <a class="attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>
+          </div>
+
+          <div class="side-stack">
+            <section class="glass-card action-card">
+              <p class="eyebrow">LOCATION MEMORY</p>
+              <h1 id="mapTitle">차에서 내린 그곳을<br>정확히 기억해요.</h1>
+              <p class="lead">운전 동선을 기록하다 멈추면 주차 여부를 묻고, GPS 위치와 층·구역·기둥 번호·사진을 함께 보관합니다.</p>
+              <p class="privacy-line"><svg><use href="#i-lock"></use></svg>위치와 사진은 이 기기 안에만 저장돼요.</p>
+              <button class="gps-permission-button" id="gpsPermissionBtn" type="button">
+                <span class="gps-permission-icon"><svg><use href="#i-location"></use></svg></span>
+                <span class="gps-permission-copy"><strong id="gpsPermissionTitle">GPS 위치 권한 요청</strong><small id="gpsPermissionState">누르면 브라우저 권한 팝업이 열려요.</small></span>
+                <span class="gps-permission-chevron" aria-hidden="true">›</span>
+              </button>
+              <button class="primary-button" id="trackingBtn" type="button"><svg><use href="#i-play"></use></svg><span>이동 추적 시작</span></button>
+              <div class="quick-grid">
+                <button class="soft-button" id="saveParkBtn" type="button"><svg><use href="#i-pin"></use></svg>지금 주차 저장</button>
+                <button class="soft-button accent" id="returnBtn" type="button" disabled><svg><use href="#i-route"></use></svg>차로 돌아가기</button>
+              </div>
+            </section>
+
+            <section class="glass-card parking-card" id="parkingCard">
+              <div class="parking-top">
+                <div class="parking-label"><span><svg><use href="#i-car"></use></svg></span>현재 주차</div>
+                <div class="parking-age" id="parkingAge">저장된 위치 없음</div>
+              </div>
+              <h2 class="parking-title" id="parkingName">아직 주차 위치가 없어요</h2>
+              <p class="parking-spot empty" id="parkingSpot">주차한 뒤 ‘지금 주차 저장’을 눌러 주세요.</p>
+              <div class="parking-meta" id="parkingMeta" hidden></div>
+              <div class="distance-box" id="distanceBox" hidden>
+                <div class="direction-arrow" id="directionArrow"><svg><use href="#i-arrow"></use></svg></div>
+                <div class="distance-copy"><strong id="distanceText">거리 계산 중</strong><span id="directionText">현재 위치를 연결하면 방향이 표시돼요.</span></div>
+              </div>
+              <img class="photo-thumb" id="currentPhoto" alt="저장한 주차 구역 사진" hidden>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-history" aria-labelledby="historyTitle">
+        <div class="page-heading"><p class="eyebrow">PARKING LOG</p><h2 id="historyTitle">주차 기록</h2><p>최근에 저장한 위치를 다시 지도에 띄우거나 길찾기로 열 수 있어요.</p></div>
+        <div class="history-list" id="historyList"></div>
+      </section>
+
+      <section class="view" id="view-settings" aria-labelledby="settingsTitle">
+        <div class="page-heading"><p class="eyebrow">PRIVACY & CONTROL</p><h2 id="settingsTitle">설정</h2><p>자동 제안, 보관 기간, 배터리 사용을 직접 조절하세요.</p></div>
+        <div class="settings-stack">
+          <section class="glass-card settings-card">
+            <h3><svg><use href="#i-target"></use></svg>감지 방식</h3>
+            <p>웹앱이 주차를 몰래 확정하지 않으며, 항상 확인을 받은 뒤 저장합니다.</p>
+            <div class="setting-row"><div class="setting-copy"><strong>자동 주차 제안</strong><span>운전 후 약 1분 이상 정차하면 확인</span></div><label class="switch"><input id="autoSuggest" type="checkbox"><span></span></label></div>
+            <div class="setting-row"><div class="setting-copy"><strong>주차 후 보행 동선</strong><span>차에서 건물까지의 이동도 이어서 기록</span></div><label class="switch"><input id="recordWalk" type="checkbox"><span></span></label></div>
+            <div class="setting-row"><div class="setting-copy"><strong>추적 중 화면 켜기</strong><span>지원 기기에서만 작동하며 배터리를 더 사용</span></div><label class="switch"><input id="keepAwake" type="checkbox"><span></span></label></div>
+          </section>
+
+          <section class="glass-card settings-card">
+            <h3><svg><use href="#i-lock"></use></svg>내 데이터</h3>
+            <p>계정이나 서버를 쓰지 않습니다. 같은 브라우저의 저장 공간에만 남습니다.</p>
+            <div class="setting-row"><div class="setting-copy"><strong>주차 기록 보관</strong><span>현재 주차 위치는 직접 지울 때까지 유지</span></div><select class="select" id="retention"><option value="7">7일</option><option value="30">30일</option><option value="90">90일</option><option value="0">계속 보관</option></select></div>
+            <button class="wide-secondary" id="exportBtn" type="button">기록 백업 파일 받기</button>
+            <button class="wide-secondary danger" id="clearBtn" type="button">모든 위치·사진 삭제</button>
+          </section>
+
+          <section class="glass-card settings-card wide">
+            <h3><svg><use href="#i-info"></use></svg>작동 범위</h3>
+            <div class="tech-note"><svg><use href="#i-info"></use></svg><span><strong>실외 GPS는 주차 건물 위치를, 층·구역·기둥 번호와 사진은 실내 위치를 기억하는 용도예요.</strong><br>브라우저가 닫히거나 화면이 오래 꺼지면 위치 추적이 멈출 수 있습니다. GPS 권한은 HTTPS 주소(예: GitHub Pages)에서 가장 안정적으로 작동해요.</span></div>
+            <button class="wide-secondary" id="demoBtn" type="button">GPS 없이 샘플 동선 체험</button>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav class="dock" aria-label="주요 메뉴">
+    <button class="nav-btn active" data-view="map" type="button"><svg><use href="#i-location"></use></svg><span>지도</span></button>
+    <button class="nav-btn" data-view="history" type="button"><svg><use href="#i-history"></use></svg><span>주차 기록</span></button>
+    <button class="nav-btn" data-view="settings" type="button"><svg><use href="#i-settings"></use></svg><span>설정</span></button>
+  </nav>
+
+  <div class="modal-backdrop" id="parkingModal" hidden role="dialog" aria-modal="true" aria-labelledby="parkingModalTitle">
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sheet-head"><div><h2 id="parkingModalTitle">주차 위치 저장</h2><p>GPS가 약한 지하에서는 층·구역·기둥 번호와 사진이 특히 유용해요.</p></div><button class="close-btn" type="button" data-close="parkingModal" aria-label="닫기"><svg><use href="#i-x"></use></svg></button></div>
+      <div class="coord-row"><div><strong id="coordQuality">위치 확인 중</strong><span id="coordText">GPS 좌표를 불러오고 있어요.</span></div><button class="lookup-btn" id="lookupAddress" type="button">주소 찾기</button></div>
+      <div class="field full"><label for="placeName">장소 이름</label><input id="placeName" maxlength="60" placeholder="예: 백화점 지하주차장"></div>
+      <div class="field-grid">
+        <div class="field"><label for="floorInput">층</label><input id="floorInput" maxlength="12" placeholder="예: B3"></div>
+        <div class="field"><label for="zoneInput">구역</label><input id="zoneInput" maxlength="20" placeholder="예: BLUE C"></div>
+        <div class="field full"><label for="spotInput">기둥·주차면 번호</label><input id="spotInput" maxlength="30" placeholder="예: C-18 / 328번"></div>
+        <div class="field full"><label for="noteInput">찾아가는 단서</label><textarea id="noteInput" maxlength="180" placeholder="예: 3번 엘리베이터 오른쪽 두 번째 줄"></textarea></div>
+      </div>
+      <div class="photo-picker">
+        <div class="photo-preview" id="photoPreview"><svg><use href="#i-camera"></use></svg></div>
+        <div class="photo-copy"><strong>주차 표지판 사진</strong><span>사진은 작게 압축해 이 브라우저 안에만 보관해요.</span><label class="file-label">사진 촬영·선택<input id="photoInput" type="file" accept="image/*" capture="environment"></label></div>
+      </div>
+      <button class="save-button" id="confirmPark" type="button">이 위치를 내 차 위치로 저장</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="routeModal" hidden role="dialog" aria-modal="true" aria-labelledby="routeModalTitle">
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sheet-head"><div><h2 id="routeModalTitle">차로 돌아가기</h2><p id="routeSummary">저장된 주차 위치를 외부 지도에서 열 수 있어요.</p></div><button class="close-btn" type="button" data-close="routeModal" aria-label="닫기"><svg><use href="#i-x"></use></svg></button></div>
+      <div class="route-options">
+        <a class="route-option kakao" id="kakaoRoute" href="#" target="_blank" rel="noopener"><span class="route-icon"><svg><use href="#i-route"></use></svg></span><span><strong>카카오맵으로 길찾기</strong><span>도보 경로를 지도 앱에서 확인</span></span></a>
+        <a class="route-option" id="googleRoute" href="#" target="_blank" rel="noopener"><span class="route-icon"><svg><use href="#i-route"></use></svg></span><span><strong>Google 지도에서 열기</strong><span>주차 위치를 목적지로 설정</span></span></a>
+        <button class="route-option copy" id="shareRoute" type="button"><span class="route-icon"><svg><use href="#i-share"></use></svg></span><span><strong>위치 공유</strong><span>가족에게 좌표와 지도 링크 보내기</span></span></button>
+        <button class="route-option copy" id="copyCoords" type="button"><span class="route-icon"><svg><use href="#i-copy"></use></svg></span><span><strong>좌표 복사</strong><span id="copyCoordText">위도, 경도</span></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><svg><use href="#i-check"></use></svg><span id="toastText">완료</span></div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    if (!Object.assign) {
+      Object.assign = function (target) {
+        if (target == null) throw new TypeError("Cannot convert undefined or null to object");
+        var output = Object(target);
+        for (var i = 1; i < arguments.length; i++) {
+          var source = arguments[i];
+          if (source != null) for (var key in source) if (Object.prototype.hasOwnProperty.call(source, key)) output[key] = source[key];
+        }
+        return output;
+      };
+    }
+    if (!Math.sinh) Math.sinh = function (x) { return (Math.exp(x) - Math.exp(-x)) / 2; };
+    if (window.NodeList && !NodeList.prototype.forEach) NodeList.prototype.forEach = Array.prototype.forEach;
+
+    var STORAGE_KEY = "parkpin_state_v1";
+    var DEFAULT_CENTER = { lat: 37.5665, lng: 126.9780 };
+    var watchId = null;
+    var currentPosition = null;
+    var lastReliablePosition = null;
+    var wakeLock = null;
+    var pendingPhoto = "";
+    var toastTimer = null;
+    var persistTimer = null;
+    var candidateTimer = null;
+    var motion = { driveScore: 0, stopSince: 0, candidateShownAt: 0, lastPoint: null };
+    var gpsPermissionStatus = "prompt";
+    var gpsRequestBusy = false;
+
+    function defaultState() {
+      return {
+        version: 1,
+        active: false,
+        phase: "idle",
+        demo: false,
+        route: [],
+        parking: null,
+        history: [],
+        settings: { autoSuggest: true, recordWalk: true, keepAwake: false, retentionDays: 30 }
+      };
+    }
+
+    function loadState() {
+      var base = defaultState();
+      try {
+        var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (!raw || raw.version !== 1) return base;
+        base.route = Array.isArray(raw.route) ? raw.route.slice(-1200) : [];
+        base.parking = raw.parking && typeof raw.parking === "object" ? raw.parking : null;
+        base.history = Array.isArray(raw.history) ? raw.history.slice(0, 20) : [];
+        base.settings = Object.assign(base.settings, raw.settings || {});
+        base.demo = !!raw.demo;
+        base.phase = raw.phase === "parked" ? "parked" : "idle";
+        base.active = false;
+      } catch (err) {}
+      return base;
+    }
+
+    var state = loadState();
+
+    var el = {};
+    ["headerState","headerStateText","mapCanvas","mapStatus","mapEmpty","mapEmptyTitle","mapEmptyText","gpsMapBtn","gpsMapBtnText","gpsPermissionBtn","gpsPermissionTitle","gpsPermissionState","candidate","candidateNo","candidateYes","zoomIn","zoomOut","centerMap","trackingBtn","saveParkBtn","returnBtn","parkingAge","parkingName","parkingSpot","parkingMeta","distanceBox","distanceText","directionText","directionArrow","currentPhoto","historyList","autoSuggest","recordWalk","keepAwake","retention","exportBtn","clearBtn","demoBtn","parkingModal","routeModal","coordQuality","coordText","lookupAddress","placeName","floorInput","zoneInput","spotInput","noteInput","photoInput","photoPreview","confirmPark","routeSummary","kakaoRoute","googleRoute","shareRoute","copyCoords","copyCoordText","toast","toastText"].forEach(function (id) { el[id] = document.getElementById(id); });
+
+    function icon(id) { return '<svg><use href="#' + id + '"></use></svg>'; }
+    function safe(value) { return String(value == null ? "" : value).replace(/[&<>\"']/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#39;"}[c]; }); }
+    function uid() { return "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+    function rad(n) { return n * Math.PI / 180; }
+    function deg(n) { return n * 180 / Math.PI; }
+
+    function distanceMeters(a, b) {
+      if (!a || !b) return Infinity;
+      var R = 6371000;
+      var p1 = rad(a.lat), p2 = rad(b.lat);
+      var dp = rad(b.lat - a.lat), dl = rad(b.lng - a.lng);
+      var h = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+      return 2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+    }
+
+    function bearing(a, b) {
+      var p1 = rad(a.lat), p2 = rad(b.lat), dl = rad(b.lng - a.lng);
+      var y = Math.sin(dl) * Math.cos(p2);
+      var x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+      return (deg(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    function directionName(value) {
+      var names = ["북쪽", "북동쪽", "동쪽", "남동쪽", "남쪽", "남서쪽", "서쪽", "북서쪽"];
+      return names[Math.round(value / 45) % 8];
+    }
+
+    function formatDistance(m) {
+      if (!isFinite(m)) return "거리 확인 전";
+      if (m < 1000) return "약 " + Math.max(1, Math.round(m / 5) * 5) + "m";
+      return "약 " + (m / 1000).toFixed(m < 10000 ? 1 : 0) + "km";
+    }
+
+    function formatDate(ts) {
+      try { return new Date(ts).toLocaleString("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
+      catch (e) { return new Date(ts).toLocaleString(); }
+    }
+
+    function ageText(ts) {
+      var diff = Math.max(0, Date.now() - ts);
+      if (diff < 60000) return "방금 저장";
+      if (diff < 3600000) return Math.floor(diff / 60000) + "분 전";
+      if (diff < 86400000) return Math.floor(diff / 3600000) + "시간 전";
+      return Math.floor(diff / 86400000) + "일 전";
+    }
+
+    function persist(immediate) {
+      clearTimeout(persistTimer);
+      function write() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (err) {
+          showToast("저장 공간이 부족해요. 오래된 사진 기록을 지워 주세요.", true);
+        }
+      }
+      if (immediate) write(); else persistTimer = setTimeout(write, 400);
+    }
+
+    function showToast(text, isError) {
+      clearTimeout(toastTimer);
+      el.toastText.textContent = text;
+      el.toast.style.background = isError ? "rgba(139,52,52,.94)" : "rgba(25,62,57,.92)";
+      el.toast.classList.add("show");
+      toastTimer = setTimeout(function () { el.toast.classList.remove("show"); }, 3200);
+    }
+
+    function openModal(node) {
+      node.hidden = false;
+      document.body.style.overflow = "hidden";
+      requestAnimationFrame(function () { node.classList.add("open"); });
+    }
+
+    function closeModal(node) {
+      node.classList.remove("open");
+      setTimeout(function () { node.hidden = true; document.body.style.overflow = ""; }, 220);
+    }
+
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      while (target && target !== document) {
+        if (target.getAttribute && target.getAttribute("data-close")) {
+          var modal = document.getElementById(target.getAttribute("data-close"));
+          if (modal) closeModal(modal);
+          return;
+        }
+        target = target.parentNode;
+      }
+    });
+
+    [el.parkingModal, el.routeModal].forEach(function (modal) {
+      modal.addEventListener("click", function (event) { if (event.target === modal) closeModal(modal); });
+    });
+    document.addEventListener("keydown", function (event) { if (event.key === "Escape") { if (!el.parkingModal.hidden) closeModal(el.parkingModal); if (!el.routeModal.hidden) closeModal(el.routeModal); } });
+
+    var map = {
+      canvas: el.mapCanvas,
+      ctx: el.mapCanvas.getContext("2d"),
+      center: null,
+      zoom: 16,
+      width: 0,
+      height: 0,
+      dpr: 1,
+      tiles: {},
+      dragging: false,
+      dragStart: null,
+      centerStart: null,
+      userMoved: false,
+      drawQueued: false
+    };
+
+    function worldPoint(lat, lng, zoom) {
+      var size = 256 * Math.pow(2, zoom);
+      var sin = Math.sin(rad(clamp(lat, -85.0511, 85.0511)));
+      return { x: (lng + 180) / 360 * size, y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * size };
+    }
+
+    function latLngFromWorld(x, y, zoom) {
+      var size = 256 * Math.pow(2, zoom);
+      var lng = x / size * 360 - 180;
+      var n = Math.PI - 2 * Math.PI * y / size;
+      var lat = deg(Math.atan(Math.sinh(n)));
+      return { lat: lat, lng: lng };
+    }
+
+    function resizeMap() {
+      var rect = map.canvas.getBoundingClientRect();
+      map.dpr = Math.min(window.devicePixelRatio || 1, 2);
+      map.width = Math.max(1, rect.width);
+      map.height = Math.max(1, rect.height);
+      map.canvas.width = Math.round(map.width * map.dpr);
+      map.canvas.height = Math.round(map.height * map.dpr);
+      requestMapDraw();
+    }
+
+    function requestMapDraw() {
+      if (map.drawQueued) return;
+      map.drawQueued = true;
+      requestAnimationFrame(function () { map.drawQueued = false; drawMap(); });
+    }
+
+    function tileImage(z, x, y) {
+      var count = Math.pow(2, z);
+      var wrappedX = ((x % count) + count) % count;
+      var key = z + "/" + wrappedX + "/" + y;
+      if (map.tiles[key]) return map.tiles[key];
+      var img = new Image();
+      img._ready = false;
+      img._failed = false;
+      img.onload = function () { img._ready = true; requestMapDraw(); };
+      img.onerror = function () { img._failed = true; requestMapDraw(); };
+      img.src = "https://tile.openstreetmap.org/" + key + ".png";
+      map.tiles[key] = img;
+      return img;
+    }
+
+    function mapPixel(point) {
+      var center = worldPoint(map.center.lat, map.center.lng, map.zoom);
+      var p = worldPoint(point.lat, point.lng, map.zoom);
+      return { x: map.width/2 + p.x - center.x, y: map.height/2 + p.y - center.y };
+    }
+
+    function drawGrid(ctx) {
+      var grad = ctx.createLinearGradient(0,0,map.width,map.height);
+      grad.addColorStop(0, "#d8ebe7"); grad.addColorStop(1, "#c7ded9");
+      ctx.fillStyle = grad; ctx.fillRect(0,0,map.width,map.height);
+      ctx.strokeStyle = "rgba(50,103,95,.10)"; ctx.lineWidth = 1;
+      for (var x = -20; x < map.width + 40; x += 42) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x + map.height,map.height); ctx.stroke(); }
+      for (var y = -20; y < map.height + 40; y += 42) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(map.width,y - map.width); ctx.stroke(); }
+    }
+
+    function drawRoute(ctx) {
+      if (!state.route || state.route.length < 2) return;
+      ["drive", "walk"].forEach(function (phase) {
+        var started = false;
+        ctx.beginPath();
+        state.route.forEach(function (point) {
+          if ((point.phase || "drive") !== phase) { started = false; return; }
+          var p = mapPixel(point);
+          if (!started) { ctx.moveTo(p.x,p.y); started = true; } else ctx.lineTo(p.x,p.y);
+        });
+        ctx.lineCap = "round"; ctx.lineJoin = "round";
+        ctx.strokeStyle = "rgba(255,255,255,.92)"; ctx.lineWidth = 8; ctx.stroke();
+        ctx.strokeStyle = phase === "walk" ? "#f0a03b" : "#2478f2"; ctx.lineWidth = 4; ctx.stroke();
+      });
+    }
+
+    function drawPin(ctx, point, color, isCar) {
+      var p = mapPixel(point);
+      ctx.save(); ctx.translate(p.x, p.y);
+      ctx.shadowColor = "rgba(17,58,53,.25)"; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5;
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0,-7,15,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-7,4); ctx.lineTo(0,14); ctx.lineTo(7,4); ctx.closePath(); ctx.fill();
+      ctx.shadowColor = "transparent"; ctx.fillStyle = "#fff";
+      if (isCar) {
+        ctx.fillRect(-7,-10,14,7); ctx.fillRect(-5,-14,10,5); ctx.fillStyle = color; ctx.fillRect(-3,-13,6,3);
+        ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(-5,-2,2,0,Math.PI*2); ctx.arc(5,-2,2,0,Math.PI*2); ctx.fill();
+      } else { ctx.beginPath(); ctx.arc(0,-7,5,0,Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    }
+
+    function drawCurrent(ctx, point) {
+      var p = mapPixel(point);
+      var metersPerPixel = 156543.03392 * Math.cos(rad(point.lat)) / Math.pow(2, map.zoom);
+      var accuracyPx = clamp((point.accuracy || 20) / metersPerPixel, 10, 120);
+      ctx.fillStyle = "rgba(14,174,145,.12)"; ctx.strokeStyle = "rgba(14,174,145,.28)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,accuracyPx,0,Math.PI*2); ctx.fill(); ctx.stroke();
+      ctx.shadowColor = "rgba(7,125,104,.35)"; ctx.shadowBlur = 12;
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(p.x,p.y,9,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#0cae91"; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill();
+      ctx.shadowColor = "transparent";
+    }
+
+    function drawMap() {
+      if (!map.width || !map.height) return;
+      var ctx = map.ctx;
+      ctx.setTransform(map.dpr,0,0,map.dpr,0,0);
+      ctx.clearRect(0,0,map.width,map.height);
+      drawGrid(ctx);
+      if (!map.center) return;
+      var center = worldPoint(map.center.lat, map.center.lng, map.zoom);
+      var left = center.x - map.width/2, top = center.y - map.height/2;
+      var minX = Math.floor(left/256), maxX = Math.floor((left+map.width)/256);
+      var minY = Math.floor(top/256), maxY = Math.floor((top+map.height)/256);
+      var tileCount = Math.pow(2,map.zoom);
+      for (var ty=minY; ty<=maxY; ty++) {
+        if (ty < 0 || ty >= tileCount) continue;
+        for (var tx=minX; tx<=maxX; tx++) {
+          var img = tileImage(map.zoom,tx,ty);
+          var px = tx*256-left, py = ty*256-top;
+          if (img._ready) ctx.drawImage(img,px,py,256,256);
+          else { ctx.fillStyle = "rgba(231,244,241,.48)"; ctx.fillRect(px,py,256,256); }
+        }
+      }
+      ctx.fillStyle = "rgba(226,245,240,.08)"; ctx.fillRect(0,0,map.width,map.height);
+      drawRoute(ctx);
+      if (state.parking && typeof state.parking.lat === "number") drawPin(ctx,state.parking,"#2478f2",true);
+      if (currentPosition) drawCurrent(ctx,currentPosition);
+    }
+
+    function setMapCenter(point, force) {
+      if (!point) return;
+      if (force || !map.userMoved || !map.center) map.center = { lat: point.lat, lng: point.lng };
+      requestMapDraw();
+    }
+
+    function dragStart(x,y) { if (!map.center) return; map.dragging = true; map.canvas.classList.add("dragging"); map.dragStart = {x:x,y:y}; map.centerStart = worldPoint(map.center.lat,map.center.lng,map.zoom); }
+    function dragMove(x,y) { if (!map.dragging) return; var dx=x-map.dragStart.x, dy=y-map.dragStart.y; map.center = latLngFromWorld(map.centerStart.x-dx,map.centerStart.y-dy,map.zoom); map.userMoved=true; requestMapDraw(); }
+    function dragEnd() { map.dragging=false; map.canvas.classList.remove("dragging"); }
+    map.canvas.addEventListener("pointerdown", function(e){ map.canvas.setPointerCapture && map.canvas.setPointerCapture(e.pointerId); dragStart(e.clientX,e.clientY); });
+    map.canvas.addEventListener("pointermove", function(e){ dragMove(e.clientX,e.clientY); });
+    map.canvas.addEventListener("pointerup", dragEnd); map.canvas.addEventListener("pointercancel",dragEnd);
+    map.canvas.addEventListener("touchstart", function(e){ if (typeof PointerEvent !== "undefined") return; var t=e.touches[0]; dragStart(t.clientX,t.clientY); }, {passive:true});
+    map.canvas.addEventListener("touchmove", function(e){ if (typeof PointerEvent !== "undefined") return; var t=e.touches[0]; dragMove(t.clientX,t.clientY); e.preventDefault(); }, {passive:false});
+    map.canvas.addEventListener("touchend",dragEnd);
+
+    el.zoomIn.addEventListener("click", function(){ if(!map.center) return; map.zoom=clamp(map.zoom+1,12,19); requestMapDraw(); });
+    el.zoomOut.addEventListener("click", function(){ if(!map.center) return; map.zoom=clamp(map.zoom-1,12,19); requestMapDraw(); });
+    el.centerMap.addEventListener("click", function(){ var p=currentPosition || state.parking; if(!p){ showToast("먼저 위치를 연결해 주세요.",true); return; } map.userMoved=false; setMapCenter(p,true); });
+    window.addEventListener("resize",resizeMap);
+
+    function positionFromGeo(pos) {
+      return { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy || 0), speed: typeof pos.coords.speed === "number" ? pos.coords.speed : null, heading: typeof pos.coords.heading === "number" ? pos.coords.heading : null, time: pos.timestamp || Date.now(), phase: state.phase === "parked" ? "walk" : "drive" };
+    }
+
+    function computedSpeed(point) {
+      if (typeof point.speed === "number" && isFinite(point.speed)) return Math.max(0,point.speed);
+      var prev = motion.lastPoint;
+      if (!prev) return 0;
+      var dt = Math.max(1,(point.time-prev.time)/1000);
+      var dist = distanceMeters(prev,point);
+      var noise = Math.max(point.accuracy || 0, prev.accuracy || 0) * .35;
+      return dist <= noise ? 0 : dist/dt;
+    }
+
+    function updateMotion(point) {
+      var speed = computedSpeed(point);
+      if (speed >= 3.2) motion.driveScore = Math.min(5,motion.driveScore+1); else motion.driveScore = Math.max(0,motion.driveScore-.2);
+      if (motion.driveScore >= 2 && state.phase !== "parked") state.phase = "driving";
+      if (state.active && state.settings.autoSuggest && state.phase === "driving") {
+        if (speed <= 1.3) {
+          if (!motion.stopSince) motion.stopSince=Date.now();
+          if (Date.now()-motion.stopSince > 65000 && Date.now()-motion.candidateShownAt > 600000) {
+            motion.candidateShownAt=Date.now(); motion.stopSince=0; el.candidate.hidden=false;
+            clearTimeout(candidateTimer); candidateTimer=setTimeout(function(){ el.candidate.hidden=true; },30000);
+          }
+        } else motion.stopSince=0;
+      }
+      motion.lastPoint=point;
+    }
+
+    function addRoutePoint(point) {
+      if (!state.active) return;
+      var last = state.route[state.route.length-1];
+      if (last) {
+        var dist=distanceMeters(last,point), elapsed=point.time-last.time;
+        if (dist < 4 && elapsed < 20000) return;
+      }
+      state.route.push({lat:point.lat,lng:point.lng,accuracy:point.accuracy,time:point.time,phase:point.phase});
+      if (state.route.length>1200) state.route.splice(0,state.route.length-1200);
+      persist(false);
+    }
+
+    function accuracyLabel(acc) {
+      if (!acc) return "정확도 확인 중";
+      if (acc <= 25) return "GPS 정확도 좋음 · ±"+acc+"m";
+      if (acc <= 80) return "GPS 정확도 보통 · ±"+acc+"m";
+      return "GPS 신호 약함 · ±"+acc+"m";
+    }
+
+    function applyGpsPermissionState(permission) {
+      gpsPermissionStatus=permission || "prompt";
+      el.gpsPermissionBtn.classList.remove("granted","denied");
+      if (gpsPermissionStatus==="granted") {
+        el.gpsPermissionBtn.classList.add("granted");
+        el.gpsPermissionTitle.textContent=currentPosition?"GPS 위치 연결됨":"GPS 권한 허용됨";
+        el.gpsPermissionState.textContent=currentPosition?accuracyLabel(currentPosition.accuracy):"누르면 현재 위치를 지도에 표시해요.";
+        el.gpsMapBtnText.textContent="현재 위치 불러오기";
+        if(!currentPosition) el.mapStatus.textContent="GPS 권한 허용됨";
+      } else if (gpsPermissionStatus==="denied") {
+        el.gpsPermissionBtn.classList.add("denied");
+        el.gpsPermissionTitle.textContent="GPS 권한이 차단됨";
+        el.gpsPermissionState.textContent="브라우저의 사이트 설정에서 위치를 허용해 주세요.";
+        el.gpsMapBtnText.textContent="GPS 권한 다시 요청";
+        el.mapStatus.textContent="GPS 권한 차단됨";
+        if(!state.parking && !state.route.length){
+          el.mapEmpty.hidden=false;
+          el.mapEmptyTitle.textContent="위치 권한이 꺼져 있어요";
+          el.mapEmptyText.textContent="주소창의 사이트 설정에서 위치를 ‘허용’으로 바꾼 뒤 다시 눌러 주세요.";
+        }
+      } else {
+        el.gpsPermissionTitle.textContent="GPS 위치 권한 요청";
+        el.gpsPermissionState.textContent="누르면 브라우저 권한 팝업이 열려요.";
+        el.gpsMapBtnText.textContent="GPS 위치 권한 요청";
+        if(!currentPosition) el.mapStatus.textContent="GPS 권한 요청 필요";
+      }
+    }
+
+    function refreshGpsPermissionState() {
+      if(!navigator.permissions || !navigator.permissions.query){ applyGpsPermissionState(currentPosition?"granted":"prompt"); return; }
+      navigator.permissions.query({name:"geolocation"}).then(function(status){
+        applyGpsPermissionState(status.state);
+        status.onchange=function(){applyGpsPermissionState(status.state);};
+      }).catch(function(){applyGpsPermissionState(currentPosition?"granted":"prompt");});
+    }
+
+    function setGpsRequestBusy(busy) {
+      gpsRequestBusy=busy;
+      el.gpsPermissionBtn.disabled=busy;
+      el.gpsMapBtn.disabled=busy;
+      if(busy){
+        el.gpsPermissionTitle.textContent="현재 위치 확인 중…";
+        el.gpsPermissionState.textContent="실외에서는 더 빠르고 정확하게 잡혀요.";
+        el.gpsMapBtnText.textContent="위치 확인 중…";
+      } else applyGpsPermissionState(gpsPermissionStatus);
+    }
+
+    function permissionRequestError(err) {
+      var msg="현재 GPS 위치를 불러오지 못했어요.";
+      if(!window.isSecureContext) msg="GPS는 GitHub Pages처럼 HTTPS로 연 주소에서 요청할 수 있어요.";
+      else if(err && err.code===1) msg="위치 권한이 차단됐어요. 사이트 설정에서 위치를 허용해 주세요.";
+      else if(err && err.code===2) msg="GPS 신호가 약해요. 실외에서 다시 시도해 주세요.";
+      else if(err && err.code===3) msg="위치 확인 시간이 초과됐어요. 다시 눌러 주세요.";
+      if(err && err.code===1) applyGpsPermissionState("denied");
+      setGpsRequestBusy(false);
+      showToast(msg,true);
+    }
+
+    function requestCurrentGps() {
+      if(gpsRequestBusy)return;
+      if(!navigator.geolocation){showToast("이 브라우저는 GPS 위치 요청을 지원하지 않아요.",true);return;}
+      setGpsRequestBusy(true);
+      navigator.geolocation.getCurrentPosition(function(pos){
+        clearDemo();
+        onPosition(pos);
+        gpsPermissionStatus="granted";
+        map.userMoved=false;
+        setMapCenter(currentPosition,true);
+        setGpsRequestBusy(false);
+        showToast("GPS 위치를 연결했어요.");
+      },permissionRequestError,{enableHighAccuracy:true,maximumAge:0,timeout:18000});
+    }
+
+    function onPosition(pos) {
+      var point=positionFromGeo(pos);
+      currentPosition=point;
+      if (point.accuracy && point.accuracy<=60) lastReliablePosition=point;
+      el.mapEmpty.hidden=true;
+      el.mapStatus.textContent=accuracyLabel(point.accuracy);
+      gpsPermissionStatus="granted";
+      applyGpsPermissionState("granted");
+      if (!map.center || !map.userMoved) setMapCenter(point,false);
+      updateMotion(point); addRoutePoint(point); updateUI(); requestMapDraw();
+    }
+
+    function geoError(err) {
+      var msg="위치를 불러오지 못했어요.";
+      if (err && err.code===1) msg="브라우저 설정에서 위치 권한을 허용해 주세요.";
+      else if (err && err.code===2) msg="GPS 신호가 약해요. 실외에서 다시 시도해 주세요.";
+      else if (err && err.code===3) msg="위치 확인 시간이 초과됐어요. 다시 시도해 주세요.";
+      if(err && err.code===1) applyGpsPermissionState("denied");
+      state.active=false; state.phase=state.parking?"parked":"idle"; persist(true); updateUI(); showToast(msg,true);
+    }
+
+    function requestWakeLock() {
+      if (!state.settings.keepAwake || !navigator.wakeLock || !navigator.wakeLock.request) return;
+      navigator.wakeLock.request("screen").then(function(lock){ wakeLock=lock; }).catch(function(){});
+    }
+    function releaseWakeLock(){ if(wakeLock && wakeLock.release) wakeLock.release().catch(function(){}); wakeLock=null; }
+
+    function clearDemo() {
+      if (!state.demo) return;
+      state.history=state.history.filter(function(p){return String(p.id).indexOf("demo-")!==0;});
+      if(state.parking && String(state.parking.id).indexOf("demo-")===0) state.parking=null;
+      state.route=[]; state.demo=false; currentPosition=null; map.center=null; map.userMoved=false;
+    }
+
+    function startTracking() {
+      if (!navigator.geolocation) { showToast("이 브라우저는 GPS 기능을 지원하지 않아요.",true); return; }
+      clearDemo();
+      el.trackingBtn.disabled=true; el.trackingBtn.querySelector("span").textContent="위치 확인 중…";
+      navigator.geolocation.getCurrentPosition(function(pos){
+        state.active=true; state.phase="moving"; state.route=[]; persist(true); onPosition(pos);
+        watchId=navigator.geolocation.watchPosition(onPosition,geoError,{enableHighAccuracy:true,maximumAge:4000,timeout:18000});
+        requestWakeLock(); updateUI(); showToast("이동 추적을 시작했어요.");
+      },geoError,{enableHighAccuracy:true,maximumAge:0,timeout:18000});
+    }
+
+    function stopTracking() {
+      if (watchId!==null) navigator.geolocation.clearWatch(watchId);
+      watchId=null; state.active=false; if(state.phase!=="parked") state.phase=state.parking?"parked":"idle";
+      releaseWakeLock(); persist(true); updateUI(); showToast("추적을 잠시 멈췄어요.");
+    }
+
+    el.trackingBtn.addEventListener("click",function(){ if(state.active) stopTracking(); else startTracking(); });
+    el.gpsPermissionBtn.addEventListener("click",requestCurrentGps);
+    el.gpsMapBtn.addEventListener("click",requestCurrentGps);
+
+    function acquireLocationForParking(done) {
+      if (currentPosition) { done(currentPosition); return; }
+      if (lastReliablePosition) { done(lastReliablePosition); return; }
+      if (!navigator.geolocation) { done(null); return; }
+      el.coordQuality.textContent="현재 위치 확인 중"; el.coordText.textContent="GPS 좌표를 불러오고 있어요.";
+      navigator.geolocation.getCurrentPosition(function(pos){ currentPosition=positionFromGeo(pos); if(currentPosition.accuracy<=60) lastReliablePosition=currentPosition; setMapCenter(currentPosition,true); updateParkingFormLocation(); done(currentPosition); },function(){ updateParkingFormLocation(); done(null); },{enableHighAccuracy:true,maximumAge:10000,timeout:12000});
+    }
+
+    function updateParkingFormLocation() {
+      var p=currentPosition || lastReliablePosition;
+      if(!p){ el.coordQuality.textContent="GPS 위치 없음"; el.coordText.textContent="HTTPS 주소에서 위치 권한을 허용한 뒤 다시 시도하세요."; return; }
+      el.coordQuality.textContent=accuracyLabel(p.accuracy);
+      el.coordText.textContent=p.lat.toFixed(6)+", "+p.lng.toFixed(6);
+    }
+
+    function openParkingForm() {
+      pendingPhoto=""; el.photoInput.value=""; el.photoPreview.innerHTML=icon("i-camera");
+      el.placeName.value=""; el.floorInput.value=""; el.zoneInput.value=""; el.spotInput.value=""; el.noteInput.value="";
+      updateParkingFormLocation(); openModal(el.parkingModal); acquireLocationForParking(function(){}); setTimeout(function(){el.placeName.focus();},280);
+    }
+    el.saveParkBtn.addEventListener("click",openParkingForm);
+    el.candidateYes.addEventListener("click",function(){el.candidate.hidden=true;openParkingForm();});
+    el.candidateNo.addEventListener("click",function(){el.candidate.hidden=true;motion.stopSince=0;showToast("자동 제안을 잠시 건너뛰었어요.");});
+
+    el.lookupAddress.addEventListener("click",function(){
+      var p=currentPosition || lastReliablePosition;
+      if(!p){showToast("먼저 GPS 위치를 연결해 주세요.",true);return;}
+      if(!window.fetch){showToast("이 브라우저에서는 주소 찾기를 지원하지 않아요. 장소 이름을 직접 적어 주세요.",true);return;}
+      el.lookupAddress.disabled=true; el.lookupAddress.textContent="찾는 중…";
+      var url="https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&accept-language=ko&lat="+encodeURIComponent(p.lat)+"&lon="+encodeURIComponent(p.lng);
+      fetch(url,{headers:{"Accept":"application/json"}}).then(function(res){if(!res.ok)throw new Error();return res.json();}).then(function(data){
+        var name=(data && (data.name || (data.address && (data.address.building || data.address.amenity || data.address.road)))) || "";
+        el.placeName.value=name || (data.display_name ? data.display_name.split(",").slice(0,2).join(", ") : "");
+        showToast("현재 주소를 불러왔어요.");
+      }).catch(function(){showToast("주소를 찾지 못했어요. 장소 이름을 직접 적어 주세요.",true);}).then(function(){el.lookupAddress.disabled=false;el.lookupAddress.textContent="주소 찾기";});
+    });
+
+    function compressImage(file, callback) {
+      if (!file || !file.type || file.type.indexOf("image/")!==0) { callback(""); return; }
+      var reader=new FileReader();
+      reader.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var max=720, scale=Math.min(1,max/Math.max(img.width,img.height));
+          var canvas=document.createElement("canvas"); canvas.width=Math.max(1,Math.round(img.width*scale)); canvas.height=Math.max(1,Math.round(img.height*scale));
+          var ctx=canvas.getContext("2d"); ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          callback(canvas.toDataURL("image/jpeg",.68));
+        };
+        img.onerror=function(){callback("");}; img.src=reader.result;
+      };
+      reader.onerror=function(){callback("");}; reader.readAsDataURL(file);
+    }
+
+    el.photoInput.addEventListener("change",function(){
+      var file=el.photoInput.files && el.photoInput.files[0];
+      if(!file)return;
+      el.photoPreview.innerHTML="<span style='font-size:9px'>압축 중…</span>";
+      compressImage(file,function(data){ pendingPhoto=data; if(data) el.photoPreview.innerHTML='<img src="'+data+'" alt="선택한 사진 미리보기">'; else {el.photoPreview.innerHTML=icon("i-camera");showToast("사진을 읽지 못했어요.",true);} });
+    });
+
+    function spotLabel(p) {
+      var parts=[]; if(p.floor)parts.push(p.floor); if(p.zone)parts.push(p.zone); if(p.spot)parts.push(p.spot);
+      return parts.length?parts.join(" · "):"세부 위치 메모 없음";
+    }
+
+    el.confirmPark.addEventListener("click",function(){
+      var pos=currentPosition || lastReliablePosition;
+      if(!pos){ showToast("GPS 위치가 아직 없어요. 위치 권한을 확인해 주세요.",true); acquireLocationForParking(function(){}); return; }
+      var park={ id:uid(), lat:pos.lat, lng:pos.lng, accuracy:pos.accuracy || 0, time:Date.now(), name:el.placeName.value.trim() || "주차 위치", floor:el.floorInput.value.trim(), zone:el.zoneInput.value.trim(), spot:el.spotInput.value.trim(), note:el.noteInput.value.trim(), photo:pendingPhoto, demo:false };
+      state.parking=park; state.history.unshift(park); state.history=state.history.slice(0,20); state.phase="parked"; state.demo=false;
+      if(!state.settings.recordWalk) stopTracking(); else { state.active=state.active; persist(true); }
+      map.userMoved=false; setMapCenter(park,true); closeModal(el.parkingModal); updateUI(); showToast("내 차 위치를 저장했어요.");
+    });
+
+    function openRoute() {
+      var p=state.parking;
+      if(!p || typeof p.lat!=="number"){showToast("먼저 주차 위치를 저장해 주세요.",true);return;}
+      var label=encodeURIComponent(p.name || "주차 위치");
+      el.kakaoRoute.href="https://map.kakao.com/link/to/"+label+","+p.lat+","+p.lng;
+      el.googleRoute.href="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(p.lat+","+p.lng)+"&travelmode=walking";
+      el.copyCoordText.textContent=p.lat.toFixed(6)+", "+p.lng.toFixed(6);
+      var dist=currentPosition?formatDistance(distanceMeters(currentPosition,p)):"현재 위치 확인 전";
+      el.routeSummary.textContent=(p.name || "주차 위치")+" · "+dist;
+      openModal(el.routeModal);
+    }
+    el.returnBtn.addEventListener("click",openRoute);
+
+    function copyText(text) {
+      if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+      return new Promise(function(resolve,reject){var area=document.createElement("textarea");area.value=text;area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.select();try{document.execCommand("copy");resolve();}catch(e){reject(e);}document.body.removeChild(area);});
+    }
+    el.copyCoords.addEventListener("click",function(){var p=state.parking;if(!p)return;copyText(p.lat.toFixed(6)+", "+p.lng.toFixed(6)).then(function(){showToast("좌표를 복사했어요.");}).catch(function(){showToast("복사하지 못했어요.",true);});});
+    el.shareRoute.addEventListener("click",function(){
+      var p=state.parking;if(!p)return;
+      var url="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(p.lat+","+p.lng);
+      var data={title:"ParkPin 주차 위치",text:(p.name||"주차 위치")+" · "+spotLabel(p),url:url};
+      if(navigator.share) navigator.share(data).catch(function(){}); else copyText(data.text+"\n"+url).then(function(){showToast("공유할 내용을 복사했어요.");});
+    });
+
+    function cleanupHistory() {
+      var days=Number(state.settings.retentionDays)||0;
+      if(!days)return;
+      var cutoff=Date.now()-days*86400000;
+      state.history=state.history.filter(function(p){return p.time>=cutoff || (state.parking && p.id===state.parking.id);});
+    }
+
+    function renderParking() {
+      var p=state.parking;
+      if(!p){
+        el.parkingAge.textContent="저장된 위치 없음";el.parkingName.textContent="아직 주차 위치가 없어요";el.parkingSpot.textContent="주차한 뒤 ‘지금 주차 저장’을 눌러 주세요.";el.parkingSpot.classList.add("empty");el.parkingMeta.hidden=true;el.distanceBox.hidden=true;el.currentPhoto.hidden=true;el.returnBtn.disabled=true;return;
+      }
+      el.returnBtn.disabled=false;el.parkingAge.textContent=ageText(p.time);el.parkingName.textContent=p.name||"주차 위치";el.parkingSpot.textContent=spotLabel(p);el.parkingSpot.classList.remove("empty");
+      var meta=[];meta.push('<span>'+icon("i-clock")+safe(formatDate(p.time))+'</span>');meta.push('<span>'+icon("i-signal")+'저장 정확도 ±'+safe(p.accuracy||"?")+'m</span>');if(p.note)meta.push('<span>'+icon("i-info")+safe(p.note)+'</span>');
+      el.parkingMeta.innerHTML=meta.join("");el.parkingMeta.hidden=false;
+      if(currentPosition){var d=distanceMeters(currentPosition,p),b=bearing(currentPosition,p);el.distanceText.textContent="차량까지 "+formatDistance(d);el.directionText.textContent=directionName(b)+" 방향 · 직선거리 기준";el.directionArrow.style.transform="rotate("+b+"deg)";el.distanceBox.hidden=false;}else{el.distanceBox.hidden=true;}
+      if(p.photo && /^data:image\//.test(p.photo)){el.currentPhoto.src=p.photo;el.currentPhoto.hidden=false;}else el.currentPhoto.hidden=true;
+    }
+
+    function renderHistory() {
+      cleanupHistory();
+      if(!state.history.length){el.historyList.innerHTML='<div class="glass-card empty-list"><div class="empty-icon">'+icon("i-history")+'</div><strong>아직 기록이 없어요</strong><p>지도 화면에서 주차 위치를 저장하면 최근 기록이 여기에 쌓입니다.</p></div>';return;}
+      el.historyList.innerHTML=state.history.map(function(p){
+        var current=state.parking&&state.parking.id===p.id;
+        return '<article class="glass-card history-item'+(current?' current':'')+'"><div class="history-main"><div class="history-kicker">'+(current?'<span class="now">현재 주차</span>':'주차 기록')+'</div><h3>'+safe(p.name||"주차 위치")+'</h3><p class="spot">'+safe(spotLabel(p))+'</p><p class="when">'+safe(formatDate(p.time))+' · GPS ±'+safe(p.accuracy||"?")+'m</p></div>'+(p.photo&&/^data:image\//.test(p.photo)?'<img class="history-photo" src="'+p.photo+'" alt="주차 사진">':'<div class="history-photo" style="display:grid;place-items:center;color:#6e8582">'+icon("i-car")+'</div>')+'<div class="history-actions"><button class="list-btn" data-action="activate" data-id="'+safe(p.id)+'">지도에 표시</button><button class="list-btn blue" data-action="route" data-id="'+safe(p.id)+'">길찾기</button><button class="list-btn danger" data-action="delete" data-id="'+safe(p.id)+'" aria-label="이 기록 삭제">'+icon("i-trash")+'</button></div></article>';
+      }).join("");
+    }
+
+    function findPark(id){for(var i=0;i<state.history.length;i++)if(state.history[i].id===id)return state.history[i];return null;}
+    el.historyList.addEventListener("click",function(event){
+      var node=event.target;while(node&&node!==el.historyList&&!node.getAttribute("data-action"))node=node.parentNode;if(!node||node===el.historyList)return;
+      var action=node.getAttribute("data-action"),id=node.getAttribute("data-id"),p=findPark(id);if(!p)return;
+      if(action==="delete"){if(confirm("이 주차 기록을 삭제할까요?")){state.history=state.history.filter(function(x){return x.id!==id;});if(state.parking&&state.parking.id===id)state.parking=null;persist(true);updateUI();showToast("주차 기록을 삭제했어요.");}}
+      else{state.parking=p;map.userMoved=false;setMapCenter(p,true);persist(true);updateUI();if(action==="route")openRoute();else{switchView("map");showToast("지도에 이 위치를 표시했어요.");}}
+    });
+
+    function updateTrackingUI() {
+      var svg=el.trackingBtn.querySelector("use"),text=el.trackingBtn.querySelector("span");el.trackingBtn.disabled=false;
+      if(state.active){el.trackingBtn.classList.add("pause");svg.setAttribute("href","#i-pause");text.textContent="이동 추적 일시정지";el.headerState.className="header-state live";el.headerStateText.textContent=state.phase==="parked"?"보행 동선 기록 중":"GPS 기록 중";}
+      else{el.trackingBtn.classList.remove("pause");svg.setAttribute("href","#i-play");text.textContent="이동 추적 시작";el.headerState.className="header-state"+(state.demo?" demo":"");el.headerStateText.textContent=state.demo?"샘플 모드":(state.parking?"주차 위치 보관 중":"대기 중");}
+    }
+
+    function updateUI(){updateTrackingUI();renderParking();renderHistory();el.autoSuggest.checked=!!state.settings.autoSuggest;el.recordWalk.checked=!!state.settings.recordWalk;el.keepAwake.checked=!!state.settings.keepAwake;el.retention.value=String(state.settings.retentionDays);requestMapDraw();}
+
+    function switchView(name){document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("active",v.id==="view-"+name);});document.querySelectorAll(".nav-btn").forEach(function(b){b.classList.toggle("active",b.getAttribute("data-view")===name);});if(name==="map")setTimeout(resizeMap,30);window.scrollTo(0,0);}
+    document.querySelectorAll(".nav-btn").forEach(function(btn){btn.addEventListener("click",function(){switchView(btn.getAttribute("data-view"));});});
+
+    el.autoSuggest.addEventListener("change",function(){state.settings.autoSuggest=el.autoSuggest.checked;persist(true);});
+    el.recordWalk.addEventListener("change",function(){state.settings.recordWalk=el.recordWalk.checked;persist(true);});
+    el.keepAwake.addEventListener("change",function(){state.settings.keepAwake=el.keepAwake.checked;if(state.active&&state.settings.keepAwake)requestWakeLock();else releaseWakeLock();persist(true);});
+    el.retention.addEventListener("change",function(){state.settings.retentionDays=Number(el.retention.value);cleanupHistory();persist(true);renderHistory();showToast("보관 기간을 바꿨어요.");});
+
+    el.exportBtn.addEventListener("click",function(){
+      var data={exportedAt:new Date().toISOString(),app:"ParkPin",parking:state.parking,history:state.history,route:state.route};
+      var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="parkpin-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(a.href);},1000);showToast("백업 파일을 만들었어요.");
+    });
+
+    el.clearBtn.addEventListener("click",function(){
+      if(!confirm("저장한 위치, 동선, 사진을 모두 삭제할까요? 이 작업은 되돌릴 수 없어요."))return;
+      stopTracking();state=defaultState();currentPosition=null;lastReliablePosition=null;map.center=null;map.userMoved=false;localStorage.removeItem(STORAGE_KEY);el.mapEmpty.hidden=false;el.mapEmptyTitle.textContent="GPS 위치를 연결해 주세요";el.mapEmptyText.textContent="버튼을 누르면 브라우저가 위치 권한을 요청하고 현재 위치를 지도에 표시해요.";el.mapStatus.textContent="GPS 권한 요청 필요";updateUI();refreshGpsPermissionState();showToast("모든 데이터를 삭제했어요.");
+    });
+
+    function runDemo(){
+      if(state.active){showToast("실제 위치 추적을 먼저 멈춰 주세요.",true);return;}
+      var base=Date.now()-22*60000;
+      var route=[
+        [37.52410,126.91850],[37.52430,126.92010],[37.52452,126.92210],[37.52484,126.92440],[37.52512,126.92630],[37.52528,126.92735],[37.52542,126.92805],
+        [37.52548,126.92812],[37.52562,126.92788],[37.52580,126.92760],[37.52602,126.92728],[37.52618,126.92695]
+      ];
+      state.route=route.map(function(p,i){return{lat:p[0],lng:p[1],accuracy:12,time:base+i*90000,phase:i<7?"drive":"walk"};});
+      var park={id:"demo-"+Date.now(),lat:37.52542,lng:126.92805,accuracy:11,time:Date.now()-9*60000,name:"백화점 주차장 (샘플)",floor:"B3",zone:"BLUE C",spot:"C-18",note:"3번 엘리베이터 오른쪽 두 번째 줄",photo:"",demo:true};
+      state.parking=park;state.history.unshift(park);state.history=state.history.slice(0,20);state.phase="parked";state.demo=true;currentPosition={lat:37.52618,lng:126.92695,accuracy:9,time:Date.now(),phase:"walk"};map.zoom=17;map.userMoved=false;setMapCenter(park,true);el.mapEmpty.hidden=true;el.mapStatus.textContent="샘플 GPS · ±9m";persist(true);updateUI();switchView("map");showToast("샘플 동선을 표시했어요.");
+    }
+    el.demoBtn.addEventListener("click",runDemo);
+
+    document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&state.active&&state.settings.keepAwake)requestWakeLock();});
+    window.addEventListener("beforeunload",function(){persist(true);releaseWakeLock();});
+
+    cleanupHistory();
+    if(state.parking&&typeof state.parking.lat==="number"){map.center={lat:state.parking.lat,lng:state.parking.lng};el.mapEmpty.hidden=true;el.mapStatus.textContent=state.demo?"샘플 위치":"저장된 주차 위치";}
+    else if(state.route.length){map.center={lat:state.route[state.route.length-1].lat,lng:state.route[state.route.length-1].lng};el.mapEmpty.hidden=true;}
+    else map.center=DEFAULT_CENTER;
+    updateUI();refreshGpsPermissionState();persist(true);resizeMap();
+  })();
+  </script>
+</body>
+</html>
