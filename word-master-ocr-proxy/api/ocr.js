@@ -1,6 +1,10 @@
 import { GoogleAuth } from "google-auth-library";
 
-const DEFAULT_ALLOWED_ORIGIN = "https://doetoeri.github.io";
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://doetoeri.github.io",
+  "https://pincon.app",
+  "https://www.pincon.app",
+];
 const MAX_IMAGE_LENGTH = 4_000_000;
 const VISION_ENDPOINT = "https://vision.googleapis.com/v1/images:annotate";
 
@@ -34,15 +38,28 @@ function parseBody(body) {
 }
 
 export default async function handler(request, response) {
-  const allowedOrigin = process.env.OCR_ALLOWED_ORIGIN || DEFAULT_ALLOWED_ORIGIN;
-  setCors(response, allowedOrigin);
-
-  if (request.method === "OPTIONS") return response.status(204).end();
-
+  const configuredOrigins = [
+    process.env.OCR_ALLOWED_ORIGIN,
+    process.env.OCR_ALLOWED_ORIGINS,
+  ]
+    .filter(Boolean)
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const allowedOrigins = new Set([...DEFAULT_ALLOWED_ORIGINS, ...configuredOrigins]);
   const requestOrigin = request.headers.origin;
-  if (requestOrigin && requestOrigin !== allowedOrigin) {
+  const responseOrigin =
+    requestOrigin && allowedOrigins.has(requestOrigin)
+      ? requestOrigin
+      : DEFAULT_ALLOWED_ORIGINS[0];
+
+  setCors(response, responseOrigin);
+
+  if (requestOrigin && !allowedOrigins.has(requestOrigin)) {
     return response.status(403).json({ error: "ORIGIN_NOT_ALLOWED" });
   }
+
+  if (request.method === "OPTIONS") return response.status(204).end();
 
   const requestUrl = new URL(request.url, "https://ocr.local");
   const healthRequested =
