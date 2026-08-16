@@ -6,12 +6,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function rolePath(schoolId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/roles/$(request.auth.uid);
+    }
+
+    function hasRole(schoolId) {
+      return signedIn() && exists(rolePath(schoolId));
+    }
+
     function roleDocument(schoolId) {
-      return get(/databases/$(database)/documents/schools/$(schoolId)/roles/$(request.auth.uid));
+      return get(rolePath(schoolId));
     }
 
     function activeRole(schoolId) {
-      return signedIn() && roleDocument(schoolId).data.enabled == true;
+      return hasRole(schoolId) && roleDocument(schoolId).data.enabled == true;
     }
 
     function schoolAdmin(schoolId) {
@@ -26,12 +34,16 @@ service cloud.firestore {
       ];
     }
 
-    function canPublishTo(schoolId, targets) {
-      return activeRole(schoolId)
-        && targets is list
+    function targetsAreValid(targets) {
+      return targets is list
         && targets.size() > 0
         && targets.size() <= 30
-        && targets.hasOnly(allowedTargets())
+        && targets.hasOnly(allowedTargets());
+    }
+
+    function canPublishTo(schoolId, targets) {
+      return activeRole(schoolId)
+        && targetsAreValid(targets)
         && (
           roleDocument(schoolId).data.level == 'school'
           || (
@@ -48,10 +60,17 @@ service cloud.firestore {
         && targets.hasOnly(allowedTargets());
     }
 
+    function studentCanEditExisting() {
+      return signedIn()
+        && targetsAreValid(request.resource.data.targets)
+        && request.resource.data.targets == resource.data.targets;
+    }
+
     function validContent(schoolId) {
       return request.resource.data.schoolId == schoolId
         && request.resource.data.kind in ['notice', 'schedule', 'supply', 'event', 'group']
         && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 80
         && request.resource.data.body is string
         && request.resource.data.body.size() <= 1000;
@@ -59,21 +78,23 @@ service cloud.firestore {
 
     match /schools/{schoolId}/content/{contentId} {
       allow read: if true;
+
+      // 일반 학생 경로를 먼저 평가한다. 역할 문서가 없는 학생도 오류 없이 등록 가능하다.
       allow create: if validContent(schoolId)
         && (
-          canPublishTo(schoolId, request.resource.data.targets)
-          || studentCanCreateFor(request.resource.data.targets)
+          studentCanCreateFor(request.resource.data.targets)
+          || canPublishTo(schoolId, request.resource.data.targets)
         );
+
+      // 삭제도 실제 문서를 지우지 않고 deleted=true로 업데이트하므로 변경 기록에서 복구할 수 있다.
       allow update: if validContent(schoolId)
         && (
-          canPublishTo(schoolId, request.resource.data.targets)
-          || (
-            signedIn()
-            && request.resource.data.targets == resource.data.targets
-            && request.resource.data.targets.hasOnly(allowedTargets())
-          )
+          studentCanEditExisting()
+          || canPublishTo(schoolId, request.resource.data.targets)
         );
-      allow delete: if schoolAdmin(schoolId);
+
+      // 물리 삭제는 되돌리기를 보장하기 위해 막는다.
+      allow delete: if false;
     }
 
     match /schools/{schoolId}/history/{historyId} {
@@ -82,10 +103,7 @@ service cloud.firestore {
         && request.resource.data.actorUid == request.auth.uid
         && request.resource.data.action in ['create', 'update', 'delete', 'restore']
         && request.resource.data.contentId is string
-        && request.resource.data.targets is list
-        && request.resource.data.targets.size() > 0
-        && request.resource.data.targets.size() <= 30
-        && request.resource.data.targets.hasOnly(allowedTargets());
+        && targetsAreValid(request.resource.data.targets);
       allow update, delete: if false;
     }
 
