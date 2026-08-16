@@ -1,0 +1,69 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function roleDocument(schoolId) {
+      return get(/databases/$(database)/documents/schools/$(schoolId)/roles/$(request.auth.uid));
+    }
+
+    function activeRole(schoolId) {
+      return signedIn() && roleDocument(schoolId).data.enabled == true;
+    }
+
+    function schoolAdmin(schoolId) {
+      return activeRole(schoolId) && roleDocument(schoolId).data.level == 'school';
+    }
+
+    function allowedTargets() {
+      return [
+        '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8', '1-9', '1-10',
+        '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-8', '2-9', '2-10',
+        '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9', '3-10'
+      ];
+    }
+
+    function canPublishTo(schoolId, targets) {
+      return activeRole(schoolId)
+        && targets is list
+        && targets.size() > 0
+        && targets.size() <= 30
+        && targets.hasOnly(allowedTargets())
+        && (
+          roleDocument(schoolId).data.level == 'school'
+          || (
+            roleDocument(schoolId).data.classKeys is list
+            && targets.hasOnly(roleDocument(schoolId).data.classKeys)
+          )
+        );
+    }
+
+    function validContent(schoolId) {
+      return request.resource.data.schoolId == schoolId
+        && request.resource.data.kind in ['notice', 'schedule', 'supply', 'event', 'group']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() <= 80
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 1000
+        && canPublishTo(schoolId, request.resource.data.targets);
+    }
+
+    match /schools/{schoolId}/content/{contentId} {
+      allow read: if true;
+      allow create, update: if validContent(schoolId);
+      allow delete: if canPublishTo(schoolId, resource.data.targets);
+    }
+
+    match /schools/{schoolId}/roles/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update, delete: if schoolAdmin(schoolId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
