@@ -26,7 +26,7 @@ style.textContent = `
   .pincon-collab-manager .pincon-manager-note { margin: 0 0 12px; color: var(--md-sys-color-on-surface-variant, #4b5563); }
   .pincon-collab-manager .pincon-manager-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
   .pincon-collab-manager .pincon-manager-list { display: grid; gap: 8px; }
-  .pincon-collab-manager .pincon-manager-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+  .pincon-collab-manager .pincon-manager-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(100,116,139,.18); }
   .pincon-collab-manager .pincon-manager-row:last-child { border-bottom: 0; }
   .pincon-collab-manager .pincon-manager-title { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pincon-collab-manager .pincon-manager-meta { margin-top: 3px; font-size: .82rem; color: var(--md-sys-color-on-surface-variant, #6b7280); }
@@ -35,7 +35,8 @@ style.textContent = `
   #pincon-collab-edit-dialog { border: 0; border-radius: 28px; width: min(92vw, 560px); max-height: 84vh; padding: 0; background: var(--md-sys-color-surface-container-high, #fff); color: var(--md-sys-color-on-surface, #111827); box-shadow: 0 24px 64px rgba(0,0,0,.25); }
   #pincon-collab-edit-dialog::backdrop { background: rgba(15,23,42,.38); backdrop-filter: blur(4px); }
   #pincon-collab-edit-dialog form { display: grid; gap: 14px; padding: 24px; }
-  #pincon-collab-edit-dialog h2 { margin: 0 0 2px; font-size: 1.35rem; }
+  #pincon-collab-edit-dialog h2 { margin: 0; font-size: 1.35rem; }
+  #pincon-collab-edit-dialog #pincon-collab-fields { display: grid; gap: 12px; }
   #pincon-collab-edit-dialog label { display: grid; gap: 6px; font-size: .86rem; color: var(--md-sys-color-on-surface-variant, #4b5563); }
   #pincon-collab-edit-dialog input, #pincon-collab-edit-dialog textarea, #pincon-collab-edit-dialog select { box-sizing: border-box; width: 100%; border: 1px solid rgba(100,116,139,.45); border-radius: 14px; padding: 11px 12px; font: inherit; background: transparent; color: inherit; }
   #pincon-collab-edit-dialog textarea { resize: vertical; min-height: 88px; }
@@ -95,26 +96,12 @@ function membersText(item) {
   return (item.members || []).map((member) => `${member.name}${member.role ? ` | ${member.role}` : ""}`).join("\n");
 }
 
-function ensureDialog() {
-  let dialog = document.getElementById("pincon-collab-edit-dialog");
-  if (dialog) return dialog;
-  dialog = document.createElement("dialog");
-  dialog.id = "pincon-collab-edit-dialog";
-  dialog.innerHTML = `
-    <form method="dialog" id="pincon-collab-edit-form">
-      <h2>항목 수정</h2>
-      <div id="pincon-collab-fields"></div>
-      <p class="pincon-form-error" id="pincon-collab-form-error"></p>
-      <div class="pincon-dialog-actions">
-        <button type="button" class="pincon-native-button tonal" data-action="cancel">취소</button>
-        <button type="submit" class="pincon-native-button primary">저장</button>
-      </div>
-    </form>
-  `;
-  document.body.appendChild(dialog);
-  dialog.querySelector('[data-action="cancel"]').addEventListener("click", () => dialog.close());
-  dialog.querySelector("form").addEventListener("submit", saveEdit);
-  return dialog;
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char]));
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/"/g, "&quot;");
 }
 
 function field(label, name, value = "", type = "text", extra = "") {
@@ -125,16 +112,7 @@ function field(label, name, value = "", type = "text", extra = "") {
 }
 
 function selectField(label, name, value, options) {
-  const optionHtml = options.map((option) => `<option value="${escapeAttr(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("");
-  return `<label>${label}<select name="${name}">${optionHtml}</select></label>`;
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[char]));
-}
-
-function escapeAttr(value) {
-  return escapeHtml(value).replace(/"/g, "&quot;");
+  return `<label>${label}<select name="${name}">${options.map((option) => `<option value="${escapeAttr(option)}" ${option === value ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}</select></label>`;
 }
 
 function fieldsFor(item) {
@@ -180,6 +158,29 @@ function fieldsFor(item) {
   ].join("");
 }
 
+function ensureDialog() {
+  let dialog = document.getElementById("pincon-collab-edit-dialog");
+  if (dialog) return dialog;
+
+  dialog = document.createElement("dialog");
+  dialog.id = "pincon-collab-edit-dialog";
+  dialog.innerHTML = `
+    <form method="dialog" id="pincon-collab-edit-form">
+      <h2>항목 수정</h2>
+      <div id="pincon-collab-fields"></div>
+      <p class="pincon-form-error" id="pincon-collab-form-error"></p>
+      <div class="pincon-dialog-actions">
+        <button type="button" class="pincon-native-button tonal" data-action="cancel">취소</button>
+        <button type="submit" class="pincon-native-button primary">저장</button>
+      </div>
+    </form>
+  `;
+  document.body.appendChild(dialog);
+  dialog.querySelector('[data-action="cancel"]').addEventListener("click", () => dialog.close());
+  dialog.querySelector("form").addEventListener("submit", saveEdit);
+  return dialog;
+}
+
 function openEdit(item) {
   if (!currentUser) return;
   editingItem = item;
@@ -191,8 +192,9 @@ function openEdit(item) {
 
 async function saveEdit(event) {
   event.preventDefault();
+  if (!editingItem || !currentUser) return;
+
   const item = editingItem;
-  if (!item || !currentUser) return;
   const dialog = ensureDialog();
   const form = dialog.querySelector("form");
   const error = dialog.querySelector("#pincon-collab-form-error");
@@ -229,7 +231,7 @@ async function saveEdit(event) {
     next.body = String(data.get("body") || "").trim();
   }
 
-  if (!next.title || !next.body && next.kind === "notice") {
+  if (!next.title || (next.kind === "notice" && !next.body)) {
     error.textContent = "필수 항목을 입력해 주세요.";
     return;
   }
@@ -251,8 +253,8 @@ async function saveEdit(event) {
   error.textContent = "";
   try {
     await firebaseApi.updateContent(item.id, next, item);
-    dialog.close();
     editingItem = null;
+    dialog.close();
   } catch (caught) {
     error.textContent = caught?.message || "수정하지 못했습니다.";
   } finally {
@@ -274,7 +276,15 @@ function clickExistingAdd(kind) {
   const label = KIND_LABELS[kind];
   const candidates = [...document.querySelectorAll('.action-grid md-filled-button, [aria-label="콘텐츠 등록 메뉴"] md-filled-button')];
   const button = candidates.find((candidate) => candidate.textContent?.trim().includes(label));
-  if (button) button.click();
+  button?.click();
+}
+
+function renderSignature() {
+  const items = contentItems
+    .map((item) => `${item.id}:${item.updatedAtMs || item.createdAtMs || 0}`)
+    .sort()
+    .join("|");
+  return `${currentUser?.uid || ""}|${currentClassKey}|${items}`;
 }
 
 function managerHtml() {
@@ -313,10 +323,9 @@ function managerHtml() {
 function renderManager() {
   const settingsGrid = document.querySelector(".settings-grid");
   const managerHeading = document.getElementById("manager-title");
-  if (!settingsGrid || !managerHeading) return;
-
   let section = document.querySelector(".pincon-collab-manager");
-  if (!currentUser || !currentClassKey) {
+
+  if (!settingsGrid || !managerHeading || !currentUser || !currentClassKey) {
     section?.remove();
     return;
   }
@@ -330,7 +339,11 @@ function renderManager() {
     else settingsGrid.appendChild(section);
   }
 
+  const signature = renderSignature();
+  if (section.dataset.signature === signature) return;
+  section.dataset.signature = signature;
   section.innerHTML = managerHtml();
+
   section.querySelectorAll("[data-add-kind]").forEach((button) => {
     button.addEventListener("click", () => clickExistingAdd(button.dataset.addKind));
   });
@@ -354,10 +367,12 @@ function queueRender() {
 function refreshClassSubscription() {
   const nextClassKey = profileClassKey();
   if (nextClassKey === currentClassKey && unsubscribeContent) return;
+
   currentClassKey = nextClassKey;
   contentItems = [];
   unsubscribeContent?.();
   unsubscribeContent = null;
+
   if (currentClassKey) {
     unsubscribeContent = firebaseApi.subscribeClassContent(
       currentClassKey,
