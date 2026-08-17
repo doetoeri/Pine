@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "storage.rules"
-      - "firebase.json"
+      - "automation/deploy-storage-rules.mjs"
       - ".github/workflows/storage-rules.yml"
   workflow_dispatch:
 
@@ -25,11 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Prepare Firebase service account
+      - name: Deploy Cloud Storage rules
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-        run: |
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
-      - name: Deploy Cloud Storage rules
-        run: npx --yes firebase-tools@latest deploy --only storage --project studio-2803086992-2d4cf --non-interactive
+          FIREBASE_PROJECT_ID: studio-2803086992-2d4cf
+        run: node automation/deploy-storage-rules.mjs
