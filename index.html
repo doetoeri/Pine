@@ -17,12 +17,13 @@
     <script>
       (() => {
         const key = "pincon-design-system-v1";
-        const allowed = new Set(["material-expressive", "material-expressive-beta"]);
+        const allowed = new Set(["material-expressive", "material-expressive-lab"]);
         let mode = "material-expressive";
         try {
           const saved = localStorage.getItem(key);
-          if (allowed.has(saved)) mode = saved;
-          else localStorage.setItem(key, mode);
+          if (saved === "material-expressive-beta") mode = "material-expressive-lab";
+          else if (allowed.has(saved)) mode = saved;
+          localStorage.setItem(key, mode);
         } catch {}
         document.documentElement.dataset.pinconDesign = mode;
       })();
@@ -44,8 +45,8 @@
     <link rel="stylesheet" crossorigin href="./assets/index-C7Rqpf69.css">
     <link rel="stylesheet" href="./theme-green.css?v=20260817-green1">
     <link rel="stylesheet" href="./material-official-layout.css?v=20260817-material3">
-    <link rel="stylesheet" href="./pincon-design-systems.css?v=20260817-expressive1">
-    <link rel="manifest" href="./manifest.webmanifest?v=20260817-expressive1">
+    <link rel="stylesheet" href="./pincon-design-systems.css?v=20260818-expressive-lab1">
+    <link rel="manifest" href="./manifest.webmanifest?v=20260818-expressive-lab1">
     <script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script>
   </head>
   <body>
@@ -58,8 +59,8 @@
     <script type="module" src="./pincon-auth-diagnostics.js?v=20260817-authbridge1"></script>
     <script type="module" src="./pincon-material-collab.js?v=20260817-material4"></script>
     <script type="module" src="./pincon-material-workspace.js?v=20260817-material4"></script>
-    <script type="module" src="./pincon-material-next.js?v=20260817-material4"></script>
     <script type="module" src="./pincon-analytics.js?v=20260817-material4"></script>
-    <script type="module" src="./pincon-theme-switcher.js?v=20260817-expressive1"></script>
+    <script type="module" src="./pincon-theme-switcher.js?v=20260818-expressive-lab1"></script>
+    <script type="module" src="./pincon-expressive-lab.js?v=20260818-expressive-lab1"></script>
   </body>
 </html>
