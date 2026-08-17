@@ -19,22 +19,15 @@ html[data-pincon-design="material-expressive"] {
   --pincon-shell-shadow: 0 10px 30px color-mix(in srgb, var(--md-sys-color-primary) 9%, transparent);
   --pincon-theme-ease: cubic-bezier(.2, .9, .25, 1.15);
   --pincon-theme-duration: 260ms;
-
   --md-sys-shape-corner-small: 12px;
   --md-sys-shape-corner-medium: 18px;
   --md-sys-shape-corner-large: 24px;
   --md-sys-shape-corner-extra-large: 32px;
 }
-
-html[data-pincon-design="material-expressive"] .hero-area {
-  border-radius: 0 0 36px 36px;
-}
-
+html[data-pincon-design="material-expressive"] .hero-area { border-radius: 0 0 36px 36px; }
 html[data-pincon-design="material-expressive"] .content-section,
 html[data-pincon-design="material-expressive"] .pincon-material-shell,
-html[data-pincon-design="material-expressive"] .pincon-material-beta-card {
-  border-radius: var(--pincon-shell-radius);
-}
+html[data-pincon-design="material-expressive"] .pincon-material-beta-card { border-radius: var(--pincon-shell-radius); }
 
 html[data-pincon-design="apple-ios27"] {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
@@ -44,7 +37,6 @@ html[data-pincon-design="apple-ios27"] {
   --pincon-shell-blur: saturate(180%) blur(22px);
   --pincon-theme-ease: cubic-bezier(.25, .1, .25, 1);
   --pincon-theme-duration: 220ms;
-
   --md-sys-color-background: #f2f2f7;
   --md-sys-color-surface: rgba(255, 255, 255, .86);
   --md-sys-color-surface-container-lowest: #ffffff;
@@ -60,11 +52,7 @@ html[data-pincon-design="apple-ios27"] {
   --md-sys-shape-corner-large: 20px;
   --md-sys-shape-corner-extra-large: 26px;
 }
-
-html[data-pincon-design="apple-ios27"] body {
-  background: #f2f2f7;
-}
-
+html[data-pincon-design="apple-ios27"] body { background: #f2f2f7; }
 html[data-pincon-design="apple-ios27"] .content-section,
 html[data-pincon-design="apple-ios27"] .floating-navigation,
 html[data-pincon-design="apple-ios27"] .pincon-material-beta-card,
@@ -75,10 +63,7 @@ html[data-pincon-design="apple-ios27"] .pincon-material-shell {
   border: var(--pincon-shell-border);
   box-shadow: var(--pincon-shell-shadow);
 }
-
-html[data-pincon-design="apple-ios27"] .floating-navigation {
-  border-radius: 24px;
-}
+html[data-pincon-design="apple-ios27"] .floating-navigation { border-radius: 24px; }
 
 html[data-pincon-design="fluent2"] {
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
@@ -87,7 +72,6 @@ html[data-pincon-design="fluent2"] {
   --pincon-shell-shadow: 0 2px 4px rgba(0, 0, 0, .06), 0 8px 24px rgba(0, 0, 0, .04);
   --pincon-theme-ease: cubic-bezier(.33, 0, .67, 1);
   --pincon-theme-duration: 167ms;
-
   --md-sys-color-primary: var(--colorBrandBackground, #0f6cbd);
   --md-sys-color-on-primary: var(--colorNeutralForegroundOnBrand, #ffffff);
   --md-sys-color-primary-container: var(--colorBrandBackground2, #ebf3fc);
@@ -106,14 +90,10 @@ html[data-pincon-design="fluent2"] {
   --md-sys-shape-corner-large: 12px;
   --md-sys-shape-corner-extra-large: 16px;
 }
-
 html[data-pincon-design="fluent2"] .content-section,
 html[data-pincon-design="fluent2"] .pincon-material-shell,
 html[data-pincon-design="fluent2"] .pincon-material-beta-card,
-html[data-pincon-design="fluent2"] .floating-navigation {
-  border: var(--pincon-shell-border);
-  box-shadow: var(--pincon-shell-shadow);
-}
+html[data-pincon-design="fluent2"] .floating-navigation { border: var(--pincon-shell-border); box-shadow: var(--pincon-shell-shadow); }
 
 html[data-pincon-design="oneui9"] {
   font-family: system-ui, "Noto Sans KR", sans-serif;
@@ -122,7 +102,6 @@ html[data-pincon-design="oneui9"] {
   --pincon-shell-shadow: 0 10px 28px rgba(0, 0, 0, .055);
   --pincon-theme-ease: cubic-bezier(.2, .8, .2, 1);
   --pincon-theme-duration: 240ms;
-
   --md-sys-color-background: #f7f7f7;
   --md-sys-color-surface: #ffffff;
   --md-sys-color-surface-container-lowest: #ffffff;
@@ -137,45 +116,36 @@ html[data-pincon-design="oneui9"] {
   --md-sys-shape-corner-large: 24px;
   --md-sys-shape-corner-extra-large: 30px;
 }
-
-html[data-pincon-design="oneui9"] .hero-area {
-  padding-top: clamp(28px, 8vh, 76px);
-  border-radius: 0 0 32px 32px;
-}
-
+html[data-pincon-design="oneui9"] .hero-area { padding-top: clamp(28px, 8vh, 76px); border-radius: 0 0 32px 32px; }
 html[data-pincon-design="oneui9"] .content-section,
 html[data-pincon-design="oneui9"] .pincon-material-shell,
-html[data-pincon-design="oneui9"] .pincon-material-beta-card {
-  border-radius: var(--pincon-shell-radius);
-  border: var(--pincon-shell-border);
-  box-shadow: var(--pincon-shell-shadow);
-}
-
-html[data-pincon-design="oneui9"] .floating-navigation {
-  border-radius: 28px;
-  min-height: 64px;
-}
-
+html[data-pincon-design="oneui9"] .pincon-material-beta-card { border-radius: var(--pincon-shell-radius); border: var(--pincon-shell-border); box-shadow: var(--pincon-shell-shadow); }
+html[data-pincon-design="oneui9"] .floating-navigation { border-radius: 28px; min-height: 64px; }
 html[data-pincon-design="oneui9"] md-filled-button,
 html[data-pincon-design="oneui9"] md-filled-tonal-button,
 html[data-pincon-design="oneui9"] md-outlined-button,
 html[data-pincon-design="oneui9"] md-text-button,
-html[data-pincon-design="oneui9"] md-icon-button {
-  min-height: 48px;
-}
+html[data-pincon-design="oneui9"] md-icon-button { min-height: 48px; }
 
 html[data-pincon-design] .content-section,
 html[data-pincon-design] .floating-navigation,
 html[data-pincon-design] .pincon-material-shell,
 html[data-pincon-design] .pincon-material-beta-card {
-  transition:
-    background-color var(--pincon-theme-duration) var(--pincon-theme-ease),
-    border-color var(--pincon-theme-duration) var(--pincon-theme-ease),
-    border-radius var(--pincon-theme-duration) var(--pincon-theme-ease),
-    box-shadow var(--pincon-theme-duration) var(--pincon-theme-ease);
+  transition: background-color var(--pincon-theme-duration) var(--pincon-theme-ease), border-color var(--pincon-theme-duration) var(--pincon-theme-ease), border-radius var(--pincon-theme-duration) var(--pincon-theme-ease), box-shadow var(--pincon-theme-duration) var(--pincon-theme-ease);
 }
 
 .pincon-design-system-card { grid-column: 1 / -1; }
-.pincon-design-system-card md-outlined-select { width: min(100%, 420px); }
+.pincon-design-system-card md-outlined-select,
+.pincon-theme-dialog-content md-outlined-select { width: min(100%, 520px); }
+.pincon-design-system-select-wrap { width: 100%; padding-block: 6px; }
 .pincon-design-system-note { margin-top: 10px; color: var(--md-sys-color-on-surface-variant); }
 .pincon-design-system-preview { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
+.pincon-design-system-fallback-host { width: 100%; }
+.pincon-theme-launcher { position: fixed; z-index: 85; right: 18px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 80px)); }
+.pincon-theme-launcher[hidden] { display: none !important; }
+.pincon-theme-dialog-content { display: grid; gap: 16px; min-width: min(560px, calc(100vw - 56px)); }
+.pincon-theme-dialog-content p { margin: 0; }
+@media (max-width: 700px) {
+  .pincon-theme-launcher { right: 14px; }
+  .pincon-theme-dialog-content { min-width: calc(100vw - 56px); }
+}
