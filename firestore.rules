@@ -104,7 +104,7 @@ service cloud.firestore {
     function validDriveItem(groupId) {
       return classKeyIsValid(request.resource.data.classKey)
         && request.resource.data.groupId == groupId
-        && request.resource.data.type in ['file', 'link', 'note']
+        && request.resource.data.type in ['link', 'note']
         && request.resource.data.title is string
         && request.resource.data.title.size() > 0
         && request.resource.data.title.size() <= 140
@@ -189,7 +189,7 @@ service cloud.firestore {
       }
     }
 
-    // 1. 모둠 드라이브: 메타데이터는 Firestore, 파일 본문은 Cloud Storage에 보관한다.
+    // 1. 모둠 공유함: 파일 업로드 없이 링크와 텍스트를 Firestore에서 공유한다.
     match /schools/{schoolId}/groupDrive/{groupId}/items/{itemId} {
       allow read: if signedIn();
       allow create: if signedIn() && validDriveItem(groupId) && request.resource.data.authorUid == request.auth.uid;
