@@ -34,6 +34,10 @@ service cloud.firestore {
       ];
     }
 
+    function classKeyIsValid(classKey) {
+      return classKey is string && classKey in allowedTargets();
+    }
+
     function targetsAreValid(targets) {
       return targets is list
         && targets.size() > 0
@@ -76,24 +80,74 @@ service cloud.firestore {
         && request.resource.data.body.size() <= 1000;
     }
 
+    function validPoll() {
+      return classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.question is string
+        && request.resource.data.question.size() > 0
+        && request.resource.data.question.size() <= 120
+        && request.resource.data.options is list
+        && request.resource.data.options.size() >= 2
+        && request.resource.data.options.size() <= 8
+        && request.resource.data.multiple is bool
+        && request.resource.data.status in ['open', 'closed']
+        && request.resource.data.deleted is bool
+        && request.resource.data.authorUid is string
+        && request.resource.data.authorName is string
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.updatedAtMs is int;
+    }
+
+    function pollPath(schoolId, pollId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/polls/$(pollId);
+    }
+
+    function validDriveItem(groupId) {
+      return classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.groupId == groupId
+        && request.resource.data.type in ['file', 'link', 'note']
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 140
+        && request.resource.data.deleted is bool
+        && request.resource.data.authorUid is string
+        && request.resource.data.authorName is string
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.updatedAtMs is int;
+    }
+
+    function validAssignment() {
+      return classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 60
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 2000
+        && request.resource.data.dueAtMs is int
+        && request.resource.data.groupId is string
+        && request.resource.data.deleted is bool
+        && request.resource.data.authorUid is string
+        && request.resource.data.authorName is string
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.updatedAtMs is int;
+    }
+
     match /schools/{schoolId}/content/{contentId} {
       allow read: if true;
 
-      // 일반 학생 경로를 먼저 평가한다. 역할 문서가 없는 학생도 오류 없이 등록 가능하다.
       allow create: if validContent(schoolId)
         && (
           studentCanCreateFor(request.resource.data.targets)
           || canPublishTo(schoolId, request.resource.data.targets)
         );
 
-      // 삭제도 실제 문서를 지우지 않고 deleted=true로 업데이트하므로 변경 기록에서 복구할 수 있다.
       allow update: if validContent(schoolId)
         && (
           studentCanEditExisting()
           || canPublishTo(schoolId, request.resource.data.targets)
         );
 
-      // 물리 삭제는 되돌리기를 보장하기 위해 막는다.
       allow delete: if false;
     }
 
@@ -105,6 +159,70 @@ service cloud.firestore {
         && request.resource.data.contentId is string
         && targetsAreValid(request.resource.data.targets);
       allow update, delete: if false;
+    }
+
+    // 5. 빠른 투표: 누구나 만들 수 있고, 질문/선택지는 생성 후 고정한다.
+    match /schools/{schoolId}/polls/{pollId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validPoll() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if signedIn()
+        && validPoll()
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.question == resource.data.question
+        && request.resource.data.options == resource.data.options
+        && request.resource.data.multiple == resource.data.multiple
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAtMs == resource.data.createdAtMs;
+      allow delete: if false;
+
+      match /votes/{voteId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn()
+          && voteId == request.auth.uid
+          && request.resource.data.voterUid == request.auth.uid
+          && request.resource.data.selected is list
+          && request.resource.data.selected.size() > 0
+          && request.resource.data.selected.size() <= 8
+          && get(pollPath(schoolId, pollId)).data.status == 'open'
+          && get(pollPath(schoolId, pollId)).data.deleted == false;
+        allow delete: if false;
+      }
+    }
+
+    // 1. 모둠 드라이브: 메타데이터는 Firestore, 파일 본문은 Cloud Storage에 보관한다.
+    match /schools/{schoolId}/groupDrive/{groupId}/items/{itemId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validDriveItem(groupId) && request.resource.data.authorUid == request.auth.uid;
+      allow update: if signedIn()
+        && validDriveItem(groupId)
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.groupId == resource.data.groupId
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAtMs == resource.data.createdAtMs;
+      allow delete: if false;
+    }
+
+    // 2. 과제 허브: 공유 과제 + 사용자별 개인 진행 상태.
+    match /schools/{schoolId}/assignments/{assignmentId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validAssignment() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if signedIn()
+        && validAssignment()
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAtMs == resource.data.createdAtMs;
+      allow delete: if false;
+
+      match /progress/{userId} {
+        allow read: if signedIn() && userId == request.auth.uid;
+        allow create, update: if signedIn()
+          && userId == request.auth.uid
+          && request.resource.data.userUid == request.auth.uid
+          && request.resource.data.state in ['todo', 'doing', 'done']
+          && request.resource.data.updatedAtMs is int;
+        allow delete: if false;
+      }
     }
 
     match /schools/{schoolId}/roles/{userId} {
