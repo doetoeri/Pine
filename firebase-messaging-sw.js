@@ -10,8 +10,8 @@ if (globalThis.PINCON_FIREBASE_CONFIG) {
     const title = payload.data?.title || "Pincon 알림";
     const options = {
       body: payload.data?.body || "새 학교 알림이 도착했습니다.",
-      icon: "./icons/icon-192.png",
-      badge: "./icons/icon-192.png",
+      icon: "./icons/icon-192.png?v=20260817-figma",
+      badge: "./icons/icon-192.png?v=20260817-figma",
       tag: payload.data?.tag || "pincon-school-update",
       data: { link: payload.data?.link || "./" },
     };
