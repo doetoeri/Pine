@@ -1,0 +1,60 @@
+name: Build Pincon app icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "icons/app-icon.svg"
+      - ".github/workflows/build-app-icons.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-icons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install SVG renderer
+        run: npm install --prefix /tmp/pincon-icon-build sharp@0.34.3
+
+      - name: Render exact PineCon icon assets
+        run: |
+          NODE_PATH=/tmp/pincon-icon-build/node_modules node <<'NODE'
+          const sharp = require('sharp');
+          const source = 'icons/app-icon.svg';
+          const jobs = [
+            [192, 'icons/icon-192.png'],
+            [512, 'icons/icon-512.png'],
+            [512, 'icons/icon-512-maskable.png'],
+            [180, 'icons/apple-touch-icon.png'],
+          ];
+          Promise.all(jobs.map(([size, output]) =>
+            sharp(source, { density: 384 })
+              .resize(size, size, { fit: 'fill' })
+              .png()
+              .toFile(output)
+          )).catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Commit generated icon files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add icons/icon-192.png icons/icon-512.png icons/icon-512-maskable.png icons/apple-touch-icon.png
+          if git diff --cached --quiet; then
+            echo "Icon PNG files are already current."
+            exit 0
+          fi
+          git commit -m "chore: render app icons from exact Figma source"
+          git push
