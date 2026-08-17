@@ -1,11 +1,11 @@
 /* WORD MASTER Glass Recall offline shell */
-var CACHE_NAME = "wmgr-shell-v5-unified1";
+var CACHE_NAME = "wmgr-shell-v6-unified2";
 var SHELL = [
   "./",
   "./index.html",
   "./hotfix.js?v=20260817-ocr4",
   "./handwriting-study.js?v=20260817-ink2",
-  "./handwriting-unified.js?v=20260817-unified1",
+  "./handwriting-unified.js?v=20260818-unified2",
   "./assets/index-DN91RMlF.js",
   "./assets/index-CPEeSJ0i.css",
   "./legacy.html",
@@ -44,7 +44,6 @@ self.addEventListener("fetch", function (event) {
   var url = new URL(request.url);
   if (request.method !== "GET" || url.pathname.indexOf("/api/ocr") !== -1) return;
 
-  /* Network first while online, cache fallback while offline. */
   event.respondWith(
     fetch(request).then(function (response) {
       if (response && response.ok && url.origin === self.location.origin) {
