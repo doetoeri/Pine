@@ -1,7 +1,7 @@
 /* global firebase */
 importScripts("https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.17.1/firebase-messaging-compat.js");
-importScripts("./firebase-config.js");
+importScripts("./firebase-config.js?v=20260817-fcm1");
 
 if (globalThis.PINCON_FIREBASE_CONFIG) {
   firebase.initializeApp(globalThis.PINCON_FIREBASE_CONFIG);
