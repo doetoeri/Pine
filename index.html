@@ -22,6 +22,17 @@
     <style>
       md-icon { font-family: "Material Symbols Rounded"; }
     </style>
+    <script>
+      (() => {
+        const allowed = new Set(["material-expressive", "apple-ios27", "fluent2", "oneui9"]);
+        let theme = "material-expressive";
+        try {
+          const saved = localStorage.getItem("pincon-design-system-v1");
+          if (allowed.has(saved)) theme = saved;
+        } catch {}
+        document.documentElement.dataset.pinconDesign = theme;
+      })();
+    </script>
     <title>Pincon · 우리 반의 오늘</title>
     <script src="./firebase-config.js"></script>
     <script>
@@ -39,7 +50,8 @@
     <link rel="stylesheet" crossorigin href="./assets/index-C7Rqpf69.css">
     <link rel="stylesheet" href="./theme-green.css?v=20260817-green1">
     <link rel="stylesheet" href="./material-official-layout.css?v=20260817-material3">
-    <link rel="manifest" href="./manifest.webmanifest?v=20260817-material3">
+    <link rel="stylesheet" href="./pincon-design-systems.css?v=20260817-designsystems1">
+    <link rel="manifest" href="./manifest.webmanifest?v=20260817-designsystems1">
     <script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script>
   </head>
   <body>
@@ -52,5 +64,6 @@
     <script type="module" src="./pincon-material-workspace.js?v=20260817-material3"></script>
     <script type="module" src="./pincon-material-next.js?v=20260817-material3"></script>
     <script type="module" src="./pincon-analytics.js?v=20260817-material3"></script>
+    <script type="module" src="./pincon-theme-switcher.js?v=20260817-designsystems1"></script>
   </body>
 </html>
