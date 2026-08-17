@@ -1,138 +1,258 @@
-/*
- * PinCon design-system theme layer.
- * Interactive widgets remain official library components. This file only changes
- * design tokens, app-shell surfaces, typography, spacing and motion.
+/* PinCon Material You Expressive layer.
+ * Interactive controls remain Google's official @material/web components.
+ * This file only changes Material tokens, app-shell layout, spacing and motion.
  */
 
 :root {
   --pincon-theme-ease: cubic-bezier(.2, 0, 0, 1);
-  --pincon-theme-duration: 180ms;
-  --pincon-shell-radius: 24px;
-  --pincon-shell-border: 1px solid var(--md-sys-color-outline-variant);
-  --pincon-shell-shadow: none;
-  --pincon-shell-blur: none;
+  --pincon-theme-duration: 220ms;
+  --pincon-shell-radius: 28px;
+  --pincon-shell-border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 68%, transparent);
+  --pincon-shell-shadow: 0 10px 30px color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
 }
 
 html[data-pincon-design="material-expressive"] {
   --pincon-shell-radius: 28px;
-  --pincon-shell-border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 68%, transparent);
-  --pincon-shell-shadow: 0 10px 30px color-mix(in srgb, var(--md-sys-color-primary) 9%, transparent);
-  --pincon-theme-ease: cubic-bezier(.2, .9, .25, 1.15);
+  --pincon-theme-ease: cubic-bezier(.2, .8, .2, 1);
   --pincon-theme-duration: 260ms;
   --md-sys-shape-corner-small: 12px;
   --md-sys-shape-corner-medium: 18px;
   --md-sys-shape-corner-large: 24px;
   --md-sys-shape-corner-extra-large: 32px;
 }
-html[data-pincon-design="material-expressive"] .hero-area { border-radius: 0 0 36px 36px; }
+
+html[data-pincon-design="material-expressive"] .hero-area {
+  border-radius: 0 0 40px 40px;
+}
+
 html[data-pincon-design="material-expressive"] .content-section,
 html[data-pincon-design="material-expressive"] .pincon-material-shell,
-html[data-pincon-design="material-expressive"] .pincon-material-beta-card { border-radius: var(--pincon-shell-radius); }
-
-html[data-pincon-design="apple-ios27"] {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
-  --pincon-shell-radius: 22px;
-  --pincon-shell-border: .5px solid color-mix(in srgb, #8e8e93 34%, transparent);
-  --pincon-shell-shadow: 0 12px 36px rgba(0, 0, 0, .08);
-  --pincon-shell-blur: saturate(180%) blur(22px);
-  --pincon-theme-ease: cubic-bezier(.25, .1, .25, 1);
-  --pincon-theme-duration: 220ms;
-  --md-sys-color-background: #f2f2f7;
-  --md-sys-color-surface: rgba(255, 255, 255, .86);
-  --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: rgba(255, 255, 255, .76);
-  --md-sys-color-surface-container: rgba(255, 255, 255, .82);
-  --md-sys-color-surface-container-high: rgba(255, 255, 255, .9);
-  --md-sys-color-surface-container-highest: #ffffff;
-  --md-sys-color-on-surface: #1c1c1e;
-  --md-sys-color-on-surface-variant: #636366;
-  --md-sys-color-outline: #8e8e93;
-  --md-sys-color-outline-variant: rgba(60, 60, 67, .18);
-  --md-sys-shape-corner-medium: 14px;
-  --md-sys-shape-corner-large: 20px;
-  --md-sys-shape-corner-extra-large: 26px;
+html[data-pincon-design="material-expressive"] .pincon-material-beta-card {
+  border-radius: var(--pincon-shell-radius);
 }
-html[data-pincon-design="apple-ios27"] body { background: #f2f2f7; }
-html[data-pincon-design="apple-ios27"] .content-section,
-html[data-pincon-design="apple-ios27"] .floating-navigation,
-html[data-pincon-design="apple-ios27"] .pincon-material-beta-card,
-html[data-pincon-design="apple-ios27"] .pincon-material-shell {
-  background: rgba(255, 255, 255, .78);
-  -webkit-backdrop-filter: var(--pincon-shell-blur);
-  backdrop-filter: var(--pincon-shell-blur);
+
+/* Bold beta: same Material components, much more expressive composition. */
+html[data-pincon-design="material-expressive-beta"] {
+  --pincon-shell-radius: 38px;
+  --pincon-shell-border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 15%, var(--md-sys-color-outline-variant));
+  --pincon-shell-shadow: 0 18px 48px color-mix(in srgb, var(--md-sys-color-primary) 13%, transparent);
+  --pincon-theme-ease: cubic-bezier(.16, 1.18, .32, 1);
+  --pincon-theme-duration: 520ms;
+
+  --md-sys-shape-corner-extra-small: 10px;
+  --md-sys-shape-corner-small: 16px;
+  --md-sys-shape-corner-medium: 24px;
+  --md-sys-shape-corner-large: 34px;
+  --md-sys-shape-corner-extra-large: 48px;
+  --md-sys-typescale-headline-large-size: 2.35rem;
+  --md-sys-typescale-headline-medium-size: 2rem;
+  --md-sys-typescale-headline-small-size: 1.7rem;
+}
+
+html[data-pincon-design="material-expressive-beta"] body {
+  background: var(--md-sys-color-background);
+}
+
+html[data-pincon-design="material-expressive-beta"] .app-main,
+html[data-pincon-design="material-expressive-beta"] .top-bar {
+  width: min(calc(100% - 32px), 1240px);
+}
+
+html[data-pincon-design="material-expressive-beta"] .view-layout {
+  gap: clamp(20px, 3vw, 38px);
+  animation: pincon-bold-view-in 620ms var(--pincon-theme-ease) both;
+}
+
+html[data-pincon-design="material-expressive-beta"] .hero-area {
+  min-height: clamp(390px, 54vh, 590px);
+  padding: clamp(38px, 7vw, 88px);
+  border-radius: 64px 64px 24px 64px;
+  box-shadow: 0 28px 70px color-mix(in srgb, var(--md-sys-color-primary) 16%, transparent);
+  transform-origin: 18% 80%;
+  animation: pincon-bold-hero-in 760ms var(--pincon-theme-ease) both;
+}
+
+html[data-pincon-design="material-expressive-beta"] .hero-area h1 {
+  max-width: 900px;
+  margin-block: 18px 16px;
+  font-size: clamp(2.7rem, 7vw, 5.6rem);
+  line-height: .96;
+  letter-spacing: -.055em;
+  font-weight: 500;
+}
+
+html[data-pincon-design="material-expressive-beta"] .hero-support {
+  max-width: 720px;
+  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  line-height: 1.65;
+}
+
+html[data-pincon-design="material-expressive-beta"] .page-heading {
+  min-height: clamp(230px, 32vh, 340px);
+  padding: 52px 8px 18px;
+}
+
+html[data-pincon-design="material-expressive-beta"] .page-heading h1 {
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -.045em;
+}
+
+html[data-pincon-design="material-expressive-beta"] .content-columns,
+html[data-pincon-design="material-expressive-beta"] .settings-grid {
+  gap: 22px;
+}
+
+@media (min-width: 900px) {
+  html[data-pincon-design="material-expressive-beta"] .content-columns,
+  html[data-pincon-design="material-expressive-beta"] .settings-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  html[data-pincon-design="material-expressive-beta"] .content-columns > *,
+  html[data-pincon-design="material-expressive-beta"] .settings-grid > * {
+    grid-column: span 6;
+  }
+
+  html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(4n + 1),
+  html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(4n + 1) {
+    grid-column: span 7;
+  }
+
+  html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(4n + 2),
+  html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(4n + 2) {
+    grid-column: span 5;
+  }
+
+  html[data-pincon-design="material-expressive-beta"] .editor-section,
+  html[data-pincon-design="material-expressive-beta"] .pincon-design-system-card,
+  html[data-pincon-design="material-expressive-beta"] .pincon-material-beta-card {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+html[data-pincon-design="material-expressive-beta"] .content-section,
+html[data-pincon-design="material-expressive-beta"] .pincon-material-shell,
+html[data-pincon-design="material-expressive-beta"] .pincon-material-beta-card {
+  border-radius: var(--pincon-shell-radius);
   border: var(--pincon-shell-border);
   box-shadow: var(--pincon-shell-shadow);
+  transform-origin: 50% 100%;
+  animation: pincon-bold-card-in 620ms var(--pincon-theme-ease) both;
 }
-html[data-pincon-design="apple-ios27"] .floating-navigation { border-radius: 24px; }
 
-html[data-pincon-design="fluent2"] {
-  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  --pincon-shell-radius: 12px;
-  --pincon-shell-border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
-  --pincon-shell-shadow: 0 2px 4px rgba(0, 0, 0, .06), 0 8px 24px rgba(0, 0, 0, .04);
-  --pincon-theme-ease: cubic-bezier(.33, 0, .67, 1);
-  --pincon-theme-duration: 167ms;
-  --md-sys-color-primary: var(--colorBrandBackground, #0f6cbd);
-  --md-sys-color-on-primary: var(--colorNeutralForegroundOnBrand, #ffffff);
-  --md-sys-color-primary-container: var(--colorBrandBackground2, #ebf3fc);
-  --md-sys-color-on-primary-container: var(--colorBrandForeground1, #0f6cbd);
-  --md-sys-color-background: var(--colorNeutralBackground2, #f5f5f5);
-  --md-sys-color-surface: var(--colorNeutralBackground1, #ffffff);
-  --md-sys-color-surface-container-low: var(--colorNeutralBackground1, #ffffff);
-  --md-sys-color-surface-container: var(--colorNeutralBackground2, #f5f5f5);
-  --md-sys-color-surface-container-high: var(--colorNeutralBackground3, #f0f0f0);
-  --md-sys-color-on-surface: var(--colorNeutralForeground1, #242424);
-  --md-sys-color-on-surface-variant: var(--colorNeutralForeground2, #424242);
-  --md-sys-color-outline: var(--colorNeutralStrokeAccessible, #616161);
-  --md-sys-color-outline-variant: var(--colorNeutralStroke2, #e0e0e0);
-  --md-sys-shape-corner-small: 4px;
-  --md-sys-shape-corner-medium: 8px;
-  --md-sys-shape-corner-large: 12px;
-  --md-sys-shape-corner-extra-large: 16px;
-}
-html[data-pincon-design="fluent2"] .content-section,
-html[data-pincon-design="fluent2"] .pincon-material-shell,
-html[data-pincon-design="fluent2"] .pincon-material-beta-card,
-html[data-pincon-design="fluent2"] .floating-navigation { border: var(--pincon-shell-border); box-shadow: var(--pincon-shell-shadow); }
+html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(2),
+html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(2) { animation-delay: 55ms; }
+html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(3),
+html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(3) { animation-delay: 100ms; }
+html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(4),
+html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(4) { animation-delay: 145ms; }
+html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(5),
+html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(5) { animation-delay: 190ms; }
+html[data-pincon-design="material-expressive-beta"] .content-columns > :nth-child(n + 6),
+html[data-pincon-design="material-expressive-beta"] .settings-grid > :nth-child(n + 6) { animation-delay: 230ms; }
 
-html[data-pincon-design="oneui9"] {
-  font-family: system-ui, "Noto Sans KR", sans-serif;
-  --pincon-shell-radius: 26px;
-  --pincon-shell-border: 1px solid rgba(0, 0, 0, .055);
-  --pincon-shell-shadow: 0 10px 28px rgba(0, 0, 0, .055);
-  --pincon-theme-ease: cubic-bezier(.2, .8, .2, 1);
-  --pincon-theme-duration: 240ms;
-  --md-sys-color-background: #f7f7f7;
-  --md-sys-color-surface: #ffffff;
-  --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #ffffff;
-  --md-sys-color-surface-container: #f2f2f2;
-  --md-sys-color-surface-container-high: #ededed;
-  --md-sys-color-surface-container-highest: #e8e8e8;
-  --md-sys-color-on-surface: #151515;
-  --md-sys-color-on-surface-variant: #5f6368;
-  --md-sys-color-outline-variant: #e3e3e3;
-  --md-sys-shape-corner-medium: 16px;
-  --md-sys-shape-corner-large: 24px;
-  --md-sys-shape-corner-extra-large: 30px;
+html[data-pincon-design="material-expressive-beta"] .section-heading {
+  min-height: 76px;
+  margin-inline: 8px;
 }
-html[data-pincon-design="oneui9"] .hero-area { padding-top: clamp(28px, 8vh, 76px); border-radius: 0 0 32px 32px; }
-html[data-pincon-design="oneui9"] .content-section,
-html[data-pincon-design="oneui9"] .pincon-material-shell,
-html[data-pincon-design="oneui9"] .pincon-material-beta-card { border-radius: var(--pincon-shell-radius); border: var(--pincon-shell-border); box-shadow: var(--pincon-shell-shadow); }
-html[data-pincon-design="oneui9"] .floating-navigation { border-radius: 28px; min-height: 64px; }
-html[data-pincon-design="oneui9"] md-filled-button,
-html[data-pincon-design="oneui9"] md-filled-tonal-button,
-html[data-pincon-design="oneui9"] md-outlined-button,
-html[data-pincon-design="oneui9"] md-text-button,
-html[data-pincon-design="oneui9"] md-icon-button { min-height: 48px; }
+
+html[data-pincon-design="material-expressive-beta"] md-list,
+html[data-pincon-design="material-expressive-beta"] .tab-surface {
+  border-radius: 36px;
+}
+
+html[data-pincon-design="material-expressive-beta"] .floating-navigation {
+  width: min(calc(100% - 24px), 820px);
+  padding: 8px 12px;
+  border-radius: 44px;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 12%, var(--md-sys-color-outline-variant));
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--md-sys-color-primary) 18%, transparent);
+  animation: pincon-bold-nav-in 760ms var(--pincon-theme-ease) both;
+}
+
+html[data-pincon-design="material-expressive-beta"] .floating-navigation md-tabs {
+  --md-primary-tab-container-height: 74px;
+  --md-primary-tab-with-icon-and-label-text-container-height: 74px;
+}
+
+html[data-pincon-design="material-expressive-beta"] .compose-fab,
+html[data-pincon-design="material-expressive-beta"] .pincon-theme-launcher {
+  transform: scale(1.12);
+  transform-origin: center;
+}
+
+html[data-pincon-design="material-expressive-beta"] md-filled-button,
+html[data-pincon-design="material-expressive-beta"] md-filled-tonal-button,
+html[data-pincon-design="material-expressive-beta"] md-outlined-button,
+html[data-pincon-design="material-expressive-beta"] md-text-button,
+html[data-pincon-design="material-expressive-beta"] md-fab,
+html[data-pincon-design="material-expressive-beta"] md-assist-chip,
+html[data-pincon-design="material-expressive-beta"] md-filter-chip {
+  transition: transform 380ms var(--pincon-theme-ease), filter 380ms var(--pincon-theme-ease);
+}
+
+@media (hover: hover) {
+  html[data-pincon-design="material-expressive-beta"] md-filled-button:hover,
+  html[data-pincon-design="material-expressive-beta"] md-filled-tonal-button:hover,
+  html[data-pincon-design="material-expressive-beta"] md-outlined-button:hover,
+  html[data-pincon-design="material-expressive-beta"] md-fab:hover {
+    transform: translateY(-3px) scale(1.025);
+  }
+}
+
+html[data-pincon-design="material-expressive-beta"] md-filled-button:active,
+html[data-pincon-design="material-expressive-beta"] md-filled-tonal-button:active,
+html[data-pincon-design="material-expressive-beta"] md-outlined-button:active,
+html[data-pincon-design="material-expressive-beta"] md-text-button:active,
+html[data-pincon-design="material-expressive-beta"] md-fab:active {
+  transform: scale(.955);
+}
 
 html[data-pincon-design] .content-section,
 html[data-pincon-design] .floating-navigation,
 html[data-pincon-design] .pincon-material-shell,
 html[data-pincon-design] .pincon-material-beta-card {
-  transition: background-color var(--pincon-theme-duration) var(--pincon-theme-ease), border-color var(--pincon-theme-duration) var(--pincon-theme-ease), border-radius var(--pincon-theme-duration) var(--pincon-theme-ease), box-shadow var(--pincon-theme-duration) var(--pincon-theme-ease);
+  transition:
+    background-color var(--pincon-theme-duration) var(--pincon-theme-ease),
+    border-color var(--pincon-theme-duration) var(--pincon-theme-ease),
+    border-radius var(--pincon-theme-duration) var(--pincon-theme-ease),
+    box-shadow var(--pincon-theme-duration) var(--pincon-theme-ease),
+    transform var(--pincon-theme-duration) var(--pincon-theme-ease);
 }
+
+@keyframes pincon-bold-view-in {
+  0% { opacity: 0; transform: translateY(20px) scale(.985); }
+  65% { opacity: 1; transform: translateY(-3px) scale(1.002); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pincon-bold-hero-in {
+  0% { opacity: 0; transform: translateY(36px) scale(.92); border-radius: 90px 36px 90px 36px; }
+  72% { opacity: 1; transform: translateY(-4px) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); border-radius: 64px 64px 24px 64px; }
+}
+
+@keyframes pincon-bold-card-in {
+  0% { opacity: 0; transform: translateY(28px) scale(.95); }
+  75% { opacity: 1; transform: translateY(-3px) scale(1.008); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pincon-bold-nav-in {
+  0% { opacity: 0; transform: translate(-50%, 42px) scale(.9); }
+  72% { opacity: 1; transform: translate(-50%, -4px) scale(1.015); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+::view-transition-old(root) {
+  animation: 160ms ease-out both pincon-expressive-old;
+}
+::view-transition-new(root) {
+  animation: 420ms cubic-bezier(.16, 1, .3, 1) both pincon-expressive-new;
+}
+@keyframes pincon-expressive-old { to { opacity: 0; transform: scale(.985); } }
+@keyframes pincon-expressive-new { from { opacity: 0; transform: scale(1.018); } }
 
 .pincon-design-system-card { grid-column: 1 / -1; }
 .pincon-design-system-card md-outlined-select,
@@ -145,7 +265,45 @@ html[data-pincon-design] .pincon-material-beta-card {
 .pincon-theme-launcher[hidden] { display: none !important; }
 .pincon-theme-dialog-content { display: grid; gap: 16px; min-width: min(560px, calc(100vw - 56px)); }
 .pincon-theme-dialog-content p { margin: 0; }
+
+@media (max-width: 899px) {
+  html[data-pincon-design="material-expressive-beta"] .content-columns,
+  html[data-pincon-design="material-expressive-beta"] .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-pincon-design="material-expressive-beta"] .hero-area {
+    min-height: 420px;
+    padding: 44px 28px;
+    border-radius: 46px 46px 18px 46px;
+  }
+
+  html[data-pincon-design="material-expressive-beta"] .hero-area h1 {
+    font-size: clamp(2.5rem, 13vw, 4.4rem);
+  }
+}
+
 @media (max-width: 700px) {
   .pincon-theme-launcher { right: 14px; }
   .pincon-theme-dialog-content { min-width: calc(100vw - 56px); }
+  html[data-pincon-design="material-expressive-beta"] .page-heading { min-height: 240px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-pincon-design="material-expressive-beta"] .view-layout,
+  html[data-pincon-design="material-expressive-beta"] .hero-area,
+  html[data-pincon-design="material-expressive-beta"] .content-section,
+  html[data-pincon-design="material-expressive-beta"] .pincon-material-shell,
+  html[data-pincon-design="material-expressive-beta"] .pincon-material-beta-card,
+  html[data-pincon-design="material-expressive-beta"] .floating-navigation {
+    animation: none !important;
+  }
+
+  html[data-pincon-design="material-expressive-beta"] md-filled-button,
+  html[data-pincon-design="material-expressive-beta"] md-filled-tonal-button,
+  html[data-pincon-design="material-expressive-beta"] md-outlined-button,
+  html[data-pincon-design="material-expressive-beta"] md-text-button,
+  html[data-pincon-design="material-expressive-beta"] md-fab {
+    transition: none !important;
+  }
 }
