@@ -133,6 +133,26 @@ service cloud.firestore {
         && request.resource.data.updatedAtMs is int;
     }
 
+    function validVisit() {
+      return request.resource.data.keys().hasOnly([
+          'userUid', 'classKey', 'day', 'startedAtMs', 'lastSeenMs',
+          'beta', 'device', 'appVersion', 'closed'
+        ])
+        && request.resource.data.userUid is string
+        && request.resource.data.userUid == request.auth.uid
+        && classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.day is string
+        && request.resource.data.day.size() == 10
+        && request.resource.data.startedAtMs is int
+        && request.resource.data.lastSeenMs is int
+        && request.resource.data.lastSeenMs >= request.resource.data.startedAtMs
+        && request.resource.data.beta is bool
+        && request.resource.data.device in ['mobile', 'tablet', 'desktop']
+        && request.resource.data.appVersion is string
+        && request.resource.data.appVersion.size() <= 40
+        && request.resource.data.closed is bool;
+    }
+
     match /schools/{schoolId}/content/{contentId} {
       allow read: if true;
 
@@ -223,6 +243,19 @@ service cloud.firestore {
           && request.resource.data.updatedAtMs is int;
         allow delete: if false;
       }
+    }
+
+    // 방문자 통계: 각 사용자는 자기 세션만 기록할 수 있고, 전체 원자료는 학교 운영자만 읽는다.
+    match /schools/{schoolId}/visits/{visitId} {
+      allow read: if schoolAdmin(schoolId);
+      allow create: if signedIn() && validVisit();
+      allow update: if signedIn()
+        && validVisit()
+        && request.resource.data.userUid == resource.data.userUid
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.day == resource.data.day
+        && request.resource.data.startedAtMs == resource.data.startedAtMs;
+      allow delete: if false;
     }
 
     match /schools/{schoolId}/roles/{userId} {
