@@ -29,14 +29,18 @@ let fluentPromise = null;
 let renderQueued = false;
 
 function storedTheme() {
-  const value = localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
-  return THEMES[value] ? value : DEFAULT_THEME;
+  try {
+    const value = localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+    return THEMES[value] ? value : DEFAULT_THEME;
+  } catch {
+    return DEFAULT_THEME;
+  }
 }
 
 async function ensureFluent() {
   if (globalThis.PINCON_FLUENT) return globalThis.PINCON_FLUENT;
   if (!fluentPromise) {
-    fluentPromise = import("./fluent-web.bundle.js?v=20260817-designsystems1")
+    fluentPromise = import("./fluent-web.bundle.js?v=20260817-designsystems2")
       .then(async () => {
         await globalThis.PINCON_FLUENT_READY;
         return globalThis.PINCON_FLUENT;
@@ -64,7 +68,9 @@ function updateThemeMeta(theme) {
 
 async function applyTheme(theme, { persist = true } = {}) {
   const next = THEMES[theme] ? theme : DEFAULT_THEME;
-  if (persist) localStorage.setItem(STORAGE_KEY, next);
+  if (persist) {
+    try { localStorage.setItem(STORAGE_KEY, next); } catch {}
+  }
   document.documentElement.dataset.pinconDesign = next;
   updateThemeMeta(next);
 
@@ -76,19 +82,17 @@ async function applyTheme(theme, { persist = true } = {}) {
   }
 
   syncCard();
+  syncDialog();
   window.dispatchEvent(new CustomEvent("pincon-design-system-change", { detail: { theme: next } }));
 }
 
 function optionMarkup(value, config, selected) {
-  return `<md-select-option value="${value}" ${selected ? "selected" : ""}>
-    <div slot="headline">${config.label}</div>
-  </md-select-option>`;
+  return `<md-select-option value="${value}" ${selected ? "selected" : ""}><div slot="headline">${config.label}</div></md-select-option>`;
 }
 
 function previewMarkup(theme) {
   if (theme === "material-expressive") {
-    return `<md-filled-button type="button"><md-icon slot="icon">palette</md-icon>Material 공식 버튼</md-filled-button>
-      <md-assist-chip label="@material/web 2.4.1"></md-assist-chip>`;
+    return `<md-filled-button type="button"><md-icon slot="icon">palette</md-icon>Material 공식 버튼</md-filled-button><md-assist-chip label="@material/web 2.4.1"></md-assist-chip>`;
   }
   if (theme === "fluent2") {
     return `<div data-fluent-preview><md-linear-progress indeterminate></md-linear-progress></div>`;
@@ -99,68 +103,129 @@ function previewMarkup(theme) {
   return `<md-assist-chip label="One UI 9 · 공식 웹 컴포넌트 없음"></md-assist-chip>`;
 }
 
-async function hydrateFluentPreview(card) {
-  const host = card?.querySelector("[data-fluent-preview]");
-  if (!host || storedTheme() !== "fluent2") return;
+async function hydrateFluentPreview(host) {
+  const preview = host?.querySelector("[data-fluent-preview]");
+  if (!preview || storedTheme() !== "fluent2") return;
   try {
     await ensureFluent();
     await customElements.whenDefined("fluent-button");
-    host.innerHTML = '<fluent-button appearance="accent">Fluent 2 공식 버튼</fluent-button>';
+    preview.innerHTML = '<fluent-button appearance="accent">Fluent 2 공식 버튼</fluent-button>';
   } catch {
-    host.innerHTML = '<md-assist-chip label="Fluent 로드 실패"></md-assist-chip>';
+    preview.innerHTML = '<md-assist-chip label="Fluent 로드 실패"></md-assist-chip>';
   }
+}
+
+function selectorMarkup(theme, context) {
+  return `<md-outlined-select label="디자인 시스템" data-pincon-design-select="${context}">${Object.entries(THEMES).map(([value, config]) => optionMarkup(value, config, value === theme)).join("")}</md-outlined-select>`;
 }
 
 function cardMarkup(theme) {
   const current = THEMES[theme];
-  return `<md-list>
-    <md-list-item>
-      <md-icon slot="start">palette</md-icon>
-      <div slot="headline">디자인 시스템</div>
-      <div slot="supporting-text">공식 공개 구성요소와 각 디자인 시스템의 공식 가이드 범위 안에서 전환합니다.</div>
-      <md-assist-chip slot="end" label="${current.label}"></md-assist-chip>
-    </md-list-item>
-    <md-list-item>
-      <div slot="headline">
-        <md-outlined-select label="테마" data-pincon-design-select>
-          ${Object.entries(THEMES).map(([value, config]) => optionMarkup(value, config, value === theme)).join("")}
-        </md-outlined-select>
-      </div>
-      <div slot="supporting-text" class="pincon-design-system-note">${current.note}</div>
-    </md-list-item>
-    <md-list-item>
-      <div slot="headline">현재 소스</div>
-      <div slot="supporting-text">${current.source}</div>
-    </md-list-item>
-    <md-list-item>
-      <div slot="headline" class="pincon-design-system-preview">${previewMarkup(theme)}</div>
-    </md-list-item>
-  </md-list>`;
+  return `<div class="section-heading"><div><p class="md-typescale-label-large">화면 스타일</p><h2 class="md-typescale-headline-small">디자인 시스템</h2></div><md-assist-chip label="${current.label}"></md-assist-chip></div>
+    <md-list>
+      <md-list-item><md-icon slot="start">palette</md-icon><div slot="headline">테마 선택</div><div slot="supporting-text">Google · Apple · Microsoft · Samsung 디자인 시스템을 전환합니다.</div></md-list-item>
+      <md-list-item><div slot="headline" class="pincon-design-system-select-wrap">${selectorMarkup(theme, "card")}</div><div slot="supporting-text" class="pincon-design-system-note">${current.note}</div></md-list-item>
+      <md-list-item><div slot="headline">현재 소스</div><div slot="supporting-text">${current.source}</div></md-list-item>
+      <md-list-item><div slot="headline" class="pincon-design-system-preview">${previewMarkup(theme)}</div></md-list-item>
+    </md-list>`;
+}
+
+function attachSelectHandler(host) {
+  host?.querySelectorAll("[data-pincon-design-select]").forEach((select) => {
+    if (select.dataset.pinconBound === "1") return;
+    select.dataset.pinconBound = "1";
+    select.addEventListener("change", () => applyTheme(select.value));
+  });
 }
 
 function syncCard() {
   const card = document.querySelector(".pincon-design-system-card");
   if (!card) return;
   const theme = storedTheme();
-  if (card.dataset.theme === theme) return;
-  card.dataset.theme = theme;
-  card.innerHTML = cardMarkup(theme);
-  const select = card.querySelector("[data-pincon-design-select]");
-  select?.addEventListener("change", () => applyTheme(select.value));
+  if (card.dataset.theme !== theme || !card.querySelector("[data-pincon-design-select]")) {
+    card.dataset.theme = theme;
+    card.innerHTML = cardMarkup(theme);
+  }
+  attachSelectHandler(card);
   hydrateFluentPreview(card);
 }
 
-function ensureCard() {
+function findSettingsHost() {
   const grid = document.querySelector(".settings-grid");
-  if (!grid) return;
-  let card = grid.querySelector(".pincon-design-system-card");
+  if (grid) return { host: grid, mode: "grid" };
+
+  const moreTitle = document.getElementById("more-title");
+  const view = moreTitle?.closest(".view-layout") || moreTitle?.parentElement?.parentElement;
+  if (!view) return null;
+
+  let fallback = view.querySelector(":scope > .pincon-design-system-fallback-host");
+  if (!fallback) {
+    fallback = document.createElement("div");
+    fallback.className = "pincon-design-system-fallback-host";
+    const heading = moreTitle.closest(".page-heading");
+    if (heading?.parentElement === view) heading.insertAdjacentElement("afterend", fallback);
+    else view.prepend(fallback);
+  }
+  return { host: fallback, mode: "fallback" };
+}
+
+function ensureCard() {
+  const target = findSettingsHost();
+  if (!target) return false;
+
+  let card = document.querySelector(".pincon-design-system-card");
   if (!card) {
     card = document.createElement("section");
-    card.className = "pincon-design-system-card";
+    card.className = "content-section pincon-design-system-card";
     card.setAttribute("aria-label", "디자인 시스템 테마");
-    grid.prepend(card);
+  }
+
+  if (card.parentElement !== target.host) {
+    if (target.mode === "grid") target.host.prepend(card);
+    else target.host.appendChild(card);
   }
   syncCard();
+  return true;
+}
+
+function ensureDialog() {
+  let dialog = document.getElementById("pincon-design-system-dialog");
+  if (dialog) return dialog;
+  dialog = document.createElement("md-dialog");
+  dialog.id = "pincon-design-system-dialog";
+  dialog.setAttribute("aria-label", "디자인 시스템 선택");
+  document.body.appendChild(dialog);
+  return dialog;
+}
+
+function syncDialog() {
+  const dialog = document.getElementById("pincon-design-system-dialog");
+  if (!dialog) return;
+  const theme = storedTheme();
+  const current = THEMES[theme];
+  dialog.innerHTML = `<div slot="headline">디자인 시스템</div><div slot="content" class="pincon-theme-dialog-content">${selectorMarkup(theme, "dialog")}<p class="md-typescale-body-medium">${current.note}</p><md-list><md-list-item><div slot="headline">현재 소스</div><div slot="supporting-text">${current.source}</div></md-list-item></md-list></div><div slot="actions"><md-filled-button type="button" data-pincon-theme-close>완료</md-filled-button></div>`;
+  attachSelectHandler(dialog);
+  dialog.querySelector("[data-pincon-theme-close]")?.addEventListener("click", () => { dialog.open = false; });
+}
+
+function ensureLauncher() {
+  let launcher = document.querySelector(".pincon-theme-launcher");
+  const inMore = Boolean(document.getElementById("more-title"));
+  if (!launcher) {
+    launcher = document.createElement("md-fab");
+    launcher.className = "pincon-theme-launcher";
+    launcher.setAttribute("variant", "tertiary");
+    launcher.setAttribute("label", "테마");
+    launcher.setAttribute("aria-label", "디자인 시스템 바꾸기");
+    launcher.innerHTML = '<md-icon slot="icon">palette</md-icon>';
+    launcher.addEventListener("click", () => {
+      const dialog = ensureDialog();
+      syncDialog();
+      dialog.open = true;
+    });
+    document.body.appendChild(launcher);
+  }
+  launcher.hidden = !inMore;
 }
 
 function scheduleRender() {
@@ -169,6 +234,7 @@ function scheduleRender() {
   requestAnimationFrame(() => {
     renderQueued = false;
     ensureCard();
+    ensureLauncher();
   });
 }
 
