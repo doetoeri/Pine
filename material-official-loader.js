@@ -1,37 +1,34 @@
 const VERSION = "2.4.1";
-const BASE = `https://esm.run/@material/web@${VERSION}`;
-
-const modules = [
-  ["md-icon", "icon/icon.js"],
-  ["md-filled-button", "button/filled-button.js"],
-  ["md-filled-tonal-button", "button/filled-tonal-button.js"],
-  ["md-outlined-button", "button/outlined-button.js"],
-  ["md-text-button", "button/text-button.js"],
-  ["md-icon-button", "iconbutton/icon-button.js"],
-  ["md-fab", "fab/fab.js"],
-  ["md-dialog", "dialog/dialog.js"],
-  ["md-tabs", "tabs/tabs.js"],
-  ["md-primary-tab", "tabs/primary-tab.js"],
-  ["md-list", "list/list.js"],
-  ["md-list-item", "list/list-item.js"],
-  ["md-outlined-text-field", "textfield/outlined-text-field.js"],
-  ["md-outlined-select", "select/outlined-select.js"],
-  ["md-select-option", "select/select-option.js"],
-  ["md-checkbox", "checkbox/checkbox.js"],
-  ["md-radio", "radio/radio.js"],
-  ["md-switch", "switch/switch.js"],
-  ["md-assist-chip", "chips/assist-chip.js"],
-  ["md-filter-chip", "chips/filter-chip.js"],
-  ["md-linear-progress", "progress/linear-progress.js"],
-  ["md-divider", "divider/divider.js"],
+const TAGS = [
+  "md-icon",
+  "md-filled-button",
+  "md-filled-tonal-button",
+  "md-outlined-button",
+  "md-text-button",
+  "md-icon-button",
+  "md-fab",
+  "md-dialog",
+  "md-tabs",
+  "md-primary-tab",
+  "md-list",
+  "md-list-item",
+  "md-outlined-text-field",
+  "md-outlined-select",
+  "md-select-option",
+  "md-checkbox",
+  "md-radio",
+  "md-switch",
+  "md-assist-chip",
+  "md-filter-chip",
+  "md-linear-progress",
+  "md-divider",
 ];
 
 async function loadOfficialMaterial() {
-  const missing = modules.filter(([tag]) => !customElements.get(tag));
-  await Promise.all(missing.map(async ([tag, path]) => {
-    await import(`${BASE}/${path}`);
-    await customElements.whenDefined(tag);
-  }));
+  // Built locally by GitHub Actions from Google's official @material/web npm package.
+  // No hand-made replacements and no third-party runtime CDN are used.
+  await import("./material-web.bundle.js?v=20260817-material-official-1");
+  await Promise.all(TAGS.map((tag) => customElements.whenDefined(tag)));
   return VERSION;
 }
 
