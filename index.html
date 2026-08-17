@@ -23,10 +23,8 @@
       md-icon { font-family: "Material Symbols Rounded"; }
     </style>
     <title>Pincon · 우리 반의 오늘</title>
-    <!-- Firebase 설정은 앱 모듈이 평가되기 전에 반드시 로드되어야 한다. -->
     <script src="./firebase-config.js"></script>
     <script>
-      // 이전 PWA 캐시에 vapidKey 없는 firebase-config.js가 남아 있어도 알림 설정이 막히지 않게 한다.
       (() => {
         const config = globalThis.PINCON_FIREBASE_CONFIG;
         if (config && !config.vapidKey) {
@@ -40,16 +38,17 @@
     <script type="module" crossorigin src="./assets/index-Sg4pPAB0.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-C7Rqpf69.css">
     <link rel="stylesheet" href="./theme-green.css?v=20260817-green1">
-    <link rel="manifest" href="./manifest.webmanifest?v=20260817-touchbeta2">
+    <link rel="stylesheet" href="./material-official-layout.css?v=20260817-material1">
+    <link rel="manifest" href="./manifest.webmanifest?v=20260817-material1">
     <script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script src="./touch-stability.js?v=20260817-touchbeta2"></script>
+    <script src="./touch-stability.js?v=20260817-material1"></script>
     <script type="module" src="./collab-hotfix.js"></script>
     <script type="module" src="./timetable-source-hotfix.js"></script>
-    <script type="module" src="./pincon-workspace.js?v=20260817-touchbeta2"></script>
-    <script type="module" src="./group-share-v2.js?v=20260817-touchbeta2"></script>
-    <script type="module" src="./pincon-next-v2.js?v=20260817-touchbeta2"></script>
+    <script type="module" src="./material-official-loader.js?v=20260817-material1"></script>
+    <script type="module" src="./pincon-material-workspace.js?v=20260817-material1"></script>
+    <script type="module" src="./pincon-material-next.js?v=20260817-material1"></script>
   </body>
 </html>
