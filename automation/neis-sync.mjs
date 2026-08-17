@@ -21,7 +21,7 @@ const NEIS_BASE_URL = "https://open.neis.go.kr/hub";
 const PAGE_SIZE = 1000;
 
 function compactDate(date) {
-  return date.replaceAll("-", "");
+  return String(date || "").replaceAll("-", "");
 }
 
 function kstToday(now = new Date()) {
@@ -169,9 +169,27 @@ function normalizeComciganClass(raw, grade, classNumber, weekDates) {
   const payload = normalizeComciganPayload(raw);
   const rows = [];
 
+  // parse-comcigan 1.1.x: 월~금 배열, 각 날짜의 items 배열 순서가 1교시부터 시작한다.
   if (Array.isArray(payload) && payload.length >= 5) {
     for (let dayIndex = 0; dayIndex < 5; dayIndex += 1) {
-      const lessons = lessonObjects(payload[dayIndex], []);
+      const day = payload[dayIndex];
+      if (Array.isArray(day?.items)) {
+        day.items.forEach((lesson, index) => {
+          const subject = String(lesson?.subject || "").replace(/\s+/g, " ").trim();
+          if (!subject) return;
+          rows.push({
+            GRADE: String(grade),
+            CLASS_NM: String(classNumber),
+            ALL_TI_YMD: compactDate(weekDates[dayIndex]),
+            PERIO: String(index + 1),
+            ITRT_CNTNT: subject,
+          });
+        });
+        continue;
+      }
+
+      // 이전/다른 응답 형식도 계속 지원한다.
+      const lessons = lessonObjects(day, []);
       const seen = new Set();
       for (const lesson of lessons) {
         const key = `${lesson.period}:${lesson.subject}`;
@@ -342,6 +360,7 @@ async function sendClassNotification(db, classKey, title, body) {
 async function syncTimetables(db, start, end) {
   const fetched = await fetchPreferredTimetables(start, end);
   const documents = groupTimetableRows(fetched.rows);
+  // 기존 클라이언트 호환을 위해 컬렉션 이름은 유지하되 source 필드로 실제 출처를 구분한다.
   const collection = db.collection("schools").doc(SCHOOL.id).collection("neisTimetables");
   const refs = documents.map((item) => collection.doc(item.id));
   const existing = await readExisting(db, refs);
