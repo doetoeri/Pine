@@ -1,0 +1,27 @@
+name: Enable named guest editing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "automation/enable-anonymous-auth.mjs"
+      - ".github/workflows/enable-anonymous-auth.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable Firebase anonymous authentication
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_PROJECT_ID: studio-2803086992-2d4cf
+        run: node automation/enable-anonymous-auth.mjs
