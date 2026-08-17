@@ -1,9 +1,12 @@
-/* Offline shell. Vocabulary stays in the generated same-origin bundles. */
-var CACHE_NAME = "wmgr-shell-v3-lightpen";
+/* WORD MASTER Glass Recall offline shell */
+var CACHE_NAME = "wmgr-shell-v4-ink2";
 var SHELL = [
   "./",
   "./index.html",
-  "./hotfix.js?v=20260817-light3",
+  "./hotfix.js?v=20260817-ocr4",
+  "./handwriting-study.js?v=20260817-ink2",
+  "./assets/index-DN91RMlF.js",
+  "./assets/index-CPEeSJ0i.css",
   "./legacy.html",
   "./legacy/legacy.css",
   "./legacy/app.js",
@@ -12,39 +15,50 @@ var SHELL = [
 ];
 
 self.addEventListener("install", function (event) {
-  event.waitUntil(caches.open(CACHE_NAME).then(function (cache) {
-    return cache.addAll(SHELL);
-  }).catch(function () {}));
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(function (cache) {
+      return cache.addAll(SHELL);
+    }).catch(function () {})
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", function (event) {
-  event.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.map(function (key) {
-      return key === CACHE_NAME ? null : caches.delete(key);
-    }));
-  }));
+  event.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.map(function (key) {
+        return key === CACHE_NAME ? null : caches.delete(key);
+      }));
+    })
+  );
   self.clients.claim();
+});
+
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", function (event) {
   var request = event.request;
-  if (request.method !== "GET" || new URL(request.url).pathname.indexOf("/api/ocr") !== -1) return;
+  var url = new URL(request.url);
+  if (request.method !== "GET" || url.pathname.indexOf("/api/ocr") !== -1) return;
 
-  /* Network first: while online, always prefer the newest Pages deployment. */
-  event.respondWith(fetch(request).then(function (response) {
-    if (response && response.ok && new URL(request.url).origin === self.location.origin) {
-      var copy = response.clone();
-      caches.open(CACHE_NAME).then(function (cache) { cache.put(request, copy); });
-    }
-    return response;
-  }).catch(function () {
-    return caches.match(request).then(function (cached) {
-      if (cached) return cached;
-      if (request.mode === "navigate") {
-        return caches.match(new URL("./index.html", self.registration.scope).href);
+  /* Network first while online, cache fallback while offline. */
+  event.respondWith(
+    fetch(request).then(function (response) {
+      if (response && response.ok && url.origin === self.location.origin) {
+        var copy = response.clone();
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(request, copy); });
       }
-      return new Response("Offline", { status: 503, statusText: "Offline" });
-    });
-  }));
+      return response;
+    }).catch(function () {
+      return caches.match(request).then(function (cached) {
+        if (cached) return cached;
+        if (request.mode === "navigate") {
+          return caches.match(new URL("./index.html", self.registration.scope).href);
+        }
+        return new Response("Offline", { status: 503, statusText: "Offline" });
+      });
+    })
+  );
 });
