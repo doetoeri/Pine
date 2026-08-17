@@ -1,40 +1,13 @@
 const SHARE_STYLE_ID = "pincon-group-share-style";
-let scheduled = false;
 
 function ensureStyle() {
   if (document.getElementById(SHARE_STYLE_ID)) return;
   const style = document.createElement("style");
   style.id = SHARE_STYLE_ID;
   style.textContent = `
-    .pincon-share-guide {
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      padding:12px 14px;
-      border-radius:16px;
-      color:var(--md-sys-color-on-secondary-container);
-      background:var(--md-sys-color-secondary-container);
-    }
-    .pincon-share-guide md-icon { flex:0 0 auto; margin-top:1px; }
-    .pincon-share-guide p { margin:0; }
-    .pincon-share-toast {
-      position:fixed;
-      z-index:1000;
-      left:50%;
-      bottom:max(92px,calc(env(safe-area-inset-bottom) + 76px));
-      transform:translateX(-50%);
-      max-width:min(88vw,420px);
-      padding:10px 14px;
-      border-radius:999px;
-      color:var(--md-sys-color-inverse-on-surface,#fff);
-      background:var(--md-sys-color-inverse-surface,#2d322b);
-      box-shadow:0 8px 28px rgba(0,0,0,.18);
-      font-size:.86rem;
-      pointer-events:none;
-      opacity:0;
-      transition:opacity .16s ease;
-    }
-    .pincon-share-toast.show { opacity:1; }
+    .pincon-share-guide{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:16px;color:var(--md-sys-color-on-secondary-container);background:var(--md-sys-color-secondary-container)}
+    .pincon-share-guide md-icon{flex:0 0 auto;margin-top:1px}.pincon-share-guide p{margin:0}
+    .pincon-share-toast{position:fixed;z-index:1000;left:50%;bottom:max(92px,calc(env(safe-area-inset-bottom) + 76px));transform:translateX(-50%);max-width:min(88vw,420px);padding:10px 14px;border-radius:999px;color:var(--md-sys-color-inverse-on-surface,#fff);background:var(--md-sys-color-inverse-surface,#2d322b);box-shadow:0 6px 18px rgba(0,0,0,.14);font-size:.86rem;pointer-events:none;opacity:0;transition:opacity .12s ease}.pincon-share-toast.show{opacity:1}
   `;
   document.head.appendChild(style);
 }
@@ -50,7 +23,7 @@ function toast(message) {
   node.textContent = message;
   node.classList.add("show");
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => node.classList.remove("show"), 1700);
+  toast.timer = setTimeout(() => node.classList.remove("show"), 1400);
 }
 
 async function copyText(text, message = "복사했습니다.") {
@@ -72,16 +45,9 @@ async function copyText(text, message = "복사했습니다.") {
 }
 
 function cardPayload(card) {
-  const title = card.querySelector("h3")?.textContent?.trim() || "Pincon 모둠 공유";
+  const title = card.querySelector("h3")?.textContent?.trim() || "PinCon 모둠 공유";
   const anchor = card.querySelector(".pincon-drive-link");
-  if (anchor) {
-    return {
-      kind: "link",
-      title,
-      url: anchor.href || anchor.textContent?.trim() || "",
-      text: anchor.textContent?.trim() || anchor.href || "",
-    };
-  }
+  if (anchor) return { kind: "link", title, url: anchor.href || anchor.textContent?.trim() || "", text: anchor.textContent?.trim() || anchor.href || "" };
   const body = card.querySelector(".pincon-drive-body")?.textContent?.trim() || "";
   return { kind: "text", title, text: body, url: "" };
 }
@@ -90,10 +56,7 @@ async function shareCard(card) {
   const payload = cardPayload(card);
   if (navigator.share) {
     try {
-      const shareData = payload.kind === "link"
-        ? { title: payload.title, text: payload.title, url: payload.url }
-        : { title: payload.title, text: `${payload.title}\n\n${payload.text}`.trim() };
-      await navigator.share(shareData);
+      await navigator.share(payload.kind === "link" ? { title: payload.title, text: payload.title, url: payload.url } : { title: payload.title, text: `${payload.title}\n\n${payload.text}`.trim() });
       return;
     } catch (error) {
       if (error?.name === "AbortError") return;
@@ -102,98 +65,64 @@ async function shareCard(card) {
   await copyText(payload.kind === "link" ? payload.url : `${payload.title}\n\n${payload.text}`.trim(), "공유할 내용을 복사했습니다.");
 }
 
-function enhanceDriveCard(card) {
+function replaceExactText(root, from, to) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (node.nodeValue?.trim() === from) node.nodeValue = node.nodeValue.replace(from, to);
+  }
+}
+
+function enhanceCard(card) {
   if (card.dataset.pinconShareEnhanced === "1") return;
   const actions = card.querySelector(".pincon-feature-actions");
   if (!actions) return;
   const payload = cardPayload(card);
   if (!payload.text && !payload.url) return;
-
   const copy = document.createElement("md-text-button");
   copy.type = "button";
   copy.dataset.shareAction = "copy";
   copy.innerHTML = `<md-icon slot="icon">content_copy</md-icon>${payload.kind === "link" ? "링크 복사" : "텍스트 복사"}`;
-
   const share = document.createElement("md-text-button");
   share.type = "button";
   share.dataset.shareAction = "share";
-  share.innerHTML = `<md-icon slot="icon">share</md-icon>공유`;
-
+  share.innerHTML = '<md-icon slot="icon">share</md-icon>공유';
   actions.prepend(share);
   actions.prepend(copy);
   card.dataset.pinconShareEnhanced = "1";
 }
 
-function replaceExactText(root, from, to) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-  for (const node of nodes) {
-    if (node.nodeValue?.trim() === from) node.nodeValue = node.nodeValue.replace(from, to);
-  }
-}
-
-function transformWorkspace() {
+function enhanceWorkspace() {
   ensureStyle();
   const workspace = document.querySelector(".pincon-workspace");
   if (!workspace) return;
-
   const driveTab = workspace.querySelector('[data-panel="drive"]');
-  if (driveTab) driveTab.textContent = "모둠 공유함";
-
+  if (driveTab && driveTab.textContent !== "모둠 공유함") driveTab.textContent = "모둠 공유함";
   const copy = workspace.querySelector(".pincon-workspace-copy");
-  if (copy) copy.textContent = "투표 → 모둠 공유함 → 과제를 연결해 반 안에서 결정, 링크·텍스트, 마감을 한 흐름으로 관리합니다.";
-
+  if (copy && !copy.dataset.shareCopy) {
+    copy.dataset.shareCopy = "1";
+    copy.textContent = "투표 → 모둠 공유함 → 과제를 연결해 반 안에서 결정, 링크·텍스트, 마감을 한 흐름으로 관리합니다.";
+  }
   workspace.querySelector('[data-workspace-action="upload-file"]')?.remove();
-
   const linkButton = workspace.querySelector('[data-workspace-action="new-link"]');
-  if (linkButton) linkButton.innerHTML = '<md-icon slot="icon">add_link</md-icon>링크 공유';
-
+  if (linkButton && !linkButton.dataset.shareLabel) { linkButton.dataset.shareLabel = "1"; linkButton.innerHTML = '<md-icon slot="icon">add_link</md-icon>링크 공유'; }
   const noteButton = workspace.querySelector('[data-workspace-action="new-note"]');
-  if (noteButton) noteButton.innerHTML = '<md-icon slot="icon">text_snippet</md-icon>텍스트 공유';
-
-  workspace.querySelectorAll('[data-action="open-drive"]').forEach((button) => {
-    button.innerHTML = '<md-icon slot="icon">folder_shared</md-icon>모둠 공유함';
-  });
-
+  if (noteButton && !noteButton.dataset.shareLabel) { noteButton.dataset.shareLabel = "1"; noteButton.innerHTML = '<md-icon slot="icon">text_snippet</md-icon>텍스트 공유'; }
+  workspace.querySelectorAll('[data-action="open-drive"]').forEach(button => { if (!button.dataset.shareLabel) { button.dataset.shareLabel = "1"; button.innerHTML = '<md-icon slot="icon">folder_shared</md-icon>모둠 공유함'; } });
   replaceExactText(workspace, "모둠 드라이브", "모둠 공유함");
   replaceExactText(workspace, "이 모둠 드라이브는 아직 비어 있습니다.", "이 모둠 공유함은 아직 비어 있습니다. 링크나 텍스트를 공유해 보세요.");
-
-  const drivePanel = workspace.querySelector('[data-workspace-action="new-link"]')?.closest(".pincon-feature-panel");
+  const drivePanel = linkButton?.closest(".pincon-feature-panel");
   if (drivePanel && !drivePanel.querySelector(".pincon-share-guide")) {
-    const toolbar = drivePanel.querySelector(".pincon-feature-toolbar");
     const guide = document.createElement("div");
     guide.className = "pincon-share-guide md-typescale-body-medium";
-    guide.innerHTML = '<md-icon>share</md-icon><p><strong>파일 대신 링크와 텍스트를 공유합니다.</strong><br>Google Drive·Docs·Slides 같은 자료는 링크로, 회의 내용·조사 결과·역할 분담은 텍스트로 남기면 됩니다. 각 항목은 바로 복사하거나 기기의 공유 메뉴로 보낼 수 있습니다.</p>';
-    toolbar?.insertAdjacentElement("afterend", guide);
+    guide.innerHTML = '<md-icon>share</md-icon><p><strong>파일 대신 링크와 텍스트를 공유합니다.</strong><br>Drive·Docs·Slides 같은 자료는 링크로, 조사 결과와 역할 분담은 텍스트로 남길 수 있습니다.</p>';
+    drivePanel.querySelector(".pincon-feature-toolbar")?.insertAdjacentElement("afterend", guide);
   }
-
-  workspace.querySelectorAll(".pincon-drive-item").forEach(enhanceDriveCard);
-
+  workspace.querySelectorAll(".pincon-drive-item").forEach(enhanceCard);
   const linkDialog = document.getElementById("pincon-drive-link-dialog");
-  if (linkDialog) {
-    const heading = linkDialog.querySelector("h2");
-    if (heading) heading.textContent = "링크 공유";
-    const submit = linkDialog.querySelector('button[type="submit"]');
-    if (submit) submit.textContent = "공유";
-  }
-
+  if (linkDialog) { const h = linkDialog.querySelector("h2"); if (h) h.textContent = "링크 공유"; const s = linkDialog.querySelector('button[type="submit"]'); if (s) s.textContent = "공유"; }
   const noteDialog = document.getElementById("pincon-drive-note-dialog");
-  if (noteDialog) {
-    const heading = noteDialog.querySelector("h2");
-    if (heading) heading.textContent = "텍스트 공유";
-    const submit = noteDialog.querySelector('button[type="submit"]');
-    if (submit) submit.textContent = "공유";
-  }
-}
-
-function scheduleTransform() {
-  if (scheduled) return;
-  scheduled = true;
-  requestAnimationFrame(() => {
-    scheduled = false;
-    transformWorkspace();
-  });
+  if (noteDialog) { const h = noteDialog.querySelector("h2"); if (h) h.textContent = "텍스트 공유"; const s = noteDialog.querySelector('button[type="submit"]'); if (s) s.textContent = "공유"; }
 }
 
 document.addEventListener("click", async (event) => {
@@ -203,13 +132,11 @@ document.addEventListener("click", async (event) => {
   if (!card) return;
   event.preventDefault();
   const payload = cardPayload(card);
-  if (button.dataset.shareAction === "copy") {
-    await copyText(payload.kind === "link" ? payload.url : payload.text, payload.kind === "link" ? "링크를 복사했습니다." : "텍스트를 복사했습니다.");
-  } else {
-    await shareCard(card);
-  }
+  if (button.dataset.shareAction === "copy") await copyText(payload.kind === "link" ? payload.url : payload.text, payload.kind === "link" ? "링크를 복사했습니다." : "텍스트를 복사했습니다.");
+  else await shareCard(card);
 });
 
-new MutationObserver(scheduleTransform).observe(document.documentElement, { childList: true, subtree: true });
-window.addEventListener("pageshow", scheduleTransform);
-scheduleTransform();
+// 전역 MutationObserver 대신 가벼운 주기 점검만 사용한다. 화면이 바뀔 때 CPU를 계속 깨우지 않는다.
+setInterval(enhanceWorkspace, 1200);
+window.addEventListener("pageshow", enhanceWorkspace);
+enhanceWorkspace();
