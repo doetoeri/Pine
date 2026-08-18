@@ -1,0 +1,175 @@
+.pincon-adoption-core {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+}
+
+.pincon-adoption-head {
+  min-height: 58px;
+  margin: 0 4px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pincon-adoption-head p,
+.pincon-adoption-head h2 { margin: 0; }
+.pincon-adoption-head p { color: var(--md-sys-color-primary); margin-bottom: 2px; }
+
+.pincon-adoption-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.pincon-adoption-change-card,
+.pincon-adoption-bag-card {
+  min-width: 0;
+  padding: clamp(22px, 3.2vw, 34px);
+  border-radius: 34px;
+  overflow: hidden;
+}
+.pincon-adoption-change-card {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  box-shadow: 0 18px 48px color-mix(in srgb, var(--md-sys-color-primary) 10%, transparent);
+}
+.pincon-adoption-bag-card {
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
+}
+
+.pincon-adoption-card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.pincon-adoption-card-title > div { display: grid; gap: 2px; }
+.pincon-adoption-card-title span {
+  font-size: .83rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  opacity: .72;
+}
+.pincon-adoption-card-title strong {
+  font-size: clamp(2.55rem, 6vw, 4.8rem);
+  line-height: .92;
+  letter-spacing: -.05em;
+  font-weight: 520;
+}
+.pincon-adoption-card-title > md-icon {
+  font-size: 32px;
+  opacity: .7;
+}
+
+.pincon-change-list { display: grid; gap: 10px; }
+.pincon-change-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+.pincon-change-row:first-child { border-top: 0; }
+.pincon-change-row md-icon { margin-top: 1px; opacity: .72; }
+.pincon-change-row strong { display: block; font-size: 1.05rem; line-height: 1.35; }
+.pincon-change-row p { margin: 5px 0 0; opacity: .74; line-height: 1.5; }
+
+.pincon-adoption-empty {
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--md-sys-color-surface) 36%, transparent);
+}
+.pincon-adoption-empty.compact { min-height: 72px; }
+.pincon-adoption-empty md-icon { font-size: 28px; }
+.pincon-adoption-empty strong { display: block; }
+.pincon-adoption-empty p { margin: 4px 0 0; opacity: .7; font-size: .88rem; line-height: 1.45; }
+
+.pincon-adoption-actions {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pincon-adoption-subject-line {
+  margin: -4px 0 14px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+.pincon-bag-preview,
+.pincon-bag-dialog-list { display: grid; gap: 5px; }
+.pincon-bag-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.pincon-bag-row span { min-width: 0; }
+.pincon-bag-row strong { display: block; line-height: 1.35; }
+.pincon-bag-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#pincon-tomorrow-bag-dialog { --md-dialog-container-shape: 34px; }
+.pincon-bag-dialog-copy {
+  width: min(680px, calc(100vw - 64px));
+  display: grid;
+  gap: 18px;
+}
+.pincon-bag-dialog-copy > p { margin: 0; color: var(--md-sys-color-on-surface-variant); }
+.pincon-bag-subjects { display: flex; flex-wrap: wrap; gap: 8px; }
+
+html[data-pincon-design="material-expressive-lab"] .pincon-adoption-change-card {
+  border-radius: 42px 42px 18px 42px;
+}
+html[data-pincon-design="material-expressive-lab"] .pincon-adoption-bag-card { border-radius: 32px; }
+
+@media (max-width: 900px) {
+  .pincon-adoption-grid { grid-template-columns: 1fr; }
+  .pincon-adoption-bag-card { min-height: 0; }
+}
+
+@media (max-width: 700px) {
+  .pincon-adoption-core { gap: 12px; }
+  .pincon-adoption-head { align-items: center; }
+  .pincon-adoption-head h2 { font-size: 1.3rem; }
+  .pincon-adoption-grid { gap: 12px; }
+  .pincon-adoption-change-card,
+  .pincon-adoption-bag-card { padding: 22px 20px; border-radius: 28px; }
+  html[data-pincon-design="material-expressive-lab"] .pincon-adoption-change-card { border-radius: 34px 34px 14px 34px; }
+  .pincon-adoption-card-title strong { font-size: 3.2rem; }
+  .pincon-adoption-actions md-filled-button,
+  .pincon-adoption-actions md-filled-tonal-button,
+  .pincon-adoption-actions md-outlined-button { flex: 1 1 auto; }
+  .pincon-bag-dialog-copy { width: calc(100vw - 48px); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pincon-adoption-core { animation: pincon-adoption-in 360ms cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes pincon-adoption-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+}
