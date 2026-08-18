@@ -1,0 +1,93 @@
+#pincon-quick-add-v2 {
+  --md-dialog-container-shape: 34px;
+}
+
+.pincon-quick-content {
+  width: min(640px, calc(100vw - 56px));
+  display: grid;
+  gap: 18px;
+}
+
+.pincon-quick-intro p {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  line-height: 1.6;
+}
+
+.pincon-quick-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pincon-quick-kind-grid md-filled-tonal-button {
+  min-height: 72px;
+  --md-filled-tonal-button-container-shape: 24px;
+  justify-content: flex-start;
+}
+
+.pincon-quick-hint {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.pincon-quick-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.pincon-quick-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pincon-quick-error {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+  font-size: .9rem;
+}
+
+.pincon-quick-actions {
+  gap: 8px;
+}
+
+/* Adoption is the first real task surface after the hero in the normal Material mode. */
+html[data-pincon-design="material-expressive"] .pincon-adoption-core {
+  margin-top: 4px;
+}
+
+html[data-pincon-design="material-expressive"] .pincon-adoption-change-card {
+  min-height: 320px;
+}
+
+/* In Lab, keep the experimental context rail, but make the adoption loop the dominant full-width task surface below it. */
+html[data-pincon-design="material-expressive-lab"] .pincon-adoption-core {
+  padding-top: 4px;
+}
+
+html[data-pincon-design="material-expressive-lab"] .pincon-adoption-grid {
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, .5fr);
+}
+
+@media (max-width: 900px) {
+  .pincon-quick-content { width: min(600px, calc(100vw - 42px)); }
+  html[data-pincon-design="material-expressive-lab"] .pincon-adoption-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .pincon-quick-content { width: calc(100vw - 38px); }
+  .pincon-quick-kind-grid,
+  .pincon-quick-two { grid-template-columns: 1fr; }
+  .pincon-quick-kind-grid md-filled-tonal-button { min-height: 60px; }
+}
