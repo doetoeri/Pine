@@ -1,11 +1,11 @@
 /* WORD MASTER Glass Recall offline shell */
-var CACHE_NAME = "wmgr-shell-v8-persistent-test-canvas";
+var CACHE_NAME = "wmgr-shell-v9-delete-legacy-ocr-canvas";
 var SHELL = [
   "./",
   "./index.html",
   "./hotfix.js?v=20260817-ocr4",
   "./handwriting-study.js?v=20260817-ink2",
-  "./handwriting-test-reuse-v2.js?v=20260818-persist1",
+  "./handwriting-test-reuse-v3.js?v=20260818-delete1",
   "./ocr-canvas-bridge.js?v=20260818-reuse1",
   "./assets/index-DN91RMlF.js",
   "./assets/index-CPEeSJ0i.css",
