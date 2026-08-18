@@ -1,11 +1,12 @@
 /* WORD MASTER Glass Recall offline shell */
-var CACHE_NAME = "wmgr-shell-v6-unified2";
+var CACHE_NAME = "wmgr-shell-v7-study-reuse";
 var SHELL = [
   "./",
   "./index.html",
   "./hotfix.js?v=20260817-ocr4",
   "./handwriting-study.js?v=20260817-ink2",
-  "./handwriting-unified.js?v=20260818-unified2",
+  "./handwriting-test-reuse.js?v=20260818-reuse1",
+  "./ocr-canvas-bridge.js?v=20260818-reuse1",
   "./assets/index-DN91RMlF.js",
   "./assets/index-CPEeSJ0i.css",
   "./legacy.html",
