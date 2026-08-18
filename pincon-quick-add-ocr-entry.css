@@ -1,0 +1,24 @@
+.pincon-quick-ocr-entry-copy {
+  margin: 2px 0 -4px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: .92rem;
+  line-height: 1.5;
+}
+
+.pincon-quick-ocr-entry {
+  width: 100%;
+  min-height: 64px;
+  --md-filled-button-container-shape: 24px;
+  --md-filled-button-label-text-size: 1rem;
+  justify-content: flex-start;
+}
+
+/* Keep the OCR worker's internal launcher available for programmatic clicks,
+   but use the dedicated entry above as the only visible OCR choice. */
+#pincon-quick-add-v2 .pincon-quick-kind-grid [data-pincon-ocr-open] {
+  display: none !important;
+}
+
+@media (max-width: 620px) {
+  .pincon-quick-ocr-entry { min-height: 60px; }
+}
