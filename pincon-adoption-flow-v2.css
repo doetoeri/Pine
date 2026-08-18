@@ -26,7 +26,18 @@
   justify-content: flex-start;
 }
 
-.pincon-quick-hint {
+.pincon-quick-kind-grid .pincon-ocr-open {
+  grid-column: 1 / -1;
+  min-height: 64px;
+  --md-filled-tonal-button-container-shape: 24px;
+  --md-filled-tonal-button-container-color: var(--md-sys-color-secondary-container);
+  --md-filled-tonal-button-label-text-color: var(--md-sys-color-on-secondary-container);
+  --md-filled-tonal-button-icon-color: var(--md-sys-color-on-secondary-container);
+}
+
+.pincon-quick-hint,
+.pincon-ocr-note,
+.pincon-ocr-review {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: start;
@@ -37,6 +48,58 @@
   color: var(--md-sys-color-on-surface-variant);
   font-size: .9rem;
   line-height: 1.5;
+}
+
+.pincon-ocr-note {
+  margin-top: 12px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.pincon-ocr-note md-icon,
+.pincon-ocr-review md-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.pincon-ocr-status {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.pincon-ocr-status > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 10px;
+  line-height: 1.5;
+}
+
+.pincon-ocr-status[data-mode="error"] {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.pincon-ocr-status[data-mode="success"] {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.pincon-ocr-review {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.pincon-ocr-review > div {
+  display: grid;
+  gap: 3px;
+}
+
+.pincon-ocr-review strong,
+.pincon-ocr-review span {
+  display: block;
 }
 
 .pincon-quick-fields {
@@ -90,4 +153,5 @@ html[data-pincon-design="material-expressive-lab"] .pincon-adoption-grid {
   .pincon-quick-kind-grid,
   .pincon-quick-two { grid-template-columns: 1fr; }
   .pincon-quick-kind-grid md-filled-tonal-button { min-height: 60px; }
+  .pincon-quick-kind-grid .pincon-ocr-open { grid-column: auto; }
 }
