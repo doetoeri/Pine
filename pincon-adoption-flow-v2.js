@@ -100,7 +100,7 @@ function renderChooser() {
   dialog.querySelector("[data-quick-save]").hidden = true;
   dialog.querySelector("[data-quick-content]").innerHTML = `
     <div class="pincon-quick-intro">
-      <p>종류만 고르면 필요한 입력칸만 보여줍니다. 인간에게 폼 14칸은 벌에 가깝습니다.</p>
+      <p>등록할 종류를 고르면 필요한 항목만 간단히 입력할 수 있습니다.</p>
     </div>
     <div class="pincon-quick-kind-grid">
       <md-filled-tonal-button type="button" data-quick-kind="schedule"><md-icon slot="icon">swap_horiz</md-icon>시간표 변경</md-filled-tonal-button>
@@ -108,7 +108,7 @@ function renderChooser() {
       <md-filled-tonal-button type="button" data-quick-kind="event"><md-icon slot="icon">event</md-icon>수행·일정</md-filled-tonal-button>
       <md-filled-tonal-button type="button" data-quick-kind="notice"><md-icon slot="icon">campaign</md-icon>공지</md-filled-tonal-button>
     </div>
-    <div class="pincon-quick-hint"><md-icon>verified</md-icon><span>등록 전 한 번 확인하고, 모든 변경은 기존 PinCon 기록 체계를 사용합니다.</span></div>`;
+    <div class="pincon-quick-hint"><md-icon>verified</md-icon><span>등록 전 내용을 확인하고, 변경 내용은 기존 PinCon 기록 체계에 저장됩니다.</span></div>`;
 }
 
 function renderForm(kind) {
