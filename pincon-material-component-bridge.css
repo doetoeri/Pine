@@ -1,0 +1,174 @@
+/* PinCon -> Google Material 3 Expressive component bridge.
+ * The source controls remain event targets; official Material components are the visible UI.
+ */
+
+:root {
+  --pincon-m3e-shape-xs: 12px;
+  --pincon-m3e-shape-sm: 16px;
+  --pincon-m3e-shape-md: 20px;
+  --pincon-m3e-shape-lg: 28px;
+  --pincon-m3e-shape-xl: 36px;
+  --pincon-m3e-shape-full: 999px;
+  --pincon-m3e-motion-fast: 150ms;
+  --pincon-m3e-motion-medium: 300ms;
+  --pincon-m3e-ease: cubic-bezier(.2, 0, 0, 1);
+}
+
+body.pincon-material-components-25 {
+  --md-sys-shape-corner-extra-small: var(--pincon-m3e-shape-xs);
+  --md-sys-shape-corner-small: var(--pincon-m3e-shape-sm);
+  --md-sys-shape-corner-medium: var(--pincon-m3e-shape-md);
+  --md-sys-shape-corner-large: var(--pincon-m3e-shape-lg);
+  --md-sys-shape-corner-extra-large: var(--pincon-m3e-shape-xl);
+  --md-sys-shape-corner-full: var(--pincon-m3e-shape-full);
+}
+
+.pincon-material-proxy-host {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  isolation: isolate;
+}
+
+.pincon-material-proxy-host > [data-pincon-material-source],
+.pincon-material-proxy-host > [data-pincon-material-proxy]:not([data-pincon-material-proxy="host"]) {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.pincon-material-proxy-host > [data-pincon-material-source] {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.pincon-material-proxy-host > .pincon-material-control,
+.pincon-material-proxy-host > .pincon-material-field {
+  align-self: stretch;
+  justify-self: stretch;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+md-gb-button.pincon-material-control {
+  min-height: 44px;
+  --container-shape: var(--pincon-m3e-shape-full);
+  --label-text: 600 0.875rem/1.1 Roboto, "Noto Sans KR", system-ui, sans-serif;
+}
+
+md-gb-icon-button.pincon-material-control {
+  min-width: 44px;
+  min-height: 44px;
+  --container-shape: var(--pincon-m3e-shape-full);
+}
+
+md-gb-fab.pincon-material-control {
+  min-width: 56px;
+  min-height: 56px;
+  --container-shape: 20px;
+}
+
+.pincon-material-field:is(md-outlined-text-field, md-outlined-select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  --md-outlined-field-container-shape: var(--pincon-m3e-shape-sm);
+  --md-outlined-text-field-container-shape: var(--pincon-m3e-shape-sm);
+  --md-outlined-select-text-field-container-shape: var(--pincon-m3e-shape-sm);
+}
+
+.pincon-material-field:is(md-checkbox, md-radio, md-switch) {
+  justify-self: start;
+  align-self: center;
+}
+
+.pincon-material-card-host {
+  position: relative;
+  isolation: isolate;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pincon-material-card-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  --container-shape: inherit;
+}
+
+.pincon-material-card-host[data-pincon-material-cardized="true"] {
+  border-color: transparent !important;
+}
+
+/* Existing official Material components that do not yet have a GB Expressive element
+ * remain official @material/web controls and inherit the same system tokens. */
+body.pincon-material-components-25 :is(
+  md-dialog,
+  md-tabs,
+  md-primary-tab,
+  md-list,
+  md-list-item,
+  md-outlined-text-field,
+  md-outlined-select,
+  md-checkbox,
+  md-radio,
+  md-switch,
+  md-assist-chip,
+  md-filter-chip,
+  md-linear-progress,
+  md-divider
+) {
+  font-family: Roboto, "Noto Sans KR", system-ui, sans-serif;
+}
+
+body.pincon-material-components-25 md-dialog {
+  --md-dialog-container-shape: var(--pincon-m3e-shape-xl);
+}
+
+body.pincon-material-components-25 :is(md-assist-chip, md-filter-chip) {
+  --md-assist-chip-container-shape: var(--pincon-m3e-shape-full);
+  --md-filter-chip-container-shape: var(--pincon-m3e-shape-full);
+}
+
+body.pincon-material-components-25 md-primary-tab {
+  --md-primary-tab-active-indicator-shape: var(--pincon-m3e-shape-full);
+}
+
+body.pincon-material-components-25 :where(
+  md-gb-button,
+  md-gb-icon-button,
+  md-gb-fab,
+  md-gb-card,
+  md-outlined-text-field,
+  md-outlined-select,
+  md-checkbox,
+  md-radio,
+  md-switch
+) {
+  transition: transform var(--pincon-m3e-motion-fast) var(--pincon-m3e-ease),
+              filter var(--pincon-m3e-motion-fast) ease;
+}
+
+body.pincon-material-components-25 :where(md-gb-button, md-gb-icon-button, md-gb-fab):active {
+  transform: scale(.96);
+}
+
+@media (max-width: 700px) {
+  .pincon-material-proxy-host > .pincon-material-control,
+  .pincon-material-proxy-host > .pincon-material-field {
+    max-width: 100%;
+  }
+
+  md-gb-button.pincon-material-control {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.pincon-material-components-25 :where(md-gb-button, md-gb-icon-button, md-gb-fab, md-gb-card) {
+    transition: none !important;
+  }
+}
