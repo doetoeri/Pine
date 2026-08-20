@@ -85,4 +85,7 @@ test("Firebase 규칙 배포는 최초 Storage release를 생성할 수 있다",
   assert.match(deployScript, /error\?\.status !== 404/);
   assert.match(deployScript, /method: "POST"/);
   assert.match(deployScript, /projects\/\$\{PROJECT_ID\}\/releases/);
+  assert.match(deployScript, /releases\?pageSize=100/);
+  assert.match(deployScript, /existingStorageRelease\.name/);
+  assert.match(deployScript, /firebaserules\.releases\.create/);
 });

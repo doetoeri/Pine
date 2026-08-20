@@ -85,6 +85,17 @@ async function api(token, path, options = {}) {
   return body;
 }
 
+async function rulesToDeploy(token) {
+  const response = await api(token, `projects/${PROJECT_ID}/releases?pageSize=100`);
+  const storagePrefix = `projects/${PROJECT_ID}/releases/firebase.storage/`;
+  const existingStorageRelease = (response?.releases || []).find((release) =>
+    String(release?.name || "").startsWith(storagePrefix));
+  if (!existingStorageRelease) return RULES;
+  return RULES.map((rule) => rule.fileName === "storage.rules"
+    ? { ...rule, releaseName: existingStorageRelease.name }
+    : rule);
+}
+
 async function deployRelease(token, rule) {
   const release = {
     name: rule.releaseName,
@@ -97,10 +108,19 @@ async function deployRelease(token, rule) {
     });
   } catch (error) {
     if (error?.status !== 404) throw error;
-    return api(token, `projects/${PROJECT_ID}/releases`, {
-      method: "POST",
-      body: JSON.stringify(release),
-    });
+    try {
+      return await api(token, `projects/${PROJECT_ID}/releases`, {
+        method: "POST",
+        body: JSON.stringify(release),
+      });
+    } catch (createError) {
+      if (rule.fileName === "storage.rules" && createError?.status === 403) {
+        const setupError = new Error("Firebase Storage가 아직 초기화되지 않았거나 서비스 계정에 firebaserules.releases.create 권한이 없습니다. Storage를 초기화한 뒤 Firebase Rules Admin 권한을 확인하세요.");
+        setupError.cause = createError;
+        throw setupError;
+      }
+      throw createError;
+    }
   }
 }
 
@@ -110,8 +130,9 @@ async function main() {
   }
   const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   const token = await accessToken(credentials);
+  const rules = await rulesToDeploy(token);
   const compiled = [];
-  for (const rule of RULES) {
+  for (const rule of rules) {
     const content = await readFile(rule.path, "utf8");
     const ruleset = await api(token, `projects/${PROJECT_ID}/rulesets`, {
       method: "POST",
