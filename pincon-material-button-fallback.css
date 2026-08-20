@@ -1,8 +1,6 @@
-/*
- * PinCon Material button safety net.
- * Only styles Material custom-element buttons while they are NOT defined.
- * As soon as @material/web upgrades an element, :not(:defined) stops matching
- * and the official component takes over automatically.
+/* PinCon Material button visual hardening.
+ * Applies to undefined Material custom elements and to elements that are defined
+ * but fail the runtime visual health check in pincon-material-button-fallback.js.
  */
 
 :root {
@@ -10,125 +8,105 @@
   --pincon-button-fallback-on-primary: var(--md-sys-color-on-primary, #ffffff);
   --pincon-button-fallback-tonal: var(--md-sys-color-secondary-container, #d4e8cd);
   --pincon-button-fallback-on-tonal: var(--md-sys-color-on-secondary-container, #101f0f);
-  --pincon-button-fallback-surface: var(--md-sys-color-surface-container, #ecefe7);
   --pincon-button-fallback-on-surface: var(--md-sys-color-on-surface, #1a1c18);
   --pincon-button-fallback-outline: var(--md-sys-color-outline, #73796e);
 }
 
-:is(
-  md-filled-button,
-  md-filled-tonal-button,
-  md-outlined-button,
-  md-text-button
-):not(:defined) {
-  box-sizing: border-box;
+:is(md-filled-button, md-filled-tonal-button, md-outlined-button, md-text-button):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  box-sizing: border-box !important;
   display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 64px;
-  min-height: 44px;
-  width: auto;
-  max-width: 100%;
-  padding: 0 20px;
-  border: 0;
-  border-radius: 999px;
-  font: 700 14px/1 Roboto, "Noto Sans KR", system-ui, sans-serif;
-  letter-spacing: .1px;
-  text-decoration: none;
-  white-space: nowrap;
-  vertical-align: middle;
-  cursor: pointer;
-  user-select: none;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  width: auto !important;
+  min-width: 64px !important;
+  max-width: 100% !important;
+  min-height: 44px !important;
+  padding: 0 20px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  font: 700 14px/1 Roboto, "Noto Sans KR", system-ui, sans-serif !important;
+  letter-spacing: .1px !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 120ms cubic-bezier(.2, 0, 0, 1),
-              box-shadow 180ms cubic-bezier(.2, 0, 0, 1),
-              filter 180ms ease;
+  overflow: hidden !important;
+  transition: transform 120ms cubic-bezier(.2, 0, 0, 1), box-shadow 180ms cubic-bezier(.2, 0, 0, 1), filter 180ms ease;
 }
 
-md-filled-button:not(:defined) {
-  background: var(--pincon-button-fallback-primary);
-  color: var(--pincon-button-fallback-on-primary);
+md-filled-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  background: var(--pincon-button-fallback-primary) !important;
+  color: var(--pincon-button-fallback-on-primary) !important;
 }
 
-md-filled-tonal-button:not(:defined) {
-  background: var(--pincon-button-fallback-tonal);
-  color: var(--pincon-button-fallback-on-tonal);
+md-filled-tonal-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  background: var(--pincon-button-fallback-tonal) !important;
+  color: var(--pincon-button-fallback-on-tonal) !important;
 }
 
-md-outlined-button:not(:defined) {
-  background: transparent;
-  color: var(--pincon-button-fallback-primary);
-  box-shadow: inset 0 0 0 1px var(--pincon-button-fallback-outline);
+md-outlined-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  background: transparent !important;
+  color: var(--pincon-button-fallback-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--pincon-button-fallback-outline) !important;
 }
 
-md-text-button:not(:defined) {
-  background: transparent;
-  color: var(--pincon-button-fallback-primary);
+md-text-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  background: transparent !important;
+  color: var(--pincon-button-fallback-primary) !important;
 }
 
-:is(
-  md-icon-button,
-  md-filled-icon-button,
-  md-filled-tonal-icon-button,
-  md-outlined-icon-button
-):not(:defined) {
-  box-sizing: border-box;
+:is(md-icon-button, md-filled-icon-button, md-filled-tonal-icon-button, md-outlined-icon-button):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  box-sizing: border-box !important;
   display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 999px;
-  vertical-align: middle;
-  color: var(--pincon-button-fallback-on-surface);
-  background: transparent;
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 120ms cubic-bezier(.2, 0, 0, 1),
-              box-shadow 180ms cubic-bezier(.2, 0, 0, 1),
-              filter 180ms ease;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  color: var(--pincon-button-fallback-on-surface) !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
 }
 
-md-filled-icon-button:not(:defined) {
-  background: var(--pincon-button-fallback-primary);
-  color: var(--pincon-button-fallback-on-primary);
+md-filled-icon-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  background: var(--pincon-button-fallback-primary) !important;
+  color: var(--pincon-button-fallback-on-primary) !important;
 }
 
-md-filled-tonal-icon-button:not(:defined) {
-  background: var(--pincon-button-fallback-tonal);
-  color: var(--pincon-button-fallback-on-tonal);
+md-filled-tonal-icon-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  background: var(--pincon-button-fallback-tonal) !important;
+  color: var(--pincon-button-fallback-on-tonal) !important;
 }
 
-md-outlined-icon-button:not(:defined) {
-  background: transparent;
-  color: var(--pincon-button-fallback-on-surface);
-  box-shadow: inset 0 0 0 1px var(--pincon-button-fallback-outline);
+md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  box-shadow: inset 0 0 0 1px var(--pincon-button-fallback-outline) !important;
 }
 
-md-fab:not(:defined),
-md-branded-fab:not(:defined) {
-  box-sizing: border-box;
+:is(md-fab, md-branded-fab):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  box-sizing: border-box !important;
   display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-width: 56px;
-  min-height: 56px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 20px;
-  background: var(--pincon-button-fallback-tonal);
-  color: var(--pincon-button-fallback-on-tonal);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, .16);
-  cursor: pointer;
-  user-select: none;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  min-width: 56px !important;
+  min-height: 56px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  border-radius: 20px !important;
+  background: var(--pincon-button-fallback-tonal) !important;
+  color: var(--pincon-button-fallback-on-tonal) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,.16) !important;
+  cursor: pointer !important;
+  overflow: hidden !important;
 }
 
 :is(
@@ -142,31 +120,26 @@ md-branded-fab:not(:defined) {
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):not(:defined) > md-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
-  font-family: "Material Symbols Rounded";
+):is(:not(:defined), [data-pincon-material-button-fallback="true"]) > md-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 20px !important;
+  width: 20px !important;
+  height: 20px !important;
+  font-family: "Material Symbols Rounded" !important;
   font-size: 20px !important;
-  font-weight: 400;
+  font-weight: 400 !important;
   line-height: 20px !important;
-  letter-spacing: normal;
-  white-space: nowrap;
-  overflow: hidden;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
 }
 
-:is(
-  md-icon-button,
-  md-filled-icon-button,
-  md-filled-tonal-icon-button,
-  md-outlined-icon-button
-):not(:defined) > md-icon {
-  flex-basis: 24px;
-  width: 24px;
-  height: 24px;
+:is(md-icon-button, md-filled-icon-button, md-filled-tonal-icon-button, md-outlined-icon-button):is(:not(:defined), [data-pincon-material-button-fallback="true"]) > md-icon {
+  flex-basis: 24px !important;
+  width: 24px !important;
+  height: 24px !important;
   font-size: 24px !important;
   line-height: 24px !important;
 }
@@ -182,9 +155,9 @@ md-branded-fab:not(:defined) {
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):not(:defined):hover {
+):is(:not(:defined), [data-pincon-material-button-fallback="true"]):hover {
   filter: brightness(.98);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .10), 0 3px 9px rgba(0, 0, 0, .08);
+  box-shadow: 0 1px 2px rgba(0,0,0,.10), 0 3px 9px rgba(0,0,0,.08);
 }
 
 :is(
@@ -198,7 +171,7 @@ md-branded-fab:not(:defined) {
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):not(:defined):active {
+):is(:not(:defined), [data-pincon-material-button-fallback="true"]):active {
   transform: scale(.97);
 }
 
@@ -213,7 +186,7 @@ md-branded-fab:not(:defined) {
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):not(:defined)[disabled],
+):is(:not(:defined), [data-pincon-material-button-fallback="true"])[disabled],
 :is(
   md-filled-button,
   md-filled-tonal-button,
@@ -225,10 +198,10 @@ md-branded-fab:not(:defined) {
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):not(:defined)[aria-disabled="true"] {
-  opacity: .38;
-  pointer-events: none;
-  box-shadow: none;
+):is(:not(:defined), [data-pincon-material-button-fallback="true"])[aria-disabled="true"] {
+  opacity: .38 !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
 }
 
 :is(
@@ -242,21 +215,15 @@ md-branded-fab:not(:defined) {
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):not(:defined):focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--pincon-button-fallback-primary) 45%, transparent);
-  outline-offset: 2px;
+):is(:not(:defined), [data-pincon-material-button-fallback="true"]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--pincon-button-fallback-primary) 45%, transparent) !important;
+  outline-offset: 2px !important;
 }
 
-/* Prevent action rows from overflowing on compact screens. */
 @media (max-width: 700px) {
-  :is(
-    md-filled-button,
-    md-filled-tonal-button,
-    md-outlined-button,
-    md-text-button
-  ):not(:defined) {
-    min-height: 48px;
-    padding-inline: 18px;
+  :is(md-filled-button, md-filled-tonal-button, md-outlined-button, md-text-button):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+    min-height: 48px !important;
+    padding-inline: 18px !important;
   }
 }
 
@@ -272,7 +239,7 @@ md-branded-fab:not(:defined) {
     md-outlined-icon-button,
     md-fab,
     md-branded-fab
-  ):not(:defined) {
-    transition: none;
+  ):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+    transition: none !important;
   }
 }
