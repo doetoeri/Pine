@@ -77,9 +77,31 @@ async function api(token, path, options = {}) {
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   if (!response.ok) {
     const detail = body?.error?.message || JSON.stringify(body);
-    throw new Error(`Firebase Rules API ${response.status}: ${detail}`);
+    const error = new Error(`Firebase Rules API ${response.status}: ${detail}`);
+    error.status = response.status;
+    error.body = body;
+    throw error;
   }
   return body;
+}
+
+async function deployRelease(token, rule) {
+  const release = {
+    name: rule.releaseName,
+    rulesetName: rule.ruleset.name,
+  };
+  try {
+    return await api(token, rule.releaseName, {
+      method: "PATCH",
+      body: JSON.stringify({ release, updateMask: "rulesetName" }),
+    });
+  } catch (error) {
+    if (error?.status !== 404) throw error;
+    return api(token, `projects/${PROJECT_ID}/releases`, {
+      method: "POST",
+      body: JSON.stringify(release),
+    });
+  }
 }
 
 async function main() {
@@ -99,13 +121,7 @@ async function main() {
   }
   const deployed = [];
   for (const rule of compiled) {
-    await api(token, rule.releaseName, {
-      method: "PATCH",
-      body: JSON.stringify({
-        release: { name: rule.releaseName, rulesetName: rule.ruleset.name },
-        updateMask: "rulesetName",
-      }),
-    });
+    await deployRelease(token, rule);
     deployed.push({ file: rule.fileName, release: rule.releaseName, ruleset: rule.ruleset.name });
   }
   console.log(JSON.stringify({ ok: true, project: PROJECT_ID, deployed }));

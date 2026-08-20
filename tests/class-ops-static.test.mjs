@@ -79,3 +79,10 @@ test("익명 건의와 행사 응답 문서에는 사용자 식별 필드가 없
   }
   assert.match(block("eventResponses"), /responseId\.matches\('\^\[0-9a-f\]\{40\}\$'\)/);
 });
+
+test("Firebase 규칙 배포는 최초 Storage release를 생성할 수 있다", async () => {
+  const deployScript = await read("automation/deploy-firestore-rules.mjs");
+  assert.match(deployScript, /error\?\.status !== 404/);
+  assert.match(deployScript, /method: "POST"/);
+  assert.match(deployScript, /projects\/\$\{PROJECT_ID\}\/releases/);
+});
