@@ -1,0 +1,54 @@
+name: Check class operations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "pincon-class-ops*.js"
+      - "pincon-class-ops.css"
+      - "tests/**"
+      - "firestore.rules"
+      - "storage.rules"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "automation/**"
+      - ".github/workflows/class-ops-check.yml"
+  pull_request:
+    paths:
+      - "pincon-class-ops*.js"
+      - "pincon-class-ops.css"
+      - "tests/**"
+      - "firestore.rules"
+      - "storage.rules"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "automation/**"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: automation/package-lock.json
+      - name: Check browser modules and tests
+        run: |
+          node --check pincon-class-ops-core.js
+          node --check pincon-class-ops-data.js
+          node --check pincon-class-ops.js
+          node --check sw.js
+          node --test tests/*.test.mjs
+      - name: Check automation modules
+        working-directory: automation
+        run: |
+          npm ci
+          node --check class-ops-notifications.mjs
+          node --check neis-sync.mjs
+          node --check deploy-firestore-rules.mjs

@@ -26,6 +26,64 @@ service cloud.firestore {
       return activeRole(schoolId) && roleDocument(schoolId).data.level == 'school';
     }
 
+    // 회장 기능은 화면에서 버튼을 숨기는 것과 별개로 서버 규칙에서도 검사한다.
+    function classOperator(schoolId, classKey) {
+      return activeRole(schoolId)
+        && classKeyIsValid(classKey)
+        && (
+          roleDocument(schoolId).data.level == 'school'
+          || (
+            roleDocument(schoolId).data.level in ['class', 'grade', 'president']
+            && roleDocument(schoolId).data.classKeys is list
+            && classKey in roleDocument(schoolId).data.classKeys
+          )
+        );
+    }
+
+    function validClassOpsBase(classKey) {
+      return classKeyIsValid(classKey)
+        && request.resource.data.classKey == classKey
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs >= request.resource.data.createdAtMs
+        && request.resource.data.deleted is bool;
+    }
+
+    function validTitle(value, maxSize) {
+      return value is string && value.size() > 0 && value.size() <= maxSize;
+    }
+
+    function validAnswerAt(answers, index) {
+      return answers.size() <= index
+        || (
+          answers[index] is string
+          && answers[index].size() > 0
+          && answers[index].size() <= 120
+        );
+    }
+
+    function validEventAnswers(answers) {
+      return answers is list
+        && answers.size() > 0
+        && answers.size() <= 12
+        && validAnswerAt(answers, 0)
+        && validAnswerAt(answers, 1)
+        && validAnswerAt(answers, 2)
+        && validAnswerAt(answers, 3)
+        && validAnswerAt(answers, 4)
+        && validAnswerAt(answers, 5)
+        && validAnswerAt(answers, 6)
+        && validAnswerAt(answers, 7)
+        && validAnswerAt(answers, 8)
+        && validAnswerAt(answers, 9)
+        && validAnswerAt(answers, 10)
+        && validAnswerAt(answers, 11);
+    }
+
+    function officialPoll() {
+      return request.resource.data.get('official', false) == true;
+    }
+
     function allowedTargets() {
       return [
         '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8', '1-9', '1-10',
@@ -88,6 +146,7 @@ service cloud.firestore {
         && request.resource.data.options is list
         && request.resource.data.options.size() >= 2
         && request.resource.data.options.size() <= 8
+        && validEventAnswers(request.resource.data.options)
         && request.resource.data.multiple is bool
         && request.resource.data.status in ['open', 'closed']
         && request.resource.data.deleted is bool
@@ -99,6 +158,14 @@ service cloud.firestore {
 
     function pollPath(schoolId, pollId) {
       return /databases/$(database)/documents/schools/$(schoolId)/polls/$(pollId);
+    }
+
+    function eventPath(schoolId, eventId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/events/$(eventId);
+    }
+
+    function supplyPath(schoolId, supplyId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/supplies/$(supplyId);
     }
 
     function validDriveItem(groupId) {
@@ -183,8 +250,11 @@ service cloud.firestore {
 
     // 5. 빠른 투표: 누구나 만들 수 있고, 질문/선택지는 생성 후 고정한다.
     match /schools/{schoolId}/polls/{pollId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && validPoll() && request.resource.data.authorUid == request.auth.uid;
+      allow read: if signedIn() || resource.data.get('official', false) == true;
+      allow create: if signedIn()
+        && validPoll()
+        && request.resource.data.authorUid == request.auth.uid
+        && (!officialPoll() || classOperator(schoolId, request.resource.data.classKey));
       allow update: if signedIn()
         && validPoll()
         && request.resource.data.classKey == resource.data.classKey
@@ -192,19 +262,49 @@ service cloud.firestore {
         && request.resource.data.options == resource.data.options
         && request.resource.data.multiple == resource.data.multiple
         && request.resource.data.authorUid == resource.data.authorUid
-        && request.resource.data.createdAtMs == resource.data.createdAtMs;
+        && request.resource.data.createdAtMs == resource.data.createdAtMs
+        && request.resource.data.get('official', false) == resource.data.get('official', false)
+        && (
+          (
+            officialPoll()
+            && classOperator(schoolId, request.resource.data.classKey)
+          )
+          || (
+            !officialPoll()
+            && resource.data.authorUid == request.auth.uid
+          )
+        );
       allow delete: if false;
 
       match /votes/{voteId} {
-        allow read: if signedIn();
+        allow read: if signedIn()
+          && (
+            get(pollPath(schoolId, pollId)).data.get('official', false) == false
+            || classOperator(schoolId, get(pollPath(schoolId, pollId)).data.classKey)
+            || get(pollPath(schoolId, pollId)).data.get('resultVisibility', 'live') == 'live'
+            || get(pollPath(schoolId, pollId)).data.status == 'closed'
+            || (
+              get(pollPath(schoolId, pollId)).data.get('closesAtMs', 0) > 0
+              && get(pollPath(schoolId, pollId)).data.get('closesAtMs', 0) < request.time.toMillis()
+            )
+          );
         allow create, update: if signedIn()
           && voteId == request.auth.uid
           && request.resource.data.voterUid == request.auth.uid
           && request.resource.data.selected is list
           && request.resource.data.selected.size() > 0
           && request.resource.data.selected.size() <= 8
+          && request.resource.data.selected.hasOnly([0, 1, 2, 3, 4, 5, 6, 7])
+          && (
+            get(pollPath(schoolId, pollId)).data.multiple == true
+            || request.resource.data.selected.size() == 1
+          )
           && get(pollPath(schoolId, pollId)).data.status == 'open'
-          && get(pollPath(schoolId, pollId)).data.deleted == false;
+          && get(pollPath(schoolId, pollId)).data.deleted == false
+          && (
+            get(pollPath(schoolId, pollId)).data.get('closesAtMs', 0) == 0
+            || get(pollPath(schoolId, pollId)).data.get('closesAtMs', 0) >= request.time.toMillis()
+          );
         allow delete: if false;
       }
     }
@@ -263,6 +363,270 @@ service cloud.firestore {
       allow create, update, delete: if schoolAdmin(schoolId);
     }
 
+    // PinCon 학급 운영: 공지, 수행평가·준비물, 행사와 설정은 회장만 변경한다.
+    match /schools/{schoolId}/announcements/{announcementId} {
+      allow read: if true;
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.title, 100)
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 1800
+        && request.resource.data.priority in ['normal', 'important', 'urgent'];
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/classAssignments/{assignmentId} {
+      allow read: if true;
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.type in ['assessment', 'exam', 'preparation']
+        && validTitle(request.resource.data.title, 120)
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 40
+        && request.resource.data.dueDate is string
+        && request.resource.data.dueDate.size() == 10
+        && request.resource.data.dueAtMs is int
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1200;
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/events/{eventId} {
+      allow read: if true;
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.kind in ['survey34', 'family-arcade', 'quiz', 'balance', 'class-vote', 'survey', 'mini-game']
+        && validTitle(request.resource.data.title, 120)
+        && request.resource.data.question is string
+        && request.resource.data.question.size() > 0
+        && request.resource.data.question.size() <= 500
+        && request.resource.data.status in ['draft', 'open', 'closed']
+        && (
+          request.resource.data.get('resultsVisible', false) == true
+          || request.resource.data.get('publishedResults', []).size() == 0
+        );
+      allow delete: if false;
+    }
+
+    // 응답 문서에는 이메일, UID, 이름을 저장하지 않는다. 원문은 회장만 읽는다.
+    match /schools/{schoolId}/eventResponses/{responseId} {
+      allow read: if classOperator(schoolId, resource.data.classKey);
+      allow create: if signedIn()
+        && responseId.matches('^[0-9a-f]{40}$')
+        && request.resource.data.keys().hasOnly(['classKey', 'eventId', 'answers', 'createdAtMs', 'createdAt'])
+        && classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.eventId is string
+        && exists(eventPath(schoolId, request.resource.data.eventId))
+        && get(eventPath(schoolId, request.resource.data.eventId)).data.classKey == request.resource.data.classKey
+        && get(eventPath(schoolId, request.resource.data.eventId)).data.status == 'open'
+        && get(eventPath(schoolId, request.resource.data.eventId)).data.deleted == false
+        && get(eventPath(schoolId, request.resource.data.eventId)).data.acceptingResponses == true
+        && get(eventPath(schoolId, request.resource.data.eventId)).data.get('startsAtMs', 0) <= request.time.toMillis()
+        && (
+          get(eventPath(schoolId, request.resource.data.eventId)).data.get('endsAtMs', 0) == 0
+          || get(eventPath(schoolId, request.resource.data.eventId)).data.get('endsAtMs', 0) >= request.time.toMillis()
+        )
+        && validEventAnswers(request.resource.data.answers)
+        && request.resource.data.createdAtMs is int;
+      allow update, delete: if false;
+    }
+
+    // 공개 건의에는 작성자 식별자를 넣지 않고, 상태와 공식 답변만 회장이 변경한다.
+    match /schools/{schoolId}/feedback/{feedbackId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'classKey', 'category', 'title', 'body', 'status', 'officialReply',
+          'anonymous', 'deleted', 'createdAtMs', 'updatedAtMs', 'createdAt', 'updatedAt'
+        ])
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.category in ['시설', '학급 규칙', '공용품', '행사', '학습', '청소', '기타']
+        && validTitle(request.resource.data.title, 100)
+        && request.resource.data.body is string
+        && request.resource.data.body.size() > 0
+        && request.resource.data.body.size() <= 1600
+        && request.resource.data.status == 'received'
+        && request.resource.data.officialReply == ''
+        && request.resource.data.anonymous == true;
+      allow update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.title == resource.data.title
+        && request.resource.data.body == resource.data.body
+        && request.resource.data.category == resource.data.category
+        && request.resource.data.status in ['received', 'reviewing', 'planned', 'completed', 'difficult']
+        && request.resource.data.officialReply is string
+        && request.resource.data.officialReply.size() <= 1600;
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/supplies/{supplyId} {
+      allow read: if true;
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.name, 80)
+        && request.resource.data.quantity is number
+        && request.resource.data.quantity >= 0
+        && request.resource.data.status in ['enough', 'low', 'empty']
+        && request.resource.data.loanable is bool;
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/supplyReports/{reportId} {
+      allow read: if classOperator(schoolId, resource.data.classKey);
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['classKey', 'supplyId', 'reporterUid', 'createdAtMs', 'updatedAtMs'])
+        && classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.supplyId is string
+        && exists(supplyPath(schoolId, request.resource.data.supplyId))
+        && get(supplyPath(schoolId, request.resource.data.supplyId)).data.classKey == request.resource.data.classKey
+        && get(supplyPath(schoolId, request.resource.data.supplyId)).data.deleted == false
+        && request.resource.data.reporterUid == request.auth.uid
+        && reportId == request.resource.data.supplyId + '_' + request.auth.uid
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.updatedAtMs is int;
+      allow delete: if false;
+    }
+
+    // 대여 기록에는 학생 이름·이메일·UID가 없다. 반환 처리는 회장만 한다.
+    match /schools/{schoolId}/supplyLoans/{loanId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'classKey', 'supplyId', 'status', 'borrowedAtMs', 'deleted',
+          'createdAtMs', 'updatedAtMs', 'createdAt', 'updatedAt'
+        ])
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.supplyId is string
+        && exists(supplyPath(schoolId, request.resource.data.supplyId))
+        && get(supplyPath(schoolId, request.resource.data.supplyId)).data.classKey == request.resource.data.classKey
+        && get(supplyPath(schoolId, request.resource.data.supplyId)).data.deleted == false
+        && get(supplyPath(schoolId, request.resource.data.supplyId)).data.loanable == true
+        && request.resource.data.status == 'loaned';
+      allow update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.supplyId == resource.data.supplyId
+        && request.resource.data.status in ['loaned', 'returned'];
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/lostItems/{lostItemId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'classKey', 'name', 'foundLocation', 'foundDate', 'photoUrl', 'storagePath',
+          'status', 'deleted', 'createdAtMs', 'updatedAtMs', 'createdAt', 'updatedAt'
+        ])
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.name, 100)
+        && request.resource.data.foundLocation is string
+        && request.resource.data.foundLocation.size() <= 120
+        && request.resource.data.foundDate is string
+        && request.resource.data.foundDate.size() == 10
+        && request.resource.data.photoUrl is string
+        && request.resource.data.photoUrl.size() <= 1200
+        && request.resource.data.status == 'stored';
+      allow update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.status in ['stored', 'claimed'];
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/resources/{resourceId} {
+      allow read: if resource.data.moderationStatus == 'approved'
+        || classOperator(schoolId, resource.data.classKey);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'classKey', 'category', 'subject', 'title', 'description', 'url',
+          'fileName', 'storagePath', 'pinned', 'moderationStatus', 'deleted',
+          'createdAtMs', 'updatedAtMs', 'createdAt', 'updatedAt'
+        ])
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.title, 120)
+        && request.resource.data.category is string
+        && request.resource.data.category.size() <= 40
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 40
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1200
+        && request.resource.data.url is string
+        && request.resource.data.url.size() > 0
+        && request.resource.data.url.size() <= 1200
+        && request.resource.data.url.matches('^https?://.*$')
+        && request.resource.data.pinned is bool
+        && request.resource.data.moderationStatus in ['pending', 'approved']
+        && (
+          request.resource.data.moderationStatus == 'pending'
+          || classOperator(schoolId, request.resource.data.classKey)
+        )
+        && (
+          request.resource.data.pinned == false
+          || classOperator(schoolId, request.resource.data.classKey)
+        );
+      allow update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.classKey == resource.data.classKey
+        && validTitle(request.resource.data.title, 120)
+        && request.resource.data.category is string
+        && request.resource.data.category.size() <= 40
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 40
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1200
+        && request.resource.data.url is string
+        && request.resource.data.url.size() > 0
+        && request.resource.data.url.size() <= 1200
+        && request.resource.data.url.matches('^https?://.*$')
+        && request.resource.data.pinned is bool
+        && request.resource.data.moderationStatus in ['pending', 'approved'];
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/patchNotes/{patchNoteId} {
+      allow read: if true;
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.month is string
+        && request.resource.data.month.size() == 7
+        && request.resource.data.status == 'published';
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/patchNoteDrafts/{draftId} {
+      allow read: if classOperator(schoolId, resource.data.classKey);
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.month is string
+        && request.resource.data.month.size() == 7
+        && request.resource.data.status == 'draft';
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/classSettings/{classKey} {
+      allow read: if true;
+      allow create, update: if classOperator(schoolId, classKey)
+        && request.resource.data.classKey == classKey;
+      allow delete: if false;
+    }
+
+    // 변경 기록은 회장만 읽고 쓸 수 있으며 수정·삭제할 수 없다.
+    match /schools/{schoolId}/changeLogs/{changeId} {
+      allow read: if classOperator(schoolId, resource.data.classKey);
+      allow create: if classOperator(schoolId, request.resource.data.classKey)
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.collection in [
+          'announcements', 'classAssignments', 'events', 'polls', 'feedback',
+          'supplies', 'supplyLoans', 'lostItems', 'resources', 'patchNotes',
+          'patchNoteDrafts', 'classSettings'
+        ]
+        && request.resource.data.action in ['create', 'update', 'delete', 'restore', 'publish']
+        && request.resource.data.documentId is string
+        && request.resource.data.createdAtMs is int;
+      allow update, delete: if false;
+    }
+
     match /schools/{schoolId}/neisTimetables/{timetableId} {
       allow read: if true;
       allow write: if false;
@@ -273,12 +637,31 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /schools/{schoolId}/academicSchedules/{scheduleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /schools/{schoolId}/notificationReceipts/{receiptId} {
+      allow read, write: if false;
+    }
+
     match /schools/{schoolId}/pushSubscriptions/{subscriptionId} {
       allow read, delete: if false;
-      allow create, update: if
-        request.resource.data.keys().hasOnly([
-          'token', 'classKey', 'enabled', 'createdAt', 'updatedAt'
-        ])
+      allow create, update: if (
+          request.resource.data.keys().hasOnly([
+            'token', 'classKey', 'enabled', 'createdAt', 'updatedAt'
+          ])
+          || (
+            signedIn()
+            && request.resource.data.keys().hasOnly([
+              'token', 'classKey', 'enabled', 'createdAt', 'updatedAt',
+              'ownerUid', 'preferences', 'appVersion', 'updatedAtMs'
+            ])
+            && request.resource.data.ownerUid == request.auth.uid
+            && request.resource.data.preferences is map
+          )
+        )
         && request.resource.data.token is string
         && request.resource.data.token.size() >= 20
         && request.resource.data.token.size() <= 4096

@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validClassKey(classKey) {
+      return classKey.matches('^[1-3]-([1-9]|10)$');
+    }
+
+    function role(schoolId) {
+      return firestore.get(/databases/(default)/documents/schools/$(schoolId)/roles/$(request.auth.uid)).data;
+    }
+
+    function classOperator(schoolId, classKey) {
+      return signedIn()
+        && validClassKey(classKey)
+        && role(schoolId).enabled == true
+        && (
+          role(schoolId).level == 'school'
+          || (
+            role(schoolId).level in ['class', 'grade', 'president']
+            && role(schoolId).classKeys is list
+            && classKey in role(schoolId).classKeys
+          )
+        );
+    }
+
+    function safeClassFile() {
+      return signedIn()
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('^(image/(jpeg|png|webp|gif)|application/pdf|text/plain|application/msword|application/vnd\\.ms-(powerpoint|excel)|application/vnd\\.openxmlformats-officedocument\\.(wordprocessingml\\.document|presentationml\\.presentation|spreadsheetml\\.sheet))$');
+    }
+
+    match /class-resources/{schoolId}/{classKey}/{recordId}/{fileName} {
+      allow read: if signedIn();
+      allow create: if validClassKey(classKey) && safeClassFile();
+      allow update: if false;
+      allow delete: if classOperator(schoolId, classKey);
+    }
+
+    match /class-lost-items/{schoolId}/{classKey}/{recordId}/{fileName} {
+      allow read: if signedIn();
+      allow create: if validClassKey(classKey)
+        && safeClassFile()
+        && request.resource.contentType.matches('^image/(jpeg|png|webp|gif)$');
+      allow update: if false;
+      allow delete: if classOperator(schoolId, classKey);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

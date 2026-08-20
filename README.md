@@ -26,18 +26,39 @@ Pincon은 1~3학년, 학년별 1~10반까지 총 30개 학급을 지원하는 �
 - PWA: 홈 화면 설치, 독립 실행, 앱 셸 오프라인 캐시, 자동 업데이트
 - 화면: 휴대폰, 태블릿, 크롬북, 데스크톱 반응형
 
+## 학급 운영 통합 모듈
+
+기존 Pincon의 공지·시간표·급식·공동 편집을 유지하면서 `pincon-class-ops.js`가 다음 흐름을 추가합니다.
+
+> 학생 의견 → 회장 확인 → 처리 → 결과 공개 → 월간 패치노트
+
+- 오늘: 긴급 공지, 오늘·내일 수행평가, 중요한 준비물, 학사일정, 시간표, 급식 순으로 자동 정렬
+- 일정: 회장 공식 수행평가·준비물과 NEIS 학사일정을 출처별로 분리
+- 학급: 익명 건의, 공식 답변·처리 상태, 학급 행사, 공식 투표, 월별 패치노트
+- 자료: 시험·수행 자료 업로드, 중요 자료 고정, 공용 물품·대여, 분실물
+- 관리: 회장 전용 지표·빠른 작업, 패치노트 자동 초안, 변경 기록, 되돌리기, 30일 휴지통
+- 검색: 공지·수행평가·행사·건의·패치노트·자료·공용품 통합 검색
+- 시험기간 모드: 14일 이내 시험·고사를 감지해 학습 정보를 홈 최우선으로 표시
+
+학생 화면은 익명 의견과 행사 답변에 이메일·UID·이름을 기록하지 않습니다. 회장 기능은 `roles/{uid}` 문서와 `firestore.rules`가 함께 검사하므로 개발자 도구로 버튼을 호출해도 서버에서 차단됩니다.
+
+자료 파일과 분실물 사진은 `storage.rules`로 10MB, 허용된 문서·이미지 형식만 업로드할 수 있습니다. 일반 학생 자료는 `pending` 상태로 저장되고, 회장이 승인한 뒤 공개됩니다.
+
 ## 로컬 실행
 
 ```bash
-npm install
-npm run dev
+python3 -m http.server 4173
 ```
 
-빌드와 테스트:
+정적 앱이므로 별도 번들이 필요하지 않습니다. 핵심 로직과 자동화 문법 검사는 다음처럼 실행합니다.
 
 ```bash
-npm run build
-npm test
+node --test tests/*.test.mjs
+node --check pincon-class-ops-core.js
+node --check pincon-class-ops-data.js
+node --check pincon-class-ops.js
+(cd automation && npm ci)
+node --check automation/neis-sync.mjs
 ```
 
 ## Firebase 연결
@@ -45,8 +66,8 @@ npm test
 1. Firebase 콘솔에서 프로젝트와 웹 앱을 만듭니다.
 2. Authentication에서 Google 로그인을 켜고 `doetoeri.github.io`를 승인된 도메인에 추가합니다.
 3. Firestore 데이터베이스를 만듭니다.
-4. `public/firebase-config.example.js`를 참고해 `public/firebase-config.js`의 `null`을 실제 웹 앱 설정 객체로 교체합니다.
-5. Firebase CLI에서 `firebase deploy --only firestore`를 실행해 `firestore.rules`와 인덱스를 배포합니다. Firebase 콘솔을 사용한다면 Firestore의 **규칙** 탭에 `firestore.rules` 내용을 붙여넣고 게시해도 됩니다.
+4. `firebase-config.example.js`를 참고해 `firebase-config.js`의 `null`을 실제 웹 앱 설정 객체로 교체합니다.
+5. Firebase CLI에서 `firebase deploy --only firestore,storage`를 실행해 Firestore 규칙·인덱스와 Storage 규칙을 배포합니다. `main` 브랜치에서는 규칙 배포 GitHub Actions도 자동 실행됩니다.
 6. 최초 학교 운영자 계정은 Firebase 콘솔에서 다음 경로에 직접 추가합니다.
 
 ```text
@@ -69,9 +90,12 @@ schools/gochon-high/roles/{Firebase Authentication UID}
 {
   "enabled": true,
   "level": "class",
-  "classKeys": ["1-3"]
+  "classKeys": ["1-3"],
+  "title": "학급 회장"
 }
 ```
+
+이 문서가 회장 전용 계정입니다. Google 로그인한 사용자의 Firebase UID와 문서 ID가 같아야 하며, `classKeys`에 현재 반이 포함된 경우에만 관리 탭이 나타납니다.
 
 학년 운영자는 `level`을 `grade`로 하고, 해당 학년 10개 반을 `classKeys`에 넣으며 앱 표시용 `grades` 배열도 함께 둡니다.
 
@@ -88,7 +112,7 @@ Firebase 웹 설정의 API 키는 비밀번호가 아닙니다. 실제 읽기·�
 
 ## NEIS 자동 동기화와 알림 활성화
 
-저장소의 `.github/workflows/neis-sync.yml`은 30분마다 고촌고등학교 NEIS 시간표와 급식을 확인합니다. 처음 실행할 때는 기준 시간표만 저장하고, 이후 과목이 달라졌을 때만 해당 반 공지와 푸시를 만듭니다.
+저장소의 `.github/workflows/neis-sync.yml`은 30분마다 고촌고등학교 시간표, NEIS 급식·학사일정을 확인합니다. 처음 실행할 때는 기준 시간표만 저장하고, 이후 과목이 달라졌을 때만 해당 반 공지와 푸시를 만듭니다. 같은 자동화가 행사·투표를 종료 시각에 맞춰 마감하고 변경 기록을 남기며, 수행평가 전날·당일, 중요한 준비물, 행사 시작, 투표 마감, 회장 긴급 공지를 사용자별 설정에 맞춰 묶음 알림으로 발송합니다. `notificationReceipts`가 중복 발송을 막습니다.
 
 GitHub 저장소의 **Settings → Secrets and variables → Actions**에 다음 Repository secret 두 개를 직접 등록합니다.
 
@@ -97,6 +121,6 @@ GitHub 저장소의 **Settings → Secrets and variables → Actions**에 다음
 
 서비스 계정 JSON은 비밀키이므로 채팅, 저장소 파일, `firebase-config.js`에 넣지 마세요. GitHub Secrets에만 보관합니다.
 
-설치 앱 알림은 Firebase **프로젝트 설정 → 클라우드 메시징 → 웹 푸시 인증서**에서 키 쌍을 만든 뒤, 공개 키만 `public/firebase-config.js`의 `vapidKey`에 넣으면 활성화됩니다. 브라우저 정책상 각 학생은 더보기 화면에서 **알림 켜기**를 한 번 눌러 직접 허용해야 합니다.
+설치 앱 알림은 Firebase **프로젝트 설정 → 클라우드 메시징 → 웹 푸시 인증서**에서 키 쌍을 만든 뒤, 공개 키만 `firebase-config.js`의 `vapidKey`에 넣으면 활성화됩니다. 브라우저 정책상 각 학생은 더보기 화면에서 **알림 켜기**를 한 번 눌러 직접 허용해야 합니다.
 
 설정 후 GitHub의 **Actions → NEIS timetable sync → Run workflow**로 최초 동기화를 한 번 실행합니다. 이 최초 실행은 변경 공지를 만들지 않고 비교 기준만 저장합니다.

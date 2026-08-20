@@ -2,8 +2,19 @@ import { createSign } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "studio-2803086992-2d4cf";
-const RULES_PATH = new URL("../firestore.rules", import.meta.url);
-const RELEASE_NAME = `projects/${PROJECT_ID}/releases/cloud.firestore`;
+const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || "studio-2803086992-2d4cf.firebasestorage.app";
+const RULES = [
+  {
+    path: new URL("../firestore.rules", import.meta.url),
+    fileName: "firestore.rules",
+    releaseName: `projects/${PROJECT_ID}/releases/cloud.firestore`,
+  },
+  {
+    path: new URL("../storage.rules", import.meta.url),
+    fileName: "storage.rules",
+    releaseName: `projects/${PROJECT_ID}/releases/firebase.storage/${STORAGE_BUCKET}`,
+  },
+];
 
 function base64url(value) {
   return Buffer.from(value)
@@ -76,30 +87,28 @@ async function main() {
     throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON secret이 없습니다.");
   }
   const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  const content = await readFile(RULES_PATH, "utf8");
   const token = await accessToken(credentials);
-
-  const ruleset = await api(token, `projects/${PROJECT_ID}/rulesets`, {
-    method: "POST",
-    body: JSON.stringify({
-      source: {
-        files: [{ name: "firestore.rules", content }],
-      },
-    }),
-  });
-
-  await api(token, RELEASE_NAME, {
-    method: "PATCH",
-    body: JSON.stringify({
-      release: {
-        name: RELEASE_NAME,
-        rulesetName: ruleset.name,
-      },
-      updateMask: "rulesetName",
-    }),
-  });
-
-  console.log(JSON.stringify({ ok: true, project: PROJECT_ID, release: RELEASE_NAME, ruleset: ruleset.name }));
+  const compiled = [];
+  for (const rule of RULES) {
+    const content = await readFile(rule.path, "utf8");
+    const ruleset = await api(token, `projects/${PROJECT_ID}/rulesets`, {
+      method: "POST",
+      body: JSON.stringify({ source: { files: [{ name: rule.fileName, content }] } }),
+    });
+    compiled.push({ ...rule, ruleset });
+  }
+  const deployed = [];
+  for (const rule of compiled) {
+    await api(token, rule.releaseName, {
+      method: "PATCH",
+      body: JSON.stringify({
+        release: { name: rule.releaseName, rulesetName: rule.ruleset.name },
+        updateMask: "rulesetName",
+      }),
+    });
+    deployed.push({ file: rule.fileName, release: rule.releaseName, ruleset: rule.ruleset.name });
+  }
+  console.log(JSON.stringify({ ok: true, project: PROJECT_ID, deployed }));
 }
 
 main().catch((error) => {

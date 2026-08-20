@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { closeExpiredClassOps, dispatchClassOpsNotifications, purgeExpiredClassOpsTrash } from "./class-ops-notifications.mjs";
 import {
   classLabel,
   dateLabel,
@@ -315,6 +316,14 @@ async function fetchMeals(start, end) {
   return response.rows;
 }
 
+async function fetchAcademicSchedules(start, end) {
+  const response = await fetchNeisRows("SchoolSchedule", "SchoolSchedule", {
+    AA_FROM_YMD: compactDate(start),
+    AA_TO_YMD: compactDate(end),
+  });
+  return response.rows;
+}
+
 async function readExisting(db, refs) {
   const snapshots = [];
   for (let index = 0; index < refs.length; index += 100) {
@@ -331,7 +340,8 @@ async function sendClassNotification(db, classKey, title, body) {
     .get();
   if (subscriptions.empty) return 0;
 
-  const documents = subscriptions.docs;
+  const documents = subscriptions.docs.filter((item) => item.data().preferences?.timetableChange !== false);
+  if (!documents.length) return 0;
   let sent = 0;
   for (let index = 0; index < documents.length; index += 500) {
     const batch = documents.slice(index, index + 500);
@@ -341,7 +351,7 @@ async function sendClassNotification(db, classKey, title, body) {
         title,
         body,
         tag: `pincon-${classKey}-timetable`,
-        link: "https://pincon.app/",
+        link: "https://pincon.app/?class-ops=1&class-tab=schedule",
       },
       webpush: { headers: { Urgency: "high" } },
     });
@@ -442,6 +452,49 @@ async function syncMeals(db, start, end) {
   return { rows: rows.length, documents };
 }
 
+async function syncAcademicSchedules(db, start, end) {
+  const rows = await fetchAcademicSchedules(start, end);
+  const grouped = new Map();
+  for (const row of rows) {
+    const compact = String(row.AA_YMD || "");
+    if (!/^\d{8}$/.test(compact)) continue;
+    const date = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
+    const eventName = String(row.EVENT_NM || "").trim();
+    if (!eventName) continue;
+    const current = grouped.get(date) || {
+      date,
+      events: [],
+      eventsByGrade: { 1: [], 2: [], 3: [] },
+      grades: new Set(),
+    };
+    if (!current.events.includes(eventName)) current.events.push(eventName);
+    const rowGrades = [];
+    if (row.ONE_GRADE_EVENT_YN === "Y") rowGrades.push(1);
+    if (row.TW_GRADE_EVENT_YN === "Y") rowGrades.push(2);
+    if (row.THREE_GRADE_EVENT_YN === "Y") rowGrades.push(3);
+    for (const grade of rowGrades.length ? rowGrades : [1, 2, 3]) {
+      current.grades.add(grade);
+      if (!current.eventsByGrade[grade].includes(eventName)) current.eventsByGrade[grade].push(eventName);
+    }
+    grouped.set(date, current);
+  }
+  const collection = db.collection("schools").doc(SCHOOL.id).collection("academicSchedules");
+  const writer = db.bulkWriter();
+  for (const item of grouped.values()) {
+    writer.set(collection.doc(item.date), {
+      date: item.date,
+      title: item.events.join(" · "),
+      events: item.events,
+      eventsByGrade: item.eventsByGrade,
+      grades: [...item.grades].sort(),
+      source: "NEIS",
+      fetchedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
+  await writer.close();
+  return { rows: rows.length, documents: grouped.size };
+}
+
 async function main() {
   const missingSecrets = [
     ["NEIS_API_KEY", process.env.NEIS_API_KEY],
@@ -456,12 +509,17 @@ async function main() {
   if (!getApps().length) initializeApp({ credential: cert(serviceAccount) });
   const db = getFirestore();
   const start = kstToday();
-  const end = addDays(start, 21);
-  const [timetables, meals] = await Promise.all([
-    syncTimetables(db, start, end),
-    syncMeals(db, start, end),
+  const timetableEnd = addDays(start, 21);
+  const academicEnd = addDays(start, 120);
+  const [timetables, meals, academicSchedules] = await Promise.all([
+    syncTimetables(db, start, timetableEnd),
+    syncMeals(db, start, timetableEnd),
+    syncAcademicSchedules(db, start, academicEnd),
   ]);
-  console.log(JSON.stringify({ start, end, timetables, meals }));
+  const classOpsClosed = await closeExpiredClassOps({ db });
+  const classOpsNotifications = await dispatchClassOpsNotifications({ db, messaging: getMessaging() });
+  const classOpsTrash = await purgeExpiredClassOpsTrash({ db });
+  console.log(JSON.stringify({ start, timetableEnd, academicEnd, timetables, meals, academicSchedules, classOpsClosed, classOpsNotifications, classOpsTrash }));
 }
 
 main().catch((error) => {
