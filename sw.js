@@ -1,1 +1,123 @@
-if(!self.define){let e,i={};const s=(s,n)=>(s=new URL(s+".js",n).href,i[s]||new Promise(i=>{if("document"in self){const e=document.createElement("script");e.src=s,e.onload=i,document.head.appendChild(e)}else e=s,importScripts(s),i()}).then(()=>{let e=i[s];if(!e)throw new Error(`Module ${s} didn’t register its module`);return e}));self.define=(n,c)=>{const o=e||("document"in self?document.currentScript.src:"")||location.href;if(i[o])return;let r={};const a=e=>s(e,o),f={module:{uri:o},exports:r,require:a};i[o]=Promise.all(n.map(e=>f[e]||a(e))).then(e=>(c(...e),r))}}define(["./workbox-88f2bf49"],function(e){"use strict";importScripts("firebase-messaging-sw.js?v=20260820-classops1"),self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"registerSW.js",revision:"402b66900e731ca748771b6fc5e7a068"},{url:"manifest.webmanifest",revision:"pincon-classops-manifest-20260820-1"},{url:"index.html",revision:"pincon-classops-index-20260820-1"},{url:"theme-green.css",revision:"pincon-green-theme-20260817-1"},{url:"material-official-layout.css",revision:"pincon-material-layout-20260817-3"},{url:"pincon-design-systems.css",revision:"pincon-expressive-lab-css-20260818-2"},{url:"pincon-adoption-core.css",revision:"pincon-adoption-core-css-20260818-1"},{url:"pincon-adoption-flow-v2.css",revision:"pincon-adoption-flow-css-20260818-4"},{url:"pincon-quick-add-ocr-entry.css",revision:"pincon-ocr-entry-css-20260819-1"},{url:"pincon-live-prep.css",revision:"pincon-liveprep-css-20260819-1"},{url:"pincon-class-ops.css",revision:"pincon-classops-css-20260820-1"},{url:"material-official-loader.js",revision:"pincon-material-loader-20260817-4"},{url:"material-web.bundle.js",revision:"pincon-official-material-web-2.4.1-20260817-2"},{url:"pincon-theme-switcher.js",revision:"pincon-expressive-lab-switcher-20260818-2"},{url:"pincon-adoption-core.js",revision:"pincon-adoption-core-js-20260818-1"},{url:"pincon-adoption-flow-v2.js",revision:"pincon-adoption-flow-js-20260818-3"},{url:"pincon-ocr-capture.js",revision:"pincon-ocr-capture-20260819-2"},{url:"pincon-quick-add-ocr-entry.js",revision:"pincon-ocr-entry-js-20260819-1"},{url:"pincon-live-prep.js",revision:"pincon-liveprep-js-20260819-1"},{url:"pincon-class-ops-core.js",revision:"pincon-classops-core-20260820-1"},{url:"pincon-class-ops-data.js",revision:"pincon-classops-data-20260820-1"},{url:"pincon-class-ops.js",revision:"pincon-classops-js-20260820-1"},{url:"pincon-lab-stability.js",revision:"pincon-expressive-lab-stability-20260818-1"},{url:"pincon-expressive-lab.js",revision:"pincon-expressive-lab-runtime-20260818-2"},{url:"pincon-guest-auth.js",revision:"pincon-guest-auth-20260817-1"},{url:"pincon-google-auth-bridge.js",revision:"pincon-google-auth-bridge-20260817-1"},{url:"pincon-auth-diagnostics.js",revision:"pincon-auth-diagnostics-20260817-3"},{url:"touch-stability.js",revision:"pincon-touch-stability-20260817-2"},{url:"timetable-source-hotfix.js",revision:"pincon-timetable-20260817-1"},{url:"pincon-material-collab.js",revision:"pincon-material-collab-20260817-2"},{url:"pincon-material-workspace.js",revision:"pincon-material-workspace-20260817-2"},{url:"pincon-analytics.js",revision:"pincon-ga4-analytics-20260817-2"},{url:"firebase-messaging-sw.js",revision:"pincon-fcm-worker-20260820-1"},{url:"firebase-config.js",revision:"pincon-firebase-config-ga4-20260817-1"},{url:"firebase-config.example.js",revision:"b0743fc460ee6c07460ddbcaaee7c9b4"},{url:"icons/icon-512.png",revision:"pincon-figma-icon-512-20260817-1"},{url:"icons/icon-512-maskable.png",revision:"pincon-figma-icon-512-maskable-20260817-1"},{url:"icons/icon-192.png",revision:"pincon-figma-icon-192-20260817-1"},{url:"icons/apple-touch-icon.png",revision:"pincon-figma-apple-touch-20260817-1"},{url:"icons/app-icon.svg",revision:"pincon-figma-svg-20260817-1"},{url:"assets/index.esm-DWoFRcYK.js",revision:null},{url:"assets/index-Sg4pPAB0.js",revision:null},{url:"assets/index-C7Rqpf69.css",revision:null},{url:"assets/firebase-IW9tbrMW.js",revision:null}],{}),e.cleanupOutdatedCaches(),e.registerRoute(new e.NavigationRoute(e.createHandlerBoundToURL("index.html"))),e.registerRoute(/^https:\/\/fonts\.googleapis\.com\/.*/i,new e.StaleWhileRevalidate({cacheName:"pincon-google-font-styles",plugins:[]}),"GET"),e.registerRoute(/^https:\/\/fonts\.gstatic\.com\/.*/i,new e.CacheFirst({cacheName:"pincon-google-font-files",plugins:[new e.ExpirationPlugin({maxEntries:20,maxAgeSeconds:31536e3}),new e.CacheableResponsePlugin({statuses:[0,200]})]}),"GET"),e.registerRoute(/^https:\/\/www\.gstatic\.com\/firebasejs\/12\.16\.0\/.*/i,new e.StaleWhileRevalidate({cacheName:"pincon-firebase-sdk-12-16-0",plugins:[new e.ExpirationPlugin({maxEntries:36,maxAgeSeconds:2592e3}),new e.CacheableResponsePlugin({statuses:[0,200]})]}),"GET")});
+const PINCON_SW_VERSION = "20260821-pwa-buttons3";
+const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
+const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
+
+const PINCON_APP_SHELL = [
+  "./index.html",
+  "./registerSW.js",
+  "./manifest.webmanifest",
+  "./theme-green.css",
+  "./material-official-layout.css",
+  "./pincon-design-systems.css",
+  "./pincon-adoption-core.css",
+  "./pincon-adoption-flow-v2.css",
+  "./pincon-quick-add-ocr-entry.css",
+  "./pincon-live-prep.css",
+  "./pincon-class-ops.css",
+  "./pincon-expressive-all.css",
+  "./pincon-material-button-fallback.css",
+  "./material-official-loader.js",
+  "./material-web.bundle.js",
+  "./pincon-material-button-fallback.js",
+  "./pincon-material-expressive-25.js",
+  "./pincon-theme-switcher.js",
+  "./pincon-adoption-core.js",
+  "./pincon-adoption-flow-v2.js",
+  "./pincon-ocr-capture.js",
+  "./pincon-quick-add-ocr-entry.js",
+  "./pincon-live-prep.js",
+  "./pincon-class-ops-core.js",
+  "./pincon-class-ops-data.js",
+  "./pincon-class-ops.js",
+  "./pincon-lab-stability.js",
+  "./pincon-expressive-lab.js",
+  "./pincon-guest-auth.js",
+  "./pincon-google-auth-bridge.js",
+  "./pincon-auth-diagnostics.js",
+  "./touch-stability.js",
+  "./timetable-source-hotfix.js",
+  "./pincon-material-collab.js",
+  "./pincon-material-workspace.js",
+  "./pincon-analytics.js",
+  "./firebase-config.js",
+  "./assets/index-Sg4pPAB0.js",
+  "./assets/index-C7Rqpf69.css",
+  "./assets/firebase-IW9tbrMW.js",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/icon-512-maskable.png",
+  "./icons/apple-touch-icon.png",
+  "./icons/app-icon.svg"
+];
+
+try {
+  importScripts("./firebase-messaging-sw.js?v=20260821-pwa-buttons3");
+} catch (error) {
+  console.warn("[PinCon SW] Firebase messaging worker could not be loaded", error);
+}
+
+async function cacheFresh(cache, url) {
+  try {
+    const response = await fetch(new Request(url, { cache: "reload" }));
+    if (response && response.ok) await cache.put(url, response.clone());
+  } catch {}
+}
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(PINCON_SHELL_CACHE);
+    await Promise.allSettled(PINCON_APP_SHELL.map((url) => cacheFresh(cache, url)));
+  })());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.map((name) => {
+      const staleWorkbox = name.startsWith("workbox-precache");
+      const stalePinconShell = name.startsWith("pincon-shell-") && name !== PINCON_SHELL_CACHE;
+      return staleWorkbox || stalePinconShell ? caches.delete(name) : Promise.resolve(false);
+    }));
+    await self.clients.claim();
+  })());
+});
+
+async function networkFirst(request, fallbackKey = null) {
+  const cache = await caches.open(PINCON_SHELL_CACHE);
+  try {
+    const response = await fetch(request);
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+      if (fallbackKey) await cache.put(fallbackKey, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const direct = await cache.match(request, { ignoreSearch: false });
+    if (direct) return direct;
+    if (fallbackKey) {
+      const fallback = await cache.match(fallbackKey, { ignoreSearch: true });
+      if (fallback) return fallback;
+    }
+    throw error;
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+
+  if (request.mode === "navigate") {
+    event.respondWith(networkFirst(request, "./index.html"));
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return;
+
+  const isStatic = /\.(?:js|css|html|webmanifest|json|svg|png|jpg|jpeg|webp|ico|woff2?)$/i.test(url.pathname);
+  if (!isStatic) return;
+
+  event.respondWith(networkFirst(request));
+});
