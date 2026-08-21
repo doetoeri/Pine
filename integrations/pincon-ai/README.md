@@ -1,12 +1,25 @@
 # PinCon AI Gateway
 
-PinCon 데이터를 ChatGPT, Codex, Gemini 및 기타 MCP/Function Calling 클라이언트가 안전하게 읽을 수 있도록 제공하는 독립 서버 패키지입니다.
+PinCon 데이터를 ChatGPT, Codex, Gemini 및 기타 AI 클라이언트가 안전하게 읽을 수 있도록 제공하는 공용 AI 게이트웨이입니다.
 
-현재 단계는 **읽기 전용 v0.2**입니다. Firebase Admin을 사용하므로 프런트엔드 Firestore 규칙을 우회하며, 서버가 모든 인증·학급 범위 제한을 직접 적용합니다.
+현재 단계는 **읽기 전용 v0.3**입니다. 한 개의 PinCon 데이터 계층을 유지하고 플랫폼별로 얇은 어댑터만 둡니다.
+
+## 권장 연결 순서
+
+1. **Remote MCP + OAuth**를 우선 사용합니다.
+2. 해당 AI 환경이 Remote MCP를 지원하지 않으면 **OpenAPI / Function Calling fallback**을 사용합니다.
+3. 플랫폼마다 별도 PinCon 백엔드를 만들지 않습니다.
+
+공용 주소:
+
+```text
+MCP: https://pincon-ai.vercel.app/api/mcp
+OpenAPI: https://pincon-ai.vercel.app/openapi.json
+OAuth protected resource: https://pincon-ai.vercel.app/.well-known/oauth-protected-resource
+OAuth authorization server: https://pincon-ai.vercel.app/.well-known/oauth-authorization-server
+```
 
 ## 인증 방식
-
-두 가지 인증 경로를 지원합니다.
 
 ### 1. 개발/운영 테스트용 서비스 키
 
@@ -27,7 +40,7 @@ PinCon MCP는 Authorization Code + PKCE(S256), Dynamic Client Registration(DCR),
 - Dynamic registration: `/oauth/register`
 - Scope: `pincon:read`
 
-사용자는 OAuth 승인 화면에서 Google 계정으로 로그인하고 자신의 학년·반을 선택합니다. 발급된 OAuth 연결은 그 반에 묶이며, MCP 도구가 다른 반의 `classKey`를 요청하면 거부합니다.
+사용자는 OAuth 승인 화면에서 Google 계정으로 로그인하고 자신의 학년·반을 입력합니다. `1-8` 또는 `1학년 8반` 형식을 받아 내부에서는 `1-8`로 정규화합니다. 발급된 OAuth 연결은 그 반에 묶이며 다른 반의 `classKey` 요청은 거부합니다.
 
 액세스 토큰과 새로고침 토큰은 원문을 Firestore 문서 키로 저장하지 않고 SHA-256 해시를 사용해 조회합니다. Authorization Code는 5분, Access Token은 1시간, Refresh Token은 30일을 기본 유효기간으로 사용합니다.
 
@@ -35,13 +48,13 @@ PinCon MCP는 Authorization Code + PKCE(S256), Dynamic Client Registration(DCR),
 
 서비스 키 또는 유효한 OAuth Bearer Token으로 호출합니다.
 
-- `GET /api/v1/today?classKey=1-8&date=2026-08-21`
-- `GET /api/v1/timetable?classKey=1-8&date=2026-08-21`
-- `GET /api/v1/meals?date=2026-08-21`
-- `GET /api/v1/assignments?classKey=1-8&startDate=2026-08-21&endDate=2026-08-28`
+- `GET /api/v1/today?classKey=1-8&date=2026-08-22`
+- `GET /api/v1/timetable?classKey=1-8&date=2026-08-22`
+- `GET /api/v1/meals?date=2026-08-22`
+- `GET /api/v1/assignments?classKey=1-8&startDate=2026-08-22&endDate=2026-08-29`
 - `GET /api/v1/notices?classKey=1-8&limit=20`
-- `GET /api/v1/events?classKey=1-8&startDate=2026-08-21&endDate=2026-08-28`
-- `GET /api/v1/upcoming?classKey=1-8&date=2026-08-21&days=7`
+- `GET /api/v1/events?classKey=1-8&startDate=2026-08-22&endDate=2026-08-29`
+- `GET /api/v1/upcoming?classKey=1-8&date=2026-08-22&days=7`
 
 날짜를 생략하면 Asia/Seoul 기준 오늘 날짜를 사용합니다.
 
@@ -63,6 +76,59 @@ https://pincon-ai.vercel.app/api/mcp
 
 MCP 도구는 모두 `readOnlyHint: true`로 표시하며 OAuth scope `pincon:read`를 선언합니다. OAuth 사용자 연결에서는 `classKey`가 선택 사항이고 서버가 연결된 반을 자동 적용합니다. 서비스 키 요청에서는 기존처럼 `classKey`를 명시해야 합니다.
 
+## OpenAPI fallback
+
+Remote MCP를 직접 연결할 수 없는 AI 환경을 위해 정적 OpenAPI 3.1 문서를 제공합니다.
+
+```text
+https://pincon-ai.vercel.app/openapi.json
+```
+
+OpenAPI는 별도 데이터 구현이 아니라 기존 `/api/v1/*` 읽기 전용 엔드포인트를 설명하는 어댑터입니다.
+
+## 플랫폼 패키징
+
+### ChatGPT / Codex
+
+`plugins/pincon/`의 **PinCon Plugin**을 사용합니다. Plugin은 PinCon MCP 앱과 다음 Skills를 묶습니다.
+
+- Daily Brief
+- Weekly Planner
+- Absence Recovery
+- Schedule Change
+
+자세한 내용: `platforms/chatgpt.md`
+
+### Gemini
+
+Gemini 환경에서 Remote MCP를 사용할 수 있으면 동일한 PinCon MCP URL을 사용합니다. Remote MCP를 사용할 수 없는 환경에서는 `openapi.json`을 Function Calling/HTTP tool fallback으로 사용합니다.
+
+Gemini API 클라이언트에서 사용할 tool-use 지침은 `platforms/gemini-system-instruction.md`에 있습니다.
+
+자세한 내용: `platforms/gemini.md`
+
+### 기타 AI
+
+기본 원칙은 동일합니다: **Remote MCP + OAuth 우선, OpenAPI fallback**.
+
+전체 전략: `platforms/README.md`
+
+## 호환성 Smoke Test
+
+```bash
+npm run test:compat
+```
+
+기본 검사는 OAuth discovery, OpenAPI 공개 여부, 인증 없는 MCP의 OAuth challenge를 확인합니다.
+
+실제 PinCon 데이터와 인증된 MCP initialize까지 검사하려면:
+
+```bash
+PINCON_API_KEY=<development-key> \
+PINCON_CLASS_KEY=1-8 \
+npm run test:compat
+```
+
 ## Vercel 환경 변수
 
 Vercel 프로젝트의 Root Directory를 이 폴더(`integrations/pincon-ai`)로 지정합니다.
@@ -82,40 +148,20 @@ PINCON_PUBLIC_ORIGIN=https://pincon-ai.vercel.app
 PINCON_ALLOWED_EMAIL_DOMAIN=<허용할 Google 계정 도메인, 선택 사항>
 ```
 
-`PINCON_ALLOWED_EMAIL_DOMAIN`을 비워두면 개발 단계에서는 모든 Firebase Google 로그인 계정을 허용합니다. 여러 도메인은 쉼표로 구분합니다. 공개 배포 전에는 실제 학교 계정 정책이나 승인 사용자 목록으로 교체하는 것이 좋습니다.
+`PINCON_ALLOWED_EMAIL_DOMAIN`을 비워두면 개발 단계에서는 모든 Firebase Google 로그인 계정을 허용합니다. 여러 도메인은 쉼표로 구분합니다.
 
-### Firebase에서 추가할 설정
+### Firebase 설정
 
-Firebase Console의 Authentication → Settings → Authorized domains에 OAuth 승인 화면이 호스팅되는 도메인을 등록합니다.
+Firebase Console의 Authentication → Settings → Authorized domains에 다음을 등록합니다.
 
 ```text
 pincon-ai.vercel.app
 ```
 
-커스텀 도메인을 사용할 경우 그 도메인도 추가합니다.
-
-## 개발용 REST 확인
-
-```bash
-curl -H "Authorization: Bearer $PINCON_API_KEY" \
-  "https://pincon-ai.vercel.app/api/v1/today?classKey=1-8"
-```
-
-## ChatGPT / Codex 플러그인
-
-저장소의 `plugins/pincon/`에는 PinCon Plugin manifest와 다음 Skills가 있습니다.
-
-- Daily Brief
-- Weekly Planner
-- Absence Recovery
-- Schedule Change
-
-공개 제출 시 MCP 서버 URL로 `https://pincon-ai.vercel.app/api/mcp`를 사용합니다. ChatGPT Developer Mode에서 로컬 플러그인을 시험하는 경우 먼저 MCP 연결을 등록하고 생성된 `plugin_asdk_app...` 기술 ID를 `.app.json`에 연결해야 합니다.
-
 ## 공개 배포 전 남은 보안 작업
 
 1. OAuth 연결 해제/토큰 폐기 UI 및 endpoint 추가
-2. 학급 선택을 단순 자기선택이 아니라 PinCon 계정/학교 정책과 검증해 연결
+2. 학급 입력을 단순 자기입력에서 PinCon 계정/학교 정책과 검증하는 방식으로 확장
 3. Firestore OAuth 토큰 문서에 TTL 정책 적용
 4. rate limit과 이상 요청 모니터링 추가
 5. 쓰기 도구는 별도 권한 + 사용자 확인 + 변경 기록을 모두 갖춘 뒤 추가
