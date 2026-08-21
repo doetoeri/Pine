@@ -231,6 +231,22 @@ body.pincon-expressive :is(
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
+)[data-pincon-material-button-fallback="true"]:hover {
+  filter: brightness(.98) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.10), 0 3px 9px rgba(0,0,0,.08) !important;
+}
+
+body.pincon-expressive :is(
+  md-filled-button,
+  md-filled-tonal-button,
+  md-outlined-button,
+  md-text-button,
+  md-icon-button,
+  md-filled-icon-button,
+  md-filled-tonal-icon-button,
+  md-outlined-icon-button,
+  md-fab,
+  md-branded-fab
 ):defined:active {
   filter: none;
 }
