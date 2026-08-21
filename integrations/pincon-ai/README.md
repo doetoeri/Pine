@@ -101,9 +101,19 @@ OpenAPI는 별도 데이터 구현이 아니라 기존 `/api/v1/*` 읽기 전용
 
 ### Gemini
 
-Gemini 환경에서 Remote MCP를 사용할 수 있으면 동일한 PinCon MCP URL을 사용합니다. Remote MCP를 사용할 수 없는 환경에서는 `openapi.json`을 Function Calling/HTTP tool fallback으로 사용합니다.
+Gemini Interactions API의 Remote MCP 연결은 동일한 PinCon MCP URL을 사용합니다. Remote MCP를 사용할 수 없는 환경에서는 `openapi.json`을 Function Calling/HTTP tool fallback으로 사용합니다.
 
 Gemini API 클라이언트에서 사용할 tool-use 지침은 `platforms/gemini-system-instruction.md`에 있습니다.
+
+서버 측 개발 테스트 예제:
+
+```bash
+GEMINI_API_KEY=<gemini-api-key> \
+PINCON_BEARER_TOKEN=<pincon-oauth-access-token> \
+npm run test:gemini -- "오늘 뭐 있어?"
+```
+
+`PINCON_BEARER_TOKEN`에는 공개 사용자 연결에서는 OAuth access token을 사용합니다. `PINCON_API_KEY`를 대신 넣는 것은 비공개 개발 테스트에서만 허용합니다.
 
 자세한 내용: `platforms/gemini.md`
 
@@ -128,6 +138,8 @@ PINCON_API_KEY=<development-key> \
 PINCON_CLASS_KEY=1-8 \
 npm run test:compat
 ```
+
+Preview URL을 검사할 때는 `PINCON_ORIGIN`을 Preview 주소로 지정할 수 있습니다. OAuth metadata의 canonical MCP resource는 기본적으로 production `https://pincon-ai.vercel.app/api/mcp`를 기대하며, 필요하면 `PINCON_RESOURCE`로 바꿀 수 있습니다.
 
 ## Vercel 환경 변수
 
