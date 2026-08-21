@@ -1,0 +1,575 @@
+.pincon-print-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: none;
+  background: color-mix(in srgb, var(--md-sys-color-scrim, #000) 32%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  overflow: auto;
+  color: var(--md-sys-color-on-surface, #1a1c19);
+}
+
+.pincon-print-overlay[data-open="true"] {
+  display: block;
+}
+
+body.pincon-print-center-open {
+  overflow: hidden;
+}
+
+.pincon-print-dialog {
+  min-height: 100%;
+  background: var(--md-sys-color-surface, #fbfdf7);
+}
+
+.pincon-print-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  min-height: 74px;
+  padding: 10px clamp(14px, 2vw, 28px);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container, #eef1e9) 92%, transparent);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #c4c8bf);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.pincon-print-topbar p,
+.pincon-print-preview-heading p {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--md-sys-color-primary, #3f6541);
+}
+
+.pincon-print-topbar h1,
+.pincon-print-preview-heading h2 {
+  margin: 0;
+  font: 700 20px/1.15 "Noto Sans KR", Roboto, sans-serif;
+}
+
+.pincon-print-workspace {
+  display: grid;
+  grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  min-height: calc(100vh - 74px);
+}
+
+.pincon-print-config {
+  padding: 18px;
+  background: var(--md-sys-color-surface-container-low, #f2f4ed);
+  border-right: 1px solid var(--md-sys-color-outline-variant, #c4c8bf);
+  overflow: auto;
+}
+
+.pincon-print-config section {
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 24px;
+  background: var(--md-sys-color-surface, #fbfdf7);
+  border: 1px solid var(--md-sys-color-outline-variant, #c4c8bf);
+}
+
+.pincon-print-config h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+}
+
+.pincon-print-config md-outlined-select {
+  width: 100%;
+}
+
+.pincon-print-setting-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pincon-print-setting-grid md-outlined-select:last-child {
+  grid-column: 1 / -1;
+}
+
+.pincon-print-list-heading {
+  margin: 10px 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+}
+
+.pincon-print-item-list {
+  max-height: 340px;
+  overflow: auto;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+  border: 1px solid var(--md-sys-color-outline-variant, #c4c8bf);
+}
+
+.pincon-print-item {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #c4c8bf);
+}
+
+.pincon-print-item:last-child {
+  border-bottom: 0;
+}
+
+.pincon-print-item > md-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--md-sys-color-secondary-container, #dce7d7);
+  color: var(--md-sys-color-on-secondary-container, #111f13);
+}
+
+.pincon-print-item span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.pincon-print-item strong,
+.pincon-print-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pincon-print-item strong {
+  font-size: 13px;
+}
+
+.pincon-print-item small {
+  font-size: 11px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+}
+
+.pincon-print-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+}
+
+.pincon-print-check span {
+  display: grid;
+  gap: 2px;
+}
+
+.pincon-print-check strong {
+  font-size: 13px;
+}
+
+.pincon-print-check small {
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: 11px;
+}
+
+.pincon-print-empty,
+.pincon-print-preview-empty {
+  min-height: 170px;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  text-align: center;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+}
+
+.pincon-print-empty md-icon,
+.pincon-print-preview-empty md-icon {
+  font-size: 32px;
+}
+
+.pincon-print-empty span,
+.pincon-print-preview-empty span {
+  max-width: 340px;
+  font-size: 12px;
+}
+
+.pincon-print-preview {
+  padding: clamp(16px, 2.5vw, 34px);
+  overflow: auto;
+  background:
+    radial-gradient(circle at 18% 7%, color-mix(in srgb, var(--md-sys-color-primary-container, #c2e6bd) 30%, transparent), transparent 25%),
+    var(--md-sys-color-surface-container, #ecefe7);
+}
+
+.pincon-print-preview-heading {
+  max-width: 900px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pincon-print-preview-heading > span {
+  min-width: 44px;
+  height: 34px;
+  padding: 0 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--md-sys-color-primary-container, #c2e6bd);
+  color: var(--md-sys-color-on-primary-container, #08210b);
+  font-weight: 700;
+}
+
+.pincon-print-sheet {
+  display: grid;
+  gap: 22px;
+  justify-content: center;
+}
+
+.pincon-print-page {
+  width: min(100%, 794px);
+  aspect-ratio: 210 / 297;
+  box-sizing: border-box;
+  padding: 32px;
+  display: grid;
+  gap: 14px;
+  background: #fff;
+  color: #171a16;
+  box-shadow: 0 18px 50px rgba(27, 39, 27, .15);
+}
+
+.pincon-print-sheet[data-paper="a5"] .pincon-print-page {
+  width: min(100%, 560px);
+  aspect-ratio: 148 / 210;
+  padding: 24px;
+}
+
+.pincon-print-sheet[data-cards="2"] .pincon-print-page {
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.pincon-print-sheet[data-cards="4"] .pincon-print-page {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.pincon-print-sheet[data-cards="8"] .pincon-print-page {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.pincon-print-card {
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1.2px solid #c9cec6;
+  border-radius: 18px;
+  background: #fff;
+  break-inside: avoid;
+}
+
+.pincon-print-card-main {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pincon-print-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pincon-print-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: #365a38;
+}
+
+.pincon-print-kind md-icon {
+  font-size: 16px;
+}
+
+.pincon-print-class {
+  font-size: 9px;
+  color: #636960;
+}
+
+.pincon-print-card h3 {
+  margin: 10px 0 5px;
+  font: 700 16px/1.28 "Noto Sans KR", sans-serif;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.pincon-print-meta {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #4e554d;
+}
+
+.pincon-print-body {
+  margin: 9px 0 0;
+  font-size: 10.5px;
+  line-height: 1.52;
+  color: #333833;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.pincon-print-sheet[data-cards="2"] .pincon-print-card h3 {
+  font-size: 24px;
+}
+
+.pincon-print-sheet[data-cards="2"] .pincon-print-body,
+.pincon-print-sheet[data-cards="2"] .pincon-print-meta {
+  font-size: 13px;
+}
+
+.pincon-print-sheet[data-cards="4"] .pincon-print-card h3 {
+  font-size: 19px;
+}
+
+.pincon-print-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #e0e4dd;
+}
+
+.pincon-print-footer > span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pincon-print-footer strong {
+  font-size: 11px;
+  letter-spacing: .02em;
+}
+
+.pincon-print-footer small {
+  font-size: 7.8px;
+  color: #6d736c;
+}
+
+.pincon-print-qr {
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.pincon-print-qr img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.pincon-print-qr small {
+  font-size: 7px;
+  color: #5f655d;
+}
+
+.pincon-print-sheet[data-cards="2"] .pincon-print-qr img {
+  width: 72px;
+  height: 72px;
+}
+
+.pincon-print-sheet[data-cards="4"] .pincon-print-qr img {
+  width: 58px;
+  height: 58px;
+}
+
+.pincon-print-preview.is-monochrome .pincon-print-page,
+.pincon-print-preview.is-monochrome .pincon-print-card,
+.pincon-print-preview.is-monochrome .pincon-print-kind,
+.pincon-print-preview.is-monochrome .pincon-print-meta,
+.pincon-print-preview.is-monochrome .pincon-print-body {
+  color: #111 !important;
+  background: #fff !important;
+  filter: grayscale(1);
+}
+
+@media (max-width: 900px) {
+  .pincon-print-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .pincon-print-config {
+    border-right: 0;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant, #c4c8bf);
+  }
+
+  .pincon-print-item-list {
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 600px) {
+  .pincon-print-topbar {
+    grid-template-columns: auto 1fr;
+  }
+
+  .pincon-print-topbar > md-filled-button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .pincon-print-setting-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pincon-print-setting-grid md-outlined-select:last-child {
+    grid-column: auto;
+  }
+
+  .pincon-print-preview {
+    padding: 14px 6px 24px;
+  }
+
+  .pincon-print-page {
+    padding: 14px;
+    gap: 7px;
+  }
+
+  .pincon-print-card-main {
+    padding: 9px;
+  }
+
+  .pincon-print-card h3 {
+    font-size: 13px;
+  }
+
+  .pincon-print-body {
+    font-size: 9px;
+  }
+
+  .pincon-print-qr img {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body.pincon-printing > *:not(.pincon-print-overlay) {
+    display: none !important;
+  }
+
+  body.pincon-printing .pincon-print-overlay {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+  }
+
+  body.pincon-printing .pincon-print-dialog,
+  body.pincon-printing .pincon-print-workspace,
+  body.pincon-printing .pincon-print-preview,
+  body.pincon-printing .pincon-print-sheet {
+    display: block !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body.pincon-printing .pincon-print-topbar,
+  body.pincon-printing .pincon-print-config,
+  body.pincon-printing .pincon-print-preview-heading,
+  body.pincon-printing .pincon-print-preview-empty {
+    display: none !important;
+  }
+
+  body.pincon-printing .pincon-print-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
+    padding: 10mm !important;
+    gap: 4mm !important;
+    display: grid !important;
+    box-shadow: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  body.pincon-printing .pincon-print-sheet[data-paper="a5"] .pincon-print-page {
+    width: 148mm !important;
+    height: 210mm !important;
+    padding: 8mm !important;
+    gap: 3mm !important;
+  }
+
+  body.pincon-printing .pincon-print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  body.pincon-printing .pincon-print-sheet[data-cards="2"] .pincon-print-page {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.pincon-printing .pincon-print-sheet[data-cards="4"] .pincon-print-page {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.pincon-printing .pincon-print-sheet[data-cards="8"] .pincon-print-page {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  body.pincon-printing .pincon-print-card {
+    border-radius: 4mm !important;
+    box-shadow: none !important;
+  }
+
+  body.pincon-printing .pincon-print-qr img {
+    print-color-adjust: exact;
+  }
+}
