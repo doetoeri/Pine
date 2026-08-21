@@ -39,6 +39,6 @@ export function sendHtml(res, status, html) {
   res.statusCode = status;
   res.setHeader("content-type", "text/html; charset=utf-8");
   res.setHeader("cache-control", "no-store");
-  res.setHeader("content-security-policy", "default-src 'self'; script-src 'self' https://www.gstatic.com 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://securetoken.googleapis.com; frame-src https://accounts.google.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
+  res.setHeader("content-security-policy", "default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; frame-src https://accounts.google.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;");
   res.end(html);
 }
