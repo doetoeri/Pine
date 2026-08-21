@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/.well-known/oauth-protected-resource",
-      "destination": "/api/oauth-protected-resource"
+      "destination": "/api/oauth-router?route=protected-resource"
     },
     {
       "source": "/.well-known/oauth-authorization-server",
-      "destination": "/api/oauth-authorization-server"
+      "destination": "/api/oauth-router?route=authorization-server"
     },
     {
       "source": "/oauth/authorize",
@@ -14,15 +14,15 @@
     },
     {
       "source": "/oauth/authorize/complete",
-      "destination": "/api/oauth/authorize-complete"
+      "destination": "/api/oauth-router?route=authorize-complete"
     },
     {
       "source": "/oauth/token",
-      "destination": "/api/oauth/token"
+      "destination": "/api/oauth-router?route=token"
     },
     {
       "source": "/oauth/register",
-      "destination": "/api/oauth/register"
+      "destination": "/api/oauth-router?route=register"
     }
   ]
 }
