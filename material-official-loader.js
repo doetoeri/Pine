@@ -6,6 +6,9 @@ const TAGS = [
   "md-outlined-button",
   "md-text-button",
   "md-icon-button",
+  "md-filled-icon-button",
+  "md-filled-tonal-icon-button",
+  "md-outlined-icon-button",
   "md-fab",
   "md-dialog",
   "md-tabs",
@@ -33,12 +36,9 @@ function timeoutResult() {
 }
 
 async function loadOfficialMaterial() {
-  // PinCon's main bundle already renders Google's Material elements. This loader adds
-  // the separately built official @material/web bundle for enhancement modules.
-  // A missing/slow optional element must never freeze every later module.
   const loadTask = (async () => {
     try {
-      await import("./material-web.bundle.js?v=20260817-material-official-2");
+      await import("./material-web.bundle.js?v=20260822-material-official-3");
     } catch (error) {
       console.warn("[PinCon Material] official bundle load failed; continuing with already-defined elements", error);
       return { version: VERSION, status: "bundle-error", missing: TAGS.filter((tag) => !customElements.get(tag)) };
@@ -47,7 +47,6 @@ async function loadOfficialMaterial() {
     const pending = TAGS.filter((tag) => !customElements.get(tag));
     if (!pending.length) return { version: VERSION, status: "ready", missing: [] };
 
-    // Wait briefly for definitions, but never deadlock the rest of PinCon.
     await Promise.race([
       Promise.all(pending.map((tag) => customElements.whenDefined(tag))),
       new Promise((resolve) => window.setTimeout(resolve, TIMEOUT_MS)),
