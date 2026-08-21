@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260821-pwa-buttons3";
+const PINCON_SW_VERSION = "20260821-print1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -14,6 +14,7 @@ const PINCON_APP_SHELL = [
   "./pincon-quick-add-ocr-entry.css",
   "./pincon-live-prep.css",
   "./pincon-class-ops.css",
+  "./pincon-print-center.css",
   "./pincon-expressive-all.css",
   "./pincon-material-button-fallback.css",
   "./material-official-loader.js",
@@ -29,6 +30,7 @@ const PINCON_APP_SHELL = [
   "./pincon-class-ops-core.js",
   "./pincon-class-ops-data.js",
   "./pincon-class-ops.js",
+  "./pincon-print-center.js",
   "./pincon-lab-stability.js",
   "./pincon-expressive-lab.js",
   "./pincon-guest-auth.js",
