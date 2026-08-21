@@ -7,7 +7,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "test:compat": "node scripts/compat-smoke.mjs"
+    "test:compat": "node scripts/compat-smoke.mjs",
+    "test:gemini": "node scripts/gemini-remote-mcp.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.0.0",
