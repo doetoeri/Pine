@@ -24,16 +24,22 @@ test("HTML, 매니페스트, 서비스 워커가 학급 운영 모듈을 포함�
   const manifest = JSON.parse(manifestText);
   assert.match(html, /pincon-class-ops\.css/);
   assert.match(html, /pincon-class-ops\.js/);
+  assert.match(html, /pincon-print-center\.css/);
+  assert.match(html, /pincon-print-center\.js/);
   assert.match(serviceWorker, /pincon-class-ops-core\.js/);
   assert.match(serviceWorker, /pincon-class-ops-data\.js/);
+  assert.match(serviceWorker, /pincon-print-center\.css/);
+  assert.match(serviceWorker, /pincon-print-center\.js/);
   assert.ok(manifest.shortcuts.some((item) => String(item.url).includes("class-ops=1")));
 });
 
-test("서비스 워커의 로컬 프리캐시 파일이 모두 존재한다", async () => {
+test("서비스 워커의 로컬 앱 셸 파일이 모두 존재한다", async () => {
   const serviceWorker = await read("sw.js");
-  const urls = [...serviceWorker.matchAll(/\{url:"([^"]+)"/g)].map((match) => match[1]);
+  const arrayMatch = serviceWorker.match(/const PINCON_APP_SHELL = \[([\s\S]*?)\];/);
+  assert.ok(arrayMatch, "PINCON_APP_SHELL 배열을 찾지 못했습니다.");
+  const urls = [...arrayMatch[1].matchAll(/"(\.\/[^"\n]+)"/g)].map((match) => match[1]);
+  assert.ok(urls.length > 30, `앱 셸 파일 수가 예상보다 적습니다: ${urls.length}`);
   await Promise.all(urls.map((url) => access(path.join(root, url))));
-  assert.ok(urls.length > 30);
 });
 
 test("회장 쓰기 권한과 업로드 제한이 서버 규칙에 있다", async () => {

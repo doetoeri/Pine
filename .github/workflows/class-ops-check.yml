@@ -6,6 +6,8 @@ on:
     paths:
       - "pincon-class-ops*.js"
       - "pincon-class-ops.css"
+      - "pincon-print-center.js"
+      - "pincon-print-center.css"
       - "tests/**"
       - "firestore.rules"
       - "storage.rules"
@@ -17,12 +19,15 @@ on:
     paths:
       - "pincon-class-ops*.js"
       - "pincon-class-ops.css"
+      - "pincon-print-center.js"
+      - "pincon-print-center.css"
       - "tests/**"
       - "firestore.rules"
       - "storage.rules"
       - "manifest.webmanifest"
       - "sw.js"
       - "automation/**"
+      - ".github/workflows/class-ops-check.yml"
 
 permissions:
   contents: read
@@ -43,6 +48,7 @@ jobs:
           node --check pincon-class-ops-core.js
           node --check pincon-class-ops-data.js
           node --check pincon-class-ops.js
+          node --check pincon-print-center.js
           node --check sw.js
           node --test tests/*.test.mjs
       - name: Check automation modules
