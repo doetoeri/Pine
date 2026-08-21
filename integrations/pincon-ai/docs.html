@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PinCon MCP 문서</title><style>body{font-family:system-ui,sans-serif;max-width:820px;margin:48px auto;padding:0 20px;line-height:1.7;color:#202124}code,pre{background:#f3f4f6;border-radius:8px}code{padding:2px 5px}pre{padding:14px;overflow:auto}</style></head>
+<body>
+<h1>PinCon MCP</h1>
+<p>PinCon의 학교생활 데이터를 AI 플랫폼에서 읽기 전용으로 사용할 수 있는 MCP 서버입니다.</p>
+<h2>Endpoint</h2>
+<pre>https://pincon-ai.vercel.app/api/mcp</pre>
+<h2>OAuth</h2>
+<p>공개 연결은 OAuth 2.1 Authorization Code + PKCE(S256)를 사용합니다. 보호 리소스 메타데이터는 <code>/.well-known/oauth-protected-resource</code>, Authorization Server 메타데이터는 <code>/.well-known/oauth-authorization-server</code>에서 제공합니다.</p>
+<h2>Scope</h2>
+<pre>pincon:read</pre>
+<h2>도구</h2>
+<ul>
+<li><code>get_today</code> 오늘 브리핑</li>
+<li><code>get_timetable</code> 시간표</li>
+<li><code>get_meal</code> 급식</li>
+<li><code>get_assignments</code> 과제·수행평가</li>
+<li><code>get_notices</code> 공지</li>
+<li><code>get_school_events</code> 학급·학교 일정</li>
+<li><code>get_upcoming</code> 다가오는 일정과 과제</li>
+</ul>
+<p>현재 공개 도구는 모두 읽기 전용입니다.</p>
+</body></html>

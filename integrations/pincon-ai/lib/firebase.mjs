@@ -1,7 +1,10 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
+let appInstance;
 let db;
+let authInstance;
 
 function serviceAccount() {
   const raw = String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "").trim();
@@ -14,12 +17,21 @@ function serviceAccount() {
   }
 }
 
-export function firestore() {
-  if (db) return db;
+export function firebaseApp() {
+  if (appInstance) return appInstance;
 
-  const app = getApps().find((item) => item.name === "pincon-ai-gateway")
+  appInstance = getApps().find((item) => item.name === "pincon-ai-gateway")
     || initializeApp({ credential: cert(serviceAccount()) }, "pincon-ai-gateway");
 
-  db = getFirestore(app);
+  return appInstance;
+}
+
+export function firestore() {
+  if (!db) db = getFirestore(firebaseApp());
   return db;
+}
+
+export function firebaseAuth() {
+  if (!authInstance) authInstance = getAuth(firebaseApp());
+  return authInstance;
 }

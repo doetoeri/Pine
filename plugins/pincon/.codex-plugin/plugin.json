@@ -1,0 +1,37 @@
+{
+  "name": "pincon",
+  "version": "0.2.0",
+  "description": "Use PinCon school-life data from AI platforms through read-only MCP tools and reusable skills.",
+  "author": {
+    "name": "PinCon Team",
+    "url": "https://pincon.app"
+  },
+  "homepage": "https://pincon.app",
+  "repository": "https://github.com/doetoeri/Pine",
+  "keywords": [
+    "school",
+    "timetable",
+    "meal",
+    "assignments",
+    "notices",
+    "education"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "PinCon",
+    "shortDescription": "학교 시간표·급식·과제·공지·일정을 AI에서 확인",
+    "longDescription": "PinCon의 읽기 전용 MCP 도구를 사용해 연결된 학급의 시간표, 급식, 수행평가·과제, 공지와 학교 일정을 확인하고 학교생활 브리핑을 만듭니다.",
+    "developerName": "PinCon Team",
+    "category": "Productivity",
+    "capabilities": ["Read"],
+    "websiteURL": "https://pincon.app",
+    "privacyPolicyURL": "https://pincon-ai.vercel.app/privacy.html",
+    "termsOfServiceURL": "https://pincon-ai.vercel.app/terms.html",
+    "defaultPrompt": [
+      "PinCon으로 오늘 학교생활을 브리핑해줘.",
+      "PinCon에서 이번 주 수행평가와 일정을 정리해줘.",
+      "PinCon에서 최근 시간표 변경이 있는지 확인해줘."
+    ],
+    "brandColor": "#315FEF"
+  }
+}
