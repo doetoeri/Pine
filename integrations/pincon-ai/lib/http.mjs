@@ -6,6 +6,20 @@ export function queryParams(req) {
   return url.searchParams;
 }
 
+function scopedQueryParams(req, principal) {
+  const params = queryParams(req);
+  if (principal?.type !== "user") return params;
+  if (!principal.classKey) throw new Error("Your PinCon connection is not linked to a class.");
+
+  const requested = params.get("classKey");
+  if (requested && requested !== principal.classKey) {
+    throw new Error("This PinCon connection cannot read another classKey.");
+  }
+
+  params.set("classKey", principal.classKey);
+  return params;
+}
+
 export function json(res, status, body) {
   res.statusCode = status;
   res.setHeader("content-type", "application/json; charset=utf-8");
@@ -24,12 +38,12 @@ export function readOnly(handler) {
 
     try {
       return await runWithAuth(principal, async () => {
-        const data = await handler(queryParams(req), principal);
+        const data = await handler(scopedQueryParams(req, principal), principal);
         return json(res, 200, { ok: true, data });
       });
     } catch (error) {
       const message = error?.message || "PinCon request failed.";
-      const badRequest = /classKey|YYYY-MM-DD|date must|not allowed/i.test(message);
+      const badRequest = /classKey|YYYY-MM-DD|date must|not allowed|another class/i.test(message);
       return json(res, badRequest ? 400 : 500, { ok: false, error: message });
     }
   };
