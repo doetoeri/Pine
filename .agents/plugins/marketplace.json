@@ -1,0 +1,20 @@
+{
+  "name": "pincon-dev",
+  "interface": {
+    "displayName": "PinCon Development"
+  },
+  "plugins": [
+    {
+      "name": "pincon",
+      "source": {
+        "source": "local",
+        "path": "./plugins/pincon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
