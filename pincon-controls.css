@@ -1,17 +1,19 @@
-/* PinCon Material button visual hardening.
- * Applies to undefined Material custom elements and to elements that are defined
- * but fail the runtime visual health check in pincon-material-button-fallback.js.
+/* PinCon control layer
+ * One final interaction layer for native controls and Material fallback controls.
+ * Official @material/web components keep their own internal state layers.
  */
 
 :root {
-  --pincon-button-fallback-primary: var(--md-sys-color-primary, #355f2e);
-  --pincon-button-fallback-on-primary: var(--md-sys-color-on-primary, #ffffff);
-  --pincon-button-fallback-tonal: var(--md-sys-color-secondary-container, #d4e8cd);
-  --pincon-button-fallback-on-tonal: var(--md-sys-color-on-secondary-container, #101f0f);
-  --pincon-button-fallback-on-surface: var(--md-sys-color-on-surface, #1a1c18);
-  --pincon-button-fallback-outline: var(--md-sys-color-outline, #73796e);
+  --pincon-control-primary: var(--md-sys-color-primary, #355f2e);
+  --pincon-control-on-primary: var(--md-sys-color-on-primary, #fff);
+  --pincon-control-tonal: var(--md-sys-color-secondary-container, #d4e8cd);
+  --pincon-control-on-tonal: var(--md-sys-color-on-secondary-container, #101f0f);
+  --pincon-control-on-surface: var(--md-sys-color-on-surface, #1a1c18);
+  --pincon-control-outline: var(--md-sys-color-outline, #73796e);
+  --pincon-control-ease: cubic-bezier(.2, 0, 0, 1);
 }
 
+/* Fallback text buttons. */
 :is(md-filled-button, md-filled-tonal-button, md-outlined-button, md-text-button):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
   box-sizing: border-box !important;
   display: inline-flex !important;
@@ -34,30 +36,30 @@
   user-select: none !important;
   -webkit-tap-highlight-color: transparent;
   overflow: hidden !important;
-  transition: transform 120ms cubic-bezier(.2, 0, 0, 1), box-shadow 180ms cubic-bezier(.2, 0, 0, 1), filter 180ms ease;
 }
 
 md-filled-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
-  background: var(--pincon-button-fallback-primary) !important;
-  color: var(--pincon-button-fallback-on-primary) !important;
+  background: var(--pincon-control-primary) !important;
+  color: var(--pincon-control-on-primary) !important;
 }
 
 md-filled-tonal-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
-  background: var(--pincon-button-fallback-tonal) !important;
-  color: var(--pincon-button-fallback-on-tonal) !important;
+  background: var(--pincon-control-tonal) !important;
+  color: var(--pincon-control-on-tonal) !important;
 }
 
 md-outlined-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
   background: transparent !important;
-  color: var(--pincon-button-fallback-primary) !important;
-  box-shadow: inset 0 0 0 1px var(--pincon-button-fallback-outline) !important;
+  color: var(--pincon-control-primary) !important;
+  box-shadow: inset 0 0 0 1px var(--pincon-control-outline) !important;
 }
 
 md-text-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
   background: transparent !important;
-  color: var(--pincon-button-fallback-primary) !important;
+  color: var(--pincon-control-primary) !important;
 }
 
+/* Fallback icon buttons. */
 :is(md-icon-button, md-filled-icon-button, md-filled-tonal-icon-button, md-outlined-icon-button):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
   box-sizing: border-box !important;
   display: inline-flex !important;
@@ -71,26 +73,27 @@ md-text-button:is(:not(:defined), [data-pincon-material-button-fallback="true"])
   padding: 0 !important;
   border: 0 !important;
   border-radius: 999px !important;
-  color: var(--pincon-button-fallback-on-surface) !important;
+  color: var(--pincon-control-on-surface) !important;
   background: transparent !important;
   cursor: pointer !important;
   overflow: hidden !important;
 }
 
 md-filled-icon-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
-  background: var(--pincon-button-fallback-primary) !important;
-  color: var(--pincon-button-fallback-on-primary) !important;
+  background: var(--pincon-control-primary) !important;
+  color: var(--pincon-control-on-primary) !important;
 }
 
 md-filled-tonal-icon-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
-  background: var(--pincon-button-fallback-tonal) !important;
-  color: var(--pincon-button-fallback-on-tonal) !important;
+  background: var(--pincon-control-tonal) !important;
+  color: var(--pincon-control-on-tonal) !important;
 }
 
 md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
-  box-shadow: inset 0 0 0 1px var(--pincon-button-fallback-outline) !important;
+  box-shadow: inset 0 0 0 1px var(--pincon-control-outline) !important;
 }
 
+/* Fallback FAB. */
 :is(md-fab, md-branded-fab):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
   box-sizing: border-box !important;
   display: inline-flex !important;
@@ -102,8 +105,8 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
   padding: 0 16px !important;
   border: 0 !important;
   border-radius: 20px !important;
-  background: var(--pincon-button-fallback-tonal) !important;
-  color: var(--pincon-button-fallback-on-tonal) !important;
+  background: var(--pincon-control-tonal) !important;
+  color: var(--pincon-control-on-tonal) !important;
   box-shadow: 0 2px 6px rgba(0,0,0,.16) !important;
   cursor: pointer !important;
   overflow: hidden !important;
@@ -144,7 +147,10 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
   line-height: 24px !important;
 }
 
-:is(
+/* One stable interaction policy. Geometry never animates on press. */
+body.pincon-expressive :is(
+  button,
+  [role="button"],
   md-filled-button,
   md-filled-tonal-button,
   md-outlined-button,
@@ -155,12 +161,34 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):is(:not(:defined), [data-pincon-material-button-fallback="true"]):hover {
-  filter: brightness(.98);
+) {
+  transform: none !important;
+  transform-origin: center !important;
+  transition-property: background-color, color, border-color, box-shadow, filter, opacity !important;
+  transition-duration: 140ms !important;
+  transition-timing-function: var(--pincon-control-ease) !important;
+}
+
+body.pincon-expressive :is(
+  button,
+  [role="button"],
+  md-filled-button,
+  md-filled-tonal-button,
+  md-outlined-button,
+  md-text-button,
+  md-icon-button,
+  md-filled-icon-button,
+  md-filled-tonal-icon-button,
+  md-outlined-icon-button,
+  md-fab,
+  md-branded-fab
+):hover {
   box-shadow: 0 1px 2px rgba(0,0,0,.10), 0 3px 9px rgba(0,0,0,.08);
 }
 
-:is(
+body.pincon-expressive :is(
+  button,
+  [role="button"],
   md-filled-button,
   md-filled-tonal-button,
   md-outlined-button,
@@ -171,8 +199,71 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
   md-outlined-icon-button,
   md-fab,
   md-branded-fab
-):is(:not(:defined), [data-pincon-material-button-fallback="true"]):active {
-  transform: scale(.97);
+):active {
+  transform: none !important;
+  filter: brightness(.96);
+}
+
+/* Official Material components already render a state layer inside shadow DOM. */
+body.pincon-expressive :is(
+  md-filled-button,
+  md-filled-tonal-button,
+  md-outlined-button,
+  md-text-button,
+  md-icon-button,
+  md-filled-icon-button,
+  md-filled-tonal-icon-button,
+  md-outlined-icon-button,
+  md-fab,
+  md-branded-fab
+):defined:hover {
+  box-shadow: none;
+}
+
+body.pincon-expressive :is(
+  md-filled-button,
+  md-filled-tonal-button,
+  md-outlined-button,
+  md-text-button,
+  md-icon-button,
+  md-filled-icon-button,
+  md-filled-tonal-icon-button,
+  md-outlined-icon-button,
+  md-fab,
+  md-branded-fab
+)[data-pincon-material-button-fallback="true"]:hover {
+  filter: brightness(.98) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.10), 0 3px 9px rgba(0,0,0,.08) !important;
+}
+
+body.pincon-expressive :is(
+  md-filled-button,
+  md-filled-tonal-button,
+  md-outlined-button,
+  md-text-button,
+  md-icon-button,
+  md-filled-icon-button,
+  md-filled-tonal-icon-button,
+  md-outlined-icon-button,
+  md-fab,
+  md-branded-fab
+):defined:active {
+  filter: none;
+}
+
+body.pincon-expressive :is(
+  md-filled-button,
+  md-filled-tonal-button,
+  md-outlined-button,
+  md-text-button,
+  md-icon-button,
+  md-filled-icon-button,
+  md-filled-tonal-icon-button,
+  md-outlined-icon-button,
+  md-fab,
+  md-branded-fab
+)[data-pincon-material-button-fallback="true"]:active {
+  filter: brightness(.96) !important;
 }
 
 :is(
@@ -216,7 +307,7 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
   md-fab,
   md-branded-fab
 ):is(:not(:defined), [data-pincon-material-button-fallback="true"]):focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--pincon-button-fallback-primary) 45%, transparent) !important;
+  outline: 3px solid color-mix(in srgb, var(--pincon-control-primary) 45%, transparent) !important;
   outline-offset: 2px !important;
 }
 
@@ -228,7 +319,9 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(
+  body.pincon-expressive :is(
+    button,
+    [role="button"],
     md-filled-button,
     md-filled-tonal-button,
     md-outlined-button,
@@ -239,7 +332,7 @@ md-outlined-icon-button:is(:not(:defined), [data-pincon-material-button-fallback
     md-outlined-icon-button,
     md-fab,
     md-branded-fab
-  ):is(:not(:defined), [data-pincon-material-button-fallback="true"]) {
+  ) {
     transition: none !important;
   }
 }
