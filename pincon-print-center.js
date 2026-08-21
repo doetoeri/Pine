@@ -45,7 +45,7 @@ function attr(value) {
 function uniqueItems(rows = []) {
   const seen = new Set();
   return rows.filter((item) => {
-    const key = `${item.__collection || item.type || item.feedKind || "item"}:${item.id || item.title}:${itemDate(item)}`;
+    const key = `${item.__printType || item.type || item.feedKind || "item"}:${item.id || item.title}:${itemDate(item)}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -139,7 +139,7 @@ class PinconPrintCenter {
       open: () => this.open(),
       close: () => this.close(),
       print: () => this.print(),
-      version: "1.0.0",
+      version: "1.0.1",
     });
   }
 
@@ -186,7 +186,7 @@ class PinconPrintCenter {
     const all = this.allItems();
 
     if (preset === "today") {
-      return buildTodayFeed(data, now).map((item) => normalizeItem(item, item.__collection || "feed"));
+      return uniqueItems(buildTodayFeed(data, now).map((item) => normalizeItem(item, item.__collection || "feed")));
     }
     if (preset === "assessments") {
       return all.filter((item) => ["assessment", "exam", "preparation"].includes(item.__printType));
@@ -246,7 +246,6 @@ class PinconPrintCenter {
   render() {
     if (!this.overlay) return;
     const rows = this.presetItems();
-    if (!this.selected.size && rows.length) this.resetSelection();
     const selected = this.selectedItems();
     const profile = this.state.profile || {};
     const classLabel = profile.grade && profile.classNumber ? `${profile.grade}학년 ${profile.classNumber}반` : "학급";
