@@ -1,4 +1,5 @@
 const origin = String(process.env.PINCON_ORIGIN || "https://pincon-ai.vercel.app").replace(/\/$/, "");
+const resource = String(process.env.PINCON_RESOURCE || "https://pincon-ai.vercel.app/api/mcp").trim();
 const apiKey = String(process.env.PINCON_API_KEY || "").trim();
 const classKey = String(process.env.PINCON_CLASS_KEY || "1-8").trim();
 const protocolVersion = String(process.env.MCP_PROTOCOL_VERSION || "2025-06-18").trim();
@@ -22,7 +23,7 @@ async function json(url, options = {}) {
 async function discoveryChecks() {
   const protectedResource = await json(`${origin}/.well-known/oauth-protected-resource`);
   assert(protectedResource.response.ok, "Protected-resource metadata is not reachable.");
-  assert(protectedResource.body.resource === `${origin}/api/mcp`, "Protected-resource MCP URL does not match the public origin.");
+  assert(protectedResource.body.resource === resource, "Protected-resource MCP URL does not match PINCON_RESOURCE.");
   assert(protectedResource.body.scopes_supported?.includes("pincon:read"), "pincon:read scope is missing.");
 
   const authorizationServer = await json(`${origin}/.well-known/oauth-authorization-server`);
