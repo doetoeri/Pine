@@ -17,7 +17,13 @@ import {
 } from "../lib/oauth-store.mjs";
 import { formBody, jsonBody, sendJson } from "../lib/request.mjs";
 
-const CLASS_KEY = /^([1-3])-(10|[1-9])$/;
+function normalizeClassKey(value) {
+  const raw = String(value || "").trim().replace(/\s+/g, "");
+  const match = /^([1-3])-(10|[1-9])$/.exec(raw)
+    || /^([1-3])학년(10|[1-9])반$/.exec(raw);
+  if (!match) return "";
+  return `${match[1]}-${Number(match[2])}`;
+}
 
 function oauthError(res, status, error, description) {
   return sendJson(res, status, {
@@ -132,9 +138,9 @@ async function authorizeComplete(req, res) {
     const codeChallenge = String(input.code_challenge || "");
     const codeChallengeMethod = String(input.code_challenge_method || "");
     const state = String(input.state || "");
-    const classKey = String(input.classKey || "");
+    const classKey = normalizeClassKey(input.classKey);
 
-    if (!CLASS_KEY.test(classKey)) throw new Error("Choose a valid PinCon class.");
+    if (!classKey) throw new Error("Enter your class as 1-8 or 1학년 8반.");
     if (resource !== MCP_RESOURCE) throw new Error("Invalid resource.");
     if (String(input.response_type || "") !== "code") throw new Error("Only response_type=code is supported.");
 
