@@ -23,17 +23,6 @@ function errorPage(message) {
   return `<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PinCon 연결 오류</title><style>body{font-family:system-ui,sans-serif;max-width:620px;margin:64px auto;padding:24px;line-height:1.6}main{border:1px solid #ddd;border-radius:24px;padding:28px}h1{font-size:24px}</style><main><h1>PinCon을 연결할 수 없습니다.</h1><p>${escapeHtml(message)}</p></main></html>`;
 }
 
-function options() {
-  let html = "";
-  for (let grade = 1; grade <= 3; grade += 1) {
-    for (let room = 1; room <= 10; room += 1) {
-      const value = `${grade}-${room}`;
-      html += `<option value="${value}">${grade}학년 ${room}반</option>`;
-    }
-  }
-  return html;
-}
-
 function denyRedirect(redirectUri, state) {
   const url = new URL(redirectUri);
   url.searchParams.set("error", "access_denied");
@@ -83,7 +72,7 @@ export default async function oauthAuthorize(req, res) {
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PinCon 연결</title>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1a1b1f;background:#f7f7fb}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px}.card{width:min(100%,560px);background:white;border:1px solid #e2e3e9;border-radius:28px;padding:28px;box-shadow:0 16px 50px rgba(20,22,30,.08)}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.mark{width:44px;height:44px;border-radius:14px;background:#315fef;color:white;display:grid;place-items:center;font-weight:800}.eyebrow{font-size:13px;color:#646772}.title{font-size:26px;font-weight:760;letter-spacing:-.03em;margin:0}.desc{color:#555966;line-height:1.65}.box{background:#f5f6fa;border-radius:18px;padding:16px;margin:18px 0}.box strong{display:block;margin-bottom:6px}.row{display:flex;gap:10px;flex-wrap:wrap}.button{border:0;border-radius:999px;padding:13px 18px;font:inherit;font-weight:700;cursor:pointer}.primary{background:#315fef;color:white}.secondary{background:#eceef5;color:#24262d}.button:disabled{opacity:.5;cursor:not-allowed}select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid #d5d7df;background:white;font:inherit;margin-top:8px}.account{font-weight:650;word-break:break-all}.status{min-height:24px;color:#a23b36;font-size:14px;margin:10px 0}.fine{font-size:12px;color:#767984;line-height:1.55;margin-top:16px}
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1a1b1f;background:#f7f7fb}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px}.card{width:min(100%,560px);background:white;border:1px solid #e2e3e9;border-radius:28px;padding:28px;box-shadow:0 16px 50px rgba(20,22,30,.08)}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.mark{width:44px;height:44px;border-radius:14px;background:#315fef;color:white;display:grid;place-items:center;font-weight:800}.eyebrow{font-size:13px;color:#646772}.title{font-size:26px;font-weight:760;letter-spacing:-.03em;margin:0}.desc{color:#555966;line-height:1.65}.box{background:#f5f6fa;border-radius:18px;padding:16px;margin:18px 0}.box strong{display:block;margin-bottom:6px}.row{display:flex;gap:10px;flex-wrap:wrap}.button{border:0;border-radius:999px;padding:13px 18px;font:inherit;font-weight:700;cursor:pointer}.primary{background:#315fef;color:white}.secondary{background:#eceef5;color:#24262d}.button:disabled{opacity:.5;cursor:not-allowed}input{width:100%;padding:13px 14px;border-radius:14px;border:1px solid #d5d7df;background:white;font:inherit;margin-top:8px;outline:none}input:focus{border-color:#315fef;box-shadow:0 0 0 3px rgba(49,95,239,.12)}.hint{font-size:12px;color:#767984;line-height:1.55;margin-top:7px}.preview{font-size:13px;color:#2f5fd7;font-weight:700;min-height:20px;margin-top:6px}.account{font-weight:650;word-break:break-all}.status{min-height:24px;color:#a23b36;font-size:14px;margin:10px 0}.fine{font-size:12px;color:#767984;line-height:1.55;margin-top:16px}
 </style>
 </head>
 <body>
@@ -97,8 +86,10 @@ export default async function oauthAuthorize(req, res) {
   </section>
   <section id="signedIn" hidden>
     <div class="box"><strong>로그인 계정</strong><div id="account" class="account"></div></div>
-    <label for="classKey"><strong>내 학년·반</strong></label>
-    <select id="classKey"><option value="" selected disabled>학년·반 선택</option>${options()}</select>
+    <label for="classKeyInput"><strong>내 학년·반 입력</strong></label>
+    <input id="classKeyInput" type="text" inputmode="text" autocomplete="off" maxlength="12" placeholder="예: 1-8 또는 1학년 8반" aria-describedby="classHint classPreview">
+    <div id="classHint" class="hint">본인의 실제 학년과 반을 입력하세요. 1-8, 1학년 8반 형식을 모두 지원합니다.</div>
+    <div id="classPreview" class="preview"></div>
     <div class="status" id="status"></div>
     <div class="row">
       <button id="allow" class="button primary">PinCon 연결 허용</button>
@@ -106,7 +97,7 @@ export default async function oauthAuthorize(req, res) {
     </div>
   </section>
   <div class="row" style="margin-top:18px"><button id="cancel" class="button secondary">취소</button></div>
-  <p class="fine">연결 시 선택한 반은 이 OAuth 연결에 저장되며, AI 플랫폼은 해당 반의 읽기 전용 도구만 사용할 수 있습니다. 비밀번호는 PinCon 서버에 전달되지 않습니다.</p>
+  <p class="fine">연결 시 입력한 반은 이 OAuth 연결에 저장되며, AI 플랫폼은 해당 반의 읽기 전용 도구만 사용할 수 있습니다. 비밀번호는 PinCon 서버에 전달되지 않습니다.</p>
 </main>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
@@ -125,14 +116,35 @@ const cancel = document.querySelector("#cancel");
 const signedOut = document.querySelector("#signedOut");
 const signedIn = document.querySelector("#signedIn");
 const account = document.querySelector("#account");
-const classKey = document.querySelector("#classKey");
+const classKeyInput = document.querySelector("#classKeyInput");
+const classPreview = document.querySelector("#classPreview");
 const status = document.querySelector("#status");
+
+function normalizeClassKey(value) {
+  const raw = String(value || "").trim().replace(/\s+/g, "");
+  const match = /^([1-3])-(10|[1-9])$/.exec(raw)
+    || /^([1-3])학년(10|[1-9])반$/.exec(raw);
+  if (!match) return "";
+  return `${match[1]}-${Number(match[2])}`;
+}
+
+function updateClassPreview() {
+  const normalized = normalizeClassKey(classKeyInput.value);
+  classPreview.textContent = normalized ? `연결할 반: ${normalized.replace("-", "학년 ")}반` : "";
+  return normalized;
+}
 
 function setBusy(value) {
   login.disabled = value;
   allow.disabled = value;
   logout.disabled = value;
+  classKeyInput.disabled = value;
 }
+
+classKeyInput.addEventListener("input", () => {
+  status.textContent = "";
+  updateClassPreview();
+});
 
 login.addEventListener("click", async () => {
   setBusy(true);
@@ -156,8 +168,10 @@ cancel.addEventListener("click", () => location.assign(cancelUrl));
 allow.addEventListener("click", async () => {
   status.textContent = "";
   if (!auth.currentUser) return;
-  if (!classKey.value) {
-    status.textContent = "학년과 반을 선택해 주세요.";
+  const classKey = updateClassPreview();
+  if (!classKey) {
+    status.textContent = "자기 반을 1-8 또는 1학년 8반 형식으로 입력해 주세요.";
+    classKeyInput.focus();
     return;
   }
   setBusy(true);
@@ -166,7 +180,7 @@ allow.addEventListener("click", async () => {
     const response = await fetch("/oauth/authorize/complete", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...oauthRequest, idToken, classKey: classKey.value }),
+      body: JSON.stringify({ ...oauthRequest, idToken, classKey }),
     });
     const data = await response.json();
     if (!response.ok || !data.redirect) throw new Error(data.error_description || "PinCon 연결 승인에 실패했습니다.");
@@ -182,6 +196,7 @@ onAuthStateChanged(auth, (user) => {
   signedIn.hidden = !user;
   account.textContent = user?.email || user?.displayName || "Google 사용자";
   setBusy(false);
+  if (user) setTimeout(() => classKeyInput.focus(), 100);
 });
 
 getRedirectResult(auth).catch((error) => {
