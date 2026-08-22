@@ -49,6 +49,9 @@ test("학급 선택 뒤 별도 진입 카드 없이 통합 셸을 바로 연다"
   assert.match(source, /pincon-ops-rail/);
   assert.match(css, /\.pincon-ops-rail-nav/);
   assert.match(css, /\.pincon-ops-navigation md-tabs/);
+  assert.match(css, /@media \(min-width: 821px\) and \(max-width: 1020px\)/);
+  assert.match(css, /@media \(min-width: 601px\) and \(max-width: 820px\)/);
+  assert.match(css, /@media \(max-height: 520px\) and \(orientation: landscape\)/);
 });
 
 test("통합 셸의 상호작용 컴포넌트는 공식 Material Web 태그를 사용한다", async () => {
