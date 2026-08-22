@@ -80,12 +80,34 @@ test("화면 전환과 모바일 플로팅 바가 Material 모션·화면 폭 �
 
 test("오늘 화면에 식단·시간표·모둠·학사일정 고정 영역이 있다", async () => {
   const source = await read("pincon-class-ops.js");
-  assert.match(source, /class="pincon-essential-grid"/);
+  assert.match(source, /class="pincon-essential-grid pincon-desktop-essentials"/);
   for (const title of ["오늘 식단", "오늘 시간표", "모둠과 역할", "학사일정"]) {
     assert.match(source, new RegExp(`title: "${title}"`));
   }
   assert.match(source, /mealSectionBody\(meal\)/);
   assert.match(source, /groupSectionBody\(groups\)/);
+  assert.match(source, /class="pincon-mobile-essentials"/);
+  assert.match(source, /title: "우리 반 정보"/);
+});
+
+test("모바일 화면은 한눈에 목록과 균등 너비 Material 탭을 사용한다", async () => {
+  const [source, css] = await Promise.all([
+    read("pincon-class-ops.js"),
+    read("pincon-unified-shell.css"),
+  ]);
+  assert.match(source, /--pincon-tab-count:\$\{nav\.length\}/);
+  assert.match(css, /\.pincon-desktop-essentials \{ display: none; \}/);
+  assert.match(css, /\.pincon-mobile-essentials \{ display: block; \}/);
+  assert.match(css, /width: calc\(100% \/ var\(--pincon-tab-count, 5\)\)/);
+  assert.doesNotMatch(css, /\.pincon-ops-navigation md-tabs \{[\s\S]{0,120}display: flex;/);
+});
+
+test("공식 Material 로더는 이미 등록된 요소를 건너뛰고 나머지를 계속 등록한다", async () => {
+  const loader = await read("material-official-loader.js");
+  assert.match(loader, /const originalDefine = customElements\.define/);
+  assert.match(loader, /if \(customElements\.get\(name\)\) return undefined/);
+  assert.match(loader, /customElements\.define = originalDefine/);
+  assert.match(loader, /if \(!missing\.length\) return \{ version: VERSION, status: "ready", missing: \[\] \}/);
 });
 
 test("서비스 워커의 로컬 앱 셸 파일이 모두 존재한다", async () => {

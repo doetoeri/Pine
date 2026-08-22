@@ -386,6 +386,8 @@ body.pincon-unified-ready .floating-navigation {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.pincon-mobile-essentials { display: none; }
+
 .pincon-ops-grid[data-columns="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .pincon-ops-wide { grid-column: 1 / -1; }
 
@@ -754,7 +756,7 @@ md-dialog.pincon-ops-dialog {
 
   .pincon-ops-navigation md-tabs {
     width: 100%;
-    display: flex;
+    max-width: 100%;
     overflow: hidden;
     --md-primary-tab-container-color: transparent;
     --md-primary-tab-container-height: 68px;
@@ -766,6 +768,7 @@ md-dialog.pincon-ops-dialog {
   .pincon-ops-navigation md-primary-tab {
     min-width: 0;
     max-width: none;
+    width: calc(100% / var(--pincon-tab-count, 5));
     flex: 1 1 0;
   }
 
@@ -820,29 +823,35 @@ md-dialog.pincon-ops-dialog {
 
   .pincon-ops-main {
     inset: 70px 0 0;
-    padding: 0 12px 116px;
+    padding: 0 10px 106px;
   }
 
   .pincon-ops-page-heading {
-    min-height: 164px;
-    padding: 34px 4px 12px;
+    min-height: 132px;
+    padding: 24px 4px 10px;
   }
 
-  .pincon-ops-page-heading h1 { font-size: clamp(2.15rem, 12vw, 3.25rem); }
+  .pincon-ops-page-heading h1 {
+    font-size: clamp(1.85rem, 8.7vw, 2.45rem);
+    line-height: 1.05;
+  }
   .pincon-ops-page-heading > p:last-child { font-size: .88rem; }
 
-  .pincon-today-stage { grid-template-columns: minmax(0, 1fr); }
-
-  .pincon-ops-hero {
-    min-height: 310px;
-    padding: 30px 22px;
-    border-radius: 40px 40px 12px 40px;
+  .pincon-today-stage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
   }
 
-  .pincon-ops-hero h2 { font-size: clamp(2rem, 10.5vw, 3.1rem); }
+  .pincon-ops-hero {
+    min-height: 244px;
+    padding: 26px 20px;
+    border-radius: 34px 34px 12px 34px;
+  }
+
+  .pincon-ops-hero h2 { font-size: clamp(1.8rem, 8.7vw, 2.5rem); }
 
   .pincon-today-focus .pincon-ops-section {
-    padding: 16px;
+    padding: 14px;
     border-radius: 14px 32px 32px 32px;
   }
 
@@ -852,16 +861,23 @@ md-dialog.pincon-ops-dialog {
   .pincon-ops-card-grid { grid-template-columns: minmax(0, 1fr); }
   .pincon-ops-card { border-radius: 28px 28px 10px 28px; }
 
+  .pincon-desktop-essentials { display: none; }
+  .pincon-mobile-essentials { display: block; }
+  .pincon-mobile-essentials .pincon-ops-section-heading { min-height: 50px; }
+  .pincon-mobile-essentials .pincon-ops-surface { border-radius: 26px; }
+  .pincon-mobile-essentials md-list-item { min-height: 68px; }
+
   .pincon-ops-navigation {
     left: max(8px, env(safe-area-inset-left));
     right: max(8px, env(safe-area-inset-right));
     width: auto;
     bottom: max(8px, env(safe-area-inset-bottom));
+    border-radius: 26px;
   }
 
   .pincon-ops-navigation md-tabs {
-    --md-primary-tab-container-height: 66px;
-    --md-primary-tab-with-icon-and-label-text-container-height: 66px;
+    --md-primary-tab-container-height: 64px;
+    --md-primary-tab-with-icon-and-label-text-container-height: 64px;
     --md-primary-tab-label-text-size: .67rem;
   }
 
@@ -905,6 +921,7 @@ md-dialog.pincon-ops-dialog {
 
   .pincon-ops-hero-actions > * { width: 100%; }
   .pincon-ops-section-heading h2 { font-size: 1.24rem; }
+  .pincon-ops-navigation md-tabs { --md-primary-tab-label-text-size: .62rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
