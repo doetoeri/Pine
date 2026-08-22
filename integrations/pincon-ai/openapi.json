@@ -1,0 +1,127 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PinCon School Life API",
+    "version": "0.3.0",
+    "description": "Read-only PinCon school-life data for AI platforms. Remote MCP is the preferred integration; this OpenAPI document is a fallback for platforms that use function calling or OpenAPI tools."
+  },
+  "servers": [{ "url": "https://pincon-ai.vercel.app" }],
+  "security": [{ "bearerAuth": [] }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Use a PinCon OAuth access token for user connections or PINCON_API_KEY for development/automation."
+      }
+    },
+    "parameters": {
+      "ClassKey": {
+        "name": "classKey",
+        "in": "query",
+        "required": false,
+        "description": "Class identifier such as 1-8. OAuth user connections may omit this because the server applies the class bound during login. Service-key requests must provide it.",
+        "schema": { "type": "string", "pattern": "^[1-3]-(10|[1-9])$", "example": "1-8" }
+      },
+      "Date": {
+        "name": "date",
+        "in": "query",
+        "required": false,
+        "description": "Date in YYYY-MM-DD. Defaults to today in Asia/Seoul where supported by the endpoint.",
+        "schema": { "type": "string", "format": "date", "example": "2026-08-22" }
+      },
+      "StartDate": {
+        "name": "startDate",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "format": "date", "example": "2026-08-22" }
+      },
+      "EndDate": {
+        "name": "endDate",
+        "in": "query",
+        "required": false,
+        "schema": { "type": "string", "format": "date", "example": "2026-08-29" }
+      }
+    },
+    "schemas": {
+      "ApiEnvelope": {
+        "type": "object",
+        "properties": {
+          "ok": { "type": "boolean" },
+          "data": {},
+          "error": { "type": "string" }
+        },
+        "required": ["ok"]
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/today": {
+      "get": {
+        "operationId": "getToday",
+        "summary": "Get today's school-life brief",
+        "description": "Returns timetable, meal, assignments, notices, and events for the connected class.",
+        "parameters": [{ "$ref": "#/components/parameters/ClassKey" }, { "$ref": "#/components/parameters/Date" }],
+        "responses": {
+          "200": { "description": "PinCon daily brief", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } },
+          "401": { "description": "Authentication required" }
+        }
+      }
+    },
+    "/api/v1/timetable": {
+      "get": {
+        "operationId": "getTimetable",
+        "summary": "Get timetable",
+        "parameters": [{ "$ref": "#/components/parameters/ClassKey" }, { "$ref": "#/components/parameters/Date" }],
+        "responses": { "200": { "description": "Timetable response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } } }
+      }
+    },
+    "/api/v1/meals": {
+      "get": {
+        "operationId": "getMeal",
+        "summary": "Get school meal",
+        "parameters": [{ "$ref": "#/components/parameters/Date" }],
+        "responses": { "200": { "description": "Meal response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } } }
+      }
+    },
+    "/api/v1/assignments": {
+      "get": {
+        "operationId": "getAssignments",
+        "summary": "Get assignments and assessments",
+        "parameters": [{ "$ref": "#/components/parameters/ClassKey" }, { "$ref": "#/components/parameters/StartDate" }, { "$ref": "#/components/parameters/EndDate" }],
+        "responses": { "200": { "description": "Assignments response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } } }
+      }
+    },
+    "/api/v1/notices": {
+      "get": {
+        "operationId": "getNotices",
+        "summary": "Get recent notices",
+        "parameters": [
+          { "$ref": "#/components/parameters/ClassKey" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 50, "default": 20 } }
+        ],
+        "responses": { "200": { "description": "Notices response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } } }
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "getSchoolEvents",
+        "summary": "Get school and class events",
+        "parameters": [{ "$ref": "#/components/parameters/ClassKey" }, { "$ref": "#/components/parameters/StartDate" }, { "$ref": "#/components/parameters/EndDate" }],
+        "responses": { "200": { "description": "Events response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } } }
+      }
+    },
+    "/api/v1/upcoming": {
+      "get": {
+        "operationId": "getUpcoming",
+        "summary": "Get upcoming school-life items",
+        "parameters": [
+          { "$ref": "#/components/parameters/ClassKey" },
+          { "$ref": "#/components/parameters/Date" },
+          { "name": "days", "in": "query", "required": false, "schema": { "type": "integer", "minimum": 1, "maximum": 31, "default": 7 } }
+        ],
+        "responses": { "200": { "description": "Upcoming response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiEnvelope" } } } } }
+      }
+    }
+  }
+}

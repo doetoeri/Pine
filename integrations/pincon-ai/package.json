@@ -1,10 +1,14 @@
 {
   "name": "pincon-ai-gateway",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=22"
+  },
+  "scripts": {
+    "test:compat": "node scripts/compat-smoke.mjs",
+    "test:gemini": "node scripts/gemini-remote-mcp.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/node": "^2.0.0",

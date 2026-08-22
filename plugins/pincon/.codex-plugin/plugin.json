@@ -1,6 +1,6 @@
 {
   "name": "pincon",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Use PinCon school-life data from AI platforms through read-only MCP tools and reusable skills.",
   "author": {
     "name": "PinCon Team",
@@ -14,7 +14,8 @@
     "meal",
     "assignments",
     "notices",
-    "education"
+    "education",
+    "mcp"
   ],
   "skills": "./skills/",
   "interface": {
