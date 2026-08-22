@@ -1,13 +1,21 @@
-/* PinCon classic-return layer.
- * Keep the current class-operations feature set, but restore the original PinCon
- * as the primary app surface. Class operations become an explicit secondary view.
+/* PinCon dock + class-operations sheet.
+ * The original PinCon stays primary. Its existing navigation becomes the long
+ * floating capsule, while a separate official Material icon button opens the
+ * class-operations sheet from the right edge of the dock.
  */
+
+:root {
+  --pincon-dock-bar-width: min(680px, calc(100vw - 104px));
+  --pincon-dock-trigger-size: 68px;
+  --pincon-dock-bottom: max(10px, env(safe-area-inset-bottom));
+}
 
 body.pincon-classic-home {
   overflow: auto !important;
 }
 
-body.pincon-classic-home #root {
+body.pincon-classic-home #root,
+body.pincon-classic-ops-open #root {
   display: block !important;
   visibility: visible !important;
 }
@@ -16,72 +24,131 @@ body.pincon-classic-home .pincon-ops-shell {
   display: none !important;
 }
 
-body.pincon-classic-home .floating-navigation {
-  display: flex !important;
-}
-
-body.pincon-classic-home .compose-fab,
-body.pincon-classic-home .pincon-material-next-fab {
-  display: initial;
-}
-
-.pincon-classic-launch-card {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  margin-block: 8px 4px;
-  padding: 20px 22px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px;
-  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
-  border-radius: 28px;
-  background: var(--md-sys-color-surface-container-low, #f2f5ec);
-  color: var(--md-sys-color-on-surface, #191d17);
-}
-
-.pincon-classic-launch-copy {
-  min-width: 0;
-}
-
-.pincon-classic-launch-copy p,
-.pincon-classic-launch-copy h2 {
-  margin: 0;
-}
-
-.pincon-classic-launch-kicker {
-  color: var(--md-sys-color-primary, #386a20);
-  font-size: .78rem;
-  font-weight: 700;
-}
-
-.pincon-classic-launch-copy h2 {
-  margin-top: 5px;
-  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
-  line-height: 1.25;
-  letter-spacing: -.025em;
-}
-
-.pincon-classic-launch-copy p:last-child {
-  margin-top: 7px;
-  color: var(--md-sys-color-on-surface-variant, #43483f);
-  font-size: .86rem;
-  line-height: 1.55;
-}
-
-.pincon-classic-launch-card md-filled-tonal-button {
-  flex: 0 0 auto;
-  min-height: 44px;
-}
-
-/* When class operations are explicitly opened, use the simpler pre-unified hierarchy. */
-body.pincon-classic-ops-open #root {
+.pincon-classic-launch-card,
+.pincon-ops-launch-card {
   display: none !important;
 }
 
+/* Long left capsule: keep the original PinCon navigation and only reposition it. */
+body.pincon-classic-home .floating-navigation {
+  position: fixed !important;
+  z-index: 105 !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: var(--pincon-dock-bottom) !important;
+  width: var(--pincon-dock-bar-width) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 68px !important;
+  margin: 0 !important;
+  padding: 4px !important;
+  display: flex !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c3c8bb) 78%, transparent) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container, #ecefe6) 92%, var(--md-sys-color-primary-container, #b7f398)) !important;
+  box-shadow: 0 5px 16px rgba(25, 29, 23, .10), 0 18px 42px rgba(25, 29, 23, .10) !important;
+  transform: translateX(calc(-50% - 38px)) !important;
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+body.pincon-classic-home .floating-navigation > * {
+  min-width: 0 !important;
+}
+
+/* The old compose FABs compete with the new dock trigger, so keep one clear action. */
+body.pincon-classic-home .compose-fab,
+body.pincon-classic-home .pincon-material-next-fab {
+  display: none !important;
+}
+
+.pincon-class-ops-trigger {
+  position: fixed;
+  z-index: 125;
+  right: max(12px, calc((100vw - 760px) / 2));
+  bottom: var(--pincon-dock-bottom);
+  width: var(--pincon-dock-trigger-size);
+  height: var(--pincon-dock-trigger-size);
+  display: inline-flex;
+  border-radius: 999px;
+  filter: none !important;
+  transform: none !important;
+  transition:
+    box-shadow 180ms cubic-bezier(.2, 0, 0, 1),
+    background-color 180ms cubic-bezier(.2, 0, 0, 1) !important;
+  --md-filled-tonal-icon-button-container-width: var(--pincon-dock-trigger-size);
+  --md-filled-tonal-icon-button-container-height: var(--pincon-dock-trigger-size);
+  --md-filled-tonal-icon-button-container-shape: 999px;
+  --md-filled-tonal-icon-button-container-color: var(--md-sys-color-primary-container, #b7f398);
+  --md-filled-tonal-icon-button-icon-color: var(--md-sys-color-on-primary-container, #082100);
+  --md-filled-tonal-icon-button-icon-size: 29px;
+  box-shadow: 0 6px 18px rgba(25, 29, 23, .12), 0 18px 38px rgba(25, 29, 23, .12);
+}
+
+.pincon-class-ops-trigger:hover {
+  box-shadow: 0 8px 20px rgba(25, 29, 23, .14), 0 20px 44px rgba(25, 29, 23, .13);
+}
+
+.pincon-class-ops-trigger:active {
+  transform: none !important;
+}
+
+.pincon-class-ops-trigger[data-state="open"] {
+  --md-filled-tonal-icon-button-container-color: var(--md-sys-color-primary, #386a20);
+  --md-filled-tonal-icon-button-icon-color: var(--md-sys-color-on-primary, #fff);
+}
+
+.pincon-class-ops-trigger md-icon {
+  font-family: "Material Symbols Rounded" !important;
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 28 !important;
+  line-height: 1 !important;
+}
+
+/* The class tools appear as a sheet over PinCon instead of replacing the app. */
+body.pincon-classic-ops-open {
+  overflow: hidden !important;
+}
+
+body.pincon-classic-ops-open::before {
+  content: "";
+  position: fixed;
+  z-index: 86;
+  inset: 0;
+  background: color-mix(in srgb, var(--md-sys-color-scrim, #000) 28%, transparent);
+  backdrop-filter: blur(3px) saturate(.94);
+  animation: pincon-scrim-in 220ms cubic-bezier(.2, 0, 0, 1) both;
+}
+
+@keyframes pincon-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+body.pincon-classic-ops-open #root {
+  pointer-events: none !important;
+  user-select: none;
+}
+
+body.pincon-classic-ops-open .floating-navigation {
+  display: flex !important;
+}
+
 body.pincon-classic-ops-open .pincon-ops-shell[data-open="true"] {
+  position: fixed !important;
+  z-index: 92 !important;
+  inset:
+    max(18px, env(safe-area-inset-top))
+    max(16px, calc((100vw - 1180px) / 2))
+    max(14px, env(safe-area-inset-bottom)) !important;
   display: block !important;
+  overflow: hidden !important;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c3c8bb) 76%, transparent) !important;
+  border-radius: 36px !important;
+  background: var(--md-sys-color-surface, #f8fbf2) !important;
+  box-shadow: 0 18px 64px rgba(10, 22, 8, .22), 0 4px 18px rgba(10, 22, 8, .12) !important;
+  isolation: isolate;
+  will-change: clip-path, opacity, transform;
 }
 
 body.pincon-classic-ops-open .pincon-ops-rail {
@@ -89,22 +156,24 @@ body.pincon-classic-ops-open .pincon-ops-rail {
 }
 
 body.pincon-classic-ops-open .pincon-ops-topbar {
+  position: absolute !important;
+  z-index: 6 !important;
   inset: 0 0 auto !important;
-  height: 76px !important;
-  min-height: 76px !important;
-  padding: max(10px, env(safe-area-inset-top)) max(14px, calc((100vw - 1120px) / 2)) !important;
+  height: 74px !important;
+  min-height: 74px !important;
+  padding: 10px 18px !important;
   display: grid !important;
-  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
   align-items: center !important;
   gap: 10px !important;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant, #c3c8bb) !important;
-  background: color-mix(in srgb, var(--md-sys-color-surface, #f8fbf2) 96%, transparent) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c3c8bb) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--md-sys-color-surface, #f8fbf2) 93%, transparent) !important;
   box-shadow: none !important;
-  backdrop-filter: blur(14px) saturate(1.04);
+  backdrop-filter: blur(20px) saturate(1.06);
 }
 
 body.pincon-classic-ops-open .pincon-classic-back {
-  display: inline-flex;
+  display: none !important;
 }
 
 body.pincon-classic-ops-open .pincon-ops-mobile-brand {
@@ -121,9 +190,9 @@ body.pincon-classic-ops-open .pincon-ops-mobile-brand span {
 }
 
 body.pincon-classic-ops-open .pincon-ops-mobile-brand strong {
-  color: var(--md-sys-color-on-surface, #191d17) !important;
-  font-size: 1rem !important;
-  letter-spacing: -.02em !important;
+  color: var(--md-sys-color-primary, #386a20) !important;
+  font-size: 1.08rem !important;
+  letter-spacing: -.03em !important;
 }
 
 body.pincon-classic-ops-open .pincon-ops-mobile-brand span {
@@ -143,48 +212,54 @@ body.pincon-classic-ops-open .pincon-ops-top-actions {
 }
 
 body.pincon-classic-ops-open .pincon-ops-main {
-  inset: 76px 0 0 !important;
-  padding: 22px max(16px, calc((100vw - 1120px) / 2)) 116px !important;
+  position: absolute !important;
+  inset: 74px 0 0 !important;
+  padding: 18px 20px 104px !important;
+  overflow: auto !important;
   scrollbar-gutter: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 body.pincon-classic-ops-open .pincon-ops-view {
-  width: 100%;
-  max-width: 1120px;
-  margin-inline: auto;
-  gap: 24px !important;
-  animation: pincon-classic-view-in 160ms cubic-bezier(.2, 0, 0, 1) both !important;
+  width: min(100%, 1080px) !important;
+  margin-inline: auto !important;
+  gap: 22px !important;
+  animation: pincon-classic-view-in 180ms cubic-bezier(.2, 0, 0, 1) both !important;
 }
 
 @keyframes pincon-classic-view-in {
-  from { opacity: 0; transform: translateY(5px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 body.pincon-classic-ops-open .pincon-ops-page-heading {
   min-height: auto !important;
-  padding: 18px 2px 4px !important;
+  padding: 16px 2px 4px !important;
 }
 
 body.pincon-classic-ops-open .pincon-ops-page-heading h1 {
-  font-size: clamp(2rem, 5vw, 3.25rem) !important;
+  font-size: clamp(1.9rem, 5vw, 3.1rem) !important;
   line-height: 1.12 !important;
 }
 
+/* Bottom navigation lives inside the sheet and leaves room for the round toggle. */
 body.pincon-classic-ops-open .pincon-ops-navigation {
-  position: fixed !important;
-  z-index: 90 !important;
-  left: 50% !important;
-  right: auto !important;
-  bottom: max(10px, env(safe-area-inset-bottom)) !important;
-  width: min(720px, calc(100vw - 24px)) !important;
-  transform: translateX(-50%) !important;
+  position: absolute !important;
+  z-index: 8 !important;
+  left: 12px !important;
+  right: 88px !important;
+  bottom: 12px !important;
+  width: auto !important;
+  max-width: none !important;
+  transform: none !important;
   display: block !important;
   overflow: hidden !important;
-  border: 1px solid var(--md-sys-color-outline-variant, #c3c8bb) !important;
-  border-radius: 28px !important;
-  background: var(--md-sys-color-surface-container-high, #e6e9e1) !important;
-  box-shadow: 0 8px 24px rgba(25, 29, 23, .10) !important;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c3c8bb) 78%, transparent) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-high, #e6e9e1) 94%, transparent) !important;
+  box-shadow: 0 6px 18px rgba(25, 29, 23, .10), 0 16px 30px rgba(25, 29, 23, .08) !important;
+  backdrop-filter: blur(16px) saturate(1.05);
 }
 
 body.pincon-classic-ops-open .pincon-ops-navigation md-tabs,
@@ -208,44 +283,80 @@ body.pincon-classic-ops-open .pincon-unified-fab {
   display: none !important;
 }
 
+body.pincon-classic-ops-open .pincon-class-ops-trigger {
+  z-index: 110;
+}
+
 @media (max-width: 600px) {
-  .pincon-classic-launch-card {
-    padding: 17px 18px;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
-    border-radius: 24px;
+  :root {
+    --pincon-dock-trigger-size: 64px;
+    --pincon-dock-bar-width: calc(100vw - 98px);
+    --pincon-dock-bottom: max(8px, env(safe-area-inset-bottom));
   }
 
-  .pincon-classic-launch-card md-filled-tonal-button {
-    justify-self: start;
+  body.pincon-classic-home .floating-navigation {
+    min-height: 64px !important;
+    transform: translateX(calc(-50% - 36px)) !important;
+  }
+
+  .pincon-class-ops-trigger {
+    right: 8px;
+    --md-filled-tonal-icon-button-icon-size: 27px;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-shell[data-open="true"] {
+    inset: max(8px, env(safe-area-inset-top)) 6px max(6px, env(safe-area-inset-bottom)) !important;
+    border-radius: 30px !important;
   }
 
   body.pincon-classic-ops-open .pincon-ops-topbar {
-    height: 70px !important;
-    min-height: 70px !important;
-    padding-inline: 10px !important;
+    height: 68px !important;
+    min-height: 68px !important;
+    padding: 8px 12px !important;
   }
 
   body.pincon-classic-ops-open .pincon-ops-main {
-    inset: 70px 0 0 !important;
-    padding: 14px 12px 106px !important;
+    inset: 68px 0 0 !important;
+    padding: 12px 10px 98px !important;
   }
 
   body.pincon-classic-ops-open .pincon-ops-navigation {
-    width: calc(100vw - 16px) !important;
-    bottom: max(8px, env(safe-area-inset-bottom)) !important;
-    border-radius: 26px !important;
+    left: 8px !important;
+    right: 78px !important;
+    bottom: 8px !important;
   }
 
   body.pincon-classic-ops-open .pincon-ops-navigation md-tabs,
   body.pincon-classic-ops-open .pincon-ops-navigation .pincon-ops-tab-grid {
-    --md-primary-tab-container-height: 62px;
-    --md-primary-tab-with-icon-and-label-text-container-height: 62px;
+    --md-primary-tab-container-height: 60px;
+    --md-primary-tab-with-icon-and-label-text-container-height: 60px;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  body.pincon-classic-ops-open .pincon-ops-shell[data-open="true"] {
+    inset: 6px 8px !important;
+    border-radius: 24px !important;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-topbar {
+    height: 58px !important;
+    min-height: 58px !important;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-main {
+    inset: 58px 0 0 !important;
+    padding-bottom: 88px !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body.pincon-classic-ops-open::before,
   body.pincon-classic-ops-open .pincon-ops-view {
     animation: none !important;
+  }
+
+  .pincon-class-ops-trigger {
+    transition: none !important;
   }
 }
