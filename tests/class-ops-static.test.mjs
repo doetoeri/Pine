@@ -46,6 +46,8 @@ test("학급 선택 뒤 별도 진입 카드 없이 통합 셸을 바로 연다"
   assert.doesNotMatch(source, /data-pincon-ops-open/);
   assert.match(repository, /refreshProfile\(\)/);
   assert.match(css, /body\.pincon-unified-ready #root/);
+  assert.match(source, /pincon-ops-rail/);
+  assert.match(css, /\.pincon-ops-rail-nav/);
   assert.match(css, /\.pincon-ops-navigation md-tabs/);
 });
 

@@ -225,14 +225,22 @@ class PinconClassOpsApp {
     const profile = this.state.profile;
     const classLabel = profile ? `${profile.grade}학년 ${profile.classNumber}반` : "학급 선택 필요";
     const nav = [...NAV_ITEMS, ...(this.state.isPresident ? [["manage", "관리", "admin_panel_settings"]] : [])];
+    const currentNav = nav.find(([key]) => key === this.tab) || nav[0];
+    const activeIndex = Math.max(0, nav.findIndex(([key]) => key === this.tab));
     const body = this.renderView();
     this.shell.innerHTML = `
+      <aside class="pincon-ops-rail" aria-label="PinCon 탐색 패널">
+        <div class="pincon-ops-rail-brand"><span><md-icon>school</md-icon></span><div><strong>PinCon</strong><small>학급생활 허브</small></div></div>
+        <md-list class="pincon-ops-rail-nav" aria-label="주요 메뉴">${nav.map(([key, label, icon]) => `<md-list-item type="button" data-action="tab" data-tab="${key}" data-active="${key === this.tab}"${key === this.tab ? ` aria-current="page"` : ""}><md-icon slot="start">${icon}</md-icon><span slot="headline">${label}</span>${key === this.tab ? `<md-icon slot="end">arrow_right</md-icon>` : ""}</md-list-item>`).join("")}</md-list>
+        <div class="pincon-ops-rail-footer"><div>${statusPill(this.state.online ? "동기화됨" : "오프라인", this.state.online ? "good" : "")}</div><strong>${esc(classLabel)}</strong><span>${esc(SCHOOL.name)}${this.state.isPresident ? " · 회장 계정" : ""}</span></div>
+      </aside>
       <header class="pincon-ops-topbar">
-        <div class="pincon-ops-brand"><strong>PinCon</strong><span>${esc(SCHOOL.name)} · ${esc(classLabel)}${this.state.isPresident ? " · 회장 계정" : ""}</span></div>
-        <nav class="pincon-ops-navigation" aria-label="PinCon 주요 메뉴"><md-tabs active-tab-index="${Math.max(0, nav.findIndex(([key]) => key === this.tab))}">${nav.map(([key, label, icon]) => `<md-primary-tab data-action="tab" data-tab="${key}"${key === this.tab ? " active" : ""}><md-icon slot="icon">${icon}</md-icon>${label}</md-primary-tab>`).join("")}</md-tabs></nav>
+        <div class="pincon-ops-mobile-brand"><strong>PinCon</strong><span>${esc(classLabel)}</span></div>
+        <div class="pincon-ops-current"><span>${esc(currentNav[1])}</span><strong>${esc(classLabel)}</strong></div>
         <div class="pincon-ops-top-actions"><md-filled-tonal-icon-button data-action="search" aria-label="통합 검색"><md-icon>search</md-icon></md-filled-tonal-icon-button><md-filled-tonal-icon-button data-action="class-change" aria-label="학급 변경"><md-icon>account_circle</md-icon></md-filled-tonal-icon-button></div>
       </header>
       <main class="pincon-ops-main" tabindex="-1">${body}</main>
+      <nav class="pincon-ops-navigation" aria-label="PinCon 주요 메뉴"><md-tabs active-tab-index="${activeIndex}">${nav.map(([key, label, icon]) => `<md-primary-tab data-action="tab" data-tab="${key}"${key === this.tab ? " active" : ""}><md-icon slot="icon">${icon}</md-icon>${label}</md-primary-tab>`).join("")}</md-tabs></nav>
       ${this.state.isPresident ? `<md-fab class="pincon-unified-fab" label="빠른 등록" data-action="announcement-create"><md-icon slot="icon">add</md-icon></md-fab>` : ""}`;
   }
 
@@ -295,7 +303,7 @@ class PinconClassOpsApp {
     const examFocus = exam.active ? `<div class="pincon-ops-exam-grid">${sectionMarkup({ kicker: "시험기간 모드", title: "시험범위", count: examResources.length, body: scopeBody })}${sectionMarkup({ kicker: "이번 주", title: "수행평가", count: weekAssessments.length, body: weekBody })}</div>` : "";
     const importantBody = urgent.length ? `<div class="pincon-ops-feed-list">${urgent.map((item) => this.feedCard(item, true)).join("")}</div>` : emptyState("done_all", "오늘의 필수 확인 완료", "새 긴급 공지나 오늘 수행평가가 등록되면 가장 먼저 표시됩니다.");
     const restBody = regular.length ? `<div class="pincon-ops-feed-list">${regular.slice(0, 10).map((item) => this.feedCard(item)).join("")}</div>` : emptyState("inbox", "추가 안내가 없습니다", "급식·시간표·학사 일정과 학급 입력 자료가 연결되면 이곳에 모입니다.");
-    return `${this.pageHeading("오늘", title, "중요한 순서대로 학급 정보를 정리했습니다.")}${hero}${examFocus}<div class="pincon-ops-grid">${sectionMarkup({ kicker: "가장 중요", title: "놓치면 안 되는 정보", count: urgent.length, body: importantBody })}${sectionMarkup({ kicker: "오늘과 이번 주", title: "이어서 확인하기", count: regular.length, body: restBody })}</div>`;
+    return `${this.pageHeading("오늘", title, "기존 PinCon 정보와 학급 운영 기록을 한 흐름으로 정리했습니다.")}<div class="pincon-today-stage"><div class="pincon-today-lead">${hero}</div><aside class="pincon-today-focus">${sectionMarkup({ kicker: "먼저 확인", title: "놓치면 안 되는 정보", count: urgent.length, body: importantBody })}</aside></div>${examFocus}${sectionMarkup({ kicker: "오늘과 이번 주", title: "이어서 확인하기", count: regular.length, body: restBody, wide: true })}`;
   }
 
   renderSchedule() {
