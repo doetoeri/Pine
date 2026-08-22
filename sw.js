@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260822-notice-worksheet1";
+const PINCON_SW_VERSION = "20260822-unified1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -17,6 +17,7 @@ const PINCON_APP_SHELL = [
   "./pincon-print-center.css",
   "./pincon-expressive-all.css",
   "./pincon-controls.css",
+  "./pincon-unified-shell.css",
   "./material-official-loader.js",
   "./material-web.bundle.js",
   "./pincon-material-audit.js",

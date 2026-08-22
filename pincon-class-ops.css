@@ -298,7 +298,8 @@ body.pincon-ops-open { overflow: hidden; }
 .pincon-ops-check-row { min-height: 48px; display: flex; align-items: center; gap: 12px; }
 .pincon-ops-check-row label { color: var(--md-sys-color-on-surface); }
 .pincon-ops-file-field { padding: 16px; display: grid; gap: 8px; border: 1px dashed var(--md-sys-color-outline); border-radius: 16px; color: var(--md-sys-color-on-surface-variant); }
-.pincon-ops-file-field input { min-height: 40px; width: 100%; font: inherit; }
+.pincon-ops-file-field > div { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.pincon-ops-file-field [data-file-name] { min-width: 0; overflow: hidden; color: var(--md-sys-color-on-surface-variant); font-size: .82rem; text-overflow: ellipsis; white-space: nowrap; }
 .pincon-ops-form-error { margin: 0; color: var(--md-sys-color-error); font-size: .86rem; line-height: 1.45; }
 
 .pincon-ops-search-results { width: min(680px, calc(100vw - 76px)); max-height: 60vh; overflow: auto; }
