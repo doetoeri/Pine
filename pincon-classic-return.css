@@ -1,0 +1,251 @@
+/* PinCon classic-return layer.
+ * Keep the current class-operations feature set, but restore the original PinCon
+ * as the primary app surface. Class operations become an explicit secondary view.
+ */
+
+body.pincon-classic-home {
+  overflow: auto !important;
+}
+
+body.pincon-classic-home #root {
+  display: block !important;
+  visibility: visible !important;
+}
+
+body.pincon-classic-home .pincon-ops-shell {
+  display: none !important;
+}
+
+body.pincon-classic-home .floating-navigation {
+  display: flex !important;
+}
+
+body.pincon-classic-home .compose-fab,
+body.pincon-classic-home .pincon-material-next-fab {
+  display: initial;
+}
+
+.pincon-classic-launch-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-block: 8px 4px;
+  padding: 20px 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent);
+  border-radius: 28px;
+  background: var(--md-sys-color-surface-container-low, #f2f5ec);
+  color: var(--md-sys-color-on-surface, #191d17);
+}
+
+.pincon-classic-launch-copy {
+  min-width: 0;
+}
+
+.pincon-classic-launch-copy p,
+.pincon-classic-launch-copy h2 {
+  margin: 0;
+}
+
+.pincon-classic-launch-kicker {
+  color: var(--md-sys-color-primary, #386a20);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.pincon-classic-launch-copy h2 {
+  margin-top: 5px;
+  font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+  line-height: 1.25;
+  letter-spacing: -.025em;
+}
+
+.pincon-classic-launch-copy p:last-child {
+  margin-top: 7px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.pincon-classic-launch-card md-filled-tonal-button {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+/* When class operations are explicitly opened, use the simpler pre-unified hierarchy. */
+body.pincon-classic-ops-open #root {
+  display: none !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-shell[data-open="true"] {
+  display: block !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-rail {
+  display: none !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-topbar {
+  inset: 0 0 auto !important;
+  height: 76px !important;
+  min-height: 76px !important;
+  padding: max(10px, env(safe-area-inset-top)) max(14px, calc((100vw - 1120px) / 2)) !important;
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant, #c3c8bb) !important;
+  background: color-mix(in srgb, var(--md-sys-color-surface, #f8fbf2) 96%, transparent) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(14px) saturate(1.04);
+}
+
+body.pincon-classic-ops-open .pincon-classic-back {
+  display: inline-flex;
+}
+
+body.pincon-classic-ops-open .pincon-ops-mobile-brand {
+  min-width: 0;
+  display: block !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-mobile-brand strong,
+body.pincon-classic-ops-open .pincon-ops-mobile-brand span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.pincon-classic-ops-open .pincon-ops-mobile-brand strong {
+  color: var(--md-sys-color-on-surface, #191d17) !important;
+  font-size: 1rem !important;
+  letter-spacing: -.02em !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-mobile-brand span {
+  margin-top: 2px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: .72rem;
+}
+
+body.pincon-classic-ops-open .pincon-ops-current {
+  display: none !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-top-actions {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+body.pincon-classic-ops-open .pincon-ops-main {
+  inset: 76px 0 0 !important;
+  padding: 22px max(16px, calc((100vw - 1120px) / 2)) 116px !important;
+  scrollbar-gutter: auto !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-view {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  gap: 24px !important;
+  animation: pincon-classic-view-in 160ms cubic-bezier(.2, 0, 0, 1) both !important;
+}
+
+@keyframes pincon-classic-view-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body.pincon-classic-ops-open .pincon-ops-page-heading {
+  min-height: auto !important;
+  padding: 18px 2px 4px !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-page-heading h1 {
+  font-size: clamp(2rem, 5vw, 3.25rem) !important;
+  line-height: 1.12 !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-navigation {
+  position: fixed !important;
+  z-index: 90 !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  width: min(720px, calc(100vw - 24px)) !important;
+  transform: translateX(-50%) !important;
+  display: block !important;
+  overflow: hidden !important;
+  border: 1px solid var(--md-sys-color-outline-variant, #c3c8bb) !important;
+  border-radius: 28px !important;
+  background: var(--md-sys-color-surface-container-high, #e6e9e1) !important;
+  box-shadow: 0 8px 24px rgba(25, 29, 23, .10) !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-navigation md-tabs,
+body.pincon-classic-ops-open .pincon-ops-navigation .pincon-ops-tab-grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(var(--pincon-tab-count, 5), minmax(0, 1fr)) !important;
+  overflow: hidden !important;
+  --md-primary-tab-container-height: 64px;
+  --md-primary-tab-with-icon-and-label-text-container-height: 64px;
+}
+
+body.pincon-classic-ops-open .pincon-ops-navigation md-primary-tab {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+body.pincon-classic-ops-open .pincon-unified-fab {
+  display: none !important;
+}
+
+@media (max-width: 600px) {
+  .pincon-classic-launch-card {
+    padding: 17px 18px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    border-radius: 24px;
+  }
+
+  .pincon-classic-launch-card md-filled-tonal-button {
+    justify-self: start;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-topbar {
+    height: 70px !important;
+    min-height: 70px !important;
+    padding-inline: 10px !important;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-main {
+    inset: 70px 0 0 !important;
+    padding: 14px 12px 106px !important;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-navigation {
+    width: calc(100vw - 16px) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    border-radius: 26px !important;
+  }
+
+  body.pincon-classic-ops-open .pincon-ops-navigation md-tabs,
+  body.pincon-classic-ops-open .pincon-ops-navigation .pincon-ops-tab-grid {
+    --md-primary-tab-container-height: 62px;
+    --md-primary-tab-with-icon-and-label-text-container-height: 62px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.pincon-classic-ops-open .pincon-ops-view {
+    animation: none !important;
+  }
+}
