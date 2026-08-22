@@ -101,11 +101,11 @@ function listDivider(index, size) {
 }
 
 function emptyState(icon, title, body, action = "") {
-  return `<div class="pincon-ops-empty"><md-icon>${esc(icon)}</md-icon><strong>${esc(title)}</strong><p>${esc(body)}</p>${action}</div>`;
+  return `<md-list class="pincon-ops-empty"><md-list-item><md-icon slot="start">${esc(icon)}</md-icon><span slot="headline">${esc(title)}</span><span slot="supporting-text">${esc(body)}</span>${action ? `<span slot="end">${action}</span>` : ""}</md-list-item></md-list>`;
 }
 
 function statusPill(label, tone = "") {
-  return `<span class="pincon-ops-status-pill"${tone ? ` data-tone="${attr(tone)}"` : ""}>${esc(label)}</span>`;
+  return `<md-assist-chip class="pincon-ops-status-pill" label="${attr(label)}"${tone ? ` data-tone="${attr(tone)}"` : ""}></md-assist-chip>`;
 }
 
 function sectionMarkup({ kicker, title, count = "", body, wide = false, action = "" }) {
@@ -132,7 +132,7 @@ function checkField(name, label, checked = false) {
 }
 
 function fileField(name, label, { imageOnly = false } = {}) {
-  return `<label class="pincon-ops-file-field"><strong>${esc(label)}</strong><span>${imageOnly ? "이미지" : "이미지·PDF·문서"}, 최대 10MB</span><input data-file="${attr(name)}" type="file" accept="${imageOnly ? "image/*" : "image/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx"}"></label>`;
+  return `<div class="pincon-ops-file-field"><strong>${esc(label)}</strong><span>${imageOnly ? "이미지" : "이미지·PDF·문서"}, 최대 10MB</span><input data-file="${attr(name)}" type="file" accept="${imageOnly ? "image/*" : "image/*,.pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx"}" hidden><div><md-outlined-button data-file-trigger="${attr(name)}"><md-icon slot="icon">attach_file</md-icon>파일 고르기</md-outlined-button><span data-file-name="${attr(name)}">선택된 파일 없음</span></div></div>`;
 }
 
 class PinconClassOpsApp {
@@ -144,11 +144,12 @@ class PinconClassOpsApp {
     this.shell = null;
     this.toastTimer = 0;
     this.presentation = null;
+    this.installPrompt = null;
     this.repo.addEventListener("change", (event) => {
       this.state = event.detail;
       if (!this.state.isPresident && this.tab === "manage") this.tab = "today";
+      if (this.state.classKey && !this.opened) this.open(this.tab);
       this.render();
-      this.updateLaunchCard();
     });
   }
 
@@ -163,17 +164,31 @@ class PinconClassOpsApp {
     });
     this.shell.addEventListener("change", (event) => this.onChange(event));
     this.shell.addEventListener("input", (event) => this.onInput(event));
-    document.addEventListener("click", (event) => {
-      const target = event.composedPath?.().find((node) => node?.dataset?.pinconOpsOpen !== undefined);
-      if (target) this.open();
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      this.installPrompt = event;
+      this.render();
     });
-    const observer = new MutationObserver(() => this.updateLaunchCard());
+    const observer = new MutationObserver(() => this.syncProfile());
     observer.observe(document.getElementById("root") || document.body, { childList: true, subtree: true });
-    this.updateLaunchCard();
+    this.syncProfile();
     this.render();
-    if (this.state.classKey) this.repo.start().catch((error) => this.repo.recordError(error));
     const initialUrl = new URL(location.href);
-    if (initialUrl.searchParams.get("class-ops") === "1") this.open(initialUrl.searchParams.get("class-tab") || "today");
+    this.tab = initialUrl.searchParams.get("class-tab") || "today";
+    if (this.state.classKey) this.open(this.tab);
+  }
+
+  syncProfile() {
+    const changed = this.repo.refreshProfile();
+    this.state = this.repo.snapshot();
+    if (!this.state.classKey) {
+      this.opened = false;
+      document.body.classList.remove("pincon-ops-open", "pincon-unified-ready");
+      this.shell.dataset.open = "false";
+      this.shell.setAttribute("aria-hidden", "true");
+      return;
+    }
+    if (changed || !this.opened) this.open(this.tab);
   }
 
   data(name) {
@@ -183,7 +198,7 @@ class PinconClassOpsApp {
   open(tab = "today") {
     this.opened = true;
     this.tab = tab === "manage" && !this.state.isPresident ? "today" : tab;
-    document.body.classList.add("pincon-ops-open");
+    document.body.classList.add("pincon-ops-open", "pincon-unified-ready");
     this.shell.dataset.open = "true";
     this.shell.setAttribute("aria-hidden", "false");
     const url = new URL(location.href);
@@ -196,42 +211,13 @@ class PinconClassOpsApp {
   }
 
   close() {
-    this.opened = false;
-    document.body.classList.remove("pincon-ops-open");
-    this.shell.dataset.open = "false";
-    this.shell.setAttribute("aria-hidden", "true");
-    const url = new URL(location.href);
-    url.searchParams.delete("class-ops");
-    url.searchParams.delete("class-tab");
-    history.replaceState(history.state, "", url);
+    this.tab = "more";
+    this.render();
   }
 
   updateLaunchCard() {
-    const view = document.querySelector(".app-shell:not(.onboarding-shell) .app-main .view-layout");
-    if (!view) return;
-    let card = view.querySelector(":scope > .pincon-ops-launch-card");
-    const feed = buildTodayFeed(this.state.data || {});
-    const urgent = feed.filter((item) => itemPriority(item) <= 3).length;
-    const preview = (urgent ? feed.filter((item) => itemPriority(item) <= 3) : feed).slice(0, 3);
-    const pending = activeRows(this.data("feedback")).filter((item) => ["received", "reviewing"].includes(item.status)).length;
-    const summary = urgent
-      ? `오늘 꼭 확인할 항목 ${urgent}개${pending ? ` · 처리 현황 공개 ${pending}건` : ""}`
-      : pending
-        ? `접수·검토 중인 학급 의견 ${pending}건`
-        : "오늘 정보부터 의견 처리와 패치노트까지 한곳에서 확인하세요.";
-    const signature = JSON.stringify([summary, ...preview.map((item) => [item.id, item.title, itemDate(item), item.updatedAtMs])]);
-    if (!card) {
-      card = document.createElement("section");
-      card.className = "pincon-ops-launch-card";
-      const hero = view.querySelector(":scope > .hero-area");
-      if (hero) hero.after(card);
-      else view.prepend(card);
-    }
-    if (card.dataset.signature !== signature) {
-      card.dataset.signature = signature;
-      const previewMarkup = preview.length ? `<div class="pincon-ops-launch-preview" aria-label="오늘의 중요 학급 정보">${preview.map((item) => `<div><md-icon>${ICONS[item.feedKind || item.type || item.kind] || "info"}</md-icon><span><strong>${esc(item.title || item.name || "학급 안내")}</strong><small>${esc([itemDate(item) ? relativeDateLabel(itemDate(item)) : "오늘", item.sourceLabel || item.source || "학급 입력"].join(" · "))}</small></span></div>`).join("")}</div>` : "";
-      card.innerHTML = `<div class="pincon-ops-launch-content"><div class="pincon-ops-launch-copy"><p>학급 운영</p><h2>말하면 기록되고, 처리되면 보입니다</h2><p class="pincon-ops-launch-summary">${esc(summary)}</p></div>${previewMarkup}</div><md-filled-tonal-button data-pincon-ops-open><md-icon slot="icon">door_open</md-icon>전체 보기</md-filled-tonal-button>`;
-    }
+    document.querySelectorAll(".pincon-ops-launch-card").forEach((card) => card.remove());
+    this.syncProfile();
   }
 
   render() {
@@ -242,18 +228,18 @@ class PinconClassOpsApp {
     const body = this.renderView();
     this.shell.innerHTML = `
       <header class="pincon-ops-topbar">
-        <md-filled-tonal-icon-button data-action="close" aria-label="기존 PinCon으로 돌아가기"><md-icon>arrow_back</md-icon></md-filled-tonal-icon-button>
-        <div class="pincon-ops-brand"><strong>PinCon 학급 운영</strong><span>${esc(SCHOOL.name)} · ${esc(classLabel)}${this.state.isPresident ? " · 회장 계정" : ""}</span></div>
-        <div class="pincon-ops-top-actions"><md-filled-tonal-icon-button data-action="search" aria-label="통합 검색"><md-icon>search</md-icon></md-filled-tonal-icon-button></div>
+        <div class="pincon-ops-brand"><strong>PinCon</strong><span>${esc(SCHOOL.name)} · ${esc(classLabel)}${this.state.isPresident ? " · 회장 계정" : ""}</span></div>
+        <nav class="pincon-ops-navigation" aria-label="PinCon 주요 메뉴"><md-tabs active-tab-index="${Math.max(0, nav.findIndex(([key]) => key === this.tab))}">${nav.map(([key, label, icon]) => `<md-primary-tab data-action="tab" data-tab="${key}"${key === this.tab ? " active" : ""}><md-icon slot="icon">${icon}</md-icon>${label}</md-primary-tab>`).join("")}</md-tabs></nav>
+        <div class="pincon-ops-top-actions"><md-filled-tonal-icon-button data-action="search" aria-label="통합 검색"><md-icon>search</md-icon></md-filled-tonal-icon-button><md-filled-tonal-icon-button data-action="class-change" aria-label="학급 변경"><md-icon>account_circle</md-icon></md-filled-tonal-icon-button></div>
       </header>
       <main class="pincon-ops-main" tabindex="-1">${body}</main>
-      <nav class="pincon-ops-navigation" aria-label="학급 운영 주요 메뉴"><md-tabs active-tab-index="${Math.max(0, nav.findIndex(([key]) => key === this.tab))}">${nav.map(([key, label, icon]) => `<md-primary-tab data-action="tab" data-tab="${key}"${key === this.tab ? " active" : ""}><md-icon slot="icon">${icon}</md-icon>${label}</md-primary-tab>`).join("")}</md-tabs></nav>`;
+      ${this.state.isPresident ? `<md-fab class="pincon-unified-fab" label="빠른 등록" data-action="announcement-create"><md-icon slot="icon">add</md-icon></md-fab>` : ""}`;
   }
 
   renderView() {
     const error = this.state.lastError ? `<div class="pincon-ops-error" role="alert"><md-icon>error</md-icon><span>${esc(this.state.lastError)}</span></div>` : "";
     const loading = !this.state.ready && this.state.syncing
-      ? `<div class="pincon-ops-empty"><md-icon>sync</md-icon><strong>학급 정보를 연결하는 중입니다</strong><p>기존 PinCon 데이터와 학급 운영 기록을 안전하게 불러오고 있습니다.</p></div>`
+      ? emptyState("sync", "학급 정보를 연결하는 중입니다", "기존 PinCon 데이터와 학급 운영 기록을 안전하게 불러오고 있습니다.")
       : "";
     const content = ({
       today: () => this.renderToday(),
@@ -273,11 +259,11 @@ class PinconClassOpsApp {
   feedCard(item, priority = false) {
     const date = itemDate(item);
     const body = item.body || item.description || (item.periods ? `${item.periods.length}교시` : "");
-    return `<article class="pincon-ops-feed-card"${priority ? " data-priority=\"top\"" : ""}>
-      <span class="pincon-ops-feed-icon"><md-icon>${ICONS[item.feedKind || item.type || item.kind] || "info"}</md-icon></span>
-      <div class="pincon-ops-feed-copy"><strong>${esc(item.title || item.name || "학급 안내")}</strong><span>${esc(compact(body, 120) || item.subject || "자세한 내용을 확인하세요.")}</span></div>
-      <div class="pincon-ops-feed-meta"><small>${esc(date ? relativeDateLabel(date) : "오늘")}</small><small>${esc(item.sourceLabel || item.source || "학급 입력")}</small></div>
-    </article>`;
+    return `<md-list class="pincon-ops-feed-card"${priority ? " data-priority=\"top\"" : ""}><md-list-item>
+      <md-icon slot="start">${ICONS[item.feedKind || item.type || item.kind] || "info"}</md-icon>
+      <span slot="headline">${esc(item.title || item.name || "학급 안내")}</span>
+      <span slot="supporting-text">${esc(compact(body, 120) || item.subject || "자세한 내용을 확인하세요.")} · ${esc(date ? relativeDateLabel(date) : "오늘")} · ${esc(item.sourceLabel || item.source || "학급 입력")}</span>
+    </md-list-item></md-list>`;
   }
 
   renderToday() {
@@ -317,10 +303,12 @@ class PinconClassOpsApp {
     const assignments = activeRows(this.data("classAssignments")).filter((item) => dateToMs(itemDate(item)) >= dateToMs(today)).sort(byDate);
     const academic = activeRows(this.data("academicSchedules")).filter((item) => dateToMs(item.date) >= dateToMs(today)).sort(byDate).slice(0, 20);
     const timetable = activeRows(this.data("neisTimetables")).find((item) => item.date === today);
+    const changes = activeRows(this.data("content")).filter((item) => item.kind === "schedule").sort(byNewest).slice(0, 20);
     const assignmentBody = assignments.length ? `<div class="pincon-ops-surface"><md-list>${assignments.slice(0, 30).map((item, index) => `<md-list-item><md-icon slot="start">${ICONS[item.type] || "event"}</md-icon><span slot="headline">${esc(item.title)}</span><span slot="supporting-text">${esc([item.subject, relativeDateLabel(itemDate(item)), item.type === "preparation" ? "준비물" : "수행·시험"].filter(Boolean).join(" · "))}</span>${this.state.isPresident ? `<span slot="end"><md-text-button data-action="assignment-edit" data-id="${attr(item.id)}">수정</md-text-button><md-text-button data-action="item-delete" data-collection="classAssignments" data-id="${attr(item.id)}">삭제</md-text-button></span>` : ""}</md-list-item>${listDivider(index, assignments.length)}`).join("")}</md-list></div>` : emptyState("event_available", "등록된 수행평가가 없습니다", "회장이 수행평가와 준비물을 등록하면 날짜순으로 표시됩니다.");
     const timetableBody = timetable?.periods?.length ? `<div class="pincon-ops-surface"><md-list>${timetable.periods.map((period, index) => `<md-list-item><md-icon slot="start">counter_${Math.min(9, Number(period.period || index + 1))}</md-icon><span slot="headline">${esc(period.subject || "과목 미정")}</span><span slot="supporting-text">${esc(`${period.period || index + 1}교시${period.room ? ` · ${period.room}` : ""}`)}</span></md-list-item>${listDivider(index, timetable.periods.length)}`).join("")}</md-list></div>` : emptyState("calendar_view_week", "오늘 시간표를 기다리는 중입니다", "컴시간 또는 NEIS 동기화가 완료되면 자동으로 표시됩니다.");
     const academicBody = academic.length ? `<div class="pincon-ops-surface"><md-list>${academic.map((item, index) => `<md-list-item><md-icon slot="start">event_note</md-icon><span slot="headline">${esc(item.title || item.eventName)}</span><span slot="supporting-text">${esc(`${formatKoreanDate(item.date)} · ${item.source || "NEIS"}`)}</span></md-list-item>${listDivider(index, academic.length)}`).join("")}</md-list></div>` : emptyState("event_busy", "예정된 학사일정이 없습니다", "NEIS 학사일정이 자동으로 연결되면 표시됩니다.");
-    return `${this.pageHeading("일정", "수행평가와 학사일정", "학급 입력과 공공 데이터를 출처별로 구분합니다.")}<div class="pincon-ops-grid">${sectionMarkup({ kicker: "학급 입력", title: "수행평가·준비물", count: assignments.length, body: assignmentBody })}${sectionMarkup({ kicker: timetable?.source || "자동 연동", title: "오늘 시간표", body: timetableBody })}${sectionMarkup({ kicker: "NEIS", title: "학사일정", count: academic.length, body: academicBody, wide: true })}</div>`;
+    const changeBody = changes.length ? `<div class="pincon-ops-surface"><md-list>${changes.map((item, index) => `<md-list-item><md-icon slot="start">move_up</md-icon><span slot="headline">${esc(item.title || `${item.day || ""} ${item.period || ""}교시 ${item.subject || "수업 변경"}`)}</span><span slot="supporting-text">${esc([item.status, item.room, compact(item.body, 100)].filter(Boolean).join(" · ") || "기존 PinCon에서 등록된 변경")}</span></md-list-item>${listDivider(index, changes.length)}`).join("")}</md-list></div>` : emptyState("event_repeat", "등록된 수업 변경이 없습니다", "시간표·교실 이동이 등록되면 자동 시간표와 함께 표시됩니다.");
+    return `${this.pageHeading("일정", "수행평가와 학사일정", "기존 PinCon의 수업 변경과 NEIS·학급 입력을 출처별로 함께 보여 줍니다.")}<div class="pincon-ops-grid">${sectionMarkup({ kicker: "학급 입력", title: "수행평가·준비물", count: assignments.length, body: assignmentBody })}${sectionMarkup({ kicker: timetable?.source || "자동 연동", title: "오늘 시간표", body: timetableBody })}${sectionMarkup({ kicker: "기존 PinCon", title: "수업 변경·교실 이동", count: changes.length, body: changeBody, wide: true })}${sectionMarkup({ kicker: "NEIS", title: "학사일정", count: academic.length, body: academicBody, wide: true })}</div>`;
   }
 
   feedbackCard(item) {
@@ -353,11 +341,13 @@ class PinconClassOpsApp {
     const events = activeRows(this.data("events")).filter((item) => this.state.isPresident || item.status !== "draft").sort(byDate);
     const polls = activeRows(this.data("polls")).filter((item) => item.official === true).sort(byNewest);
     const patches = activeRows(this.data("patchNotes")).sort((a, b) => String(b.month || "").localeCompare(String(a.month || "")));
+    const groups = activeRows(this.data("content")).filter((item) => item.kind === "group").sort(byNewest);
     const feedbackBody = feedback.length ? `<div class="pincon-ops-card-grid">${feedback.map((item) => this.feedbackCard(item)).join("")}</div>` : emptyState("forum", "아직 공개된 건의가 없습니다", "익명 의견을 남기면 접수부터 처리 결과까지 공개됩니다.", `<md-filled-tonal-button data-action="feedback-create">첫 의견 남기기</md-filled-tonal-button>`);
     const eventBody = events.length ? `<div class="pincon-ops-card-grid">${events.map((item) => this.eventCard(item)).join("")}</div>` : emptyState("celebration", "예정된 학급 행사가 없습니다", "첫 행사 템플릿은 ‘우리반 34명에게 물었습니다’입니다.", this.state.isPresident ? `<md-filled-tonal-button data-action="event-template">첫 행사 만들기</md-filled-tonal-button>` : "");
     const pollBody = polls.length ? `<div class="pincon-ops-card-grid">${polls.map((item) => this.pollCard(item)).join("")}</div>` : emptyState("how_to_vote", "진행 중인 공식 투표가 없습니다", "다음 행사 아이디어나 학급 선택을 공정하게 투표할 수 있습니다.");
     const patchBody = patches.length ? `<div class="pincon-ops-card-grid">${patches.map((item) => this.patchCard(item)).join("")}</div>` : emptyState("new_releases", "첫 패치노트를 준비 중입니다", "처리된 의견과 운영 변경을 모아 월별로 공개합니다.");
-    return `${this.pageHeading("학급", "우리 반이 바뀌는 과정", "의견 접수부터 처리와 패치노트까지 한 흐름으로 확인하세요.")}<div class="pincon-ops-status-line"><md-filled-button data-action="feedback-create"><md-icon slot="icon">add_comment</md-icon>익명 의견</md-filled-button>${this.state.isPresident ? `<md-outlined-button data-action="event-create">행사 만들기</md-outlined-button><md-outlined-button data-action="poll-create">투표 만들기</md-outlined-button>` : ""}</div>${sectionMarkup({ kicker: "학생 의견 → 처리", title: "학급 개선 건의", count: feedback.length, body: feedbackBody, wide: true })}${sectionMarkup({ kicker: "함께 참여", title: "학급 행사", count: events.length, body: eventBody, wide: true })}${sectionMarkup({ kicker: "선택", title: "행사 아이디어 투표", count: polls.length, body: pollBody, wide: true })}${sectionMarkup({ kicker: "월별 기록", title: "학급 패치노트", count: patches.length, body: patchBody, wide: true })}`;
+    const groupBody = groups.length ? `<div class="pincon-ops-surface"><md-list>${groups.map((item, index) => `<md-list-item><md-icon slot="start">groups_2</md-icon><span slot="headline">${esc([item.subject, item.title || item.groupLabel].filter(Boolean).join(" · ") || "학급 모둠")}</span><span slot="supporting-text">${esc(item.groupLabel || `${Array.isArray(item.members) ? item.members.length : 0}명 · 역할 확인`)}</span></md-list-item>${listDivider(index, groups.length)}`).join("")}</md-list></div>` : emptyState("group_off", "등록된 모둠이 없습니다", "기존 PinCon에 모둠과 역할이 등록되면 이곳에 함께 표시됩니다.");
+    return `${this.pageHeading("학급", "우리 반이 바뀌는 과정", "모둠·의견·행사·투표와 처리 결과를 한 흐름으로 확인하세요.")}<div class="pincon-ops-status-line"><md-filled-button data-action="feedback-create"><md-icon slot="icon">add_comment</md-icon>익명 의견</md-filled-button>${this.state.isPresident ? `<md-outlined-button data-action="event-create">행사 만들기</md-outlined-button><md-outlined-button data-action="poll-create">투표 만들기</md-outlined-button>` : ""}</div>${sectionMarkup({ kicker: "기존 PinCon", title: "모둠과 역할", count: groups.length, body: groupBody, wide: true })}${sectionMarkup({ kicker: "학생 의견 → 처리", title: "학급 개선 건의", count: feedback.length, body: feedbackBody, wide: true })}${sectionMarkup({ kicker: "함께 참여", title: "학급 행사", count: events.length, body: eventBody, wide: true })}${sectionMarkup({ kicker: "선택", title: "행사 아이디어 투표", count: polls.length, body: pollBody, wide: true })}${sectionMarkup({ kicker: "월별 기록", title: "학급 패치노트", count: patches.length, body: patchBody, wide: true })}`;
   }
 
   supplyCard(item) {
@@ -405,7 +395,9 @@ class PinconClassOpsApp {
     };
     const notificationBody = `<div class="pincon-ops-surface" style="padding:12px 18px">${Object.entries(labels).map(([key, [title, body]]) => `<div class="pincon-ops-notification-row"><div><strong>${esc(title)}</strong><span>${esc(body)}</span></div><md-switch data-pref="${key}"${prefs[key] ? " selected" : ""}></md-switch></div>`).join("")}<div style="padding:14px 0 4px"><md-filled-button data-action="notifications-enable"><md-icon slot="icon">notifications_active</md-icon>이 기기에서 알림 켜기</md-filled-button></div></div>`;
     const accountLabel = this.state.user?.displayName || (this.state.isPresident ? "학급 회장 계정" : this.state.user ? "학생 참여 계정" : "읽기 전용");
-    const accountBody = `<div class="pincon-ops-surface"><md-list><md-list-item><md-icon slot="start">${this.state.isPresident ? "verified_user" : "account_circle"}</md-icon><span slot="headline">${esc(accountLabel)}</span><span slot="supporting-text">${esc(this.state.isPresident ? "학급 회장 전용 관리 권한이 확인되었습니다." : this.state.user ? "학생 참여 계정" : "의견·투표 참여 시 이름 설정 또는 Google 로그인이 필요합니다.")}</span>${!this.state.isPresident ? `<md-text-button slot="end" data-action="president-login">회장 로그인</md-text-button>` : ""}</md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">sync</md-icon><span slot="headline">${this.state.online ? "온라인 동기화 중" : "오프라인 캐시 사용 중"}</span><span slot="supporting-text">새로고침 후에도 공개 학급 정보가 유지됩니다.</span></md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">privacy_tip</md-icon><span slot="headline">익명성과 개인정보 보호</span><span slot="supporting-text">익명 건의·행사 답변에는 이메일이나 UID를 저장하지 않습니다.</span></md-list-item><md-divider inset></md-divider><md-list-item type="button" data-action="legal-info"><md-icon slot="start">gavel</md-icon><span slot="headline">공유·저작권 안내</span><span slot="supporting-text">카카오톡 공유와 학습지 등록 전에 확인할 원칙</span><md-icon slot="end">chevron_right</md-icon></md-list-item></md-list></div>`;
+    const installed = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+    const classLabel = this.state.profile ? `${this.state.profile.grade}학년 ${this.state.profile.classNumber}반` : "학급 미선택";
+    const accountBody = `<div class="pincon-ops-surface"><md-list><md-list-item type="button" data-action="class-change"><md-icon slot="start">school</md-icon><span slot="headline">${esc(classLabel)}</span><span slot="supporting-text">표시할 학년과 반 변경</span><md-icon slot="end">chevron_right</md-icon></md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">${this.state.isPresident ? "verified_user" : "account_circle"}</md-icon><span slot="headline">${esc(accountLabel)}</span><span slot="supporting-text">${esc(this.state.isPresident ? "학급 회장 전용 관리 권한이 확인되었습니다." : this.state.user ? "학생 참여 계정" : "의견·투표 참여 시 이름 설정 또는 Google 로그인이 필요합니다.")}</span>${!this.state.isPresident ? `<md-text-button slot="end" data-action="president-login">회장 로그인</md-text-button>` : ""}</md-list-item><md-divider inset></md-divider><md-list-item type="button" data-action="install-app"><md-icon slot="start">${installed ? "download_done" : "install_mobile"}</md-icon><span slot="headline">${installed ? "PinCon이 설치되어 있습니다" : "홈 화면에 PinCon 설치"}</span><span slot="supporting-text">${installed ? "독립 실행과 오프라인 앱 셸을 사용 중입니다." : "휴대폰·태블릿·크롬북에서 앱처럼 실행합니다."}</span>${installed ? "" : `<md-icon slot="end">chevron_right</md-icon>`}</md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">sync</md-icon><span slot="headline">${this.state.online ? "온라인 동기화 중" : "오프라인 캐시 사용 중"}</span><span slot="supporting-text">새로고침 후에도 공개 학급 정보가 유지됩니다.</span></md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">privacy_tip</md-icon><span slot="headline">익명성과 개인정보 보호</span><span slot="supporting-text">익명 건의·행사 답변에는 이메일이나 UID를 저장하지 않습니다.</span></md-list-item><md-divider inset></md-divider><md-list-item type="button" data-action="legal-info"><md-icon slot="start">gavel</md-icon><span slot="headline">공유·저작권 안내</span><span slot="supporting-text">카카오톡 공유와 학습지 등록 전에 확인할 원칙</span><md-icon slot="end">chevron_right</md-icon></md-list-item></md-list></div>`;
     return `${this.pageHeading("더보기", "알림과 개인정보 설정", "필요한 알림만 선택하고 계정·동기화 상태를 확인하세요.")}<div class="pincon-ops-action-grid"><md-filled-tonal-button data-action="search"><md-icon slot="icon">search</md-icon>통합 검색</md-filled-tonal-button><md-outlined-button data-action="feedback-create"><md-icon slot="icon">forum</md-icon>익명 의견</md-outlined-button>${this.state.isPresident ? `<md-outlined-button data-action="tab" data-tab="manage"><md-icon slot="icon">admin_panel_settings</md-icon>관리 대시보드</md-outlined-button>` : ""}</div><div class="pincon-ops-grid">${sectionMarkup({ kicker: "기기별 설정", title: "알림 종류", body: notificationBody })}${sectionMarkup({ kicker: `PinCon Class Ops ${CLASS_OPS_VERSION}`, title: "계정·데이터", body: accountBody })}</div>`;
   }
 
@@ -461,6 +453,8 @@ class PinconClassOpsApp {
         return;
       }
       if (action === "search") return this.openSearch();
+      if (action === "class-change") return this.openClassChange();
+      if (action === "install-app") return this.installApp();
       if (action === "notice-share") return this.openNoticeShare();
       if (action === "legal-info") return this.showLegalInfo();
       if (action === "feedback-create") return this.openEditor("feedback");
@@ -659,6 +653,14 @@ class PinconClassOpsApp {
     const cleanup = () => setTimeout(() => dialog.remove(), 0);
     dialog.addEventListener("closed", cleanup, { once: true });
     dialog.querySelector("[data-cancel]").addEventListener("click", () => dialog.close());
+    dialog.querySelectorAll("[data-file-trigger]").forEach((trigger) => {
+      const input = dialog.querySelector(`[data-file="${trigger.dataset.fileTrigger}"]`);
+      const label = dialog.querySelector(`[data-file-name="${trigger.dataset.fileTrigger}"]`);
+      trigger.addEventListener("click", () => input?.click());
+      input?.addEventListener("change", () => {
+        if (label) label.textContent = input.files?.[0]?.name || "선택된 파일 없음";
+      });
+    });
     dialog.querySelector("[data-submit]").addEventListener("click", async () => {
       const button = dialog.querySelector("[data-submit]");
       const errorBox = dialog.querySelector("[data-form-error]");
@@ -876,6 +878,49 @@ class PinconClassOpsApp {
     const draft = this.findItem("patchNoteDrafts", id);
     if (!draft) throw new Error("패치노트 초안을 찾지 못했습니다.");
     await this.confirm("이 패치노트를 발행할까요?", "발행하면 모든 학생이 월별 기록에서 볼 수 있습니다.", async () => this.repo.publishPatchNote(id, draft));
+  }
+
+  async openClassChange() {
+    const profile = this.state.profile || { grade: 1, classNumber: 1 };
+    return this.formDialog({
+      headline: "내 학급 변경",
+      submitLabel: "학급 연결",
+      content: `<div class="pincon-ops-dialog-grid">${selectField("grade", "학년", [1, 2, 3].map((value) => [value, `${value}학년`]), profile.grade)}${selectField("classNumber", "반", Array.from({ length: 10 }, (_, index) => [index + 1, `${index + 1}반`]), profile.classNumber)}</div><div class="pincon-ops-legal-note"><md-icon>sync</md-icon><span>변경하면 공지·시간표·학급 운영·자료가 선택한 반 기준으로 다시 연결됩니다.</span></div>`,
+      onSubmit: async (values) => {
+        const grade = Number(values.grade);
+        const classNumber = Number(values.classNumber);
+        if (!Number.isInteger(grade) || grade < 1 || grade > 3 || !Number.isInteger(classNumber) || classNumber < 1 || classNumber > 10) {
+          throw new Error("학년과 반을 올바르게 선택해 주세요.");
+        }
+        localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade, classNumber }));
+        this.repo.refreshProfile();
+        this.state = this.repo.snapshot();
+        this.tab = "today";
+        this.open("today");
+        window.dispatchEvent(new CustomEvent("pincon-profile-change", { detail: { grade, classNumber } }));
+      },
+    });
+  }
+
+  async installApp() {
+    if (matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) {
+      this.toast("PinCon이 이미 앱으로 실행 중입니다.");
+      return;
+    }
+    if (this.installPrompt) {
+      await this.installPrompt.prompt();
+      await this.installPrompt.userChoice.catch(() => null);
+      this.installPrompt = null;
+      this.render();
+      return;
+    }
+    const dialog = document.createElement("md-dialog");
+    dialog.className = "pincon-ops-dialog";
+    dialog.innerHTML = `<div slot="headline">PinCon 설치</div><div slot="content" class="pincon-ops-dialog-form"><md-list><md-list-item><md-icon slot="start">android</md-icon><span slot="headline">Android·Chrome</span><span slot="supporting-text">브라우저 메뉴에서 ‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택하세요.</span></md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">tablet_mac</md-icon><span slot="headline">iPhone·iPad Safari</span><span slot="supporting-text">공유 버튼을 누른 뒤 ‘홈 화면에 추가’를 선택하세요.</span></md-list-item></md-list></div><div slot="actions"><md-filled-button data-close>확인</md-filled-button></div>`;
+    document.body.appendChild(dialog);
+    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("closed", () => dialog.remove(), { once: true });
+    await dialog.show();
   }
 
   async openSearch() {

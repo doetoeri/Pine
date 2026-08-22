@@ -15,7 +15,7 @@ test("학급 운영 화면의 모든 정적 작업 버튼에 실행 핸들러가
   assert.deepEqual(missing, []);
 });
 
-test("HTML, 매니페스트, 서비스 워커가 학급 운영 모듈을 포함한다", async () => {
+test("HTML, 매니페스트, 서비스 워커가 통합 PinCon 셸을 포함한다", async () => {
   const [html, manifestText, serviceWorker] = await Promise.all([
     read("index.html"),
     read("manifest.webmanifest"),
@@ -24,13 +24,40 @@ test("HTML, 매니페스트, 서비스 워커가 학급 운영 모듈을 포함�
   const manifest = JSON.parse(manifestText);
   assert.match(html, /pincon-class-ops\.css/);
   assert.match(html, /pincon-class-ops\.js/);
+  assert.match(html, /pincon-unified-shell\.css/);
   assert.match(html, /pincon-print-center\.css/);
   assert.match(html, /pincon-print-center\.js/);
   assert.match(serviceWorker, /pincon-class-ops-core\.js/);
   assert.match(serviceWorker, /pincon-class-ops-data\.js/);
   assert.match(serviceWorker, /pincon-print-center\.css/);
   assert.match(serviceWorker, /pincon-print-center\.js/);
-  assert.ok(manifest.shortcuts.some((item) => String(item.url).includes("class-ops=1")));
+  assert.match(serviceWorker, /pincon-unified-shell\.css/);
+  assert.ok(manifest.shortcuts.some((item) => String(item.url).includes("class-tab=today")));
+});
+
+test("학급 선택 뒤 별도 진입 카드 없이 통합 셸을 바로 연다", async () => {
+  const [source, repository, css] = await Promise.all([
+    read("pincon-class-ops.js"),
+    read("pincon-class-ops-data.js"),
+    read("pincon-unified-shell.css"),
+  ]);
+  assert.match(source, /if \(this\.state\.classKey\) this\.open\(this\.tab\)/);
+  assert.match(source, /document\.body\.classList\.add\("pincon-ops-open", "pincon-unified-ready"\)/);
+  assert.doesNotMatch(source, /data-pincon-ops-open/);
+  assert.match(repository, /refreshProfile\(\)/);
+  assert.match(css, /body\.pincon-unified-ready #root/);
+  assert.match(css, /\.pincon-ops-navigation md-tabs/);
+});
+
+test("통합 셸의 상호작용 컴포넌트는 공식 Material Web 태그를 사용한다", async () => {
+  const source = await read("pincon-class-ops.js");
+  assert.match(source, /<md-assist-chip/);
+  assert.match(source, /<md-tabs/);
+  assert.match(source, /<md-fab/);
+  assert.match(source, /document\.createElement\("md-dialog"\)/);
+  assert.match(source, /<md-outlined-text-field/);
+  assert.match(source, /<md-outlined-select/);
+  assert.doesNotMatch(source, /<button\b/i);
 });
 
 test("서비스 워커의 로컬 앱 셸 파일이 모두 존재한다", async () => {

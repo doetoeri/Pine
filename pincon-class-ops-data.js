@@ -212,6 +212,29 @@ export class PinconClassOpsRepository extends EventTarget {
     };
   }
 
+  refreshProfile() {
+    const profile = classProfile();
+    const nextClassKey = profile?.classKey || "";
+    if (nextClassKey === this.state.classKey) return false;
+
+    this.unsubscribers.splice(0).forEach((stop) => stop());
+    this.privateUnsubscribers.splice(0).forEach((stop) => stop());
+    this.authUnsubscribe?.();
+    this.authUnsubscribe = null;
+    this.state.profile = profile;
+    this.state.classKey = nextClassKey;
+    this.state.ready = false;
+    this.state.syncing = false;
+    this.state.lastError = "";
+    this.state.role = null;
+    this.state.isPresident = false;
+    this.state.data = Object.fromEntries(
+      [...PUBLIC_COLLECTIONS, "patchNoteDrafts", "changeLogs", "supplyReports"].map((name) => [name, []]),
+    );
+    this.emit();
+    return true;
+  }
+
   emit() {
     this.dispatchEvent(new CustomEvent("change", { detail: this.snapshot() }));
   }
