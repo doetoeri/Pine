@@ -1,4 +1,4 @@
-const UI_STABILITY_VERSION = "20260823-1";
+const UI_STABILITY_VERSION = "20260823-2";
 let scheduled = false;
 
 function stripScale(transform) {
@@ -126,7 +126,8 @@ function repair() {
 function scheduleRepair() {
   if (scheduled) return;
   scheduled = true;
-  requestAnimationFrame(repair);
+  if (typeof queueMicrotask === "function") queueMicrotask(repair);
+  else Promise.resolve().then(repair);
 }
 
 function start() {
@@ -136,10 +137,7 @@ function start() {
   window.addEventListener("pageshow", scheduleRepair, { passive: true });
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", start, { once: true });
-} else {
-  start();
-}
+if (document.body) start();
+else document.addEventListener("DOMContentLoaded", start, { once: true });
 
 globalThis.PINCON_UI_STABILITY_VERSION = UI_STABILITY_VERSION;
