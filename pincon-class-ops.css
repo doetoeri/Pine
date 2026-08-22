@@ -219,6 +219,31 @@ body.pincon-ops-open { overflow: hidden; }
 .pincon-ops-card-actions { margin-top: auto; padding-top: 4px; display: flex; flex-wrap: wrap; gap: 6px; }
 .pincon-ops-answer { padding: 12px 14px; border-left: 3px solid var(--md-sys-color-primary); border-radius: 0 14px 14px 0; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container); font-size: .86rem; line-height: 1.55; }
 
+.pincon-resource-filters {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) minmax(150px, 1fr) minmax(160px, 1fr);
+  gap: 10px;
+  border-radius: 22px;
+  background: var(--md-sys-color-surface-container-low);
+}
+.pincon-resource-filters > * { width: 100%; }
+.pincon-resource-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.pincon-resource-meta span { padding: 5px 8px; border-radius: 8px; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container); font-size: .72rem; font-weight: 600; }
+.pincon-resource-rights { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pincon-resource-rights small { color: var(--md-sys-color-on-surface-variant); font-size: .72rem; }
+.pincon-resource-source { padding: 9px 11px; border-radius: 10px; background: var(--md-sys-color-surface-container); font-size: .76rem !important; overflow-wrap: anywhere; }
+.pincon-resource-source strong { color: var(--md-sys-color-on-surface); }
+.pincon-ops-legal-note { padding: 14px 16px; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 11px; border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 22%, var(--md-sys-color-outline-variant)); border-radius: 18px; color: var(--md-sys-color-on-surface-variant); background: color-mix(in srgb, var(--md-sys-color-primary-container) 34%, var(--md-sys-color-surface)); font-size: .84rem; line-height: 1.55; }
+.pincon-ops-legal-note md-icon { color: var(--md-sys-color-primary); }
+.pincon-notice-dialog [data-notice-text] { min-height: 320px; }
+.pincon-legal-dialog section { padding: 14px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; border-radius: 16px; background: var(--md-sys-color-surface-container); }
+.pincon-legal-dialog section md-icon { color: var(--md-sys-color-primary); }
+.pincon-legal-dialog strong,
+.pincon-legal-dialog p { margin: 0; }
+.pincon-legal-dialog p { margin-top: 4px; color: var(--md-sys-color-on-surface-variant); font-size: .84rem; line-height: 1.55; }
+.pincon-ops-legal-footnote { margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: .76rem; line-height: 1.5; }
+
 .pincon-ops-patch-section { display: grid; gap: 8px; }
 .pincon-ops-patch-section h4 { margin: 0; color: var(--md-sys-color-primary); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; }
 .pincon-ops-patch-section ul { margin: 0; padding-left: 20px; color: var(--md-sys-color-on-surface-variant); font-size: .88rem; line-height: 1.65; }
@@ -338,6 +363,7 @@ body.pincon-ops-open { overflow: hidden; }
   .pincon-ops-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pincon-ops-launch-preview { grid-template-columns: minmax(0, 1fr); }
   .pincon-ops-history-detail { grid-template-columns: minmax(0, 1fr); }
+  .pincon-resource-filters { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 560px) {

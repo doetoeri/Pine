@@ -1,6 +1,8 @@
 import {
   CLASS_OPS_VERSION,
   NOTIFICATION_DEFAULTS,
+  RIGHTS_BASES,
+  WORKSHEET_TYPES,
   academicSchedulesForGrade,
   isOpenWindow,
   normalizedRecord,
@@ -115,7 +117,8 @@ function auditSnapshot(value = {}) {
     "classKey", "title", "name", "body", "description", "category", "subject", "type", "priority",
     "date", "dueDate", "dueAtMs", "startsAtMs", "endsAtMs", "closesAtMs", "status", "quantity", "unit",
     "location", "loanable", "important", "pinned", "url", "fileName", "fileUrl", "photoUrl", "month",
-    "version", "added", "improved", "fixed", "reviewing", "feedbackSummary", "officialReply", "resultSummary",
+    "version", "unit", "materialType", "schoolYear", "semester", "pageCount", "sourceAttribution", "rightsBasis", "rightsConfirmed",
+    "personalDataRemoved", "added", "improved", "fixed", "reviewing", "feedbackSummary", "officialReply", "resultSummary",
     "publishedResults", "options", "multiple", "resultVisibility", "deleted", "deletedAtMs", "moderationStatus",
   ];
   const result = {};
@@ -542,26 +545,52 @@ export class PinconClassOpsRepository extends EventTarget {
       contentDisposition: folder === "resources" ? `attachment; filename="${safeName.replaceAll('"', "")}"` : "inline",
       customMetadata: { classKey: this.state.classKey },
     });
-    return { fileName: safeName, fileUrl: await this.api.getDownloadURL(result.ref), storagePath: result.ref.fullPath };
+    const fileUrl = folder === "lost-items" ? await this.api.getDownloadURL(result.ref) : "";
+    return { fileName: safeName, fileUrl, storagePath: result.ref.fullPath };
   }
 
   async createResource(values, file = null) {
     await this.ensureUser();
+    if (values.rightsConfirmed !== true || values.personalDataRemoved !== true) {
+      throw new Error("공유 권한과 개인정보 제거 여부를 모두 확인해 주세요.");
+    }
     const targetRef = this.api.doc(this.collectionRef("resources"));
     const upload = file ? await this.uploadFile("resources", targetRef.id, file) : null;
-    const url = upload?.fileUrl || safeExternalUrl(values.url);
+    const url = upload?.storagePath
+      ? `${location.origin}${location.pathname}?class-ops=1&class-tab=resources&resource=${encodeURIComponent(targetRef.id)}`
+      : safeExternalUrl(values.url);
     if (!url) throw new Error("파일을 선택하거나 올바른 링크를 입력해 주세요.");
     const isPresident = this.state.isPresident;
     const now = Date.now();
+    const materialTypes = new Set(WORKSHEET_TYPES.map(([value]) => value));
+    const rightsBases = new Set(RIGHTS_BASES.map(([value]) => value));
+    if (!materialTypes.has(values.materialType)) throw new Error("자료 유형을 선택해 주세요.");
+    if (!rightsBases.has(values.rightsBasis)) throw new Error("자료를 공유할 수 있는 근거를 선택해 주세요.");
+    if (["open-license", "official-public"].includes(values.rightsBasis) && !plainText(values.sourceAttribution, 300)) {
+      throw new Error("공개 자료의 출처와 라이선스 정보를 입력해 주세요.");
+    }
+    const schoolYear = Math.max(2000, Math.min(2100, Math.trunc(Number(values.schoolYear || new Date().getFullYear()))));
+    const semester = Number(values.semester) === 2 ? 2 : 1;
+    const pageCount = Math.max(0, Math.min(999, Math.trunc(Number(values.pageCount || 0))));
     await this.api.setDoc(targetRef, {
       classKey: this.state.classKey,
       category: plainText(values.category, 40),
       subject: plainText(values.subject, 40),
       title: plainText(values.title, 120),
+      unit: plainText(values.unit, 80),
+      materialType: values.materialType,
+      schoolYear,
+      semester,
+      version: plainText(values.version, 20),
+      pageCount,
+      sourceAttribution: plainText(values.sourceAttribution, 300),
       description: plainText(values.description, 1200),
       url,
       fileName: upload?.fileName || "",
       storagePath: upload?.storagePath || "",
+      rightsBasis: values.rightsBasis,
+      rightsConfirmed: true,
+      personalDataRemoved: true,
       pinned: isPresident && values.pinned === true,
       moderationStatus: isPresident ? "approved" : "pending",
       deleted: false,
@@ -571,6 +600,22 @@ export class PinconClassOpsRepository extends EventTarget {
       updatedAt: this.api.serverTimestamp(),
     });
     return targetRef.id;
+  }
+
+  async openResourceFile(storagePath, fileName = "학습지") {
+    await this.ensureUser();
+    const path = plainText(storagePath, 500);
+    if (!path.startsWith(`class-resources/${SCHOOL.id}/${this.state.classKey}/`)) throw new Error("현재 학급의 자료 파일이 아닙니다.");
+    const blob = await this.api.getBlob(this.api.ref(this.api.storage, path));
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = plainText(fileName, 120) || "학습지";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
   }
 
   async createLostItem(values, file = null) {

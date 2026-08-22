@@ -3,8 +3,11 @@ import {
   FEEDBACK_STATUSES,
   NOTIFICATION_DEFAULTS,
   RESOURCE_CATEGORIES,
+  RIGHTS_BASES,
   SUPPLY_STATUSES,
+  WORKSHEET_TYPES,
   aggregateAnswers,
+  buildClassNotice,
   buildPatchDraft,
   buildTodayFeed,
   dateToMs,
@@ -159,6 +162,7 @@ class PinconClassOpsApp {
       this.onClick(event).catch((error) => this.toast(error?.message || "작업을 완료하지 못했습니다.", true));
     });
     this.shell.addEventListener("change", (event) => this.onChange(event));
+    this.shell.addEventListener("input", (event) => this.onInput(event));
     document.addEventListener("click", (event) => {
       const target = event.composedPath?.().find((node) => node?.dataset?.pinconOpsOpen !== undefined);
       if (target) this.open();
@@ -286,7 +290,7 @@ class PinconClassOpsApp {
     const heroBody = urgent.length
       ? `${urgent[0].title}${urgent.length > 1 ? ` 외 ${urgent.length - 1}개를 먼저 확인하세요.` : "을 먼저 확인하세요."}`
       : "긴급하거나 놓치면 안 되는 일정이 없습니다.";
-    const hero = `<section class="pincon-ops-hero" data-tone="${exam.active ? "exam" : urgent.length ? "urgent" : "default"}"><div class="pincon-ops-status-line">${statusPill(formatKoreanDate(today, { long: true }), "")}${exam.active ? statusPill(`시험 D-${exam.days}`, "good") : ""}${!this.state.online ? statusPill("오프라인 캐시", "") : statusPill("동기화됨", "good")}</div><h2>${esc(title)}</h2><p class="pincon-ops-hero-body">${esc(heroBody)}</p><div class="pincon-ops-hero-actions"><md-filled-button data-action="tab" data-tab="schedule"><md-icon slot="icon">calendar_month</md-icon>전체 일정</md-filled-button><md-outlined-button data-action="feedback-create"><md-icon slot="icon">forum</md-icon>익명 의견 남기기</md-outlined-button></div></section>`;
+    const hero = `<section class="pincon-ops-hero" data-tone="${exam.active ? "exam" : urgent.length ? "urgent" : "default"}"><div class="pincon-ops-status-line">${statusPill(formatKoreanDate(today, { long: true }), "")}${exam.active ? statusPill(`시험 D-${exam.days}`, "good") : ""}${!this.state.online ? statusPill("오프라인 캐시", "") : statusPill("동기화됨", "good")}</div><h2>${esc(title)}</h2><p class="pincon-ops-hero-body">${esc(heroBody)}</p><div class="pincon-ops-hero-actions"><md-filled-button data-action="tab" data-tab="schedule"><md-icon slot="icon">calendar_month</md-icon>전체 일정</md-filled-button>${this.state.isPresident ? `<md-filled-tonal-button data-action="notice-share"><md-icon slot="icon">share</md-icon>카카오톡 공지 만들기</md-filled-tonal-button>` : ""}<md-outlined-button data-action="feedback-create"><md-icon slot="icon">forum</md-icon>익명 의견 남기기</md-outlined-button></div></section>`;
     const examResources = activeRows(this.data("resources"))
       .filter((item) => this.state.isPresident || item.moderationStatus === "approved")
       .filter((item) => item.category === "시험범위" || /시험\s*범위/.test(`${item.title || ""} ${item.description || ""}`))
@@ -367,10 +371,25 @@ class PinconClassOpsApp {
     const resources = activeRows(this.data("resources")).filter((item) => this.state.isPresident || item.moderationStatus === "approved").sort((a, b) => Number(b.pinned) - Number(a.pinned) || byNewest(a, b));
     const supplies = activeRows(this.data("supplies")).sort((a, b) => String(a.name).localeCompare(String(b.name), "ko"));
     const lost = activeRows(this.data("lostItems")).filter((item) => item.status !== "claimed").sort(byNewest);
-    const resourceBody = resources.length ? `<div class="pincon-ops-card-grid">${resources.map((item) => { const url = safeExternalUrl(item.url); return `<article class="pincon-ops-card" data-pinned="${item.pinned === true}"><div class="pincon-ops-card-top"><span class="pincon-ops-card-icon"><md-icon>${item.fileName ? "draft" : "link"}</md-icon></span>${statusPill(item.category || "자료")}</div><div><p>${esc(item.subject || "공통")}</p><h3>${esc(item.title)}</h3></div><p>${esc(compact(item.description, 150) || item.fileName || "링크 자료")}</p><div class="pincon-ops-card-actions">${url ? `<md-filled-tonal-button href="${attr(url)}" target="_blank" rel="noopener noreferrer">열기</md-filled-tonal-button>` : statusPill("링크 확인 필요", "urgent")}${this.state.isPresident ? `<md-text-button data-action="resource-pin" data-id="${attr(item.id)}">${item.pinned ? "고정 해제" : "상단 고정"}</md-text-button>${item.moderationStatus !== "approved" ? `<md-text-button data-action="resource-approve" data-id="${attr(item.id)}">승인</md-text-button>` : ""}<md-text-button data-action="item-delete" data-collection="resources" data-id="${attr(item.id)}">삭제</md-text-button>` : ""}</div></article>`; }).join("")}</div>` : emptyState("folder_open", "자료실이 비어 있습니다", "시험범위·수행평가·친구 공유자료를 파일이나 링크로 올릴 수 있습니다.");
+    const subjects = [...new Set(resources.map((item) => plainText(item.subject || "공통", 40)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+    const typeLabel = (value) => WORKSHEET_TYPES.find(([key]) => key === value)?.[1] || "기타 자료";
+    const rightsLabel = (value) => RIGHTS_BASES.find(([key]) => key === value)?.[1] || "권리 확인 전";
+    const filters = resources.length ? `<div class="pincon-resource-filters" aria-label="학습지 검색과 필터"><md-outlined-text-field data-resource-search label="제목·과목·단원 검색"><md-icon slot="leading-icon">search</md-icon></md-outlined-text-field><md-outlined-select data-resource-subject label="과목"><md-select-option value="" selected><span slot="headline">전체 과목</span></md-select-option>${subjects.map((subject) => `<md-select-option value="${attr(subject)}"><span slot="headline">${esc(subject)}</span></md-select-option>`).join("")}</md-outlined-select><md-outlined-select data-resource-type label="자료 유형"><md-select-option value="" selected><span slot="headline">전체 유형</span></md-select-option>${WORKSHEET_TYPES.map(([value, label]) => `<md-select-option value="${attr(value)}"><span slot="headline">${esc(label)}</span></md-select-option>`).join("")}</md-outlined-select></div>` : "";
+    const resourceBody = resources.length ? `${filters}<div class="pincon-ops-card-grid" data-resource-grid>${resources.map((item) => {
+      const url = safeExternalUrl(item.url);
+      const subject = plainText(item.subject || "공통", 40);
+      const materialType = plainText(item.materialType || "other", 30);
+      const searchable = [item.title, subject, item.unit, item.description, item.category, item.version, item.sourceAttribution, typeLabel(materialType)].filter(Boolean).join(" ").toLocaleLowerCase("ko");
+      const academic = [item.schoolYear ? `${Number(item.schoolYear)}년` : "", item.semester ? `${Number(item.semester)}학기` : "", item.version, item.pageCount ? `${Number(item.pageCount)}쪽` : ""].filter(Boolean);
+      const rightsTone = item.rightsConfirmed && item.personalDataRemoved ? "good" : "urgent";
+      const openButton = item.storagePath
+        ? `<md-filled-tonal-button data-action="resource-open" data-id="${attr(item.id)}">파일 열기</md-filled-tonal-button>`
+        : url ? `<md-filled-tonal-button href="${attr(url)}" target="_blank" rel="noopener noreferrer">링크 열기</md-filled-tonal-button>` : statusPill("링크 확인 필요", "urgent");
+      return `<article class="pincon-ops-card pincon-resource-card" data-resource-card data-resource-search="${attr(searchable)}" data-resource-subject="${attr(subject)}" data-resource-type="${attr(materialType)}" data-pinned="${item.pinned === true}"><div class="pincon-ops-card-top"><span class="pincon-ops-card-icon"><md-icon>${item.fileName ? "draft" : "link"}</md-icon></span><div class="pincon-ops-status-line">${statusPill(typeLabel(materialType))}${item.moderationStatus !== "approved" ? statusPill("승인 대기", "urgent") : ""}</div></div><div><p>${esc([subject, item.unit].filter(Boolean).join(" · "))}</p><h3>${esc(item.title)}</h3></div>${academic.length ? `<div class="pincon-resource-meta">${academic.map((value) => `<span>${esc(value)}</span>`).join("")}</div>` : ""}<p>${esc(compact(item.description, 150) || item.fileName || "링크 자료")}</p>${item.sourceAttribution ? `<p class="pincon-resource-source"><strong>출처</strong> ${esc(compact(item.sourceAttribution, 180))}</p>` : ""}<div class="pincon-resource-rights">${statusPill(rightsLabel(item.rightsBasis), rightsTone)}<small>${item.rightsConfirmed && item.personalDataRemoved ? "권리·개인정보 확인됨" : "공개 전 권리 확인 필요"}</small></div><div class="pincon-ops-card-actions">${openButton}${this.state.isPresident ? `<md-text-button data-action="resource-pin" data-id="${attr(item.id)}">${item.pinned ? "고정 해제" : "상단 고정"}</md-text-button>${item.moderationStatus !== "approved" ? `<md-text-button data-action="resource-approve" data-id="${attr(item.id)}">승인</md-text-button>` : ""}<md-text-button data-action="item-delete" data-collection="resources" data-id="${attr(item.id)}">삭제</md-text-button>` : ""}</div></article>`;
+    }).join("")}</div><div data-resource-filter-empty hidden>${emptyState("search_off", "조건에 맞는 학습지가 없습니다", "검색어를 줄이거나 과목·유형 필터를 바꿔 보세요.")}</div>` : emptyState("folder_open", "학습지 DB가 비어 있습니다", "직접 제작했거나 공유 권한이 확인된 학습지를 등록할 수 있습니다.");
     const supplyBody = supplies.length ? `<div class="pincon-ops-card-grid">${supplies.map((item) => this.supplyCard(item)).join("")}</div>` : emptyState("inventory_2", "공용 물품 목록이 없습니다", "회장이 볼펜·샤프심·가위·테이프 등의 수량과 위치를 등록할 수 있습니다.");
     const lostBody = lost.length ? `<div class="pincon-ops-card-grid">${lost.map((item) => { const photoUrl = safeExternalUrl(item.photoUrl); return `<article class="pincon-ops-card">${photoUrl ? `<img src="${attr(photoUrl)}" alt="${attr(item.name)}" loading="lazy" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:16px">` : `<span class="pincon-ops-card-icon"><md-icon>find_in_page</md-icon></span>`}<h3>${esc(item.name)}</h3><p>${esc(`${item.foundLocation || "발견 위치 미정"} · ${formatKoreanDate(item.foundDate, { weekday: false })}`)}</p>${this.state.isPresident ? `<div class="pincon-ops-card-actions"><md-text-button data-action="lost-claimed" data-id="${attr(item.id)}">주인 찾음</md-text-button><md-text-button data-action="item-delete" data-collection="lostItems" data-id="${attr(item.id)}">삭제</md-text-button></div>` : ""}</article>`; }).join("")}</div>` : emptyState("search", "보관 중인 분실물이 없습니다", "발견한 물건을 사진과 함께 등록할 수 있습니다.");
-    return `${this.pageHeading("자료", "학습 자료와 학급 도구", "시험 자료, 공용품, 분실물을 필요한 순간에 빠르게 찾으세요.")}<div class="pincon-ops-action-grid"><md-filled-tonal-button data-action="resource-create"><md-icon slot="icon">upload_file</md-icon>자료 올리기</md-filled-tonal-button><md-outlined-button data-action="lost-create"><md-icon slot="icon">add_a_photo</md-icon>분실물 등록</md-outlined-button>${this.state.isPresident ? `<md-outlined-button data-action="supply-create"><md-icon slot="icon">inventory</md-icon>공용품 추가</md-outlined-button><md-outlined-button data-action="resource-categories"><md-icon slot="icon">category</md-icon>자료 분류 관리</md-outlined-button>` : ""}</div>${sectionMarkup({ kicker: "시험·수행", title: "학급 자료실", count: resources.length, body: resourceBody, wide: true })}${sectionMarkup({ kicker: "공유 도구", title: "공용 물품함", count: supplies.length, body: supplyBody, wide: true })}${sectionMarkup({ kicker: "찾아가세요", title: "분실물", count: lost.length, body: lostBody, wide: true })}`;
+    return `${this.pageHeading("자료", "학습지 DB와 학급 도구", "과목·단원·유형으로 학습지를 찾고, 공유 권한이 확인된 자료만 등록하세요.")}<div class="pincon-ops-action-grid"><md-filled-tonal-button data-action="resource-create"><md-icon slot="icon">upload_file</md-icon>학습지 등록</md-filled-tonal-button><md-outlined-button data-action="lost-create"><md-icon slot="icon">add_a_photo</md-icon>분실물 등록</md-outlined-button>${this.state.isPresident ? `<md-outlined-button data-action="supply-create"><md-icon slot="icon">inventory</md-icon>공용품 추가</md-outlined-button><md-outlined-button data-action="resource-categories"><md-icon slot="icon">category</md-icon>자료 분류 관리</md-outlined-button>` : ""}</div><div class="pincon-ops-legal-note"><md-icon>verified_user</md-icon><span>교재·문제집 스캔본과 학생 개인정보가 든 파일은 올리지 마세요. 선생님 허락, 직접 제작, 공개 라이선스 또는 기관 공개 자료만 등록할 수 있습니다.</span></div>${sectionMarkup({ kicker: "검색 가능한 학습 자료", title: "학습지 DB", count: resources.length, body: resourceBody, wide: true })}${sectionMarkup({ kicker: "공유 도구", title: "공용 물품함", count: supplies.length, body: supplyBody, wide: true })}${sectionMarkup({ kicker: "찾아가세요", title: "분실물", count: lost.length, body: lostBody, wide: true })}`;
   }
 
   renderMore() {
@@ -386,7 +405,7 @@ class PinconClassOpsApp {
     };
     const notificationBody = `<div class="pincon-ops-surface" style="padding:12px 18px">${Object.entries(labels).map(([key, [title, body]]) => `<div class="pincon-ops-notification-row"><div><strong>${esc(title)}</strong><span>${esc(body)}</span></div><md-switch data-pref="${key}"${prefs[key] ? " selected" : ""}></md-switch></div>`).join("")}<div style="padding:14px 0 4px"><md-filled-button data-action="notifications-enable"><md-icon slot="icon">notifications_active</md-icon>이 기기에서 알림 켜기</md-filled-button></div></div>`;
     const accountLabel = this.state.user?.displayName || (this.state.isPresident ? "학급 회장 계정" : this.state.user ? "학생 참여 계정" : "읽기 전용");
-    const accountBody = `<div class="pincon-ops-surface"><md-list><md-list-item><md-icon slot="start">${this.state.isPresident ? "verified_user" : "account_circle"}</md-icon><span slot="headline">${esc(accountLabel)}</span><span slot="supporting-text">${esc(this.state.isPresident ? "학급 회장 전용 관리 권한이 확인되었습니다." : this.state.user ? "학생 참여 계정" : "의견·투표 참여 시 이름 설정 또는 Google 로그인이 필요합니다.")}</span>${!this.state.isPresident ? `<md-text-button slot="end" data-action="president-login">회장 로그인</md-text-button>` : ""}</md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">sync</md-icon><span slot="headline">${this.state.online ? "온라인 동기화 중" : "오프라인 캐시 사용 중"}</span><span slot="supporting-text">새로고침 후에도 공개 학급 정보가 유지됩니다.</span></md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">privacy_tip</md-icon><span slot="headline">익명성과 개인정보 보호</span><span slot="supporting-text">익명 건의·행사 답변에는 이메일이나 UID를 저장하지 않습니다.</span></md-list-item></md-list></div>`;
+    const accountBody = `<div class="pincon-ops-surface"><md-list><md-list-item><md-icon slot="start">${this.state.isPresident ? "verified_user" : "account_circle"}</md-icon><span slot="headline">${esc(accountLabel)}</span><span slot="supporting-text">${esc(this.state.isPresident ? "학급 회장 전용 관리 권한이 확인되었습니다." : this.state.user ? "학생 참여 계정" : "의견·투표 참여 시 이름 설정 또는 Google 로그인이 필요합니다.")}</span>${!this.state.isPresident ? `<md-text-button slot="end" data-action="president-login">회장 로그인</md-text-button>` : ""}</md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">sync</md-icon><span slot="headline">${this.state.online ? "온라인 동기화 중" : "오프라인 캐시 사용 중"}</span><span slot="supporting-text">새로고침 후에도 공개 학급 정보가 유지됩니다.</span></md-list-item><md-divider inset></md-divider><md-list-item><md-icon slot="start">privacy_tip</md-icon><span slot="headline">익명성과 개인정보 보호</span><span slot="supporting-text">익명 건의·행사 답변에는 이메일이나 UID를 저장하지 않습니다.</span></md-list-item><md-divider inset></md-divider><md-list-item type="button" data-action="legal-info"><md-icon slot="start">gavel</md-icon><span slot="headline">공유·저작권 안내</span><span slot="supporting-text">카카오톡 공유와 학습지 등록 전에 확인할 원칙</span><md-icon slot="end">chevron_right</md-icon></md-list-item></md-list></div>`;
     return `${this.pageHeading("더보기", "알림과 개인정보 설정", "필요한 알림만 선택하고 계정·동기화 상태를 확인하세요.")}<div class="pincon-ops-action-grid"><md-filled-tonal-button data-action="search"><md-icon slot="icon">search</md-icon>통합 검색</md-filled-tonal-button><md-outlined-button data-action="feedback-create"><md-icon slot="icon">forum</md-icon>익명 의견</md-outlined-button>${this.state.isPresident ? `<md-outlined-button data-action="tab" data-tab="manage"><md-icon slot="icon">admin_panel_settings</md-icon>관리 대시보드</md-outlined-button>` : ""}</div><div class="pincon-ops-grid">${sectionMarkup({ kicker: "기기별 설정", title: "알림 종류", body: notificationBody })}${sectionMarkup({ kicker: `PinCon Class Ops ${CLASS_OPS_VERSION}`, title: "계정·데이터", body: accountBody })}</div>`;
   }
 
@@ -442,6 +461,8 @@ class PinconClassOpsApp {
         return;
       }
       if (action === "search") return this.openSearch();
+      if (action === "notice-share") return this.openNoticeShare();
+      if (action === "legal-info") return this.showLegalInfo();
       if (action === "feedback-create") return this.openEditor("feedback");
       if (action === "announcement-create") return this.openEditor("announcement");
       if (action === "announcement-edit") return this.openEditor("announcement", id);
@@ -470,6 +491,12 @@ class PinconClassOpsApp {
       if (action === "supply-borrow") { await this.repo.borrowSupply(id); return this.toast("대여 시작 시간이 기록되었습니다."); }
       if (action === "loan-return") { const item = this.data("supplyLoans").find((row) => row.id === id); await this.repo.adminWrite("supplyLoans", { ...item, status: "returned", returnedAtMs: Date.now() }, { id, label: "공용 물품 반환" }); return this.toast("반환 완료로 기록했습니다."); }
       if (action === "resource-create") return this.openEditor("resource");
+      if (action === "resource-open") {
+        const item = this.findItem("resources", id);
+        if (!item?.storagePath) throw new Error("파일 위치를 찾지 못했습니다.");
+        await this.repo.openResourceFile(item.storagePath, item.fileName || item.title);
+        return;
+      }
       if (action === "resource-categories") return this.openEditor("resourceCategories");
       if (action === "resource-pin") { const item = this.data("resources").find((row) => row.id === id); await this.repo.adminWrite("resources", { ...item, pinned: !item.pinned }, { id, label: `${item.title} 고정 변경` }); return; }
       if (action === "resource-approve") { const item = this.data("resources").find((row) => row.id === id); await this.repo.adminWrite("resources", { ...item, moderationStatus: "approved" }, { id, label: `${item.title} 자료 승인` }); return this.toast("자료를 공개했습니다."); }
@@ -496,10 +523,38 @@ class PinconClassOpsApp {
   }
 
   onChange(event) {
-    const target = event.composedPath?.().find((node) => node?.dataset?.pref);
-    if (!target) return;
-    const next = { ...(this.state.notificationPreferences || NOTIFICATION_DEFAULTS), [target.dataset.pref]: Boolean(target.selected ?? target.checked) };
-    this.repo.updateNotificationPreferences(next).catch((error) => this.toast(error?.message || "알림 설정을 저장하지 못했습니다.", true));
+    const path = event.composedPath?.() || [];
+    if (path.some((node) => node?.dataset?.resourceSubject !== undefined || node?.dataset?.resourceType !== undefined)) {
+      this.applyResourceFilters();
+      return;
+    }
+    const target = path.find((node) => node?.dataset?.pref);
+    if (target) {
+      const next = { ...(this.state.notificationPreferences || NOTIFICATION_DEFAULTS), [target.dataset.pref]: Boolean(target.selected ?? target.checked) };
+      this.repo.updateNotificationPreferences(next).catch((error) => this.toast(error?.message || "알림 설정을 저장하지 못했습니다.", true));
+    }
+  }
+
+  onInput(event) {
+    const target = event.composedPath?.().find((node) => node?.dataset?.resourceSearch !== undefined);
+    if (target) this.applyResourceFilters();
+  }
+
+  applyResourceFilters() {
+    const search = plainText(this.shell.querySelector("[data-resource-search]")?.value || "", 120).toLocaleLowerCase("ko");
+    const subject = plainText(this.shell.querySelector("[data-resource-subject]")?.value || "", 40);
+    const type = plainText(this.shell.querySelector("[data-resource-type]")?.value || "", 30);
+    const cards = [...this.shell.querySelectorAll("[data-resource-card]")];
+    let visible = 0;
+    for (const card of cards) {
+      const matches = (!search || card.dataset.resourceSearch.includes(search))
+        && (!subject || card.dataset.resourceSubject === subject)
+        && (!type || card.dataset.resourceType === type);
+      card.hidden = !matches;
+      if (matches) visible += 1;
+    }
+    const empty = this.shell.querySelector("[data-resource-filter-empty]");
+    if (empty) empty.hidden = visible > 0;
   }
 
   toast(message, error = false) {
@@ -521,6 +576,79 @@ class PinconClassOpsApp {
       else values[key] = typeof element.value === "string" ? element.value.trim() : element.value;
     }
     return values;
+  }
+
+  async copyText(value) {
+    const text = String(value || "");
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const fallback = document.createElement("textarea");
+    fallback.value = text;
+    fallback.setAttribute("readonly", "");
+    fallback.style.position = "fixed";
+    fallback.style.opacity = "0";
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand("copy");
+    fallback.remove();
+    if (!copied) throw new Error("복사하지 못했습니다. 내용을 길게 눌러 직접 복사해 주세요.");
+  }
+
+  async openNoticeShare() {
+    if (!this.state.isPresident) throw new Error("학급 회장 계정에서만 공지를 만들 수 있습니다.");
+    const profile = this.state.profile;
+    const classLabel = profile ? `${profile.grade}학년 ${profile.classNumber}반` : "우리 반";
+    const detailUrl = new URL(location.href);
+    detailUrl.searchParams.set("class-ops", "1");
+    detailUrl.searchParams.set("class-tab", "today");
+    const makeNotice = (date) => buildClassNotice(this.state.data || {}, { date, classLabel, detailUrl: detailUrl.href });
+    const dialog = document.createElement("md-dialog");
+    dialog.className = "pincon-ops-dialog";
+    dialog.innerHTML = `<div slot="headline">카카오톡 학급 공지 만들기</div><div slot="content" class="pincon-ops-dialog-form pincon-notice-dialog"><div class="pincon-ops-legal-note"><md-icon>touch_app</md-icon><span>PinCon은 대화방에 몰래 자동 전송하지 않습니다. 내용을 확인한 뒤 공유창에서 카카오톡과 보낼 대상을 직접 선택하세요.</span></div>${field("noticeDate", "공지 날짜", kstDate(Date.now(), 1), { type: "date", required: true })}<md-outlined-text-field data-notice-text label="보낼 공지" type="textarea" rows="14" supporting-text="보내기 전에 날짜·시간표·과제와 개인정보 포함 여부를 확인하세요"></md-outlined-text-field></div><div slot="actions"><md-text-button data-close>취소</md-text-button><md-outlined-button data-copy><md-icon slot="icon">content_copy</md-icon>복사</md-outlined-button><md-filled-button data-share><md-icon slot="icon">share</md-icon>카카오톡으로 공유</md-filled-button></div>`;
+    document.body.appendChild(dialog);
+    const dateField = dialog.querySelector("[data-field=noticeDate]");
+    const textField = dialog.querySelector("[data-notice-text]");
+    const refresh = () => { textField.value = makeNotice(dateField.value || kstDate(Date.now(), 1)); };
+    refresh();
+    dateField.addEventListener("change", refresh);
+    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+    dialog.querySelector("[data-copy]").addEventListener("click", async () => {
+      try {
+        await this.copyText(textField.value);
+        this.toast("공지 내용을 복사했습니다.");
+      } catch (error) {
+        this.toast(error?.message || "복사하지 못했습니다.", true);
+      }
+    });
+    dialog.querySelector("[data-share]").addEventListener("click", async () => {
+      const text = plainText(textField.value, 6000);
+      if (!text) return this.toast("공지를 입력해 주세요.", true);
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: `${classLabel} 학급 공지`, text });
+          this.toast("공유창으로 공지를 전달했습니다.");
+        } else {
+          await this.copyText(text);
+          this.toast("이 기기는 공유창을 지원하지 않아 공지를 복사했습니다.");
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError") this.toast(error?.message || "공유하지 못했습니다.", true);
+      }
+    });
+    dialog.addEventListener("closed", () => dialog.remove(), { once: true });
+    await dialog.show();
+  }
+
+  async showLegalInfo() {
+    const dialog = document.createElement("md-dialog");
+    dialog.className = "pincon-ops-dialog";
+    dialog.innerHTML = `<div slot="headline">공유·저작권 안내</div><div slot="content" class="pincon-ops-dialog-form pincon-legal-dialog"><section><md-icon>chat</md-icon><div><strong>카카오톡 공지</strong><p>공지는 사용자가 내용을 확인하고 수신 대상을 직접 선택해 보냅니다. 전화번호나 카카오 친구 목록을 수집하지 않으며, 학교 공식 알림으로 오해되지 않게 발신자를 밝혀 주세요.</p></div></section><section><md-icon>copyright</md-icon><div><strong>학습지 저작권</strong><p>직접 제작했거나 선생님에게 공유 허락을 받은 자료, 공개 라이선스 자료, 학교·공공기관이 공개한 자료만 등록하세요. 시중 교재·문제집을 통째로 스캔한 파일은 올리면 안 됩니다.</p></div></section><section><md-icon>privacy_tip</md-icon><div><strong>개인정보</strong><p>학생 이름, 얼굴, 연락처, 성적, 계정 정보가 들어간 파일은 올리지 마세요. 필요한 경우 모두 지운 뒤 등록하세요.</p></div></section><p class="pincon-ops-legal-footnote">PinCon의 이 안내는 일반적인 안전장치이며 개별 상황에 대한 법률 자문은 아닙니다. 학교 규정과 담당 선생님의 지시가 있으면 그 기준을 우선하세요.</p></div><div slot="actions"><md-filled-button data-close>확인</md-filled-button></div>`;
+    document.body.appendChild(dialog);
+    dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("closed", () => dialog.remove(), { once: true });
+    await dialog.show();
   }
 
   async formDialog({ headline, content, submitLabel = "저장", onSubmit }) {
@@ -632,8 +760,13 @@ class PinconClassOpsApp {
 
     if (kind === "resource") {
       const categories = this.findItem("classSettings", this.state.classKey)?.resourceCategories || RESOURCE_CATEGORIES;
-      return this.formDialog({ headline: "학급 자료 올리기", submitLabel: "자료 등록", content: `${selectField("category", "카테고리", categories, categories[0])}<div class="pincon-ops-dialog-grid">${field("subject", "과목", "", { max: 40 })}${field("title", "제목", "", { required: true, max: 120 })}</div>${field("description", "설명", "", { textarea: true, rows: 3, max: 1200 })}${field("url", "링크 (파일 대신 입력 가능)", "", { type: "url", max: 1000 })}${fileField("resource", "파일 선택")}${this.state.isPresident ? checkField("pinned", "중요 자료로 상단 고정", false) : ""}`, onSubmit: async (values, dialog) => {
+      const currentYear = Number(kstDate().slice(0, 4));
+      return this.formDialog({ headline: "학습지 DB에 등록", submitLabel: "학습지 등록", content: `<div class="pincon-ops-legal-note"><md-icon>copyright</md-icon><span>시중 교재·문제집 스캔본은 등록하지 마세요. 공유 권한이 확인된 자료만 올릴 수 있습니다.</span></div><div class="pincon-ops-dialog-grid">${selectField("category", "카테고리", categories, categories[0])}${selectField("materialType", "자료 유형", WORKSHEET_TYPES, "worksheet")}</div><div class="pincon-ops-dialog-grid">${field("subject", "과목", "", { required: true, max: 40 })}${field("title", "제목", "", { required: true, max: 120 })}</div>${field("unit", "단원", "", { max: 80, support: "예: II. 함수 · 3. 이차함수" })}<div class="pincon-ops-dialog-grid">${field("schoolYear", "학년도", currentYear, { type: "number", required: true })}${selectField("semester", "학기", [[1, "1학기"], [2, "2학기"]], kstDate().slice(5, 7) <= "07" ? 1 : 2)}</div><div class="pincon-ops-dialog-grid">${field("version", "버전·차시", "", { max: 20, support: "예: v2, 3차시" })}${field("pageCount", "쪽 수", "", { type: "number" })}</div>${field("description", "설명", "", { textarea: true, rows: 3, max: 1200 })}${field("url", "링크 (파일 대신 입력 가능)", "", { type: "url", max: 1000 })}${fileField("resource", "파일 선택")}${selectField("rightsBasis", "공유할 수 있는 근거", RIGHTS_BASES, "teacher-approved")}${field("sourceAttribution", "출처·라이선스", "", { max: 300, support: "공개 라이선스·기관 공개 자료는 자료명, 기관, 라이선스 또는 원문 링크를 적으세요" })}${checkField("rightsConfirmed", "이 자료를 학급에 공유할 권한이 있음을 확인했습니다.", false)}${checkField("personalDataRemoved", "학생 개인정보가 포함되지 않았거나 모두 제거했음을 확인했습니다.", false)}${this.state.isPresident ? checkField("pinned", "중요 자료로 상단 고정", false) : ""}`, onSubmit: async (values, dialog) => {
         if (!values.title) throw new Error("자료 제목을 입력해 주세요.");
+        if (!values.subject) throw new Error("과목을 입력해 주세요.");
+        if (!values.rightsConfirmed) throw new Error("자료 공유 권한을 확인해야 등록할 수 있습니다.");
+        if (!values.personalDataRemoved) throw new Error("개인정보 제거 여부를 확인해야 등록할 수 있습니다.");
+        if (["open-license", "official-public"].includes(values.rightsBasis) && !values.sourceAttribution) throw new Error("공개 자료의 출처와 라이선스 정보를 입력해 주세요.");
         const file = dialog.querySelector("[data-file=resource]")?.files?.[0] || null;
         await this.repo.createResource(values, file);
       } });
