@@ -1,4 +1,4 @@
-export const CLASS_OPS_VERSION = "1.0.0";
+export const CLASS_OPS_VERSION = "1.1.0";
 
 export const FEEDBACK_STATUSES = Object.freeze({
   received: "접수",
@@ -22,6 +22,22 @@ export const RESOURCE_CATEGORIES = Object.freeze([
   "수업자료",
   "친구 공유자료",
   "공지 프린트",
+]);
+
+export const WORKSHEET_TYPES = Object.freeze([
+  ["worksheet", "학습지"],
+  ["summary", "개념 정리"],
+  ["assignment", "수행평가 자료"],
+  ["exam", "시험 대비"],
+  ["answer", "해설·정답"],
+  ["other", "기타 자료"],
+]);
+
+export const RIGHTS_BASES = Object.freeze([
+  ["teacher-approved", "선생님 공유 허락"],
+  ["self-made", "직접 제작"],
+  ["open-license", "공개 라이선스"],
+  ["official-public", "학교·기관 공개 자료"],
 ]);
 
 export const NOTIFICATION_DEFAULTS = Object.freeze({
@@ -52,6 +68,55 @@ export function dateToMs(date, endOfDay = false) {
   const suffix = endOfDay ? "T23:59:59+09:00" : "T00:00:00+09:00";
   const result = Date.parse(`${date}${suffix}`);
   return Number.isFinite(result) ? result : 0;
+}
+
+function noticeRows(rows = []) {
+  return rows.filter((item) => item && !item.deleted);
+}
+
+export function buildClassNotice(data = {}, options = {}) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(options.date || "")) ? options.date : kstDate(Date.now(), 1);
+  const classLabel = plainText(options.classLabel || "우리 반", 40);
+  const detailUrl = safeExternalUrl(options.detailUrl || "") || "";
+  const sections = [];
+
+  const timetable = noticeRows(data.neisTimetables).find((item) => item.date === date);
+  if (timetable?.periods?.length) {
+    sections.push(["시간표", timetable.periods.slice(0, 8).map((period, index) => `${period.period || index + 1}교시 ${plainText(period.subject || "과목 미정", 40)}${period.room ? ` (${plainText(period.room, 30)})` : ""}`)]);
+  }
+
+  const assignments = noticeRows(data.classAssignments)
+    .filter((item) => itemDate(item) === date)
+    .sort((a, b) => itemPriority(a) - itemPriority(b))
+    .slice(0, 10)
+    .map((item) => `${item.type === "preparation" ? "준비물" : "수행·시험"} · ${[item.subject, item.title].filter(Boolean).map((value) => plainText(value, 80)).join(" · ")}`);
+  if (assignments.length) sections.push(["숙제·준비물·평가", assignments]);
+
+  const announcements = noticeRows(data.announcements)
+    .sort((a, b) => timestampMs(b.updatedAtMs || b.createdAtMs) - timestampMs(a.updatedAtMs || a.createdAtMs))
+    .slice(0, 3)
+    .map((item) => `${item.priority === "urgent" ? "긴급 · " : ""}${plainText(item.title || "학급 공지", 100)}${item.body ? ` — ${plainText(item.body, 120)}` : ""}`);
+  if (announcements.length) sections.push(["학급 공지", announcements]);
+
+  const recentCutoff = Date.now() - 7 * 86_400_000;
+  const resources = noticeRows(data.resources)
+    .filter((item) => item.moderationStatus === "approved")
+    .filter((item) => timestampMs(item.updatedAtMs || item.createdAtMs) >= recentCutoff)
+    .sort((a, b) => timestampMs(b.updatedAtMs || b.createdAtMs) - timestampMs(a.updatedAtMs || a.createdAtMs))
+    .slice(0, 4)
+    .map((item) => `${plainText(item.subject || "공통", 40)} · ${plainText(item.title || "학습 자료", 100)}`);
+  if (resources.length) sections.push(["새 학습지", resources]);
+
+  const meal = noticeRows(data.meals).find((item) => item.date === date);
+  const dishes = Array.isArray(meal?.dishes) ? meal.dishes : Array.isArray(meal?.menu) ? meal.menu : [];
+  if (dishes.length) sections.push(["급식", [dishes.slice(0, 8).map((item) => plainText(typeof item === "string" ? item : item.name, 40)).filter(Boolean).join(" · ")]]);
+
+  const lines = [`📌 ${classLabel} ${formatKoreanDate(date, { weekday: true })} 알림`];
+  if (!sections.length) lines.push("", "등록된 알림 항목이 없습니다. 발송 전에 내용을 직접 추가해 주세요.");
+  for (const [title, rows] of sections) lines.push("", `[${title}]`, ...rows.map((row) => `• ${row}`));
+  if (detailUrl) lines.push("", `자세히 보기: ${detailUrl}`);
+  lines.push("", "※ 발송 전 날짜와 내용을 한 번 확인해 주세요.");
+  return lines.join("\n");
 }
 
 export function formatKoreanDate(date, options = {}) {
