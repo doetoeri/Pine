@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260823-ui1";
+const PINCON_SW_VERSION = "20260823-ui2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
