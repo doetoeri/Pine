@@ -1,0 +1,231 @@
+/* PinCon runtime UI stability layer.
+ * Keeps the production class-ops shell visually stable without changing data/layout ownership.
+ */
+
+.pincon-ops-shell md-icon {
+  --md-icon-size: 24px;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  overflow: visible;
+  font-family: "Material Symbols Rounded" !important;
+  font-size: 24px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr;
+  font-feature-settings: "liga" !important;
+  -webkit-font-feature-settings: "liga" !important;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
+
+.pincon-ops-shell md-icon[slot="icon"],
+.pincon-ops-shell md-icon[slot="start"],
+.pincon-ops-shell md-icon[slot="end"] {
+  flex: 0 0 24px;
+  min-width: 24px;
+  max-width: 24px;
+}
+
+.pincon-ops-top-actions md-filled-tonal-icon-button {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  flex: 0 0 48px;
+  --md-filled-tonal-icon-button-icon-size: 24px;
+  --md-filled-tonal-icon-button-container-shape: 999px;
+}
+
+/* Compact, readable empty states. */
+.pincon-ops-empty {
+  min-height: 92px !important;
+  padding: 0 !important;
+  align-items: center;
+}
+
+.pincon-ops-empty md-list-item {
+  --md-list-item-two-line-container-height: 88px;
+  --md-list-item-leading-icon-size: 24px;
+  --md-list-item-leading-space: 16px;
+  --md-list-item-trailing-space: 16px;
+}
+
+.pincon-ops-empty md-icon[slot="start"] {
+  color: var(--pincon-primary);
+}
+
+/* Syncing is a status, not a giant empty-state card. */
+.pincon-ops-sync-state {
+  min-width: 0;
+  padding: 14px 16px 12px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--pincon-primary) 18%, var(--pincon-outline-variant));
+  border-radius: 22px;
+  color: var(--pincon-on-surface);
+  background: color-mix(in srgb, var(--pincon-primary-container) 24%, var(--pincon-surface-container-low));
+}
+
+.pincon-ops-sync-copy {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+}
+
+.pincon-ops-sync-copy md-icon {
+  color: var(--pincon-primary);
+}
+
+.pincon-ops-sync-copy strong,
+.pincon-ops-sync-copy span {
+  display: block;
+}
+
+.pincon-ops-sync-copy strong {
+  font-size: .92rem;
+  line-height: 1.3;
+}
+
+.pincon-ops-sync-copy span {
+  margin-top: 2px;
+  color: var(--pincon-on-surface-variant);
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+.pincon-ops-sync-state md-linear-progress {
+  width: 100%;
+  --md-linear-progress-active-indicator-color: var(--pincon-primary);
+  --md-linear-progress-track-color: color-mix(in srgb, var(--pincon-primary) 14%, transparent);
+}
+
+/* One calm page transition. No scale/pulse motion. */
+.pincon-ops-view {
+  animation: pincon-ui-view-enter 180ms var(--pincon-motion-emphasized) both !important;
+}
+
+@keyframes pincon-ui-view-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1020px) {
+  .pincon-ops-navigation {
+    left: 50% !important;
+    right: auto !important;
+    width: min(calc(100vw - 24px), 720px) !important;
+    max-width: calc(100vw - 24px) !important;
+    padding: 4px !important;
+    box-sizing: border-box;
+    transform: translateX(-50%) !important;
+    overflow: hidden;
+    border-radius: 30px !important;
+    background: color-mix(in srgb, var(--pincon-surface-container-high) 94%, transparent) !important;
+    box-shadow: 0 2px 8px rgba(25, 29, 23, .09), 0 10px 28px rgba(25, 29, 23, .10) !important;
+    backdrop-filter: blur(18px) saturate(1.06);
+    -webkit-backdrop-filter: blur(18px) saturate(1.06);
+    contain: layout paint;
+  }
+
+  .pincon-ops-tab-grid {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--pincon-tab-count, 5), minmax(0, 1fr));
+    align-items: stretch;
+    gap: 2px;
+  }
+
+  .pincon-ops-tab-grid md-primary-tab {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: hidden;
+    border-radius: 24px;
+    --md-primary-tab-container-height: 62px;
+    --md-primary-tab-with-icon-and-label-text-container-height: 62px;
+    --md-primary-tab-label-text-size: .68rem;
+    --md-primary-tab-icon-size: 22px;
+    --md-primary-tab-active-label-text-color: var(--pincon-primary);
+    --md-primary-tab-active-icon-color: var(--pincon-primary);
+    --md-primary-tab-inactive-label-text-color: var(--pincon-on-surface-variant);
+    --md-primary-tab-inactive-icon-color: var(--pincon-on-surface-variant);
+  }
+
+  .pincon-ops-tab-grid md-primary-tab[active] {
+    background: color-mix(in srgb, var(--pincon-secondary-container) 68%, transparent);
+  }
+
+  .pincon-ops-tab-grid md-primary-tab md-icon[slot="icon"] {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    max-width: 22px;
+    font-size: 22px !important;
+    font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 22;
+  }
+
+  .pincon-ops-main {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .pincon-ops-view { gap: 22px !important; }
+
+  .pincon-ops-navigation {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    border-radius: 26px !important;
+  }
+
+  .pincon-ops-tab-grid md-primary-tab {
+    --md-primary-tab-container-height: 60px;
+    --md-primary-tab-with-icon-and-label-text-container-height: 60px;
+    --md-primary-tab-label-text-size: .62rem;
+  }
+
+  .pincon-ops-empty {
+    min-height: 82px !important;
+  }
+
+  .pincon-ops-empty md-list-item {
+    --md-list-item-two-line-container-height: 80px;
+  }
+
+  .pincon-ops-sync-state {
+    margin-inline: 2px;
+    padding: 12px 14px 10px;
+    border-radius: 20px;
+  }
+
+  .pincon-ops-section-heading {
+    min-height: 52px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .pincon-ops-top-actions md-filled-tonal-icon-button:last-child {
+    display: inline-flex !important;
+  }
+
+  .pincon-ops-tab-grid md-primary-tab {
+    --md-primary-tab-label-text-size: .58rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pincon-ops-view {
+    animation: none !important;
+  }
+}
