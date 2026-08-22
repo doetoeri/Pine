@@ -38,17 +38,20 @@ function shouldFallback(node) {
 
 function applyFallback(node) {
   if (!isMaterialButton(node)) return;
-  const fallback = shouldFallback(node);
-  if (fallback) {
-    node.dataset.pinconMaterialButtonFallback = "true";
-    if (!node.hasAttribute("role")) node.setAttribute("role", "button");
-    if (!node.hasAttribute("tabindex") && !node.hasAttribute("disabled") && node.getAttribute("aria-disabled") !== "true") {
-      node.tabIndex = 0;
-    }
-  } else if (node.dataset.pinconMaterialButtonFallback === "true") {
-    delete node.dataset.pinconMaterialButtonFallback;
-    if (node.getAttribute("role") === "button") node.removeAttribute("role");
-    if (node.getAttribute("tabindex") === "0") node.removeAttribute("tabindex");
+
+  // Once a specific DOM element needs the fallback, keep that decision for the
+  // rest of its lifetime. Re-evaluating after the fallback changes its geometry
+  // creates a feedback loop: fallback on -> looks healthy -> fallback off ->
+  // looks broken -> fallback on. That loop is the visible button "wobble".
+  if (node.dataset.pinconMaterialButtonFallbackLatched === "true") return;
+
+  if (!shouldFallback(node)) return;
+
+  node.dataset.pinconMaterialButtonFallback = "true";
+  node.dataset.pinconMaterialButtonFallbackLatched = "true";
+  if (!node.hasAttribute("role")) node.setAttribute("role", "button");
+  if (!node.hasAttribute("tabindex") && !node.hasAttribute("disabled") && node.getAttribute("aria-disabled") !== "true") {
+    node.tabIndex = 0;
   }
 }
 

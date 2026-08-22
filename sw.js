@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260821-print1";
+const PINCON_SW_VERSION = "20260822-single-expressive1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -16,12 +16,12 @@ const PINCON_APP_SHELL = [
   "./pincon-class-ops.css",
   "./pincon-print-center.css",
   "./pincon-expressive-all.css",
-  "./pincon-material-button-fallback.css",
+  "./pincon-controls.css",
   "./material-official-loader.js",
   "./material-web.bundle.js",
+  "./pincon-material-audit.js",
   "./pincon-material-button-fallback.js",
   "./pincon-material-expressive-25.js",
-  "./pincon-theme-switcher.js",
   "./pincon-adoption-core.js",
   "./pincon-adoption-flow-v2.js",
   "./pincon-ocr-capture.js",
@@ -31,8 +31,6 @@ const PINCON_APP_SHELL = [
   "./pincon-class-ops-data.js",
   "./pincon-class-ops.js",
   "./pincon-print-center.js",
-  "./pincon-lab-stability.js",
-  "./pincon-expressive-lab.js",
   "./pincon-guest-auth.js",
   "./pincon-google-auth-bridge.js",
   "./pincon-auth-diagnostics.js",
