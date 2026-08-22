@@ -1,4 +1,4 @@
-const VERSION = "2.4.1";
+const VERSION = "2.4.2";
 const TAGS = [
   "md-icon",
   "md-filled-button",
@@ -37,11 +37,21 @@ function timeoutResult() {
 
 async function loadOfficialMaterial() {
   const loadTask = (async () => {
+    const originalDefine = customElements.define;
+    customElements.define = function defineMaterialElement(name, constructor, options) {
+      if (customElements.get(name)) return undefined;
+      return originalDefine.call(customElements, name, constructor, options);
+    };
+
     try {
-      await import("./material-web.bundle.js?v=20260822-material-official-3");
+      await import("./material-web.bundle.js?v=20260822-material-official-5");
     } catch (error) {
+      const missing = TAGS.filter((tag) => !customElements.get(tag));
+      if (!missing.length) return { version: VERSION, status: "ready", missing: [] };
       console.warn("[PinCon Material] official bundle load failed; continuing with already-defined elements", error);
-      return { version: VERSION, status: "bundle-error", missing: TAGS.filter((tag) => !customElements.get(tag)) };
+      return { version: VERSION, status: "bundle-error", missing };
+    } finally {
+      customElements.define = originalDefine;
     }
 
     const pending = TAGS.filter((tag) => !customElements.get(tag));
