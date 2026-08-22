@@ -1,4 +1,4 @@
-const CLASSIC_RETURN_VERSION = "20260823-1";
+const CLASSIC_RETURN_VERSION = "20260823-2";
 let userOpenedOps = new URL(location.href).searchParams.get("class-ops") === "1";
 let scheduled = false;
 
@@ -70,16 +70,18 @@ function ensureBackButton() {
   }
 }
 
+function exposeOpsShell() {
+  const host = shell();
+  if (!host) return;
+  host.dataset.open = "true";
+  host.setAttribute("aria-hidden", "false");
+}
+
 function openOps(tab = "today") {
   userOpenedOps = true;
   document.body.classList.remove("pincon-classic-home");
   document.body.classList.add("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
-
-  const host = shell();
-  if (host) {
-    host.dataset.open = "true";
-    host.setAttribute("aria-hidden", "false");
-  }
+  exposeOpsShell();
 
   const url = new URL(location.href);
   url.searchParams.set("class-ops", "1");
@@ -107,7 +109,8 @@ function repair() {
   scheduled = false;
   if (userOpenedOps) {
     document.body.classList.remove("pincon-classic-home");
-    document.body.classList.add("pincon-classic-ops-open");
+    document.body.classList.add("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
+    exposeOpsShell();
     ensureBackButton();
   } else {
     markHome();
