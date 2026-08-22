@@ -24,6 +24,8 @@
   --pincon-on-surface-variant: #43483f;
   --pincon-outline: #73796e;
   --pincon-outline-variant: #c3c8bb;
+  --pincon-motion-emphasized: cubic-bezier(.2, 0, 0, 1);
+  --pincon-motion-emphasized-accelerate: cubic-bezier(.3, 0, 1, 1);
   --md-sys-color-primary: var(--pincon-primary);
   --md-sys-color-on-primary: var(--pincon-on-primary);
   --md-sys-color-primary-container: var(--pincon-primary-container);
@@ -224,11 +226,11 @@ body.pincon-unified-ready .floating-navigation {
   margin-inline: auto;
   display: grid;
   gap: 34px;
-  animation: pincon-view-enter 240ms cubic-bezier(.2, 0, 0, 1) both;
+  animation: pincon-view-enter 320ms var(--pincon-motion-emphasized) both;
 }
 
 @keyframes pincon-view-enter {
-  from { opacity: 0; transform: translateY(7px); }
+  from { opacity: 0; transform: translateY(10px) scale(.992); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -372,11 +374,16 @@ body.pincon-unified-ready .floating-navigation {
 }
 
 .pincon-ops-grid,
-.pincon-ops-exam-grid {
+.pincon-ops-exam-grid,
+.pincon-essential-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px;
   align-items: start;
+}
+
+.pincon-essential-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .pincon-ops-grid[data-columns="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -690,6 +697,7 @@ md-dialog.pincon-ops-dialog {
   .pincon-ops-main { left: 252px; padding-inline: 28px; }
   .pincon-today-stage { grid-template-columns: minmax(0, 1.3fr) minmax(300px, .9fr); }
   .pincon-ops-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pincon-essential-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 1020px) {
@@ -731,22 +739,23 @@ md-dialog.pincon-ops-dialog {
   .pincon-ops-navigation {
     position: fixed;
     z-index: 12;
-    left: 50%;
-    right: auto;
+    left: max(14px, env(safe-area-inset-left));
+    right: max(14px, env(safe-area-inset-right));
     bottom: max(12px, env(safe-area-inset-bottom));
-    width: min(760px, calc(100vw - 28px));
+    width: auto;
+    box-sizing: border-box;
     display: block;
     overflow: hidden;
     border: 1px solid var(--pincon-outline-variant);
     border-radius: 32px;
     background: var(--pincon-surface-container-high);
     box-shadow: 0 3px 8px rgba(25, 29, 23, .1), 0 12px 28px rgba(25, 29, 23, .09);
-    transform: translateX(-50%);
   }
 
   .pincon-ops-navigation md-tabs {
     width: 100%;
-    overflow-x: auto;
+    display: flex;
+    overflow: hidden;
     --md-primary-tab-container-color: transparent;
     --md-primary-tab-container-height: 68px;
     --md-primary-tab-with-icon-and-label-text-container-height: 68px;
@@ -755,8 +764,9 @@ md-dialog.pincon-ops-dialog {
   }
 
   .pincon-ops-navigation md-primary-tab {
-    min-width: 78px;
-    flex: 1 0 78px;
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 0;
   }
 
   .pincon-ops-main {
@@ -794,6 +804,7 @@ md-dialog.pincon-ops-dialog {
 
   .pincon-ops-grid,
   .pincon-ops-exam-grid,
+  .pincon-essential-grid,
   .pincon-resource-filters { grid-template-columns: minmax(0, 1fr); }
 
   .pincon-ops-wide { grid-column: auto; }
@@ -842,7 +853,9 @@ md-dialog.pincon-ops-dialog {
   .pincon-ops-card { border-radius: 28px 28px 10px 28px; }
 
   .pincon-ops-navigation {
-    width: calc(100vw - 16px);
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    width: auto;
     bottom: max(8px, env(safe-area-inset-bottom));
   }
 
