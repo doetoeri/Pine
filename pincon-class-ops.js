@@ -115,6 +115,46 @@ function sectionMarkup({ kicker, title, count = "", body, wide = false, action =
   </section>`;
 }
 
+function mealDishes(item = {}) {
+  const structured = Array.isArray(item.dishes)
+    ? item.dishes
+    : Array.isArray(item.menu)
+      ? item.menu
+      : [];
+  const rows = structured.length
+    ? structured
+    : String(item.dishesHtml || item.body || "").split(/<br\s*\/?\s*>|\n|·/gi);
+  return rows
+    .map((row) => compact(typeof row === "string" ? row : row?.name || row?.dishName || "", 60))
+    .filter(Boolean);
+}
+
+function timetableSectionBody(timetable) {
+  const periods = Array.isArray(timetable?.periods) ? timetable.periods : [];
+  return periods.length
+    ? `<div class="pincon-ops-surface"><md-list>${periods.map((period, index) => `<md-list-item><md-icon slot="start">counter_${Math.min(9, Number(period.period || index + 1))}</md-icon><span slot="headline">${esc(period.subject || "과목 미정")}</span><span slot="supporting-text">${esc(`${period.period || index + 1}교시${period.room ? ` · ${period.room}` : ""}`)}</span></md-list-item>${listDivider(index, periods.length)}`).join("")}</md-list></div>`
+    : emptyState("calendar_view_week", "오늘 시간표를 기다리는 중입니다", "컴시간 또는 NEIS 동기화가 완료되면 자동으로 표시됩니다.");
+}
+
+function mealSectionBody(meal) {
+  const dishes = mealDishes(meal);
+  return meal && dishes.length
+    ? `<div class="pincon-ops-surface"><md-list><md-list-item><md-icon slot="start">restaurant</md-icon><span slot="headline">${esc(`${meal.mealType || "중식"} 식단`)}</span><span slot="supporting-text">${esc(dishes.join(" · "))}</span></md-list-item></md-list></div>`
+    : emptyState("no_meals", "오늘 식단을 기다리는 중입니다", "NEIS 급식 정보가 연결되면 메뉴를 바로 보여 줍니다.");
+}
+
+function academicSectionBody(academic = []) {
+  return academic.length
+    ? `<div class="pincon-ops-surface"><md-list>${academic.map((item, index) => `<md-list-item><md-icon slot="start">event_note</md-icon><span slot="headline">${esc(item.title || item.eventName || item.events?.join(" · ") || "학교 일정")}</span><span slot="supporting-text">${esc(`${formatKoreanDate(item.date)} · ${item.source || "NEIS"}`)}</span></md-list-item>${listDivider(index, academic.length)}`).join("")}</md-list></div>`
+    : emptyState("event_busy", "예정된 학사일정이 없습니다", "NEIS 학사일정이 자동으로 연결되면 표시됩니다.");
+}
+
+function groupSectionBody(groups = []) {
+  return groups.length
+    ? `<div class="pincon-ops-surface"><md-list>${groups.map((item, index) => `<md-list-item><md-icon slot="start">groups_2</md-icon><span slot="headline">${esc([item.subject, item.title || item.groupLabel].filter(Boolean).join(" · ") || "학급 모둠")}</span><span slot="supporting-text">${esc(item.groupLabel || `${Array.isArray(item.members) ? item.members.length : 0}명 · 역할 확인`)}</span></md-list-item>${listDivider(index, groups.length)}`).join("")}</md-list></div>`
+    : emptyState("group_off", "등록된 모둠이 없습니다", "기존 PinCon에 모둠과 역할이 등록되면 이곳에 함께 표시됩니다.");
+}
+
 function field(name, label, value = "", options = {}) {
   const textarea = options.textarea ? ` type="textarea" rows="${options.rows || 4}"` : ` type="${options.type || "text"}"`;
   return `<md-outlined-text-field data-field="${attr(name)}" label="${attr(label)}" value="${attr(value)}"${textarea}${options.required ? " required" : ""}${options.max ? ` maxlength="${Number(options.max)}"` : ""}${options.support ? ` supporting-text="${attr(options.support)}"` : ""}></md-outlined-text-field>`;
@@ -145,6 +185,7 @@ class PinconClassOpsApp {
     this.toastTimer = 0;
     this.presentation = null;
     this.installPrompt = null;
+    this.transitionToken = 0;
     this.repo.addEventListener("change", (event) => {
       this.state = event.detail;
       if (!this.state.isPresident && this.tab === "manage") this.tab = "today";
@@ -215,6 +256,39 @@ class PinconClassOpsApp {
     this.render();
   }
 
+  async switchTab(nextTab = "today") {
+    const normalizedTab = nextTab === "manage" && !this.state.isPresident ? "today" : nextTab;
+    if (normalizedTab === this.tab) return;
+    const token = ++this.transitionToken;
+    const view = this.shell?.querySelector(".pincon-ops-view");
+    const reducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    if (view && !reducedMotion && typeof view.animate === "function") {
+      view.getAnimations?.().forEach((animation) => animation.cancel());
+      const exitEasing = getComputedStyle(this.shell).getPropertyValue("--pincon-motion-emphasized-accelerate").trim()
+        || "cubic-bezier(.3, 0, 1, 1)";
+      try {
+        await view.animate([
+          { opacity: 1, transform: "translateY(0) scale(1)" },
+          { opacity: 0, transform: "translateY(-6px) scale(.992)" },
+        ], {
+          duration: 160,
+          easing: exitEasing,
+          fill: "forwards",
+        }).finished;
+      } catch {
+        // A newer tab selection superseded this transition.
+      }
+    }
+    if (token !== this.transitionToken) return;
+    this.tab = normalizedTab;
+    const url = new URL(location.href);
+    url.searchParams.set("class-ops", "1");
+    url.searchParams.set("class-tab", this.tab);
+    history.replaceState(history.state, "", url);
+    this.render();
+    requestAnimationFrame(() => this.shell?.querySelector(".pincon-ops-main")?.focus?.());
+  }
+
   updateLaunchCard() {
     document.querySelectorAll(".pincon-ops-launch-card").forEach((card) => card.remove());
     this.syncProfile();
@@ -280,6 +354,10 @@ class PinconClassOpsApp {
     const urgent = feed.filter((item) => itemPriority(item) <= 3);
     const regular = feed.filter((item) => itemPriority(item) > 3);
     const today = kstDate();
+    const timetable = activeRows(this.data("neisTimetables")).find((item) => item.date === today);
+    const meal = activeRows(this.data("meals")).find((item) => item.date === today);
+    const groups = activeRows(this.data("content")).filter((item) => item.kind === "group").sort(byNewest).slice(0, 6);
+    const academic = activeRows(this.data("academicSchedules")).filter((item) => dateToMs(item.date) >= dateToMs(today)).sort(byDate).slice(0, 5);
     const title = exam.active ? `${exam.title}까지 D-${exam.days}` : "오늘, 우리 반이 해야 할 일";
     const heroBody = urgent.length
       ? `${urgent[0].title}${urgent.length > 1 ? ` 외 ${urgent.length - 1}개를 먼저 확인하세요.` : "을 먼저 확인하세요."}`
@@ -301,9 +379,10 @@ class PinconClassOpsApp {
       ? `<div class="pincon-ops-surface"><md-list>${weekAssessments.map((item, index) => `<md-list-item><md-icon slot="start">assignment</md-icon><span slot="headline">${esc(item.title)}</span><span slot="supporting-text">${esc([item.subject, relativeDateLabel(itemDate(item))].filter(Boolean).join(" · "))}</span></md-list-item>${listDivider(index, weekAssessments.length)}`).join("")}</md-list></div>`
       : emptyState("task_alt", "이번 주 평가가 없습니다", "새 수행평가가 등록되면 시험 정보와 함께 우선 표시됩니다.");
     const examFocus = exam.active ? `<div class="pincon-ops-exam-grid">${sectionMarkup({ kicker: "시험기간 모드", title: "시험범위", count: examResources.length, body: scopeBody })}${sectionMarkup({ kicker: "이번 주", title: "수행평가", count: weekAssessments.length, body: weekBody })}</div>` : "";
+    const essentials = `<div class="pincon-essential-grid">${sectionMarkup({ kicker: timetable?.source || "자동 연동", title: "오늘 시간표", count: timetable?.periods?.length || 0, body: timetableSectionBody(timetable) })}${sectionMarkup({ kicker: meal?.source || "NEIS", title: "오늘 식단", count: mealDishes(meal).length, body: mealSectionBody(meal) })}${sectionMarkup({ kicker: "기존 PinCon", title: "모둠과 역할", count: groups.length, body: groupSectionBody(groups) })}${sectionMarkup({ kicker: "NEIS", title: "학사일정", count: academic.length, body: academicSectionBody(academic) })}</div>`;
     const importantBody = urgent.length ? `<div class="pincon-ops-feed-list">${urgent.map((item) => this.feedCard(item, true)).join("")}</div>` : emptyState("done_all", "오늘의 필수 확인 완료", "새 긴급 공지나 오늘 수행평가가 등록되면 가장 먼저 표시됩니다.");
     const restBody = regular.length ? `<div class="pincon-ops-feed-list">${regular.slice(0, 10).map((item) => this.feedCard(item)).join("")}</div>` : emptyState("inbox", "추가 안내가 없습니다", "급식·시간표·학사 일정과 학급 입력 자료가 연결되면 이곳에 모입니다.");
-    return `${this.pageHeading("오늘", title, "기존 PinCon 정보와 학급 운영 기록을 한 흐름으로 정리했습니다.")}<div class="pincon-today-stage"><div class="pincon-today-lead">${hero}</div><aside class="pincon-today-focus">${sectionMarkup({ kicker: "먼저 확인", title: "놓치면 안 되는 정보", count: urgent.length, body: importantBody })}</aside></div>${examFocus}${sectionMarkup({ kicker: "오늘과 이번 주", title: "이어서 확인하기", count: regular.length, body: restBody, wide: true })}`;
+    return `${this.pageHeading("오늘", title, "기존 PinCon 정보와 학급 운영 기록을 한 흐름으로 정리했습니다.")}<div class="pincon-today-stage"><div class="pincon-today-lead">${hero}</div><aside class="pincon-today-focus">${sectionMarkup({ kicker: "먼저 확인", title: "놓치면 안 되는 정보", count: urgent.length, body: importantBody })}</aside></div>${essentials}${examFocus}${sectionMarkup({ kicker: "오늘과 이번 주", title: "이어서 확인하기", count: regular.length, body: restBody, wide: true })}`;
   }
 
   renderSchedule() {
@@ -311,12 +390,14 @@ class PinconClassOpsApp {
     const assignments = activeRows(this.data("classAssignments")).filter((item) => dateToMs(itemDate(item)) >= dateToMs(today)).sort(byDate);
     const academic = activeRows(this.data("academicSchedules")).filter((item) => dateToMs(item.date) >= dateToMs(today)).sort(byDate).slice(0, 20);
     const timetable = activeRows(this.data("neisTimetables")).find((item) => item.date === today);
+    const meal = activeRows(this.data("meals")).find((item) => item.date === today);
     const changes = activeRows(this.data("content")).filter((item) => item.kind === "schedule").sort(byNewest).slice(0, 20);
     const assignmentBody = assignments.length ? `<div class="pincon-ops-surface"><md-list>${assignments.slice(0, 30).map((item, index) => `<md-list-item><md-icon slot="start">${ICONS[item.type] || "event"}</md-icon><span slot="headline">${esc(item.title)}</span><span slot="supporting-text">${esc([item.subject, relativeDateLabel(itemDate(item)), item.type === "preparation" ? "준비물" : "수행·시험"].filter(Boolean).join(" · "))}</span>${this.state.isPresident ? `<span slot="end"><md-text-button data-action="assignment-edit" data-id="${attr(item.id)}">수정</md-text-button><md-text-button data-action="item-delete" data-collection="classAssignments" data-id="${attr(item.id)}">삭제</md-text-button></span>` : ""}</md-list-item>${listDivider(index, assignments.length)}`).join("")}</md-list></div>` : emptyState("event_available", "등록된 수행평가가 없습니다", "회장이 수행평가와 준비물을 등록하면 날짜순으로 표시됩니다.");
-    const timetableBody = timetable?.periods?.length ? `<div class="pincon-ops-surface"><md-list>${timetable.periods.map((period, index) => `<md-list-item><md-icon slot="start">counter_${Math.min(9, Number(period.period || index + 1))}</md-icon><span slot="headline">${esc(period.subject || "과목 미정")}</span><span slot="supporting-text">${esc(`${period.period || index + 1}교시${period.room ? ` · ${period.room}` : ""}`)}</span></md-list-item>${listDivider(index, timetable.periods.length)}`).join("")}</md-list></div>` : emptyState("calendar_view_week", "오늘 시간표를 기다리는 중입니다", "컴시간 또는 NEIS 동기화가 완료되면 자동으로 표시됩니다.");
-    const academicBody = academic.length ? `<div class="pincon-ops-surface"><md-list>${academic.map((item, index) => `<md-list-item><md-icon slot="start">event_note</md-icon><span slot="headline">${esc(item.title || item.eventName)}</span><span slot="supporting-text">${esc(`${formatKoreanDate(item.date)} · ${item.source || "NEIS"}`)}</span></md-list-item>${listDivider(index, academic.length)}`).join("")}</md-list></div>` : emptyState("event_busy", "예정된 학사일정이 없습니다", "NEIS 학사일정이 자동으로 연결되면 표시됩니다.");
+    const timetableBody = timetableSectionBody(timetable);
+    const mealBody = mealSectionBody(meal);
+    const academicBody = academicSectionBody(academic);
     const changeBody = changes.length ? `<div class="pincon-ops-surface"><md-list>${changes.map((item, index) => `<md-list-item><md-icon slot="start">move_up</md-icon><span slot="headline">${esc(item.title || `${item.day || ""} ${item.period || ""}교시 ${item.subject || "수업 변경"}`)}</span><span slot="supporting-text">${esc([item.status, item.room, compact(item.body, 100)].filter(Boolean).join(" · ") || "기존 PinCon에서 등록된 변경")}</span></md-list-item>${listDivider(index, changes.length)}`).join("")}</md-list></div>` : emptyState("event_repeat", "등록된 수업 변경이 없습니다", "시간표·교실 이동이 등록되면 자동 시간표와 함께 표시됩니다.");
-    return `${this.pageHeading("일정", "수행평가와 학사일정", "기존 PinCon의 수업 변경과 NEIS·학급 입력을 출처별로 함께 보여 줍니다.")}<div class="pincon-ops-grid">${sectionMarkup({ kicker: "학급 입력", title: "수행평가·준비물", count: assignments.length, body: assignmentBody })}${sectionMarkup({ kicker: timetable?.source || "자동 연동", title: "오늘 시간표", body: timetableBody })}${sectionMarkup({ kicker: "기존 PinCon", title: "수업 변경·교실 이동", count: changes.length, body: changeBody, wide: true })}${sectionMarkup({ kicker: "NEIS", title: "학사일정", count: academic.length, body: academicBody, wide: true })}</div>`;
+    return `${this.pageHeading("일정", "수행평가·식단·학사일정", "기존 PinCon의 수업 변경과 NEIS·학급 입력을 출처별로 함께 보여 줍니다.")}<div class="pincon-ops-grid">${sectionMarkup({ kicker: "학급 입력", title: "수행평가·준비물", count: assignments.length, body: assignmentBody })}${sectionMarkup({ kicker: timetable?.source || "자동 연동", title: "오늘 시간표", count: timetable?.periods?.length || 0, body: timetableBody })}${sectionMarkup({ kicker: meal?.source || "NEIS", title: "오늘 식단", count: mealDishes(meal).length, body: mealBody })}${sectionMarkup({ kicker: "NEIS", title: "학사일정", count: academic.length, body: academicBody })}${sectionMarkup({ kicker: "기존 PinCon", title: "수업 변경·교실 이동", count: changes.length, body: changeBody, wide: true })}</div>`;
   }
 
   feedbackCard(item) {
@@ -354,7 +435,7 @@ class PinconClassOpsApp {
     const eventBody = events.length ? `<div class="pincon-ops-card-grid">${events.map((item) => this.eventCard(item)).join("")}</div>` : emptyState("celebration", "예정된 학급 행사가 없습니다", "첫 행사 템플릿은 ‘우리반 34명에게 물었습니다’입니다.", this.state.isPresident ? `<md-filled-tonal-button data-action="event-template">첫 행사 만들기</md-filled-tonal-button>` : "");
     const pollBody = polls.length ? `<div class="pincon-ops-card-grid">${polls.map((item) => this.pollCard(item)).join("")}</div>` : emptyState("how_to_vote", "진행 중인 공식 투표가 없습니다", "다음 행사 아이디어나 학급 선택을 공정하게 투표할 수 있습니다.");
     const patchBody = patches.length ? `<div class="pincon-ops-card-grid">${patches.map((item) => this.patchCard(item)).join("")}</div>` : emptyState("new_releases", "첫 패치노트를 준비 중입니다", "처리된 의견과 운영 변경을 모아 월별로 공개합니다.");
-    const groupBody = groups.length ? `<div class="pincon-ops-surface"><md-list>${groups.map((item, index) => `<md-list-item><md-icon slot="start">groups_2</md-icon><span slot="headline">${esc([item.subject, item.title || item.groupLabel].filter(Boolean).join(" · ") || "학급 모둠")}</span><span slot="supporting-text">${esc(item.groupLabel || `${Array.isArray(item.members) ? item.members.length : 0}명 · 역할 확인`)}</span></md-list-item>${listDivider(index, groups.length)}`).join("")}</md-list></div>` : emptyState("group_off", "등록된 모둠이 없습니다", "기존 PinCon에 모둠과 역할이 등록되면 이곳에 함께 표시됩니다.");
+    const groupBody = groupSectionBody(groups);
     return `${this.pageHeading("학급", "우리 반이 바뀌는 과정", "모둠·의견·행사·투표와 처리 결과를 한 흐름으로 확인하세요.")}<div class="pincon-ops-status-line"><md-filled-button data-action="feedback-create"><md-icon slot="icon">add_comment</md-icon>익명 의견</md-filled-button>${this.state.isPresident ? `<md-outlined-button data-action="event-create">행사 만들기</md-outlined-button><md-outlined-button data-action="poll-create">투표 만들기</md-outlined-button>` : ""}</div>${sectionMarkup({ kicker: "기존 PinCon", title: "모둠과 역할", count: groups.length, body: groupBody, wide: true })}${sectionMarkup({ kicker: "학생 의견 → 처리", title: "학급 개선 건의", count: feedback.length, body: feedbackBody, wide: true })}${sectionMarkup({ kicker: "함께 참여", title: "학급 행사", count: events.length, body: eventBody, wide: true })}${sectionMarkup({ kicker: "선택", title: "행사 아이디어 투표", count: polls.length, body: pollBody, wide: true })}${sectionMarkup({ kicker: "월별 기록", title: "학급 패치노트", count: patches.length, body: patchBody, wide: true })}`;
   }
 
@@ -452,13 +533,7 @@ class PinconClassOpsApp {
     try {
       if (action === "close") return this.close();
       if (action === "tab") {
-        this.tab = target.dataset.tab || "today";
-        const url = new URL(location.href);
-        url.searchParams.set("class-ops", "1");
-        url.searchParams.set("class-tab", this.tab);
-        history.replaceState(history.state, "", url);
-        this.render();
-        return;
+        return this.switchTab(target.dataset.tab || "today");
       }
       if (action === "search") return this.openSearch();
       if (action === "class-change") return this.openClassChange();

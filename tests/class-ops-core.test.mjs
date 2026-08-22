@@ -111,6 +111,14 @@ test("오늘 피드는 이번 주 학사일정·행사를 포함하고 오래된
   assert.deepEqual(rows.map((row) => row.id), ["academic", "event"]);
 });
 
+test("오늘 피드는 배열형 NEIS 식단을 읽기 쉬운 메뉴로 표시한다", () => {
+  const rows = buildTodayFeed({
+    meals: [{ id: "meal", date: "2026-08-20", mealType: "중식", dishes: ["현미밥", { name: "미역국" }] }],
+  }, NOW);
+  assert.equal(rows[0].title, "중식 급식");
+  assert.equal(rows[0].body, "현미밥 · 미역국");
+});
+
 test("익명 행사 응답은 같은 답을 빈도순으로 집계한다", () => {
   const result = aggregateAnswers([
     { answers: ["가족오락관", "퀴즈"] },

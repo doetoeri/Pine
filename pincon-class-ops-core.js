@@ -282,11 +282,20 @@ export function buildTodayFeed(data = {}, now = Date.now()) {
   }
   const meal = (data.meals || []).find((item) => item.date === today);
   if (meal) {
+    const dishes = Array.isArray(meal.dishes)
+      ? meal.dishes
+      : Array.isArray(meal.menu)
+        ? meal.menu
+        : [];
+    const dishText = dishes
+      .map((item) => plainText(typeof item === "string" ? item : item?.name || item?.dishName || "", 60))
+      .filter(Boolean)
+      .join(" · ");
     rows.push({
       ...meal,
       id: meal.id || `meal-${today}`,
       title: `${meal.mealType || "중식"} 급식`,
-      body: String(meal.dishesHtml || meal.body || "").replace(/<br\s*\/?\s*>/gi, " · ").replace(/<[^>]+>/g, " "),
+      body: dishText || String(meal.dishesHtml || meal.body || "").replace(/<br\s*\/?\s*>/gi, " · ").replace(/<[^>]+>/g, " "),
       type: "meal",
       feedKind: "meal",
       sourceLabel: meal.source || "NEIS",

@@ -65,6 +65,29 @@ test("통합 셸의 상호작용 컴포넌트는 공식 Material Web 태그를 �
   assert.doesNotMatch(source, /<button\b/i);
 });
 
+test("화면 전환과 모바일 플로팅 바가 Material 모션·화면 폭 규칙을 따른다", async () => {
+  const [source, css] = await Promise.all([
+    read("pincon-class-ops.js"),
+    read("pincon-unified-shell.css"),
+  ]);
+  assert.match(source, /async switchTab\(/);
+  assert.match(source, /prefers-reduced-motion: reduce/);
+  assert.match(source, /cubic-bezier\(\.3, 0, 1, 1\)/);
+  assert.match(css, /--pincon-motion-emphasized: cubic-bezier\(\.2, 0, 0, 1\)/);
+  assert.match(css, /\.pincon-ops-navigation md-primary-tab \{[\s\S]*?min-width: 0;[\s\S]*?flex: 1 1 0;/);
+  assert.match(css, /left: max\(8px, env\(safe-area-inset-left\)\)/);
+});
+
+test("오늘 화면에 식단·시간표·모둠·학사일정 고정 영역이 있다", async () => {
+  const source = await read("pincon-class-ops.js");
+  assert.match(source, /class="pincon-essential-grid"/);
+  for (const title of ["오늘 식단", "오늘 시간표", "모둠과 역할", "학사일정"]) {
+    assert.match(source, new RegExp(`title: "${title}"`));
+  }
+  assert.match(source, /mealSectionBody\(meal\)/);
+  assert.match(source, /groupSectionBody\(groups\)/);
+});
+
 test("서비스 워커의 로컬 앱 셸 파일이 모두 존재한다", async () => {
   const serviceWorker = await read("sw.js");
   const arrayMatch = serviceWorker.match(/const PINCON_APP_SHELL = \[([\s\S]*?)\];/);
