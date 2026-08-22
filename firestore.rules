@@ -53,6 +53,30 @@ service cloud.firestore {
       return value is string && value.size() > 0 && value.size() <= maxSize;
     }
 
+    function validWorksheetMetadata() {
+      return request.resource.data.unit is string
+        && request.resource.data.unit.size() <= 80
+        && request.resource.data.materialType in ['worksheet', 'summary', 'assignment', 'exam', 'answer', 'other']
+        && request.resource.data.schoolYear is int
+        && request.resource.data.schoolYear >= 2000
+        && request.resource.data.schoolYear <= 2100
+        && request.resource.data.semester in [1, 2]
+        && request.resource.data.version is string
+        && request.resource.data.version.size() <= 20
+        && request.resource.data.pageCount is int
+        && request.resource.data.pageCount >= 0
+        && request.resource.data.pageCount <= 999
+        && request.resource.data.sourceAttribution is string
+        && request.resource.data.sourceAttribution.size() <= 300
+        && request.resource.data.rightsBasis in ['teacher-approved', 'self-made', 'open-license', 'official-public']
+        && (
+          !(request.resource.data.rightsBasis in ['open-license', 'official-public'])
+          || request.resource.data.sourceAttribution.size() > 0
+        )
+        && request.resource.data.rightsConfirmed == true
+        && request.resource.data.personalDataRemoved == true;
+    }
+
     function validAnswerAt(answers, index) {
       return answers.size() <= index
         || (
@@ -540,7 +564,9 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'classKey', 'category', 'subject', 'title', 'description', 'url',
-          'fileName', 'storagePath', 'pinned', 'moderationStatus', 'deleted',
+          'unit', 'materialType', 'schoolYear', 'semester', 'version', 'pageCount', 'sourceAttribution',
+          'fileName', 'storagePath', 'rightsBasis', 'rightsConfirmed', 'personalDataRemoved',
+          'pinned', 'moderationStatus', 'deleted',
           'createdAtMs', 'updatedAtMs', 'createdAt', 'updatedAt'
         ])
         && validClassOpsBase(request.resource.data.classKey)
@@ -551,6 +577,7 @@ service cloud.firestore {
         && request.resource.data.subject.size() <= 40
         && request.resource.data.description is string
         && request.resource.data.description.size() <= 1200
+        && validWorksheetMetadata()
         && request.resource.data.url is string
         && request.resource.data.url.size() > 0
         && request.resource.data.url.size() <= 1200
@@ -575,6 +602,16 @@ service cloud.firestore {
         && request.resource.data.subject.size() <= 40
         && request.resource.data.description is string
         && request.resource.data.description.size() <= 1200
+        && (
+          (
+            request.resource.data.keys().hasAll(['materialType', 'rightsConfirmed', 'personalDataRemoved'])
+            && validWorksheetMetadata()
+          )
+          || (
+            !resource.data.keys().hasAny(['materialType', 'rightsConfirmed', 'personalDataRemoved'])
+            && !request.resource.data.keys().hasAny(['materialType', 'rightsConfirmed', 'personalDataRemoved'])
+          )
+        )
         && request.resource.data.url is string
         && request.resource.data.url.size() > 0
         && request.resource.data.url.size() <= 1200
