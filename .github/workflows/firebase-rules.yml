@@ -27,11 +27,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Deploy Firestore and Storage rules
+      - name: Deploy Firestore rules
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           FIREBASE_PROJECT_ID: studio-2803086992-2d4cf
           FIREBASE_STORAGE_BUCKET: studio-2803086992-2d4cf.firebasestorage.app
+          FIREBASE_RULES_FIRESTORE_ONLY: "true"
           # 2026-08-24 only: 1-8 authenticated guest editing closes automatically at 23:59:59 KST.
           PINCON_OPEN_WRITE_CLASS: "1-8"
           PINCON_OPEN_WRITE_UNTIL_MS: "1787583599000"
@@ -47,7 +48,7 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d "{\"state\":\"success\",\"context\":\"Firebase Rules\",\"description\":\"Temporary 1-8 write rules deployed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+            -d "{\"state\":\"success\",\"context\":\"Firebase Rules\",\"description\":\"Temporary 1-8 Firestore write rules deployed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
       - name: Report Firebase rules failure
         if: ${{ failure() }}
         env:
@@ -59,4 +60,4 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d "{\"state\":\"failure\",\"context\":\"Firebase Rules\",\"description\":\"Firebase rules deployment failed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+            -d "{\"state\":\"failure\",\"context\":\"Firebase Rules\",\"description\":\"Firebase Firestore rules deployment failed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
