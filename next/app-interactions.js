@@ -1,9 +1,21 @@
 import { NextDataGateway, readClassProfile } from "./core/data-gateway.js";
+import { brandTaglineFor } from "./core/brand-settings.js";
 import { buildNotificationFeed, NotificationStore } from "./core/notification-store.js";
 
-// Material Web keyboard activation normalizer.
-// Register this capture path before the rest of the interaction enhancements so
-// Enter/Space produces exactly one composed host click across Chromium/WebKit.
+const LOGO_URL = "./assets/pincon-icon.svg";
+const appRoot = document.querySelector("#app");
+const gateway = new NextDataGateway();
+let snapshot = gateway.snapshot();
+let profile = snapshot.profile || readClassProfile();
+const notificationStore = new NotificationStore(profile?.classKey || "");
+let feed = [];
+let reconcileQueued = false;
+let lastDialogTrigger = null;
+let bootReleased = false;
+let routeTimer = 0;
+
+// Material Web keyboard activation normalizer. Register before the rest of the
+// interaction enhancements so Enter/Space produces one composed host click.
 const MATERIAL_BUTTON_SELECTOR = [
   "md-icon-button",
   "md-text-button",
@@ -42,7 +54,6 @@ document.addEventListener("keydown", (event) => {
   if (!activationKey(event)) return;
   const host = materialHostFromEvent(event);
   if (!host || host.hasAttribute("disabled")) return;
-
   event.preventDefault();
   event.stopImmediatePropagation();
   dispatchHostActivation(host);
@@ -53,7 +64,6 @@ function bindShadowCapture(host) {
   const root = host.shadowRoot;
   if (!root) return false;
   if (boundRoots.has(root)) return true;
-
   root.addEventListener("keydown", (event) => {
     if (!activationKey(event) || host.hasAttribute("disabled")) return;
     event.preventDefault();
@@ -66,13 +76,11 @@ function bindShadowCapture(host) {
 
 function prepareHost(host) {
   if (!(host instanceof HTMLElement)) return;
-
   bindShadowCapture(host);
   queueMicrotask(() => bindShadowCapture(host));
   requestAnimationFrame(() => bindShadowCapture(host));
   window.setTimeout(() => bindShadowCapture(host), 0);
   window.setTimeout(() => bindShadowCapture(host), 50);
-
   const updateComplete = host.updateComplete;
   if (updateComplete && typeof updateComplete.then === "function") {
     updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
@@ -88,9 +96,7 @@ function prepareMainFocus(scope = document) {
 
 function prepareScope(scope = document) {
   prepareMainFocus(scope);
-  if (scope instanceof HTMLElement && scope.matches?.(MATERIAL_BUTTON_SELECTOR)) {
-    prepareHost(scope);
-  }
+  if (scope instanceof HTMLElement && scope.matches?.(MATERIAL_BUTTON_SELECTOR)) prepareHost(scope);
   scope.querySelectorAll?.(MATERIAL_BUTTON_SELECTOR).forEach(prepareHost);
 }
 
@@ -101,19 +107,8 @@ const keyboardObserver = new MutationObserver((records) => {
     }
   }
 });
-
-const keyboardAppRoot = document.querySelector("#app");
-if (keyboardAppRoot) keyboardObserver.observe(keyboardAppRoot, { childList: true, subtree: true });
+if (appRoot) keyboardObserver.observe(appRoot, { childList: true, subtree: true });
 prepareScope();
-
-// Notification, trust, dialog-focus, and navigation semantics.
-const gateway = new NextDataGateway();
-let snapshot = gateway.snapshot();
-let profile = snapshot.profile || readClassProfile();
-const notificationStore = new NotificationStore(profile?.classKey || "");
-let feed = [];
-let reconcileQueued = false;
-let lastDialogTrigger = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -122,6 +117,66 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function logoMarkup(extra = "") {
+  return `<img class="pincon-brand-logo ${extra}" src="${LOGO_URL}" alt="" decoding="async" />`;
+}
+
+function currentTagline() {
+  return brandTaglineFor(snapshot.data || {}, snapshot.profile?.classKey || "");
+}
+
+function syncTaglineNode(node, tagline) {
+  if (!node) return;
+  const hidden = !tagline;
+  if (node.textContent !== tagline) node.textContent = tagline;
+  if (node.title !== tagline) node.title = tagline;
+  if (node.hidden !== hidden) node.hidden = hidden;
+  if (node.getAttribute("data-brand-ready") !== "true") node.setAttribute("data-brand-ready", "true");
+}
+
+function applyBranding(root = document) {
+  const topMark = root.querySelector?.(".brand__mark") || document.querySelector(".brand__mark");
+  if (topMark && !topMark.querySelector(".pincon-brand-logo")) topMark.innerHTML = logoMarkup();
+
+  const splashMark = root.querySelector?.(".splash__mark") || document.querySelector(".splash__mark");
+  if (splashMark && !splashMark.querySelector(".pincon-brand-logo")) splashMark.innerHTML = logoMarkup();
+
+  const railMark = root.querySelector?.(".rail__brand") || document.querySelector(".rail__brand");
+  if (railMark && !railMark.querySelector(".pincon-brand-logo")) {
+    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon</span><small class="rail__tagline"></small></span>`;
+  }
+
+  const tagline = currentTagline();
+  syncTaglineNode(document.querySelector(".brand__title .beta-badge"), tagline);
+  syncTaglineNode(document.querySelector(".rail__tagline"), tagline);
+}
+
+function prepareReducedMotionLoader() {
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const progress = document.querySelector("#pinconBoot md-linear-progress");
+  if (!progress) return;
+  progress.removeAttribute("indeterminate");
+  progress.setAttribute("value", "0.6");
+}
+
+function releaseBootWhenStable() {
+  if (bootReleased || !appRoot?.querySelector(".shell, .splash")) return;
+  bootReleased = true;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.body.classList.add("pincon-boot-done");
+      window.setTimeout(() => document.querySelector("#pinconBoot")?.remove(), 220);
+    });
+  });
+}
+
+function animateRouteOnce() {
+  document.body.classList.remove("pincon-route-transition");
+  requestAnimationFrame(() => document.body.classList.add("pincon-route-transition"));
+  window.clearTimeout(routeTimer);
+  routeTimer = window.setTimeout(() => document.body.classList.remove("pincon-route-transition"), 220);
 }
 
 function dateLabel(dateString) {
@@ -177,7 +232,6 @@ function enhanceNavigationSemantics() {
     const current = control.getAttribute("data-aria-current") === "page" || control.getAttribute("aria-current") === "page";
     setCurrentState(control, current);
   });
-
   const main = document.querySelector("#mainContent");
   if (main && !main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
 }
@@ -207,17 +261,14 @@ function anyDialogOpen() {
 function enhanceDialogSemantics() {
   const searchDialog = document.querySelector("#searchDialog");
   if (searchDialog) searchDialog.setAttribute("data-aria-label", "통합 검색");
-
   const notificationDialog = document.querySelector("#notificationDialog");
   if (notificationDialog) notificationDialog.setAttribute("data-aria-label", "알림함");
-
   setAccessibleLabel(document.querySelector("#openSearch"), "통합 검색");
 }
 
 function enhanceNotificationButton() {
   const button = document.querySelector("#openNotifications");
   if (!button) return;
-
   let wrapper = button.parentElement?.classList.contains("notification-trigger-wrap") ? button.parentElement : null;
   if (!wrapper) {
     wrapper = document.createElement("span");
@@ -225,7 +276,6 @@ function enhanceNotificationButton() {
     button.parentNode?.insertBefore(wrapper, button);
     wrapper.append(button);
   }
-
   let badge = wrapper.querySelector(".notification-badge");
   if (!badge) {
     badge = document.createElement("span");
@@ -233,7 +283,6 @@ function enhanceNotificationButton() {
     badge.setAttribute("aria-hidden", "true");
     wrapper.append(badge);
   }
-
   const count = unreadCount();
   const text = count > 99 ? "99+" : String(count);
   if (badge.textContent !== text) badge.textContent = text;
@@ -245,31 +294,17 @@ function inboxMarkup() {
   const rows = currentFeed();
   const unread = unreadCount();
   if (!rows.length) {
-    return `<div class="empty">
-      <md-icon>notifications_none</md-icon>
-      <strong>알림이 없습니다</strong>
-      <span>공지·수행·학급 행사가 생기면 기록이 이곳에 남습니다.</span>
-    </div>`;
+    return `<div class="empty"><md-icon>notifications_none</md-icon><strong>알림이 없습니다</strong><span>공지·수행·학급 행사가 생기면 기록이 이곳에 남습니다.</span></div>`;
   }
-
-  return `<div class="notification-summary">
-      <span class="notification-summary__text">전체 ${rows.length}개 · 읽지 않음 ${unread}개</span>
-      <md-text-button id="markAllNotificationsRead" ${unread ? "" : "disabled"}>모두 읽음</md-text-button>
-    </div>
+  return `<div class="notification-summary"><span class="notification-summary__text">전체 ${rows.length}개 · 읽지 않음 ${unread}개</span><md-text-button id="markAllNotificationsRead" ${unread ? "" : "disabled"}>모두 읽음</md-text-button></div>
     <md-list class="notification-list" aria-label="알림 기록">
-      ${rows.map((item) => `<md-list-item type="button" data-notification-id="${escapeHtml(item.id)}" data-notification-route="${escapeHtml(item.route)}" data-read="${item.read}">
-        <md-icon slot="start">${escapeHtml(item.icon)}</md-icon>
-        <div slot="headline">${escapeHtml(item.title)}</div>
-        <div slot="supporting-text">${escapeHtml([item.kind, item.body, dateLabel(item.date)].filter(Boolean).join(" · "))}</div>
-        ${item.read ? "" : '<span slot="end" class="notification-unread-dot" aria-label="읽지 않음"></span>'}
-      </md-list-item>`).join("")}
+      ${rows.map((item) => `<md-list-item type="button" data-notification-id="${escapeHtml(item.id)}" data-notification-route="${escapeHtml(item.route)}" data-read="${item.read}"><md-icon slot="start">${escapeHtml(item.icon)}</md-icon><div slot="headline">${escapeHtml(item.title)}</div><div slot="supporting-text">${escapeHtml([item.kind, item.body, dateLabel(item.date)].filter(Boolean).join(" · "))}</div>${item.read ? "" : '<span slot="end" class="notification-unread-dot" aria-label="읽지 않음"></span>'}</md-list-item>`).join("")}
     </md-list>`;
 }
 
 function renderInbox() {
   const target = document.querySelector("#notificationContent");
-  if (!target) return;
-  target.innerHTML = inboxMarkup();
+  if (target) target.innerHTML = inboxMarkup();
 }
 
 function trustMarkup() {
@@ -279,19 +314,7 @@ function trustMarkup() {
   const adminAction = snapshot.isManager
     ? `<div class="trust-actions"><md-filled-tonal-button id="openAdminBeta"><md-icon slot="icon">admin_panel_settings</md-icon>관리자 Beta</md-filled-tonal-button></div>`
     : "";
-  return `<article class="surface" data-day2-trust>
-    <div class="surface__header">
-      <h2 class="surface__title">권한과 복구</h2>
-      <span class="beta-badge">WRITE LOCKED</span>
-    </div>
-    <div class="trust-grid">
-      <div class="trust-line"><strong>현재 역할</strong><span>${escapeHtml(roleLabel(access.role))}</span></div>
-      <div class="trust-line"><strong>인증 상태</strong><span>${escapeHtml(signedIn + identity)}</span></div>
-      <div class="trust-line"><strong>공용 편집</strong><span>일반 콘텐츠 쓰기는 Beta에서 잠금. 기존 운영 권한이 허용하는 학급 브랜드 문구만 관리자에서 수정할 수 있습니다.</span></div>
-      <div class="trust-line"><strong>삭제 정책</strong><span>영구 삭제 대신 보관 처리 후 복원 가능하게 설계합니다. 삭제·복원 모두 감사 기록이 필수입니다.</span></div>
-    </div>
-    ${adminAction}
-  </article>`;
+  return `<article class="surface" data-day2-trust><div class="surface__header"><h2 class="surface__title">권한과 복구</h2><span class="beta-badge">WRITE LOCKED</span></div><div class="trust-grid"><div class="trust-line"><strong>현재 역할</strong><span>${escapeHtml(roleLabel(access.role))}</span></div><div class="trust-line"><strong>인증 상태</strong><span>${escapeHtml(signedIn + identity)}</span></div><div class="trust-line"><strong>공용 편집</strong><span>일반 콘텐츠 쓰기는 Beta에서 잠금. 기존 운영 권한이 허용하는 학급 브랜드 문구만 관리자에서 수정할 수 있습니다.</span></div><div class="trust-line"><strong>삭제 정책</strong><span>영구 삭제 대신 보관 처리 후 복원 가능하게 설계합니다. 삭제·복원 모두 감사 기록이 필수입니다.</span></div></div>${adminAction}</article>`;
 }
 
 function injectTrustCard() {
@@ -306,10 +329,12 @@ function reconcile() {
   profile = snapshot.profile || readClassProfile();
   notificationStore.setClassKey(profile?.classKey || "");
   feed = buildNotificationFeed(snapshot.data || {});
+  applyBranding();
   enhanceNavigationSemantics();
   enhanceDialogSemantics();
   enhanceNotificationButton();
   injectTrustCard();
+  releaseBootWhenStable();
 }
 
 function queueReconcile() {
@@ -322,25 +347,22 @@ gateway.addEventListener("change", (event) => {
   snapshot = event.detail;
   queueReconcile();
 });
-
 notificationStore.addEventListener("change", () => queueReconcile());
 
 const enhancementObserver = new MutationObserver(() => queueReconcile());
-const appRoot = document.querySelector("#app");
 if (appRoot) enhancementObserver.observe(appRoot, { childList: true, subtree: true });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && anyDialogOpen()) {
-    window.setTimeout(restoreDialogTriggerFocus, 0);
-  }
+  if (event.key === "Escape" && anyDialogOpen()) window.setTimeout(restoreDialogTriggerFocus, 0);
 });
 
-// Own the notification trigger in capture phase so app.js cannot render its legacy
-// notice-only dialog first. This keeps the canonical inbox as the single visible render.
+// Capture route intent before app.js renders, so only real route changes animate.
 document.addEventListener("click", (event) => {
+  const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
+  if (routeControl) animateRouteOnce();
+
   const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
   if (!notificationOpenButton) return;
-
   lastDialogTrigger = notificationOpenButton;
   event.preventDefault();
   event.stopPropagation();
@@ -357,10 +379,8 @@ document.addEventListener("click", (event) => {
     location.href = "./admin/";
     return;
   }
-
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
   if (searchOpenButton) lastDialogTrigger = searchOpenButton;
-
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
   if (closeButton) window.setTimeout(restoreDialogTriggerFocus, 0);
 
@@ -384,5 +404,14 @@ document.addEventListener("click", (event) => {
   destination?.click?.();
 });
 
+prepareReducedMotionLoader();
 queueReconcile();
 await gateway.start();
+
+// Never strand the user behind the boot surface if a third-party dependency fails.
+window.setTimeout(() => {
+  if (!bootReleased) {
+    bootReleased = true;
+    document.body.classList.add("pincon-boot-done");
+  }
+}, 4500);

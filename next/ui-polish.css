@@ -63,7 +63,6 @@ body.pincon-boot-done #pinconBoot {
   visibility: hidden;
 }
 
-/* Data refreshes do not replay entrance animation. Only route changes opt in. */
 .view-enter {
   animation: none !important;
 }
@@ -108,7 +107,6 @@ body.pincon-route-transition .view-enter {
   display: none;
 }
 
-/* Hard invariant: route icon and route label remain rendered at every breakpoint. */
 .bottom-nav [data-route],
 .rail__nav [data-route] {
   overflow: visible !important;
@@ -122,7 +120,6 @@ body.pincon-route-transition .view-enter {
   overflow: visible;
 }
 
-/* Mobile floating dock. Five columns stay on one row when there is honest room. */
 @media (max-width: 599px) {
   .bottom-nav {
     left: 50% !important;
@@ -173,7 +170,6 @@ body.pincon-route-transition .view-enter {
   }
 }
 
-/* At narrow or zoomed viewports, reflow instead of deleting labels. */
 @media (max-width: 359px) {
   .bottom-nav {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -220,7 +216,6 @@ body.pincon-route-transition .view-enter {
   }
 }
 
-/* Tablet and desktop use detached floating rails. */
 @media (min-width: 600px) {
   .shell {
     display: block !important;
@@ -323,7 +318,6 @@ body.pincon-route-transition .view-enter {
   }
 }
 
-/* Desktop rail expands instead of truncating labels or the class tagline. */
 @media (min-width: 840px) {
   .app-frame {
     margin-left: 274px;
@@ -450,7 +444,6 @@ body.pincon-route-transition .view-enter {
   }
 }
 
-/* If vertical space is scarce, use the roomy bottom dock instead of clipping the rail. */
 @media (min-width: 600px) and (max-height: 560px) {
   .rail {
     display: none !important;
@@ -524,7 +517,6 @@ body.pincon-route-transition .view-enter {
   }
 }
 
-/* Class-specific brand text is allowed to wrap; it is never ellipsized in the floating rail. */
 .brand__title .beta-badge {
   display: inline-flex;
   max-width: min(48vw, 220px);
@@ -542,6 +534,124 @@ body.pincon-route-transition .view-enter {
 .brand__title .beta-badge[hidden],
 .rail__tagline[hidden] {
   display: none !important;
+}
+
+/* Notification and trust enhancement styles live in this final UI layer. */
+.notification-trigger-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.notification-badge {
+  position: absolute;
+  z-index: 2;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--md-sys-color-error);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--md-sys-color-background);
+}
+
+.notification-badge[hidden] {
+  display: none;
+}
+
+.notification-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.notification-summary__text {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+}
+
+.notification-list {
+  min-width: min(560px, 82vw);
+  max-height: min(62vh, 620px);
+  overflow: auto;
+}
+
+.notification-list md-list-item[data-read="false"] {
+  --md-list-item-label-text-weight: 700;
+  background: var(--md-sys-color-secondary-container);
+}
+
+.notification-list md-list-item {
+  border-radius: 16px;
+  margin: 3px 0;
+}
+
+.notification-unread-dot {
+  width: 9px;
+  height: 9px;
+  display: block;
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+}
+
+.trust-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.trust-line {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.trust-line:last-child {
+  border-bottom: 0;
+}
+
+.trust-line strong {
+  font-size: 12px;
+}
+
+.trust-line span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.trust-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 599px) {
+  .notification-list {
+    min-width: 0;
+    width: 100%;
+    max-height: 58vh;
+  }
+
+  .notification-summary {
+    align-items: flex-start;
+  }
+
+  .trust-actions md-filled-tonal-button {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
