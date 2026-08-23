@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("boot uses the supplied randomized reveal shapes and fully yields to the app", async ({ page }) => {
+test("boot uses frameless overlapping reveal shapes and fully yields to the app", async ({ page }) => {
   const response = await page.request.get("http://127.0.0.1:4173/next/");
   expect(response.ok()).toBe(true);
   const html = await response.text();
@@ -12,15 +12,54 @@ test("boot uses the supplied randomized reveal shapes and fully yields to the ap
   await page.addInitScript(() => {
     localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
   });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
 
   await expect.poll(
     () => page.locator(".pincon-reveal-tile").count(),
     { timeout: 5_000 },
-  ).toBeGreaterThan(8);
+  ).toBeGreaterThan(20);
+
+  await expect.poll(async () => {
+    return page.evaluate(() => [...document.querySelectorAll(".pincon-reveal-tile")].filter((node) => node.classList.contains("is-visible")).length);
+  }, { timeout: 5_000 }).toBeGreaterThan(20);
+
+  const visual = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll(".pincon-reveal-tile.is-visible")];
+    const rects = tiles.map((node) => node.getBoundingClientRect());
+    const first = tiles[0];
+    const firstImage = first?.querySelector("img");
+    const tileStyle = first ? getComputedStyle(first) : null;
+    const imageStyle = firstImage ? getComputedStyle(firstImage) : null;
+    let covered = 0;
+    let samples = 0;
+    for (let y = 24; y < innerHeight; y += 72) {
+      for (let x = 24; x < innerWidth; x += 72) {
+        samples += 1;
+        if (rects.some((rect) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) covered += 1;
+      }
+    }
+    return {
+      tileWidth: rects[0]?.width || 0,
+      tileBackground: tileStyle?.backgroundColor || "",
+      tileBorderTop: tileStyle?.borderTopWidth || "",
+      tileShadow: tileStyle?.boxShadow || "",
+      imageBackground: imageStyle?.backgroundColor || "",
+      imageBorderTop: imageStyle?.borderTopWidth || "",
+      coverage: samples ? covered / samples : 0,
+    };
+  });
+
+  expect(visual.tileWidth).toBeGreaterThan(240);
+  expect(visual.tileBackground).toBe("rgba(0, 0, 0, 0)");
+  expect(visual.imageBackground).toBe("rgba(0, 0, 0, 0)");
+  expect(visual.tileBorderTop).toBe("0px");
+  expect(visual.imageBorderTop).toBe("0px");
+  expect(visual.tileShadow).toBe("none");
+  expect(visual.coverage).toBeGreaterThan(0.98);
 
   const sourceCount = await page.locator('.pincon-reveal-tile img[src="./assets/loader-drop.svg"]').count();
-  expect(sourceCount).toBeGreaterThan(8);
+  expect(sourceCount).toBeGreaterThan(20);
   await expect(page.locator(".shell")).toBeVisible({ timeout: 5_000 });
 
   await expect.poll(
