@@ -9,15 +9,6 @@ let feed = [];
 let reconcileQueued = false;
 let lastDialogTrigger = null;
 
-const MATERIAL_BUTTON_SELECTOR = [
-  "md-icon-button",
-  "md-text-button",
-  "md-filled-button",
-  "md-filled-tonal-button",
-  "md-outlined-button",
-  "md-elevated-button",
-].join(",");
-
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -66,33 +57,6 @@ function setAccessibleLabel(control, label) {
 
 function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
-}
-
-function bridgeKeyboardHost(control) {
-  if (!control || control.__pinconHostKeyboardBridge) return;
-  Object.defineProperty(control, "__pinconHostKeyboardBridge", {
-    value: true,
-    configurable: true,
-  });
-
-  control.addEventListener("keydown", (event) => {
-    if (!["Enter", " "].includes(event.key)) return;
-    if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
-    if (control.hasAttribute("disabled")) return;
-
-    // Material의 내부 native button이 브라우저별로 host click까지 전달하는 시점이 다르다.
-    // 렌더마다 살아남는 custom-element host에서 키 입력을 포인터 click 계약으로 정규화한다.
-    event.preventDefault();
-    event.stopPropagation();
-    control.click();
-  }, true);
-}
-
-function installKeyboardBridges(scope = document) {
-  const controls = [];
-  if (scope instanceof HTMLElement && scope.matches?.(MATERIAL_BUTTON_SELECTOR)) controls.push(scope);
-  scope.querySelectorAll?.(MATERIAL_BUTTON_SELECTOR).forEach((control) => controls.push(control));
-  controls.forEach(bridgeKeyboardHost);
 }
 
 function setCurrentState(control, current) {
@@ -200,7 +164,6 @@ function renderInbox() {
   const target = document.querySelector("#notificationContent");
   if (!target) return;
   target.innerHTML = inboxMarkup();
-  installKeyboardBridges(target);
 }
 
 function trustMarkup() {
@@ -233,7 +196,6 @@ function reconcile() {
   profile = snapshot.profile || readClassProfile();
   notificationStore.setClassKey(profile?.classKey || "");
   feed = buildNotificationFeed(snapshot.data || {});
-  installKeyboardBridges();
   enhanceNavigationSemantics();
   enhanceDialogSemantics();
   enhanceNotificationButton();
@@ -253,16 +215,7 @@ gateway.addEventListener("change", (event) => {
 
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const observer = new MutationObserver((records) => {
-  // MutationObserver는 렌더 직후 같은 task의 microtask 단계에서 실행된다. 새 Material host에는
-  // rAF를 기다리지 않고 즉시 키보드 bridge를 붙여, 첫 Tab/Enter도 놓치지 않는다.
-  for (const record of records) {
-    record.addedNodes.forEach((node) => {
-      if (node instanceof HTMLElement) installKeyboardBridges(node);
-    });
-  }
-  queueReconcile();
-});
+const observer = new MutationObserver(() => queueReconcile());
 const appRoot = document.querySelector("#app");
 if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
@@ -312,6 +265,5 @@ document.addEventListener("click", (event) => {
   destination?.click?.();
 });
 
-installKeyboardBridges();
 queueReconcile();
 await gateway.start();
