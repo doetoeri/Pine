@@ -1,6 +1,7 @@
 import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
 import { classBrandSettings, validateBrandTagline } from "./brand-settings.js";
 import { PERMISSION, canAccess, resolveNextAccess } from "./trust-model.js";
+import { TODAY_OPEN_WRITE_CLASS_KEY, TODAY_OPEN_WRITE_UNTIL_MS, todayOpenWriteEligible } from "./today-open-write.js";
 
 const PROFILE_KEY = "pincon-profile-v2";
 const GATEWAY_SINGLETON_KEY = Symbol.for("pincon.next.data-gateway");
@@ -50,10 +51,21 @@ export function saveClassProfile(grade, classNumber) {
   return readClassProfile();
 }
 
+function temporaryManagerRole({ user = null, profile = null, now = Date.now() } = {}) {
+  if (!todayOpenWriteEligible({ user, profile, now })) return null;
+  return {
+    enabled: true,
+    level: "class",
+    classKeys: [profile.classKey],
+    temporary: true,
+  };
+}
+
 function accessFor({ user = null, role = null, profile = null } = {}) {
+  const effectiveRole = role?.enabled ? role : (temporaryManagerRole({ user, profile }) || role);
   return resolveNextAccess({
     user,
-    legacyRole: role,
+    legacyRole: effectiveRole,
     classKey: profile?.classKey || "",
   });
 }
@@ -69,6 +81,17 @@ function serverCompatibleClassOperator({ user = null, role = null, profile = nul
 
 function cleanString(value, max = 2000) {
   return String(value ?? "").trim().slice(0, max);
+}
+
+function auditCopy(value = {}) {
+  const result = {};
+  for (const [key, item] of Object.entries(value || {}).slice(0, 50)) {
+    if (key === "id" || key.startsWith("__")) continue;
+    if (typeof item === "string") result[key] = item.slice(0, 2000);
+    else if (typeof item === "number" || typeof item === "boolean" || item === null) result[key] = item;
+    else if (Array.isArray(item)) result[key] = item.slice(0, 40);
+  }
+  return result;
 }
 
 function normalizeManagedValues(collection, values = {}) {
@@ -149,6 +172,10 @@ export class NextDataGateway extends EventTarget {
       isManager: false,
       canEditBrandSettings: false,
       canManageContent: false,
+      canArchiveContent: false,
+      temporaryOpenWrite: false,
+      temporaryOpenWriteClassKey: TODAY_OPEN_WRITE_CLASS_KEY,
+      temporaryOpenWriteUntilMs: TODAY_OPEN_WRITE_UNTIL_MS,
       readonly: true,
     };
 
@@ -172,8 +199,10 @@ export class NextDataGateway extends EventTarget {
     const profile = snapshot?.profile || readClassProfile();
     const user = snapshot?.user || null;
     const role = snapshot?.role || null;
+    const serverClassOperator = serverCompatibleClassOperator({ user, role, profile });
+    const temporaryOpenWrite = todayOpenWriteEligible({ user, profile });
     const access = accessFor({ user, role, profile });
-    const canManageContent = serverCompatibleClassOperator({ user, role, profile })
+    const canManageContent = (serverClassOperator || temporaryOpenWrite)
       && canAccess(access, PERMISSION.CREATE)
       && canAccess(access, PERMISSION.UPDATE);
     this.state = {
@@ -188,8 +217,10 @@ export class NextDataGateway extends EventTarget {
       role,
       access,
       isManager: access.role === "manager" || access.role === "system-admin",
-      canEditBrandSettings: serverCompatibleClassOperator({ user, role, profile }),
+      canEditBrandSettings: serverClassOperator,
       canManageContent,
+      canArchiveContent: serverClassOperator,
+      temporaryOpenWrite,
       readonly: !canManageContent,
     };
     this.emit();
@@ -233,10 +264,68 @@ export class NextDataGateway extends EventTarget {
   }
 
   requireManagedWrite(permission = PERMISSION.UPDATE) {
-    if (!this.state.canManageContent || !canAccess(this.state.access, permission)) {
+    const temporaryAllowed = this.state.temporaryOpenWrite
+      && [PERMISSION.CREATE, PERMISSION.UPDATE].includes(permission);
+    const serverAllowed = this.state.canArchiveContent && canAccess(this.state.access, permission);
+    if (!this.state.canManageContent || (!temporaryAllowed && !serverAllowed)) {
       throw new Error("이 학급의 공용 데이터를 편집할 권한이 없습니다.");
     }
     if (!this.repository) throw new Error("데이터 연결이 아직 준비되지 않았습니다.");
+  }
+
+  async temporaryWriteRecord(collection, values, { id = "", action = "", label = "" } = {}) {
+    if (!this.repository) await this.start();
+    const user = await this.repository.ensureUser();
+    const api = this.repository.api;
+    if (!api || !user || !todayOpenWriteEligible({ user, profile: this.state.profile })) {
+      throw new Error("오늘 편집 세션이 만료되었거나 인증되지 않았습니다.");
+    }
+
+    const now = Date.now();
+    const collectionRef = this.repository.collectionRef(collection);
+    const targetRef = id ? this.repository.documentRef(collection, id) : api.doc(collectionRef);
+    const beforeSnapshot = id ? await api.getDoc(targetRef) : null;
+    const before = beforeSnapshot?.exists?.() ? beforeSnapshot.data() : null;
+    const next = {
+      ...(before || {}),
+      ...values,
+      classKey: this.state.profile.classKey,
+      deleted: values.deleted === true,
+      updatedAtMs: now,
+      updatedAt: api.serverTimestamp(),
+    };
+    delete next.id;
+    for (const key of Object.keys(next)) if (key.startsWith("__")) delete next[key];
+    if (!before) {
+      next.createdAtMs = now;
+      next.createdAt = api.serverTimestamp();
+    }
+
+    const changeRef = api.doc(this.repository.collectionRef("changeLogs"));
+    const batch = api.writeBatch(api.db);
+    batch.set(targetRef, next, { merge: false });
+    batch.set(changeRef, {
+      classKey: this.state.profile.classKey,
+      collection,
+      documentId: targetRef.id,
+      action: action || (before ? "update" : "create"),
+      label: cleanString(label || next.title || next.name || collection, 120),
+      before: before ? auditCopy(before) : null,
+      after: auditCopy(next),
+      actorUid: user.uid,
+      actorName: cleanString(user.displayName || "익명 편집자", 40),
+      createdAtMs: now,
+      createdAt: api.serverTimestamp(),
+    });
+    await batch.commit();
+    return targetRef.id;
+  }
+
+  async managedWrite(collection, values, options = {}) {
+    if (this.state.temporaryOpenWrite && !this.state.canArchiveContent) {
+      return this.temporaryWriteRecord(collection, values, options);
+    }
+    return this.repository.adminWrite(collection, values, options);
   }
 
   async saveManagedRecord(collection, values, { id = "" } = {}) {
@@ -246,7 +335,7 @@ export class NextDataGateway extends EventTarget {
     const normalized = normalizeManagedValues(collection, values);
     const current = id ? (this.state.data?.[collection] || []).find((item) => item.id === id) : null;
     const label = normalized.title || current?.title || collection;
-    return this.repository.adminWrite(
+    return this.managedWrite(
       collection,
       { ...(current || {}), ...normalized, deleted: false, deletedAtMs: null },
       { id, action: current ? "update" : "create", label },
@@ -256,6 +345,7 @@ export class NextDataGateway extends EventTarget {
   async archiveManagedRecord(collection, id) {
     if (!this.repository) await this.start();
     if (!MANAGED_COLLECTIONS.has(collection)) throw new Error("이 데이터 종류는 보관할 수 없습니다.");
+    if (!this.state.canArchiveContent) throw new Error("오늘 임시 편집에서는 보관·복원은 회장 계정에서만 가능합니다.");
     this.requireManagedWrite(PERMISSION.ARCHIVE);
     const current = (this.state.data?.[collection] || []).find((item) => item.id === id && !item.deleted);
     if (!current) throw new Error("보관할 항목을 찾지 못했습니다.");
@@ -265,6 +355,7 @@ export class NextDataGateway extends EventTarget {
   async restoreManagedRecord(collection, id) {
     if (!this.repository) await this.start();
     if (!MANAGED_COLLECTIONS.has(collection)) throw new Error("이 데이터 종류는 복원할 수 없습니다.");
+    if (!this.state.canArchiveContent) throw new Error("오늘 임시 편집에서는 보관·복원은 회장 계정에서만 가능합니다.");
     this.requireManagedWrite(PERMISSION.RESTORE);
     const current = (this.state.data?.[collection] || []).find((item) => item.id === id && item.deleted === true);
     if (!current) throw new Error("복원할 항목을 찾지 못했습니다.");
