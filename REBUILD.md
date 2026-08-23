@@ -30,16 +30,16 @@
 
 - [x] Freeze legacy branch
 - [x] Create isolated rebuild branch
-- [ ] New responsive app shell
-- [ ] Atomic router
-- [ ] Canonical read-only data gateway
-- [ ] Today / Timetable / Schedule / Class / More information architecture
+- [x] New responsive app shell
+- [x] Atomic router
+- [x] Canonical read-only data gateway
+- [x] Today / Timetable / Schedule / Class / More information architecture
 
 ### Day 2 — Data and trust
 
-- [ ] Connect existing Firestore collections through the gateway
-- [ ] Search state model
-- [ ] Notification inbox state model
+- [x] Connect existing Firestore collections through the gateway (read-only)
+- [x] Search state model and working basic search
+- [ ] Notification inbox read/unread history model
 - [ ] New authenticated role model design
 - [ ] Audit-log and restore contract
 
@@ -50,7 +50,14 @@
 - [ ] Expanded: 1024 px+
 - [ ] Android Chrome / iOS Safari / Chromebook / desktop Chrome
 - [ ] Keyboard and screen-reader pass
-- [ ] Preview deployment only; production promotion remains manual
+- [x] Preview deployment only; production promotion remains manual
+
+## Current Next entry point
+
+- Source: `next/`
+- Preview branch: `rebuild`
+- Production `main` is intentionally unchanged.
+- Next reads the existing class profile and current Firestore collections but exposes no shared write methods.
 
 ## Release gate
 
