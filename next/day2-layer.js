@@ -229,6 +229,19 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+// Own the notification trigger in capture phase so app.js cannot render its legacy
+// notice-only dialog first. This keeps the canonical inbox as the single visible render.
+document.addEventListener("click", (event) => {
+  const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
+  if (!notificationOpenButton) return;
+
+  lastDialogTrigger = notificationOpenButton;
+  event.preventDefault();
+  event.stopPropagation();
+  renderInbox();
+  document.querySelector("#notificationDialog")?.show?.();
+}, true);
+
 document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) focusMainAfterRouteChange();
@@ -240,19 +253,11 @@ document.addEventListener("click", (event) => {
   }
 
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
-  const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
-  if (searchOpenButton || notificationOpenButton) {
-    lastDialogTrigger = searchOpenButton || notificationOpenButton;
-  }
+  if (searchOpenButton) lastDialogTrigger = searchOpenButton;
 
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
   if (closeButton) {
     window.setTimeout(restoreDialogTriggerFocus, 0);
-  }
-
-  if (notificationOpenButton) {
-    window.setTimeout(renderInbox, 0);
-    return;
   }
 
   const markAll = eventHost(event, (node) => node.id === "markAllNotificationsRead");
