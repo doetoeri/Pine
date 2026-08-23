@@ -16,24 +16,26 @@ function currentTagline() {
   return brandTaglineFor(snapshot.data || {}, snapshot.profile?.classKey || "");
 }
 
+function syncTaglineNode(node, tagline) {
+  if (!node) return;
+  const hidden = !tagline;
+
+  // The app root is observed for child-list changes. Reassigning textContent on every
+  // observer pass would create a self-triggering mutation loop and starve the boot rAF.
+  if (node.textContent !== tagline) node.textContent = tagline;
+  if (node.title !== tagline) node.title = tagline;
+  if (node.hidden !== hidden) node.hidden = hidden;
+  if (node.getAttribute("data-brand-ready") !== "true") {
+    node.setAttribute("data-brand-ready", "true");
+  }
+}
+
 function applyBrandTagline(root = document) {
   const tagline = currentTagline();
-
   const topBadge = root.querySelector?.(".brand__title .beta-badge") || document.querySelector(".brand__title .beta-badge");
-  if (topBadge) {
-    topBadge.textContent = tagline;
-    topBadge.title = tagline;
-    topBadge.hidden = !tagline;
-    topBadge.setAttribute("data-brand-ready", "true");
-  }
-
   const railTagline = root.querySelector?.(".rail__tagline") || document.querySelector(".rail__tagline");
-  if (railTagline) {
-    railTagline.textContent = tagline;
-    railTagline.title = tagline;
-    railTagline.hidden = !tagline;
-    railTagline.setAttribute("data-brand-ready", "true");
-  }
+  syncTaglineNode(topBadge, tagline);
+  syncTaglineNode(railTagline, tagline);
 }
 
 function applyBranding(root = document) {
