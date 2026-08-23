@@ -38,3 +38,26 @@ jobs:
           done
       - name: Run Next contract tests
         run: node --test next/tests/contracts.test.mjs
+
+  responsive-smoke:
+    runs-on: ubuntu-latest
+    needs: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser test runtime
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Start static preview server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/pincon-next-http.log 2>&1 &
+          echo $! > /tmp/pincon-next-http.pid
+          sleep 1
+      - name: Responsive smoke · Chromium
+        run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line
+      - name: Responsive smoke · WebKit
+        run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line
