@@ -59,17 +59,38 @@ function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
 }
 
-function controlOwnsFocus(control) {
-  if (!control) return false;
-  return document.activeElement === control || Boolean(control.shadowRoot?.activeElement);
+function bridgeKeyboardActivation(control) {
+  if (!control || control.hasAttribute("disabled")) return;
+  const target = actualFocusable(control);
+  if (!target || target.__pinconKeyboardBridge === control) return;
+
+  Object.defineProperty(target, "__pinconKeyboardBridge", {
+    value: control,
+    configurable: true,
+  });
+
+  target.addEventListener("keydown", (event) => {
+    if (!["Enter", " "].includes(event.key)) return;
+    if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (control.hasAttribute("disabled")) return;
+
+    // Material Web은 내부 native control을 Shadow DOM에 둔다. 일부 브라우저/조합에서는
+    // 그 내부 키보드 활성화가 host의 click 계약까지 전달되지 않으므로 여기서 정규화한다.
+    event.preventDefault();
+    event.stopPropagation();
+    control.click();
+  });
 }
 
-function materialButtonFromKeyEvent(event) {
-  if (!['Enter', ' '].includes(event.key) || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return null;
-  return eventHost(event, (node) => {
-    const tagName = node.tagName || "";
-    return tagName.startsWith("MD-") && tagName.endsWith("-BUTTON");
-  });
+function enhanceMaterialKeyboardControls() {
+  document.querySelectorAll([
+    "md-icon-button",
+    "md-text-button",
+    "md-filled-button",
+    "md-filled-tonal-button",
+    "md-outlined-button",
+    "md-elevated-button",
+  ].join(",")).forEach(bridgeKeyboardActivation);
 }
 
 function setCurrentState(control, current) {
@@ -212,6 +233,7 @@ function reconcile() {
   enhanceNavigationSemantics();
   enhanceDialogSemantics();
   enhanceNotificationButton();
+  enhanceMaterialKeyboardControls();
   injectTrustCard();
 }
 
@@ -235,16 +257,7 @@ if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) {
     window.setTimeout(restoreDialogTriggerFocus, 0);
-    return;
   }
-
-  const control = materialButtonFromKeyEvent(event);
-  if (!control || !controlOwnsFocus(control) || control.hasAttribute("disabled")) return;
-
-  // Material Web의 내부 native button에 포커스가 들어간 경우에도 키보드 활성화를
-  // host click으로 정규화한다. preventDefault로 브라우저별 이중 click을 막는다.
-  event.preventDefault();
-  control.click();
 });
 
 document.addEventListener("click", (event) => {
@@ -272,6 +285,7 @@ document.addEventListener("click", (event) => {
     notificationStore.markAllRead(feed);
     renderInbox();
     enhanceNotificationButton();
+    enhanceMaterialKeyboardControls();
     return;
   }
 
@@ -282,6 +296,7 @@ document.addEventListener("click", (event) => {
   notificationStore.markRead(id);
   renderInbox();
   enhanceNotificationButton();
+  enhanceMaterialKeyboardControls();
   document.querySelector("#notificationDialog")?.close?.();
   const destination = route ? document.querySelector(`[data-route="${route}"]`) : null;
   destination?.click?.();
