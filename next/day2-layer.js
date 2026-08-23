@@ -43,6 +43,26 @@ function eventHost(event, predicate) {
   return event.composedPath?.().find((node) => node instanceof HTMLElement && predicate(node)) || null;
 }
 
+function enhanceNavigationSemantics() {
+  document.querySelectorAll("[data-route]").forEach((control) => {
+    const current = control.getAttribute("data-aria-current") === "page" || control.getAttribute("aria-current") === "page";
+    if (current) control.setAttribute("aria-current", "page");
+    else control.removeAttribute("aria-current");
+  });
+
+  const main = document.querySelector("#mainContent");
+  if (main && !main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+}
+
+function focusMainAfterRouteChange() {
+  requestAnimationFrame(() => {
+    const main = document.querySelector("#mainContent");
+    if (!main) return;
+    main.setAttribute("tabindex", "-1");
+    main.focus({ preventScroll: true });
+  });
+}
+
 function enhanceNotificationButton() {
   const button = document.querySelector("#openNotifications");
   if (!button) return;
@@ -131,6 +151,7 @@ function reconcile() {
   profile = snapshot.profile || readClassProfile();
   notificationStore.setClassKey(profile?.classKey || "");
   feed = buildNotificationFeed(snapshot.data || {});
+  enhanceNavigationSemantics();
   enhanceNotificationButton();
   injectTrustCard();
 }
@@ -153,6 +174,9 @@ const appRoot = document.querySelector("#app");
 if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
 document.addEventListener("click", (event) => {
+  const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
+  if (routeControl) focusMainAfterRouteChange();
+
   const openButton = eventHost(event, (node) => node.id === "openNotifications");
   if (openButton) {
     window.setTimeout(renderInbox, 0);
