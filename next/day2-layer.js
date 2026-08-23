@@ -64,7 +64,8 @@ function enhanceNotificationButton() {
   }
 
   const count = unreadCount();
-  badge.textContent = count > 99 ? "99+" : String(count);
+  const text = count > 99 ? "99+" : String(count);
+  if (badge.textContent !== text) badge.textContent = text;
   badge.hidden = count === 0;
   button.setAttribute("aria-label", count ? `알림함, 읽지 않은 알림 ${count}개` : "알림함, 모두 읽음");
 }
@@ -132,8 +133,6 @@ function reconcile() {
   feed = buildNotificationFeed(snapshot.data || {});
   enhanceNotificationButton();
   injectTrustCard();
-  const dialog = document.querySelector("#notificationDialog");
-  if (dialog?.open) renderInbox();
 }
 
 function queueReconcile() {
@@ -150,7 +149,8 @@ gateway.addEventListener("change", (event) => {
 notificationStore.addEventListener("change", () => queueReconcile());
 
 const observer = new MutationObserver(() => queueReconcile());
-observer.observe(document.documentElement, { childList: true, subtree: true });
+const appRoot = document.querySelector("#app");
+if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
 document.addEventListener("click", (event) => {
   const openButton = eventHost(event, (node) => node.id === "openNotifications");
@@ -175,7 +175,7 @@ document.addEventListener("click", (event) => {
   renderInbox();
   enhanceNotificationButton();
   document.querySelector("#notificationDialog")?.close?.();
-  const destination = route ? document.querySelector(`[data-route="${CSS.escape(route)}"]`) : null;
+  const destination = route ? document.querySelector(`[data-route="${route}"]`) : null;
   destination?.click?.();
 });
 
