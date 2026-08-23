@@ -90,6 +90,10 @@ jobs:
         run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line
       - name: Responsive smoke · WebKit
         run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line
+      - name: Route latency · Chromium
+        run: npx playwright test next/tests/performance.spec.mjs --browser=chromium --reporter=line
+      - name: Route latency · WebKit
+        run: npx playwright test next/tests/performance.spec.mjs --browser=webkit --reporter=line
       - name: Accessibility smoke · Chromium
         run: npx playwright test next/tests/accessibility.spec.mjs --browser=chromium --reporter=line
       - name: Accessibility smoke · WebKit
