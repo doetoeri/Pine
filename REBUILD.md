@@ -42,17 +42,19 @@
 - [x] Notification inbox read/unread history model
 - [x] New authenticated role model design contract
 - [x] Audit-log and restore contract
-- [ ] Enforce the new role/audit contract in Firestore rules before enabling writes
+- [x] Validate the new role/audit contract in isolated Next Firestore rules and privilege-bypass emulator tests
 
-The Day 2 role, audit and restore work is intentionally a client-side contract at this stage. `NEXT_WRITE_GATE.enabled` remains `false`, so no shared write becomes available merely because a legacy account maps to editor/manager. Server rules must enforce the same contract before the gate can ever be opened.
+The Day 2 server contract is validated in `next/firestore-next.rules`, but it is intentionally not deployed over the production `firestore.rules`. `NEXT_WRITE_GATE.enabled` remains `false`, so shared writes stay locked until production migration is explicitly approved.
 
 ### Day 3 — QA and preview
 
-- [ ] Compact: 360 / 390 / 430 px
-- [ ] Medium: 768 / 820 / 821 px
-- [ ] Expanded: 1024 px+
-- [ ] Android Chrome / iOS Safari / Chromebook / desktop Chrome
-- [ ] Keyboard and screen-reader pass
+- [x] Automated Compact: 360 / 390 / 430 px
+- [x] Automated Medium: 768 / 820 / 821 px
+- [x] Automated Expanded: 1024 px+
+- [x] Chromium + WebKit responsive smoke
+- [x] Chromium + WebKit keyboard/accessibility smoke
+- [ ] Android Chrome / iOS Safari / Chromebook / desktop Chrome real-device pass
+- [ ] VoiceOver / TalkBack real-device pass
 - [x] Preview deployment only; production promotion remains manual
 
 ## Current Next entry point
@@ -63,6 +65,13 @@ The Day 2 role, audit and restore work is intentionally a client-side contract a
 - Next reads the existing class profile and current Firestore collections but exposes no shared write methods.
 - Notification read state is class-scoped and stored locally during Beta; reading an alert does not mutate class data.
 - Role mapping, audit events, soft-delete and restore patches are defined in `next/core/trust-model.js`, with the write gate forced closed.
+- Read-only admin Beta lives at `next/admin/` and requires manager/system-admin access.
+
+## Preview deployment status
+
+- Vercel `pine` Root Directory was corrected from the OCR proxy subproject to repository root on 2026-08-23.
+- A clean redeploy of the older `5d839b7` rebuild commit now serves `/next/` with HTTP 200, confirming the previous 404 was a Vercel root-directory configuration issue rather than a PinCon Next route issue.
+- A fresh `rebuild` commit is used to trigger a Preview containing the current admin/accessibility/security work before final preview verification.
 
 ## Release gate
 
