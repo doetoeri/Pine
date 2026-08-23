@@ -29,8 +29,7 @@ jobs:
           set -euo pipefail
           for file in \
             next/app.js \
-            next/day2-layer.js \
-            next/keyboard-dialog-bridge.js \
+            next/app-interactions.js \
             next/ui-polish.js \
             next/admin/admin.js \
             next/admin/brand-settings.js \

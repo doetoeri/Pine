@@ -1,6 +1,112 @@
 import { NextDataGateway, readClassProfile } from "./core/data-gateway.js";
 import { buildNotificationFeed, NotificationStore } from "./core/notification-store.js";
 
+// Material Web keyboard activation normalizer.
+// Register this capture path before the rest of the interaction enhancements so
+// Enter/Space produces exactly one composed host click across Chromium/WebKit.
+const MATERIAL_BUTTON_SELECTOR = [
+  "md-icon-button",
+  "md-text-button",
+  "md-filled-button",
+  "md-filled-tonal-button",
+  "md-outlined-button",
+  "md-elevated-button",
+].join(",");
+
+const boundRoots = new WeakSet();
+
+function activationKey(event) {
+  return ["Enter", " "].includes(event.key)
+    && !event.repeat
+    && !event.altKey
+    && !event.ctrlKey
+    && !event.metaKey;
+}
+
+function dispatchHostActivation(host) {
+  host.dispatchEvent(new MouseEvent("click", {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    view: window,
+  }));
+}
+
+function materialHostFromEvent(event) {
+  return event.composedPath?.().find((node) => (
+    node instanceof HTMLElement && node.matches?.(MATERIAL_BUTTON_SELECTOR)
+  )) || null;
+}
+
+document.addEventListener("keydown", (event) => {
+  if (!activationKey(event)) return;
+  const host = materialHostFromEvent(event);
+  if (!host || host.hasAttribute("disabled")) return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  dispatchHostActivation(host);
+}, true);
+
+function bindShadowCapture(host) {
+  if (!(host instanceof HTMLElement) || host.hasAttribute("disabled")) return false;
+  const root = host.shadowRoot;
+  if (!root) return false;
+  if (boundRoots.has(root)) return true;
+
+  root.addEventListener("keydown", (event) => {
+    if (!activationKey(event) || host.hasAttribute("disabled")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    dispatchHostActivation(host);
+  }, true);
+  boundRoots.add(root);
+  return true;
+}
+
+function prepareHost(host) {
+  if (!(host instanceof HTMLElement)) return;
+
+  bindShadowCapture(host);
+  queueMicrotask(() => bindShadowCapture(host));
+  requestAnimationFrame(() => bindShadowCapture(host));
+  window.setTimeout(() => bindShadowCapture(host), 0);
+  window.setTimeout(() => bindShadowCapture(host), 50);
+
+  const updateComplete = host.updateComplete;
+  if (updateComplete && typeof updateComplete.then === "function") {
+    updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
+  }
+}
+
+function prepareMainFocus(scope = document) {
+  const main = scope instanceof HTMLElement && scope.id === "mainContent"
+    ? scope
+    : scope.querySelector?.("#mainContent");
+  if (main && !main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+}
+
+function prepareScope(scope = document) {
+  prepareMainFocus(scope);
+  if (scope instanceof HTMLElement && scope.matches?.(MATERIAL_BUTTON_SELECTOR)) {
+    prepareHost(scope);
+  }
+  scope.querySelectorAll?.(MATERIAL_BUTTON_SELECTOR).forEach(prepareHost);
+}
+
+const keyboardObserver = new MutationObserver((records) => {
+  for (const record of records) {
+    for (const node of record.addedNodes) {
+      if (node instanceof HTMLElement) prepareScope(node);
+    }
+  }
+});
+
+const keyboardAppRoot = document.querySelector("#app");
+if (keyboardAppRoot) keyboardObserver.observe(keyboardAppRoot, { childList: true, subtree: true });
+prepareScope();
+
+// Notification, trust, dialog-focus, and navigation semantics.
 const gateway = new NextDataGateway();
 let snapshot = gateway.snapshot();
 let profile = snapshot.profile || readClassProfile();
@@ -219,9 +325,9 @@ gateway.addEventListener("change", (event) => {
 
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const observer = new MutationObserver(() => queueReconcile());
+const enhancementObserver = new MutationObserver(() => queueReconcile());
 const appRoot = document.querySelector("#app");
-if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
+if (appRoot) enhancementObserver.observe(appRoot, { childList: true, subtree: true });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) {
@@ -256,9 +362,7 @@ document.addEventListener("click", (event) => {
   if (searchOpenButton) lastDialogTrigger = searchOpenButton;
 
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
-  if (closeButton) {
-    window.setTimeout(restoreDialogTriggerFocus, 0);
-  }
+  if (closeButton) window.setTimeout(restoreDialogTriggerFocus, 0);
 
   const markAll = eventHost(event, (node) => node.id === "markAllNotificationsRead");
   if (markAll) {
