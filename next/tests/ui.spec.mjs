@@ -4,9 +4,11 @@ const VIEWPORTS = [
   { width: 360, height: 800 },
   { width: 390, height: 844 },
   { width: 430, height: 932 },
+  { width: 600, height: 900 },
   { width: 768, height: 1024 },
   { width: 820, height: 1024 },
-  { width: 821, height: 1024 },
+  { width: 839, height: 900 },
+  { width: 840, height: 900 },
   { width: 1024, height: 768 },
 ];
 
@@ -63,6 +65,24 @@ for (const viewport of VIEWPORTS) {
         return frame.left - rail.right;
       });
       expect(railClearance).toBeGreaterThanOrEqual(8);
+
+      const floatingGeometry = await page.evaluate(() => {
+        const rail = document.querySelector(".rail")?.getBoundingClientRect();
+        if (!rail) return null;
+        return {
+          left: rail.left,
+          top: rail.top,
+          right: rail.right,
+          bottom: rail.bottom,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        };
+      });
+      expect(floatingGeometry).not.toBeNull();
+      expect(floatingGeometry.left).toBeGreaterThanOrEqual(8);
+      expect(floatingGeometry.top).toBeGreaterThanOrEqual(8);
+      expect(floatingGeometry.right).toBeLessThanOrEqual(floatingGeometry.viewportWidth - 8);
+      expect(floatingGeometry.bottom).toBeLessThanOrEqual(floatingGeometry.viewportHeight - 8);
 
       if (viewport.width < 840) {
         const iconGeometry = await page.evaluate(() => {
