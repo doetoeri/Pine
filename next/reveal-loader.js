@@ -7,7 +7,12 @@ if (boot && field) {
   const style = document.createElement("style");
   style.dataset.pinconRevealLoader = "true";
   style.textContent = `
-    body.pincon-reveal-loader:not(.pincon-boot-done) #app {
+    body.pincon-reveal-loader #app {
+      visibility: visible !important;
+    }
+
+    body.pincon-reveal-loader.pincon-boot-done #pinconBoot {
+      opacity: 1 !important;
       visibility: visible !important;
     }
 
@@ -89,6 +94,7 @@ if (boot && field) {
   let finishRequested = false;
   let finishStarted = false;
   let fillCompleteAt = performance.now();
+  const removeBoot = () => boot.parentNode?.removeChild(boot);
 
   function shuffle(items) {
     const copy = [...items];
@@ -150,7 +156,7 @@ if (boot && field) {
   function completeReveal() {
     document.body.classList.add("pincon-boot-done");
     document.body.classList.remove("pincon-reveal-loader");
-    boot.remove();
+    removeBoot();
     style.remove();
     globalThis.PinConRevealLoader = null;
   }
@@ -186,6 +192,7 @@ if (boot && field) {
   }
 
   seedTiles();
+  boot.remove = finish;
   globalThis.PinConRevealLoader = Object.freeze({ finish });
 
   window.setTimeout(finish, 5200);
