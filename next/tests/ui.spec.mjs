@@ -35,9 +35,34 @@ for (const viewport of VIEWPORTS) {
     if (viewport.width < 600) {
       await expect(page.locator(".bottom-nav")).toBeVisible();
       await expect(page.locator(".rail")).toBeHidden();
+
+      const dockGeometry = await page.evaluate(() => {
+        const dock = document.querySelector(".bottom-nav")?.getBoundingClientRect();
+        if (!dock) return null;
+        return {
+          left: dock.left,
+          right: dock.right,
+          bottom: dock.bottom,
+          width: dock.width,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        };
+      });
+      expect(dockGeometry).not.toBeNull();
+      expect(dockGeometry.left).toBeGreaterThanOrEqual(8);
+      expect(dockGeometry.right).toBeLessThanOrEqual(dockGeometry.viewportWidth - 8);
+      expect(dockGeometry.bottom).toBeLessThanOrEqual(dockGeometry.viewportHeight - 8);
     } else {
       await expect(page.locator(".rail")).toBeVisible();
       await expect(page.locator(".bottom-nav")).toBeHidden();
+
+      const railClearance = await page.evaluate(() => {
+        const rail = document.querySelector(".rail")?.getBoundingClientRect();
+        const frame = document.querySelector(".app-frame")?.getBoundingClientRect();
+        if (!rail || !frame) return -1;
+        return frame.left - rail.right;
+      });
+      expect(railClearance).toBeGreaterThanOrEqual(8);
     }
 
     const timetableButton = page.locator('[data-route="timetable"]').nth(viewport.width < 600 ? 1 : 0);
