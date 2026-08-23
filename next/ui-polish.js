@@ -22,12 +22,14 @@ function applyBrandTagline(root = document) {
   const topBadge = root.querySelector?.(".brand__title .beta-badge") || document.querySelector(".brand__title .beta-badge");
   if (topBadge) {
     topBadge.textContent = tagline;
+    topBadge.title = tagline;
     topBadge.hidden = !tagline;
   }
 
   const railTagline = root.querySelector?.(".rail__tagline") || document.querySelector(".rail__tagline");
   if (railTagline) {
     railTagline.textContent = tagline;
+    railTagline.title = tagline;
     railTagline.hidden = !tagline;
   }
 }
@@ -45,7 +47,7 @@ function applyBranding(root = document) {
 
   const railMark = root.querySelector?.(".rail__brand");
   if (railMark && !railMark.querySelector(".pincon-brand-logo")) {
-    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark">PinCon <small class="rail__tagline"></small></span>`;
+    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon</span><small class="rail__tagline"></small></span>`;
   }
 
   applyBrandTagline(root);
