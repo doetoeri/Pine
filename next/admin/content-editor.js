@@ -21,6 +21,11 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function setText(node, value) {
+  const next = String(value ?? "");
+  if (node && node.textContent !== next) node.textContent = next;
+}
+
 function dateValue(value) {
   const text = String(value || "");
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
@@ -174,9 +179,9 @@ function openEditor(collection, id = "") {
   dialog.dataset.collection = collection;
   dialog.dataset.recordId = id;
   dialog.dataset.startsAtMs = String(item?.startsAtMs || "");
-  headline.textContent = `${id ? "수정" : "새로 만들기"} · ${EDITABLE[collection].label}`;
+  setText(headline, `${id ? "수정" : "새로 만들기"} · ${EDITABLE[collection].label}`);
   form.innerHTML = fieldsMarkup(collection, item || {});
-  if (status) { status.textContent = ""; status.dataset.kind = ""; }
+  if (status) { setText(status, ""); status.dataset.kind = ""; }
   dialog.show?.();
   requestAnimationFrame(() => form.querySelector("md-outlined-text-field")?.focus?.());
 }
@@ -209,7 +214,7 @@ function valuesFromDialog(dialog) {
 function setStatus(message, kind = "") {
   const status = root?.querySelector("#managedEditorStatus");
   if (!status) return;
-  status.textContent = message;
+  setText(status, message);
   status.dataset.kind = kind;
 }
 
@@ -220,13 +225,13 @@ async function saveDialog() {
   if (!dialog || saving) return;
   saving = true;
   if (save) save.disabled = true;
-  if (status) { status.textContent = "서버에 저장하고 변경 기록을 남기는 중…"; status.dataset.kind = ""; }
+  if (status) { setText(status, "서버에 저장하고 변경 기록을 남기는 중…"); status.dataset.kind = ""; }
   try {
     await gateway.saveManagedRecord(dialog.dataset.collection, valuesFromDialog(dialog), { id: dialog.dataset.recordId || "" });
     dialog.close?.();
     setStatus("저장되었습니다. 학생 화면에 실시간 반영됩니다.", "success");
   } catch (error) {
-    if (status) { status.textContent = error?.message || "저장하지 못했습니다."; status.dataset.kind = "error"; }
+    if (status) { setText(status, error?.message || "저장하지 못했습니다."); status.dataset.kind = "error"; }
   } finally {
     saving = false;
     if (save) save.disabled = false;
@@ -277,31 +282,30 @@ async function restoreRecord(collection, id, button) {
 function patchBaseDashboard() {
   const allowed = Boolean(snapshot.canManageContent);
   const heroCopy = root?.querySelector(".admin-hero p:last-child");
-  if (heroCopy) heroCopy.textContent = allowed
+  setText(heroCopy, allowed
     ? "학생 화면과 같은 데이터 원본을 사용합니다. 권한이 있는 학급 운영 계정은 공지·수행·행사를 실제로 편집할 수 있고 모든 변경이 기록됩니다."
-    : "학생 화면과 같은 데이터 원본을 사용합니다. 현재 계정의 서버 권한을 확인한 뒤 허용된 경우에만 편집 기능이 열립니다.";
+    : "학생 화면과 같은 데이터 원본을 사용합니다. 현재 계정의 서버 권한을 확인한 뒤 허용된 경우에만 편집 기능이 열립니다.");
 
   const accessCard = root?.querySelector("#access-title")?.closest(".admin-card");
   if (accessCard) {
     const badge = accessCard.querySelector(".beta-badge");
-    if (badge) {
-      badge.textContent = allowed ? "WRITE ENABLED" : "READ ONLY";
-      badge.classList.toggle("admin-write-enabled", allowed);
-    }
+    setText(badge, allowed ? "WRITE ENABLED" : "READ ONLY");
+    badge?.classList.toggle("admin-write-enabled", allowed);
+
     const rows = accessCard.querySelectorAll(".admin-row");
     const writeRow = rows[2];
     if (writeRow) {
       const strong = writeRow.querySelector("strong");
       const support = writeRow.querySelector(".admin-row__main span");
-      if (strong) strong.textContent = allowed ? "활성" : "잠김";
-      if (support) support.textContent = allowed
+      setText(strong, allowed ? "활성" : "잠김");
+      setText(support, allowed
         ? "공지·수행·행사는 production 서버 권한과 변경 기록을 거쳐 저장됩니다."
-        : "현재 계정은 서버의 학급 운영 권한 범위에 포함되지 않습니다.";
+        : "현재 계정은 서버의 학급 운영 권한 범위에 포함되지 않습니다.");
     }
   }
 
   const oldArchive = root?.querySelector("#archive-title")?.closest(".admin-card");
-  if (oldArchive) oldArchive.hidden = true;
+  if (oldArchive && !oldArchive.hidden) oldArchive.hidden = true;
 }
 
 function bindCard() {
