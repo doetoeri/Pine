@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260823-ref1";
+const PINCON_SW_VERSION = "20260823-smooth2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -20,7 +20,7 @@ const PINCON_APP_SHELL = [
   "./pincon-unified-shell.css",
   "./pincon-ui-stability.css",
   "./pincon-classic-return.css",
-  "./pincon-dock-reference.css",
+  "./pincon-interaction-polish.css",
   "./material-official-loader.js",
   "./material-web.bundle.js",
   "./pincon-material-audit.js",
@@ -35,7 +35,6 @@ const PINCON_APP_SHELL = [
   "./pincon-class-ops.js",
   "./pincon-ui-stability.js",
   "./pincon-classic-return.js",
-  "./pincon-dock-reference.js",
   "./pincon-print-center.js",
   "./pincon-guest-auth.js",
   "./pincon-google-auth-bridge.js",
