@@ -39,9 +39,12 @@
 
 - [x] Connect existing Firestore collections through the gateway (read-only)
 - [x] Search state model and working basic search
-- [ ] Notification inbox read/unread history model
-- [ ] New authenticated role model design
-- [ ] Audit-log and restore contract
+- [x] Notification inbox read/unread history model
+- [x] New authenticated role model design contract
+- [x] Audit-log and restore contract
+- [ ] Enforce the new role/audit contract in Firestore rules before enabling writes
+
+The Day 2 role, audit and restore work is intentionally a client-side contract at this stage. `NEXT_WRITE_GATE.enabled` remains `false`, so no shared write becomes available merely because a legacy account maps to editor/manager. Server rules must enforce the same contract before the gate can ever be opened.
 
 ### Day 3 — QA and preview
 
@@ -58,6 +61,8 @@
 - Preview branch: `rebuild`
 - Production `main` is intentionally unchanged.
 - Next reads the existing class profile and current Firestore collections but exposes no shared write methods.
+- Notification read state is class-scoped and stored locally during Beta; reading an alert does not mutate class data.
+- Role mapping, audit events, soft-delete and restore patches are defined in `next/core/trust-model.js`, with the write gate forced closed.
 
 ## Release gate
 
