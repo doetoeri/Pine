@@ -31,4 +31,7 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           FIREBASE_PROJECT_ID: studio-2803086992-2d4cf
           FIREBASE_STORAGE_BUCKET: studio-2803086992-2d4cf.firebasestorage.app
+          # 2026-08-24 only: 1-8 authenticated guest editing closes automatically at 23:59:59 KST.
+          PINCON_OPEN_WRITE_CLASS: "1-8"
+          PINCON_OPEN_WRITE_UNTIL_MS: "1787583599000"
         run: node automation/deploy-firestore-rules.mjs
