@@ -20,9 +20,11 @@ test("boot uses frameless overlapping reveal shapes and fully yields to the app"
     { timeout: 5_000 },
   ).toBeGreaterThan(20);
 
-  await expect.poll(async () => {
-    return page.evaluate(() => [...document.querySelectorAll(".pincon-reveal-tile")].filter((node) => node.classList.contains("is-visible")).length);
-  }, { timeout: 5_000 }).toBeGreaterThan(20);
+  await expect.poll(async () => page.evaluate(() => {
+    const tiles = [...document.querySelectorAll(".pincon-reveal-tile")];
+    const visible = tiles.filter((node) => node.classList.contains("is-visible"));
+    return tiles.length ? visible.length / tiles.length : 0;
+  }), { timeout: 5_000 }).toBeGreaterThan(0.85);
 
   const visual = await page.evaluate(() => {
     const tiles = [...document.querySelectorAll(".pincon-reveal-tile.is-visible")];
