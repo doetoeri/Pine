@@ -170,6 +170,9 @@ function trustMarkup() {
   const access = snapshot.access || {};
   const signedIn = access.signedIn ? "인증된 계정" : "로그인하지 않음";
   const identity = access.displayName ? ` · ${access.displayName}` : "";
+  const adminAction = snapshot.isManager
+    ? `<div class="trust-actions"><md-filled-tonal-button id="openAdminBeta"><md-icon slot="icon">admin_panel_settings</md-icon>관리자 Beta</md-filled-tonal-button></div>`
+    : "";
   return `<article class="surface" data-day2-trust>
     <div class="surface__header">
       <h2 class="surface__title">권한과 복구</h2>
@@ -178,9 +181,10 @@ function trustMarkup() {
     <div class="trust-grid">
       <div class="trust-line"><strong>현재 역할</strong><span>${escapeHtml(roleLabel(access.role))}</span></div>
       <div class="trust-line"><strong>인증 상태</strong><span>${escapeHtml(signedIn + identity)}</span></div>
-      <div class="trust-line"><strong>공용 편집</strong><span>Beta에서는 잠금. 서버 역할 규칙과 감사 로그를 검증한 뒤에만 활성화합니다.</span></div>
+      <div class="trust-line"><strong>공용 편집</strong><span>일반 콘텐츠 쓰기는 Beta에서 잠금. 기존 운영 권한이 허용하는 학급 브랜드 문구만 관리자에서 수정할 수 있습니다.</span></div>
       <div class="trust-line"><strong>삭제 정책</strong><span>영구 삭제 대신 보관 처리 후 복원 가능하게 설계합니다. 삭제·복원 모두 감사 기록이 필수입니다.</span></div>
     </div>
+    ${adminAction}
   </article>`;
 }
 
@@ -228,6 +232,12 @@ document.addEventListener("keydown", (event) => {
 document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) focusMainAfterRouteChange();
+
+  const adminButton = eventHost(event, (node) => node.id === "openAdminBeta");
+  if (adminButton) {
+    location.href = "./admin/";
+    return;
+  }
 
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
   const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
