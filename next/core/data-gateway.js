@@ -2,6 +2,7 @@ import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
 import { resolveNextAccess } from "./trust-model.js";
 
 const PROFILE_KEY = "pincon-profile-v2";
+const GATEWAY_SINGLETON_KEY = Symbol.for("pincon.next.data-gateway");
 
 function parseJson(value, fallback = null) {
   try {
@@ -58,9 +59,17 @@ function accessFor({ user = null, role = null, profile = null } = {}) {
 export class NextDataGateway extends EventTarget {
   constructor() {
     super();
+
+    // PinCon Next must have exactly one live repository subscription per page.
+    // app.js and enhancement modules may request a gateway independently, but they
+    // all receive this same instance instead of creating duplicate Firestore listeners.
+    const existing = globalThis[GATEWAY_SINGLETON_KEY];
+    if (existing instanceof NextDataGateway) return existing;
+
     const profile = readClassProfile();
     this.repository = null;
     this.repositoryListener = null;
+    this.startPromise = null;
     this.state = {
       ready: false,
       syncing: false,
@@ -74,6 +83,8 @@ export class NextDataGateway extends EventTarget {
       isManager: false,
       readonly: true,
     };
+
+    globalThis[GATEWAY_SINGLETON_KEY] = this;
   }
 
   snapshot() {
@@ -121,7 +132,7 @@ export class NextDataGateway extends EventTarget {
       return this.snapshot();
     }
 
-    if (this.repository) return this.snapshot();
+    if (this.repository) return this.startPromise || this.snapshot();
 
     this.repository = new PinconClassOpsRepository();
     this.repositoryListener = (event) => this.applyRepositorySnapshot(event.detail);
@@ -131,16 +142,21 @@ export class NextDataGateway extends EventTarget {
     this.state.error = "";
     this.emit();
 
-    try {
-      const initial = await this.repository.start();
-      this.applyRepositorySnapshot(initial);
-    } catch (error) {
-      this.state.syncing = false;
-      this.state.error = error?.message || "PinCon 데이터를 불러오지 못했습니다.";
-      this.emit();
-    }
+    this.startPromise = (async () => {
+      try {
+        const initial = await this.repository.start();
+        this.applyRepositorySnapshot(initial);
+      } catch (error) {
+        this.state.syncing = false;
+        this.state.error = error?.message || "PinCon 데이터를 불러오지 못했습니다.";
+        this.emit();
+      } finally {
+        this.startPromise = null;
+      }
+      return this.snapshot();
+    })();
 
-    return this.snapshot();
+    return this.startPromise;
   }
 
   dispose() {
@@ -149,5 +165,6 @@ export class NextDataGateway extends EventTarget {
     }
     this.repository = null;
     this.repositoryListener = null;
+    this.startPromise = null;
   }
 }
