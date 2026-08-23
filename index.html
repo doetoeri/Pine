@@ -2,80 +2,47 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#F8FAF3" />
-    <meta name="description" content="오늘 일정부터 익명 의견, 행사, 공용품, 자료실과 월간 패치노트까지 연결하는 학급 운영 PWA" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Pincon" />
-    <link rel="icon" href="./icons/app-icon.svg?v=20260817-figma" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=20260817-figma" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0..1,0&family=Noto+Sans+KR:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
-    <style>md-icon { font-family: "Material Symbols Rounded"; }</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f9f1" />
+    <meta name="description" content="PinCon 학급 허브" />
+    <meta name="robots" content="noindex" />
+    <title>PinCon</title>
+    <link rel="icon" href="./next/assets/pincon-icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Legacy restore assets remain versioned for rollback: pincon-class-ops.css pincon-class-ops.js pincon-unified-shell.css pincon-print-center.css pincon-print-center.js -->
+    <style>
+      html, body { margin: 0; min-height: 100%; background: #f7f9f1; color: #191d16; font-family: system-ui, sans-serif; }
+      body { display: grid; min-height: 100vh; place-items: center; }
+      p { margin: 0; font-size: 14px; }
+    </style>
     <script>
       (() => {
-        const key = "pincon-design-system-v1";
-        const mode = "material-expressive";
-        try { localStorage.setItem(key, mode); } catch {}
-        document.documentElement.dataset.pinconDesign = mode;
-      })();
-    </script>
-    <title>Pincon · 우리 반의 오늘</title>
-    <script src="./firebase-config.js"></script>
-    <script>
-      (() => {
-        const config = globalThis.PINCON_FIREBASE_CONFIG;
-        if (config && !config.vapidKey) {
-          globalThis.PINCON_FIREBASE_CONFIG = Object.freeze({
-            ...config,
-            vapidKey: "BCZxHuZ-BJKkeo3YsD64ST_FQ_HMzbV2EtmZFQIJ_SjmJBiIleZ8Fx2sDs2eRWa5XFmmEGPloi_DmiZ_swRY3ik",
-          });
+        const target = new URL("./next/", location.href);
+        target.search = location.search;
+        target.hash = location.hash || "#today";
+        let moved = false;
+        const go = () => {
+          if (moved) return;
+          moved = true;
+          location.replace(target.href);
+        };
+
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations()
+            .then((registrations) => Promise.all(registrations
+              .filter((registration) => registration.scope === new URL("./", location.href).href)
+              .map((registration) => registration.unregister())))
+            .catch(() => {})
+            .finally(go);
+          window.setTimeout(go, 900);
+        } else {
+          go();
         }
       })();
     </script>
-    <script type="module" crossorigin src="./assets/index-Sg4pPAB0.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-C7Rqpf69.css">
-    <link rel="stylesheet" href="./theme-green.css?v=20260817-green1">
-    <link rel="stylesheet" href="./material-official-layout.css?v=20260817-material3">
-    <link rel="stylesheet" href="./pincon-design-systems.css?v=20260818-expressive-lab2">
-    <link rel="stylesheet" href="./pincon-adoption-core.css?v=20260818-adoption1">
-    <link rel="stylesheet" href="./pincon-adoption-flow-v2.css?v=20260818-adoption4">
-    <link rel="stylesheet" href="./pincon-quick-add-ocr-entry.css?v=20260819-ocr-entry1">
-    <link rel="stylesheet" href="./pincon-live-prep.css?v=20260819-liveprep1">
-    <link rel="stylesheet" href="./pincon-class-ops.css?v=20260822-notice-worksheet1">
-    <link rel="stylesheet" href="./pincon-print-center.css?v=20260821-print1">
-    <link rel="stylesheet" href="./pincon-expressive-all.css?v=20260821-responsive1">
-    <link rel="stylesheet" href="./pincon-controls.css?v=20260822-controls1">
-    <link rel="stylesheet" href="./pincon-unified-shell.css?v=20260822-unified5">
-    <link rel="stylesheet" href="./pincon-ui-stability.css?v=20260823-ui2">
-    <link rel="stylesheet" href="./pincon-classic-return.css?v=20260823-dock1">
-    <link rel="stylesheet" href="./pincon-interaction-polish.css?v=20260823-smooth3">
-    <link rel="manifest" href="./manifest.webmanifest?v=20260823-smooth3">
-    <script id="vite-plugin-pwa:register-sw" src="./registerSW.js?v=20260823-smooth3"></script>
   </head>
-  <body class="pincon-expressive">
-    <div id="root"></div>
-    <script src="./touch-stability.js?v=20260817-material3"></script>
-    <script type="module" src="./timetable-source-hotfix.js?v=20260823-comcigan1"></script>
-    <script type="module" src="./material-official-loader.js?v=20260822-material6"></script>
-    <script type="module" src="./pincon-material-audit.js?v=20260822-audit1"></script>
-    <script type="module" src="./pincon-material-button-fallback.js?v=20260822-button-fallback-latch1"></script>
-    <script type="module" src="./pincon-guest-auth.js?v=20260817-material3"></script>
-    <script type="module" src="./pincon-google-auth-bridge.js?v=20260817-authbridge1"></script>
-    <script type="module" src="./pincon-auth-diagnostics.js?v=20260817-authbridge1"></script>
-    <script type="module" src="./pincon-material-collab.js?v=20260817-material4"></script>
-    <script type="module" src="./pincon-material-workspace.js?v=20260817-material4"></script>
-    <script type="module" src="./pincon-analytics.js?v=20260817-material4"></script>
-    <script type="module" src="./pincon-adoption-core.js?v=20260818-adoption1"></script>
-    <script type="module" src="./pincon-adoption-flow-v2.js?v=20260818-adoption3"></script>
-    <script type="module" src="./pincon-ocr-capture.js?v=20260819-ocr2"></script>
-    <script type="module" src="./pincon-quick-add-ocr-entry.js?v=20260819-ocr-entry1"></script>
-    <script type="module" src="./pincon-live-prep.js?v=20260819-liveprep1"></script>
-    <script type="module" src="./pincon-classic-return.js?v=20260823-smooth3"></script>
-    <script type="module" src="./pincon-ui-stability.js?v=20260823-ui2"></script>
-    <script type="module" src="./pincon-class-ops.js?v=20260822-unified5"></script>
-    <script type="module" src="./pincon-print-center.js?v=20260821-print1"></script>
+  <body>
+    <p>PinCon을 여는 중…</p>
+    <noscript><a href="./next/#today">PinCon 열기</a></noscript>
   </body>
 </html>
