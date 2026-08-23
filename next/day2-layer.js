@@ -59,6 +59,19 @@ function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
 }
 
+function controlOwnsFocus(control) {
+  if (!control) return false;
+  return document.activeElement === control || Boolean(control.shadowRoot?.activeElement);
+}
+
+function materialButtonFromKeyEvent(event) {
+  if (!['Enter', ' '].includes(event.key) || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return null;
+  return eventHost(event, (node) => {
+    const tagName = node.tagName || "";
+    return tagName.startsWith("MD-") && tagName.endsWith("-BUTTON");
+  });
+}
+
 function setCurrentState(control, current) {
   const focusable = actualFocusable(control);
   if (!focusable) return;
@@ -220,8 +233,18 @@ const appRoot = document.querySelector("#app");
 if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || !anyDialogOpen()) return;
-  window.setTimeout(restoreDialogTriggerFocus, 0);
+  if (event.key === "Escape" && anyDialogOpen()) {
+    window.setTimeout(restoreDialogTriggerFocus, 0);
+    return;
+  }
+
+  const control = materialButtonFromKeyEvent(event);
+  if (!control || !controlOwnsFocus(control) || control.hasAttribute("disabled")) return;
+
+  // Material Web의 내부 native button에 포커스가 들어간 경우에도 키보드 활성화를
+  // host click으로 정규화한다. preventDefault로 브라우저별 이중 click을 막는다.
+  event.preventDefault();
+  control.click();
 });
 
 document.addEventListener("click", (event) => {
