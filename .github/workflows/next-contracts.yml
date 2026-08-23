@@ -30,6 +30,8 @@ jobs:
           for file in \
             next/app.js \
             next/day2-layer.js \
+            next/admin/admin.js \
+            next/core/admin-policy.js \
             next/core/data-gateway.js \
             next/core/notification-store.js \
             next/core/trust-model.js
@@ -37,7 +39,7 @@ jobs:
             node --input-type=module --check < "$file"
           done
       - name: Run Next contract tests
-        run: node --test next/tests/contracts.test.mjs
+        run: node --test next/tests/contracts.test.mjs next/tests/admin-policy.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest
