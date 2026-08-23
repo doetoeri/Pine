@@ -5,6 +5,7 @@ const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "studio-2803086992-2d4cf";
 const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || "studio-2803086992-2d4cf.firebasestorage.app";
 const OPEN_WRITE_CLASS = String(process.env.PINCON_OPEN_WRITE_CLASS || "").trim();
 const OPEN_WRITE_UNTIL_MS = Number(process.env.PINCON_OPEN_WRITE_UNTIL_MS || 0);
+const FIRESTORE_ONLY = String(process.env.FIREBASE_RULES_FIRESTORE_ONLY || "").toLowerCase() === "true";
 const RULES = [
   {
     path: new URL("../firestore.rules", import.meta.url),
@@ -54,7 +55,7 @@ async function accessToken(credentials) {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      grant_type: "urn:ietf:params:oauth2.0:grant-type:jwt-bearer",
       assertion: signJwt(credentials),
     }),
   });
@@ -118,6 +119,7 @@ export function applyTemporaryOpenWrite(source) {
 }
 
 async function rulesToDeploy(token) {
+  if (FIRESTORE_ONLY) return RULES.filter((rule) => rule.fileName === "firestore.rules");
   const response = await api(token, `projects/${PROJECT_ID}/releases?pageSize=100`);
   const storagePrefix = `projects/${PROJECT_ID}/releases/firebase.storage/`;
   const existingStorageRelease = (response?.releases || []).find((release) =>
@@ -181,6 +183,7 @@ async function main() {
   console.log(JSON.stringify({
     ok: true,
     project: PROJECT_ID,
+    firestoreOnly: FIRESTORE_ONLY,
     temporaryOpenWrite: OPEN_WRITE_CLASS ? { classKey: OPEN_WRITE_CLASS, untilMs: OPEN_WRITE_UNTIL_MS } : null,
     deployed,
   }));
