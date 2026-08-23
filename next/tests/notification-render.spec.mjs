@@ -9,14 +9,15 @@ test("notification trigger renders the canonical inbox once", async ({ page }) =
   await expect(page.locator("#today-title")).toBeVisible();
 
   await page.evaluate(() => {
-    const target = document.querySelector("#notificationContent");
     globalThis.__pinconNotificationMutations = 0;
     const observer = new MutationObserver((records) => {
       globalThis.__pinconNotificationMutations += records.filter(
-        (record) => record.type === "childList" && record.target === target,
+        (record) => record.type === "childList"
+          && record.target instanceof HTMLElement
+          && record.target.id === "notificationContent",
       ).length;
     });
-    observer.observe(target, { childList: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     globalThis.__pinconNotificationObserver = observer;
   });
 
