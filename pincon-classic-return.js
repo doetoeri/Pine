@@ -1,8 +1,8 @@
-const CLASSIC_RETURN_VERSION = "20260823-dock1";
+const CLASSIC_RETURN_VERSION = "20260823-smooth2";
 let userOpenedOps = new URL(location.href).searchParams.get("class-ops") === "1";
 let scheduled = false;
 let closing = false;
-let lastTriggerRect = null;
+let transition = null;
 
 function shell() {
   return document.querySelector(".pincon-ops-shell");
@@ -30,7 +30,7 @@ function syncTriggerState(trigger = document.querySelector(".pincon-class-ops-tr
   trigger.setAttribute("aria-expanded", userOpenedOps ? "true" : "false");
   trigger.setAttribute("aria-label", userOpenedOps ? "PinCon 학급운영 닫기" : "PinCon 학급운영 열기");
   trigger.title = userOpenedOps ? "학급운영 닫기" : "PinCon 학급운영";
-  if (icon) icon.textContent = userOpenedOps ? "close" : "groups";
+  if (icon) icon.textContent = userOpenedOps ? "close" : "add";
 }
 
 function ensureDockTrigger() {
@@ -47,7 +47,7 @@ function ensureDockTrigger() {
     trigger.className = "pincon-class-ops-trigger";
     trigger.setAttribute("data-pincon-dock-toggle", "");
     trigger.setAttribute("aria-controls", "pincon-class-ops-sheet");
-    trigger.innerHTML = "<md-icon>groups</md-icon>";
+    trigger.innerHTML = "<md-icon>add</md-icon>";
     document.body.appendChild(trigger);
   }
 
@@ -59,12 +59,15 @@ function markHome() {
   if (userOpenedOps) return;
   document.body.classList.add("pincon-classic-home");
   document.body.classList.remove("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
+
   const host = shell();
   if (host) {
-    host.dataset.open = "false";
-    host.setAttribute("aria-hidden", "true");
     host.id = "pincon-class-ops-sheet";
+    host.style.removeProperty("opacity");
+    host.style.removeProperty("transform");
+    host.style.removeProperty("pointer-events");
   }
+
   removeLegacyLaunchCards();
   ensureDockTrigger();
   cleanOpsUrl();
@@ -92,67 +95,63 @@ function syncOpsHeader() {
   }
 }
 
-function animationOrigin(host) {
-  const trigger = ensureDockTrigger();
-  const triggerRect = lastTriggerRect || trigger?.getBoundingClientRect?.();
-  const hostRect = host.getBoundingClientRect();
-  if (!triggerRect || !hostRect.width || !hostRect.height) {
-    return { x: hostRect.width - 34, y: hostRect.height - 34, radius: Math.hypot(hostRect.width, hostRect.height) + 48 };
+async function animateSheet(host, opening) {
+  if (!host) return;
+
+  transition?.cancel?.();
+  transition = null;
+
+  if (reducedMotion() || typeof host.animate !== "function") {
+    host.style.removeProperty("opacity");
+    host.style.removeProperty("transform");
+    return;
   }
 
-  const x = Math.min(hostRect.width, Math.max(0, triggerRect.left + triggerRect.width / 2 - hostRect.left));
-  const y = Math.min(hostRect.height, Math.max(0, triggerRect.top + triggerRect.height / 2 - hostRect.top));
-  const farX = Math.max(x, hostRect.width - x);
-  const farY = Math.max(y, hostRect.height - y);
-  return { x, y, radius: Math.hypot(farX, farY) + 56 };
-}
-
-async function animateSheet(host, opening) {
-  if (!host || reducedMotion() || typeof host.animate !== "function") return;
-  const { x, y, radius } = animationOrigin(host);
-  const closedClip = `circle(0px at ${x}px ${y}px)`;
-  const openClip = `circle(${Math.ceil(radius)}px at ${x}px ${y}px)`;
-  const openingFrames = [
-    { clipPath: closedClip, opacity: 0.72, transform: "translateY(18px)" },
-    { clipPath: openClip, opacity: 1, transform: "translateY(0)" },
-  ];
-  const closingFrames = [
-    { clipPath: openClip, opacity: 1, transform: "translateY(0)" },
-    { clipPath: closedClip, opacity: 0.45, transform: "translateY(14px)" },
-  ];
+  const frames = opening
+    ? [
+        { opacity: 0, transform: "translateY(22px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ]
+    : [
+        { opacity: 1, transform: "translateY(0)" },
+        { opacity: 0, transform: "translateY(16px)" },
+      ];
 
   try {
-    const animation = host.animate(opening ? openingFrames : closingFrames, {
-      duration: opening ? 380 : 250,
-      easing: opening ? "cubic-bezier(.2, 0, 0, 1)" : "cubic-bezier(.4, 0, 1, 1)",
+    transition = host.animate(frames, {
+      duration: opening ? 240 : 170,
+      easing: opening ? "cubic-bezier(.2, .8, .2, 1)" : "cubic-bezier(.4, 0, 1, 1)",
       fill: "both",
     });
-    await animation.finished;
-    animation.cancel();
+    await transition.finished;
   } catch {
-    try {
-      const fallback = host.animate(
-        opening
-          ? [{ opacity: 0, transform: "translateY(22px)" }, { opacity: 1, transform: "translateY(0)" }]
-          : [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(16px)" }],
-        { duration: opening ? 260 : 180, easing: "cubic-bezier(.2, 0, 0, 1)", fill: "both" },
-      );
-      await fallback.finished;
-      fallback.cancel();
-    } catch {}
+    // A newer open/close action superseded this one.
+  } finally {
+    transition?.cancel?.();
+    transition = null;
+    if (opening) {
+      host.style.removeProperty("opacity");
+      host.style.removeProperty("transform");
+    }
   }
 }
 
 async function openOps(tab = "today") {
-  if (userOpenedOps) return;
+  if (userOpenedOps || closing) return;
+
   const trigger = ensureDockTrigger();
-  lastTriggerRect = trigger?.getBoundingClientRect?.() || null;
   userOpenedOps = true;
   syncTriggerState(trigger);
 
+  const host = prepareOpsShell();
+  if (host) {
+    host.style.opacity = "0";
+    host.style.transform = "translateY(22px)";
+    host.style.pointerEvents = "none";
+  }
+
   document.body.classList.remove("pincon-classic-home");
   document.body.classList.add("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
-  const host = prepareOpsShell();
 
   const url = new URL(location.href);
   url.searchParams.set("class-ops", "1");
@@ -161,18 +160,24 @@ async function openOps(tab = "today") {
 
   syncOpsHeader();
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  await animateSheet(host, true);
+
+  if (host) {
+    host.style.pointerEvents = "auto";
+    await animateSheet(host, true);
+  }
   requestAnimationFrame(() => document.querySelector(".pincon-ops-main")?.focus?.());
 }
 
 async function closeOps() {
   if (!userOpenedOps || closing) return;
   closing = true;
-  const trigger = ensureDockTrigger();
-  lastTriggerRect = trigger?.getBoundingClientRect?.() || lastTriggerRect;
-  const host = shell();
 
-  await animateSheet(host, false);
+  const host = shell();
+  if (host) {
+    host.style.pointerEvents = "none";
+    await animateSheet(host, false);
+  }
+
   userOpenedOps = false;
   document.body.classList.add("pincon-classic-home");
   document.body.classList.remove("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
@@ -180,10 +185,14 @@ async function closeOps() {
   if (host) {
     host.dataset.open = "false";
     host.setAttribute("aria-hidden", "true");
+    host.style.removeProperty("opacity");
+    host.style.removeProperty("transform");
+    host.style.removeProperty("pointer-events");
   }
+
   cleanOpsUrl();
   removeLegacyLaunchCards();
-  syncTriggerState(trigger);
+  syncTriggerState();
   ensureDockTrigger();
   closing = false;
 }
@@ -194,11 +203,13 @@ function repair() {
   ensureDockTrigger();
 
   if (userOpenedOps) {
-    document.body.classList.remove("pincon-classic-home");
-    document.body.classList.add("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
+    if (!document.body.classList.contains("pincon-classic-ops-open")) {
+      document.body.classList.remove("pincon-classic-home");
+      document.body.classList.add("pincon-classic-ops-open", "pincon-ops-open", "pincon-unified-ready");
+    }
     prepareOpsShell();
     syncOpsHeader();
-  } else {
+  } else if (!document.body.classList.contains("pincon-classic-home")) {
     markHome();
   }
 }
@@ -245,8 +256,10 @@ function start() {
     }
   });
 
+  /* Only watch structural rerenders. Watching body classes/data-open created a
+     feedback loop with the class-ops runtime and was the source of visible flicker. */
   const observer = new MutationObserver(scheduleRepair);
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "data-open"] });
+  observer.observe(document.body, { childList: true, subtree: true });
   window.addEventListener("pageshow", scheduleRepair, { passive: true });
   scheduleRepair();
 }
