@@ -1,4 +1,5 @@
 import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
+import { classBrandSettings, validateBrandTagline } from "./brand-settings.js";
 import { resolveNextAccess } from "./trust-model.js";
 
 const PROFILE_KEY = "pincon-profile-v2";
@@ -56,6 +57,15 @@ function accessFor({ user = null, role = null, profile = null } = {}) {
   });
 }
 
+function canEditExistingClassSettings({ user = null, role = null, profile = null } = {}) {
+  const classKey = profile?.classKey || "";
+  if (!user?.uid || !role?.enabled || !classKey) return false;
+  if (role.level === "school") return true;
+  return ["class", "grade", "president"].includes(role.level)
+    && Array.isArray(role.classKeys)
+    && role.classKeys.includes(classKey);
+}
+
 export class NextDataGateway extends EventTarget {
   constructor() {
     super();
@@ -81,6 +91,7 @@ export class NextDataGateway extends EventTarget {
       role: null,
       access: accessFor({ profile }),
       isManager: false,
+      canEditBrandSettings: false,
       readonly: true,
     };
 
@@ -117,6 +128,7 @@ export class NextDataGateway extends EventTarget {
       role,
       access,
       isManager: access.role === "manager" || access.role === "system-admin",
+      canEditBrandSettings: canEditExistingClassSettings({ user, role, profile }),
       readonly: true,
     };
     this.emit();
@@ -157,6 +169,32 @@ export class NextDataGateway extends EventTarget {
     })();
 
     return this.startPromise;
+  }
+
+  async updateBrandTagline(value) {
+    const tagline = validateBrandTagline(value);
+    if (!this.repository) await this.start();
+
+    const profile = this.state.profile || readClassProfile();
+    if (!profile?.classKey || !this.state.canEditBrandSettings) {
+      throw new Error("이 학급의 PinCon 문구를 수정할 권한이 없습니다.");
+    }
+
+    const current = classBrandSettings(this.state.data, profile.classKey);
+    await this.repository.adminWrite(
+      "classSettings",
+      {
+        ...(current || {}),
+        brandTagline: tagline,
+        deleted: false,
+      },
+      {
+        id: profile.classKey,
+        action: current ? "update" : "create",
+        label: `PinCon 작은 문구 · ${tagline || "숨김"}`,
+      },
+    );
+    return tagline;
   }
 
   dispose() {
