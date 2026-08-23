@@ -31,8 +31,11 @@ jobs:
             next/app.js \
             next/day2-layer.js \
             next/keyboard-dialog-bridge.js \
+            next/ui-polish.js \
             next/admin/admin.js \
+            next/admin/brand-settings.js \
             next/core/admin-policy.js \
+            next/core/brand-settings.js \
             next/core/data-gateway.js \
             next/core/notification-store.js \
             next/core/trust-model.js
@@ -90,6 +93,10 @@ jobs:
         run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line
       - name: Responsive smoke · WebKit
         run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line
+      - name: Brand tagline · Chromium
+        run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=chromium --reporter=line
+      - name: Brand tagline · WebKit
+        run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=webkit --reporter=line
       - name: Route latency · Chromium
         run: npx playwright test next/tests/performance.spec.mjs --browser=chromium --reporter=line
       - name: Route latency · WebKit
