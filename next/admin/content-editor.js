@@ -1,0 +1,342 @@
+import { NextDataGateway } from "../core/data-gateway.js";
+
+const root = document.querySelector("#adminApp");
+const gateway = new NextDataGateway();
+let snapshot = gateway.snapshot();
+let renderQueued = false;
+let saving = false;
+
+const EDITABLE = Object.freeze({
+  announcements: { label: "공지", icon: "campaign" },
+  classAssignments: { label: "수행·숙제", icon: "assignment" },
+  events: { label: "학급 행사", icon: "celebration" },
+});
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function dateValue(value) {
+  const text = String(value || "");
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
+function itemTitle(item) {
+  return item?.title || item?.name || item?.subject || item?.id || "제목 없음";
+}
+
+function itemSupport(collection, item) {
+  if (collection === "announcements") {
+    return [item.priority === "urgent" ? "긴급" : item.priority === "important" ? "중요" : "일반", item.body].filter(Boolean).join(" · ");
+  }
+  if (collection === "classAssignments") {
+    return [item.subject, item.dueDate, item.type].filter(Boolean).join(" · ");
+  }
+  if (collection === "events") {
+    return [item.date, item.status, item.question].filter(Boolean).join(" · ");
+  }
+  return "";
+}
+
+function activeRows(collection) {
+  return (snapshot.data?.[collection] || []).filter((item) => item && item.deleted !== true);
+}
+
+function archivedRows() {
+  const rows = [];
+  for (const collection of Object.keys(EDITABLE)) {
+    for (const item of snapshot.data?.[collection] || []) {
+      if (item?.deleted === true) rows.push({ collection, item });
+    }
+  }
+  return rows.sort((a, b) => Number(b.item.updatedAtMs || 0) - Number(a.item.updatedAtMs || 0));
+}
+
+function rowMarkup(collection, item) {
+  const config = EDITABLE[collection];
+  return `<div class="managed-editor-row">
+    <div class="managed-editor-row__copy">
+      <strong>${escapeHtml(itemTitle(item))}</strong>
+      <span>${escapeHtml(itemSupport(collection, item) || config.label)}</span>
+    </div>
+    <div class="managed-editor-row__actions">
+      <md-text-button data-managed-edit="${collection}" data-record-id="${escapeHtml(item.id)}"><md-icon slot="icon">edit</md-icon>수정</md-text-button>
+      <md-text-button data-managed-archive="${collection}" data-record-id="${escapeHtml(item.id)}"><md-icon slot="icon">archive</md-icon>보관</md-text-button>
+    </div>
+  </div>`;
+}
+
+function sectionMarkup(collection) {
+  const config = EDITABLE[collection];
+  const rows = activeRows(collection);
+  return `<section class="managed-editor-section" aria-labelledby="managed-${collection}-title">
+    <div class="managed-editor-section__head">
+      <h3 id="managed-${collection}-title"><md-icon>${config.icon}</md-icon> ${config.label}</h3>
+      <md-filled-tonal-button data-managed-create="${collection}"><md-icon slot="icon">add</md-icon>새 ${config.label}</md-filled-tonal-button>
+    </div>
+    <div class="managed-editor-list">
+      ${rows.length ? rows.slice(0, 40).map((item) => rowMarkup(collection, item)).join("") : `<div class="managed-editor-empty">아직 등록된 ${config.label} 항목이 없습니다.</div>`}
+    </div>
+  </section>`;
+}
+
+function archiveMarkup() {
+  const rows = archivedRows();
+  return `<section class="admin-card admin-card--wide" data-managed-archive-card aria-labelledby="managed-archive-title">
+    <div class="admin-card__header">
+      <h2 id="managed-archive-title">보관함 · 복원</h2>
+      <span class="admin-meta">영구 삭제 없음</span>
+    </div>
+    ${rows.length ? `<div class="managed-editor-list">${rows.slice(0, 50).map(({ collection, item }) => `<div class="managed-editor-row">
+      <div class="managed-editor-row__copy"><strong>${escapeHtml(itemTitle(item))}</strong><span>${escapeHtml(`${EDITABLE[collection].label} · 보관됨`)}</span></div>
+      <div class="managed-editor-row__actions"><md-outlined-button data-managed-restore="${collection}" data-record-id="${escapeHtml(item.id)}"><md-icon slot="icon">restore</md-icon>복원</md-outlined-button></div>
+    </div>`).join("")}</div>` : `<div class="managed-editor-empty">보관된 공지·수행·행사가 없습니다.</div>`}
+  </section>`;
+}
+
+function cardMarkup() {
+  const allowed = Boolean(snapshot.canManageContent);
+  const roleNote = allowed
+    ? "저장하면 학생 화면에 실시간 반영되고, 생성·수정·보관·복원 기록이 changeLogs에 남습니다."
+    : "현재 계정은 production Firestore의 학급 운영 권한과 일치하지 않아 편집할 수 없습니다.";
+  return `<section class="admin-card admin-card--wide" data-managed-editor aria-labelledby="managed-editor-title">
+    <div class="admin-card__header">
+      <h2 id="managed-editor-title">학급 콘텐츠 편집</h2>
+      <span class="beta-badge ${allowed ? "admin-write-enabled" : ""}">${allowed ? "WRITE ENABLED" : "READ ONLY"}</span>
+    </div>
+    <div class="admin-status ${allowed ? "admin-write-enabled" : "admin-status--denied"}" role="status"><md-icon>${allowed ? "edit_square" : "lock"}</md-icon><p>${escapeHtml(roleNote)}</p></div>
+    ${allowed ? `<div class="managed-editor-stack">${Object.keys(EDITABLE).map(sectionMarkup).join("")}</div>` : ""}
+    <p class="managed-editor-status" id="managedEditorStatus" role="status"></p>
+    ${editorDialogMarkup()}
+    ${archiveDialogMarkup()}
+  </section>`;
+}
+
+function selectOptions(options, selected) {
+  return options.map(([value, label]) => `<md-select-option value="${value}" ${value === selected ? "selected" : ""}><div slot="headline">${label}</div></md-select-option>`).join("");
+}
+
+function fieldsMarkup(collection, item = {}) {
+  if (collection === "announcements") {
+    return `<md-outlined-text-field id="managedTitle" label="공지 제목" value="${escapeHtml(item.title || "")}" maxlength="100" required></md-outlined-text-field>
+      <md-outlined-text-field id="managedBody" label="내용" type="textarea" rows="5" value="${escapeHtml(item.body || "")}" maxlength="1800"></md-outlined-text-field>
+      <md-outlined-select id="managedPriority" label="중요도" value="${escapeHtml(item.priority || "normal")}">${selectOptions([["normal","일반"],["important","중요"],["urgent","긴급"]], item.priority || "normal")}</md-outlined-select>`;
+  }
+
+  if (collection === "classAssignments") {
+    return `<md-outlined-text-field id="managedTitle" label="제목" value="${escapeHtml(item.title || "")}" maxlength="120" required></md-outlined-text-field>
+      <md-outlined-text-field id="managedSubject" label="과목" value="${escapeHtml(item.subject || "")}" maxlength="40"></md-outlined-text-field>
+      <md-outlined-select id="managedType" label="종류" value="${escapeHtml(item.type || "assessment")}">${selectOptions([["assessment","수행평가"],["exam","시험"],["preparation","준비물·숙제"]], item.type || "assessment")}</md-outlined-select>
+      <md-outlined-text-field id="managedDueDate" label="마감 날짜" type="date" value="${escapeHtml(dateValue(item.dueDate))}" required></md-outlined-text-field>
+      <md-outlined-text-field id="managedDescription" label="설명" type="textarea" rows="4" value="${escapeHtml(item.description || "")}" maxlength="1200"></md-outlined-text-field>`;
+  }
+
+  return `<md-outlined-text-field id="managedTitle" label="행사 제목" value="${escapeHtml(item.title || "")}" maxlength="120" required></md-outlined-text-field>
+    <md-outlined-text-field id="managedQuestion" label="질문 또는 행사 설명" type="textarea" rows="4" value="${escapeHtml(item.question || "")}" maxlength="500" required></md-outlined-text-field>
+    <md-outlined-text-field id="managedDate" label="행사 날짜" type="date" value="${escapeHtml(dateValue(item.date))}"></md-outlined-text-field>
+    <md-outlined-select id="managedKind" label="행사 형식" value="${escapeHtml(item.kind || "survey34")}">${selectOptions([["survey34","우리 반 34명에게 물었습니다"],["family-arcade","가족오락관"],["quiz","퀴즈"],["balance","밸런스 게임"],["class-vote","학급 투표"],["survey","설문"],["mini-game","미니게임"]], item.kind || "survey34")}</md-outlined-select>
+    <md-outlined-select id="managedStatus" label="상태" value="${escapeHtml(item.status || "draft")}">${selectOptions([["draft","초안"],["open","진행 중"],["closed","종료"]], item.status || "draft")}</md-outlined-select>`;
+}
+
+function editorDialogMarkup() {
+  return `<md-dialog id="managedEditorDialog">
+    <div slot="headline" id="managedEditorHeadline">콘텐츠 편집</div>
+    <div slot="content"><form class="managed-editor-dialog-form" id="managedEditorForm"></form><p class="managed-editor-status" id="managedDialogStatus" role="status"></p></div>
+    <div slot="actions"><md-text-button id="managedEditorCancel">취소</md-text-button><md-filled-button id="managedEditorSave"><md-icon slot="icon">save</md-icon>저장</md-filled-button></div>
+  </md-dialog>`;
+}
+
+function archiveDialogMarkup() {
+  return `<md-dialog id="managedArchiveDialog">
+    <div slot="headline">항목을 보관할까요?</div>
+    <div slot="content"><p>영구 삭제하지 않습니다. 보관 후 관리자 화면에서 다시 복원할 수 있고 변경 기록도 남습니다.</p></div>
+    <div slot="actions"><md-text-button id="managedArchiveCancel">취소</md-text-button><md-filled-tonal-button id="managedArchiveConfirm"><md-icon slot="icon">archive</md-icon>보관</md-filled-tonal-button></div>
+  </md-dialog>`;
+}
+
+function findRecord(collection, id) {
+  return (snapshot.data?.[collection] || []).find((item) => item.id === id) || null;
+}
+
+function openEditor(collection, id = "") {
+  const dialog = root?.querySelector("#managedEditorDialog");
+  const form = root?.querySelector("#managedEditorForm");
+  const headline = root?.querySelector("#managedEditorHeadline");
+  const status = root?.querySelector("#managedDialogStatus");
+  if (!dialog || !form || !EDITABLE[collection]) return;
+  const item = id ? findRecord(collection, id) : {};
+  if (id && !item) return;
+  dialog.dataset.collection = collection;
+  dialog.dataset.recordId = id;
+  dialog.dataset.startsAtMs = String(item?.startsAtMs || "");
+  headline.textContent = `${id ? "수정" : "새로 만들기"} · ${EDITABLE[collection].label}`;
+  form.innerHTML = fieldsMarkup(collection, item || {});
+  if (status) { status.textContent = ""; status.dataset.kind = ""; }
+  dialog.show?.();
+  requestAnimationFrame(() => form.querySelector("md-outlined-text-field")?.focus?.());
+}
+
+function fieldValue(id) {
+  return root?.querySelector(`#${id}`)?.value ?? "";
+}
+
+function valuesFromDialog(dialog) {
+  const collection = dialog.dataset.collection;
+  const current = dialog.dataset.recordId ? findRecord(collection, dialog.dataset.recordId) : null;
+  if (collection === "announcements") {
+    return { title: fieldValue("managedTitle"), body: fieldValue("managedBody"), priority: fieldValue("managedPriority") };
+  }
+  if (collection === "classAssignments") {
+    return {
+      title: fieldValue("managedTitle"), subject: fieldValue("managedSubject"), type: fieldValue("managedType"),
+      dueDate: fieldValue("managedDueDate"), description: fieldValue("managedDescription"),
+    };
+  }
+  return {
+    title: fieldValue("managedTitle"), question: fieldValue("managedQuestion"), date: fieldValue("managedDate"),
+    kind: fieldValue("managedKind"), status: fieldValue("managedStatus"),
+    startsAtMs: Number(dialog.dataset.startsAtMs || current?.startsAtMs || 0),
+    resultsVisible: current?.resultsVisible === true,
+    publishedResults: Array.isArray(current?.publishedResults) ? current.publishedResults : [],
+  };
+}
+
+function setStatus(message, kind = "") {
+  const status = root?.querySelector("#managedEditorStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.dataset.kind = kind;
+}
+
+async function saveDialog() {
+  const dialog = root?.querySelector("#managedEditorDialog");
+  const save = root?.querySelector("#managedEditorSave");
+  const status = root?.querySelector("#managedDialogStatus");
+  if (!dialog || saving) return;
+  saving = true;
+  if (save) save.disabled = true;
+  if (status) { status.textContent = "서버에 저장하고 변경 기록을 남기는 중…"; status.dataset.kind = ""; }
+  try {
+    await gateway.saveManagedRecord(dialog.dataset.collection, valuesFromDialog(dialog), { id: dialog.dataset.recordId || "" });
+    dialog.close?.();
+    setStatus("저장되었습니다. 학생 화면에 실시간 반영됩니다.", "success");
+  } catch (error) {
+    if (status) { status.textContent = error?.message || "저장하지 못했습니다."; status.dataset.kind = "error"; }
+  } finally {
+    saving = false;
+    if (save) save.disabled = false;
+  }
+}
+
+function openArchive(collection, id) {
+  const dialog = root?.querySelector("#managedArchiveDialog");
+  if (!dialog || !findRecord(collection, id)) return;
+  dialog.dataset.collection = collection;
+  dialog.dataset.recordId = id;
+  dialog.show?.();
+}
+
+async function confirmArchive() {
+  const dialog = root?.querySelector("#managedArchiveDialog");
+  const button = root?.querySelector("#managedArchiveConfirm");
+  if (!dialog || saving) return;
+  saving = true;
+  if (button) button.disabled = true;
+  try {
+    await gateway.archiveManagedRecord(dialog.dataset.collection, dialog.dataset.recordId);
+    dialog.close?.();
+    setStatus("보관했습니다. 필요하면 아래 보관함에서 복원할 수 있습니다.", "success");
+  } catch (error) {
+    setStatus(error?.message || "보관하지 못했습니다.", "error");
+  } finally {
+    saving = false;
+    if (button) button.disabled = false;
+  }
+}
+
+async function restoreRecord(collection, id, button) {
+  if (saving) return;
+  saving = true;
+  if (button) button.disabled = true;
+  try {
+    await gateway.restoreManagedRecord(collection, id);
+    setStatus("복원되었습니다.", "success");
+  } catch (error) {
+    setStatus(error?.message || "복원하지 못했습니다.", "error");
+  } finally {
+    saving = false;
+    if (button) button.disabled = false;
+  }
+}
+
+function patchBaseDashboard() {
+  const allowed = Boolean(snapshot.canManageContent);
+  const heroCopy = root?.querySelector(".admin-hero p:last-child");
+  if (heroCopy) heroCopy.textContent = allowed
+    ? "학생 화면과 같은 데이터 원본을 사용합니다. 권한이 있는 학급 운영 계정은 공지·수행·행사를 실제로 편집할 수 있고 모든 변경이 기록됩니다."
+    : "학생 화면과 같은 데이터 원본을 사용합니다. 현재 계정의 서버 권한을 확인한 뒤 허용된 경우에만 편집 기능이 열립니다.";
+
+  const accessCard = root?.querySelector("#access-title")?.closest(".admin-card");
+  if (accessCard) {
+    const badge = accessCard.querySelector(".beta-badge");
+    if (badge) {
+      badge.textContent = allowed ? "WRITE ENABLED" : "READ ONLY";
+      badge.classList.toggle("admin-write-enabled", allowed);
+    }
+    const rows = accessCard.querySelectorAll(".admin-row");
+    const writeRow = rows[2];
+    if (writeRow) {
+      const strong = writeRow.querySelector("strong");
+      const support = writeRow.querySelector(".admin-row__main span");
+      if (strong) strong.textContent = allowed ? "활성" : "잠김";
+      if (support) support.textContent = allowed
+        ? "공지·수행·행사는 production 서버 권한과 변경 기록을 거쳐 저장됩니다."
+        : "현재 계정은 서버의 학급 운영 권한 범위에 포함되지 않습니다.";
+    }
+  }
+
+  const oldArchive = root?.querySelector("#archive-title")?.closest(".admin-card");
+  if (oldArchive) oldArchive.hidden = true;
+}
+
+function bindCard() {
+  root?.querySelectorAll("[data-managed-create]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.managedCreate)));
+  root?.querySelectorAll("[data-managed-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.managedEdit, button.dataset.recordId)));
+  root?.querySelectorAll("[data-managed-archive]").forEach((button) => button.addEventListener("click", () => openArchive(button.dataset.managedArchive, button.dataset.recordId)));
+  root?.querySelectorAll("[data-managed-restore]").forEach((button) => button.addEventListener("click", () => restoreRecord(button.dataset.managedRestore, button.dataset.recordId, button)));
+  root?.querySelector("#managedEditorCancel")?.addEventListener("click", () => root.querySelector("#managedEditorDialog")?.close?.());
+  root?.querySelector("#managedEditorSave")?.addEventListener("click", saveDialog);
+  root?.querySelector("#managedArchiveCancel")?.addEventListener("click", () => root.querySelector("#managedArchiveDialog")?.close?.());
+  root?.querySelector("#managedArchiveConfirm")?.addEventListener("click", confirmArchive);
+}
+
+function render() {
+  renderQueued = false;
+  const grid = root?.querySelector(".admin-grid");
+  if (!grid) return;
+  patchBaseDashboard();
+  if (grid.querySelector("[data-managed-editor]")) return;
+  grid.insertAdjacentHTML("afterbegin", cardMarkup());
+  if (snapshot.canManageContent) grid.insertAdjacentHTML("beforeend", archiveMarkup());
+  bindCard();
+}
+
+function queueRender() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(render);
+}
+
+gateway.addEventListener("change", (event) => {
+  snapshot = event.detail;
+  queueRender();
+});
+
+const observer = new MutationObserver(() => queueRender());
+if (root) observer.observe(root, { childList: true, subtree: true });
+queueRender();

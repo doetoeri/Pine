@@ -28,7 +28,7 @@ if (boot && field) {
 
     #pinconBootField {
       position: absolute;
-      inset: 0;
+      inset: -12%;
       overflow: hidden;
       pointer-events: none;
     }
@@ -40,7 +40,15 @@ if (boot && field) {
       display: grid;
       place-items: center;
       opacity: 0;
-      transform: translate(-50%, -50%) scale(.72) rotate(var(--tile-rotation));
+      margin: 0;
+      padding: 0;
+      border: 0 !important;
+      outline: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      transform: translate(-50%, -50%) scale(.78) rotate(var(--tile-rotation));
       transform-origin: center;
       transition:
         opacity 180ms cubic-bezier(.2,0,0,1),
@@ -52,20 +60,27 @@ if (boot && field) {
       width: 100%;
       height: 100%;
       display: block;
-      object-fit: contain;
-      filter: saturate(1.02);
+      margin: 0;
+      padding: 0;
+      border: 0 !important;
+      outline: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      object-fit: fill;
+      filter: saturate(1.04);
       user-select: none;
       -webkit-user-drag: none;
     }
 
     .pincon-reveal-tile.is-visible {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1) rotate(var(--tile-rotation));
+      transform: translate(-50%, -50%) scale(1.08) rotate(var(--tile-rotation));
     }
 
     .pincon-reveal-tile.is-leaving {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(.54) rotate(calc(var(--tile-rotation) + 18deg));
+      transform: translate(-50%, -50%) scale(.5) rotate(calc(var(--tile-rotation) + 18deg));
     }
 
     .pincon-boot__sr-only {
@@ -83,7 +98,7 @@ if (boot && field) {
     @media (prefers-reduced-motion: reduce) {
       .pincon-reveal-tile {
         transition: opacity 120ms linear !important;
-        transform: translate(-50%, -50%) scale(1) !important;
+        transform: translate(-50%, -50%) scale(1.08) !important;
       }
     }
   `;
@@ -108,24 +123,25 @@ if (boot && field) {
   function seedTiles() {
     const width = Math.max(window.innerWidth, 280);
     const height = Math.max(window.innerHeight, 420);
-    const spacing = Math.max(58, Math.min(92, Math.round(Math.min(width, height) / 6)));
-    const cols = Math.ceil(width / spacing) + 2;
-    const rows = Math.ceil(height / spacing) + 2;
-    const tileSize = Math.round(spacing * 1.8);
+    const shortSide = Math.min(width, height);
+    const spacing = Math.max(92, Math.min(152, Math.round(shortSide / 3.4)));
+    const cols = Math.ceil(width / spacing) + 5;
+    const rows = Math.ceil(height / spacing) + 5;
+    const tileSize = Math.round(spacing * 3.15);
     const fragment = document.createDocumentFragment();
 
-    for (let row = -1; row < rows - 1; row += 1) {
-      for (let col = -1; col < cols - 1; col += 1) {
+    for (let row = -2; row < rows - 2; row += 1) {
+      for (let col = -2; col < cols - 2; col += 1) {
         const tile = document.createElement("span");
         tile.className = "pincon-reveal-tile";
         tile.setAttribute("aria-hidden", "true");
 
-        const jitterX = (Math.random() - 0.5) * spacing * 0.42;
-        const jitterY = (Math.random() - 0.5) * spacing * 0.42;
+        const jitterX = (Math.random() - 0.5) * spacing * 0.22;
+        const jitterY = (Math.random() - 0.5) * spacing * 0.22;
         tile.style.left = `${col * spacing + spacing / 2 + jitterX}px`;
         tile.style.top = `${row * spacing + spacing / 2 + jitterY}px`;
-        tile.style.setProperty("--tile-size", `${tileSize * (0.88 + Math.random() * 0.28)}px`);
-        tile.style.setProperty("--tile-rotation", `${-24 + Math.random() * 48}deg`);
+        tile.style.setProperty("--tile-size", `${tileSize * (0.94 + Math.random() * 0.2)}px`);
+        tile.style.setProperty("--tile-rotation", `${-30 + Math.random() * 60}deg`);
 
         const image = document.createElement("img");
         image.src = "./assets/loader-drop.svg";
@@ -146,11 +162,11 @@ if (boot && field) {
     }
 
     const appearanceOrder = shuffle(tiles);
-    const step = Math.max(2, Math.min(11, Math.floor(460 / Math.max(appearanceOrder.length, 1))));
+    const step = Math.max(2, Math.min(10, Math.floor(420 / Math.max(appearanceOrder.length, 1))));
     appearanceOrder.forEach((tile, index) => {
-      window.setTimeout(() => tile.classList.add("is-visible"), index * step + Math.random() * 34);
+      window.setTimeout(() => tile.classList.add("is-visible"), index * step + Math.random() * 28);
     });
-    fillCompleteAt = performance.now() + appearanceOrder.length * step + 260;
+    fillCompleteAt = performance.now() + appearanceOrder.length * step + 300;
   }
 
   function completeReveal() {
@@ -173,15 +189,15 @@ if (boot && field) {
     }
 
     const exitOrder = shuffle(tiles);
-    const step = Math.max(3, Math.min(16, Math.floor(720 / Math.max(exitOrder.length, 1))));
+    const step = Math.max(3, Math.min(15, Math.floor(680 / Math.max(exitOrder.length, 1))));
     exitOrder.forEach((tile, index) => {
       window.setTimeout(() => {
         tile.classList.remove("is-visible");
         tile.classList.add("is-leaving");
-      }, index * step + Math.random() * 44);
+      }, index * step + Math.random() * 40);
     });
 
-    window.setTimeout(completeReveal, exitOrder.length * step + 440);
+    window.setTimeout(completeReveal, exitOrder.length * step + 420);
   }
 
   function finish() {

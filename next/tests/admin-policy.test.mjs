@@ -12,10 +12,11 @@ test("admin entry requires an authenticated manager role", () => {
   assert.equal(canEnterAdmin({ signedIn: true, role: NEXT_ROLE.SYSTEM_ADMIN }), true);
 });
 
-test("admin state remains read only while the Next write gate is locked", () => {
+test("admin state reports write-enabled mode for an authenticated manager", () => {
   const state = adminAccessState({ signedIn: true, role: NEXT_ROLE.MANAGER });
   assert.equal(state.allowed, true);
-  assert.equal(state.mode, "read-only-beta");
+  assert.equal(state.mode, "write-enabled");
+  assert.match(state.message, /서버 권한/);
 });
 
 test("signed out and viewer states do not reveal the dashboard", () => {

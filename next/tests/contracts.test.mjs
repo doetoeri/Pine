@@ -59,7 +59,7 @@ test("notification feed combines canonical class sources and excludes hidden rec
   assert.equal(feed[1].route, "today");
 });
 
-test("legacy manager mapping never opens the Beta write gate", () => {
+test("authenticated class manager receives audited write permissions", () => {
   const access = resolveNextAccess({
     user: { uid: "user-1", displayName: "Manager" },
     classKey: "1-8",
@@ -69,11 +69,14 @@ test("legacy manager mapping never opens the Beta write gate", () => {
   assert.equal(access.role, NEXT_ROLE.MANAGER);
   assert.equal(access.signedIn, true);
   assert.equal(access.canRead, true);
-  assert.equal(access.canWrite, false);
-  assert.equal(canAccess(access, PERMISSION.ARCHIVE), false);
+  assert.equal(access.canWrite, true);
+  assert.equal(canAccess(access, PERMISSION.CREATE), true);
+  assert.equal(canAccess(access, PERMISSION.UPDATE), true);
+  assert.equal(canAccess(access, PERMISSION.ARCHIVE), true);
+  assert.equal(canAccess(access, PERMISSION.RESTORE), true);
 });
 
-test("legacy school authority maps to system-admin but remains write-gated", () => {
+test("school authority maps to system-admin and can manage roles while signed in", () => {
   const access = resolveNextAccess({
     user: { uid: "admin-1", displayName: "School admin" },
     classKey: "1-8",
@@ -83,8 +86,26 @@ test("legacy school authority maps to system-admin but remains write-gated", () 
   assert.equal(access.role, NEXT_ROLE.SYSTEM_ADMIN);
   assert.equal(access.configuredPermissions.includes(PERMISSION.MANAGE_ROLES), true);
   assert.equal(access.canRead, true);
-  assert.equal(access.canWrite, false);
-  assert.equal(canAccess(access, PERMISSION.MANAGE_ROLES), false);
+  assert.equal(access.canWrite, true);
+  assert.equal(canAccess(access, PERMISSION.MANAGE_ROLES), true);
+});
+
+test("write permission never opens for signed-out or viewer access", () => {
+  const signedOut = resolveNextAccess({
+    user: null,
+    classKey: "1-8",
+    legacyRole: { enabled: true, level: "class", classKeys: ["1-8"] },
+  });
+  const viewer = resolveNextAccess({
+    user: { uid: "viewer-1" },
+    classKey: "1-8",
+    legacyRole: { enabled: true, level: "viewer", classKeys: ["1-8"] },
+  });
+  assert.equal(signedOut.canWrite, false);
+  assert.equal(canAccess(signedOut, PERMISSION.UPDATE), false);
+  assert.equal(viewer.role, NEXT_ROLE.VIEWER);
+  assert.equal(viewer.canWrite, false);
+  assert.equal(canAccess(viewer, PERMISSION.UPDATE), false);
 });
 
 test("audit and recovery contracts retain actor and time metadata", () => {
