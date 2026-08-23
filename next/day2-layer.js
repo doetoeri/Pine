@@ -7,6 +7,7 @@ let profile = snapshot.profile || readClassProfile();
 const notificationStore = new NotificationStore(profile?.classKey || "");
 let feed = [];
 let reconcileQueued = false;
+let lastDialogTrigger = null;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -66,6 +67,31 @@ function focusMainAfterRouteChange() {
     main.setAttribute("tabindex", "-1");
     main.focus({ preventScroll: true });
   });
+}
+
+function restoreDialogTriggerFocus() {
+  const trigger = lastDialogTrigger;
+  if (!trigger?.isConnected) return;
+  requestAnimationFrame(() => trigger.focus?.({ preventScroll: true }));
+}
+
+function anyDialogOpen() {
+  return ["#searchDialog", "#notificationDialog"].some((selector) => {
+    const dialog = document.querySelector(selector);
+    return Boolean(dialog?.open || dialog?.hasAttribute?.("open"));
+  });
+}
+
+function enhanceDialogSemantics() {
+  const searchDialog = document.querySelector("#searchDialog");
+  if (searchDialog && !searchDialog.hasAttribute("aria-label")) {
+    searchDialog.setAttribute("aria-label", "통합 검색");
+  }
+
+  const notificationDialog = document.querySelector("#notificationDialog");
+  if (notificationDialog && !notificationDialog.hasAttribute("aria-label")) {
+    notificationDialog.setAttribute("aria-label", "알림함");
+  }
 }
 
 function enhanceNotificationButton() {
@@ -157,6 +183,7 @@ function reconcile() {
   notificationStore.setClassKey(profile?.classKey || "");
   feed = buildNotificationFeed(snapshot.data || {});
   enhanceNavigationSemantics();
+  enhanceDialogSemantics();
   enhanceNotificationButton();
   injectTrustCard();
 }
@@ -178,12 +205,27 @@ const observer = new MutationObserver(() => queueReconcile());
 const appRoot = document.querySelector("#app");
 if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !anyDialogOpen()) return;
+  window.setTimeout(restoreDialogTriggerFocus, 0);
+});
+
 document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) focusMainAfterRouteChange();
 
-  const openButton = eventHost(event, (node) => node.id === "openNotifications");
-  if (openButton) {
+  const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
+  const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
+  if (searchOpenButton || notificationOpenButton) {
+    lastDialogTrigger = searchOpenButton || notificationOpenButton;
+  }
+
+  const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
+  if (closeButton) {
+    window.setTimeout(restoreDialogTriggerFocus, 0);
+  }
+
+  if (notificationOpenButton) {
     window.setTimeout(renderInbox, 0);
     return;
   }
