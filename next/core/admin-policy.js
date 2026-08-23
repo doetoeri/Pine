@@ -28,10 +28,10 @@ export function adminAccessState(access) {
   return Object.freeze({
     allowed: true,
     mode: NEXT_WRITE_GATE.enabled ? "write-enabled" : "read-only-beta",
-    title: NEXT_WRITE_GATE.enabled ? "관리 모드" : "읽기 전용 관리 Beta",
+    title: NEXT_WRITE_GATE.enabled ? "관리 모드" : "제한된 관리 Beta",
     message: NEXT_WRITE_GATE.enabled
       ? "서버 권한 규칙에 따라 허용된 작업만 수행할 수 있습니다."
-      : "공용 쓰기는 아직 잠겨 있습니다. 현황·감사 기록·복구 대상을 검토할 수 있습니다.",
+      : "일반 공용 콘텐츠 쓰기·삭제·복원은 잠겨 있습니다. 기존 운영 규칙이 허용하는 계정은 학급 브랜드 문구만 별도로 수정할 수 있습니다.",
   });
 }
 
