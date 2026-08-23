@@ -93,6 +93,12 @@
   line-height: 1.55;
 }
 
+.trust-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
 @media (max-width: 599px) {
   .notification-list {
     min-width: 0;
@@ -102,6 +108,10 @@
 
   .notification-summary {
     align-items: flex-start;
+  }
+
+  .trust-actions md-filled-tonal-button {
+    width: 100%;
   }
 }
 
