@@ -89,19 +89,23 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/pincon-next-http.log 2>&1 &
           echo $! > /tmp/pincon-next-http.pid
           sleep 1
+      - name: Boot preflight · Chromium
+        run: npx playwright test next/tests/boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Boot preflight · WebKit
+        run: npx playwright test next/tests/boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Responsive smoke · Chromium
-        run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line
+        run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Responsive smoke · WebKit
-        run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line
+        run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Brand tagline · Chromium
-        run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=chromium --reporter=line
+        run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Brand tagline · WebKit
-        run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=webkit --reporter=line
+        run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Route latency · Chromium
-        run: npx playwright test next/tests/performance.spec.mjs --browser=chromium --reporter=line
+        run: npx playwright test next/tests/performance.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Route latency · WebKit
-        run: npx playwright test next/tests/performance.spec.mjs --browser=webkit --reporter=line
+        run: npx playwright test next/tests/performance.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Accessibility smoke · Chromium
-        run: npx playwright test next/tests/accessibility.spec.mjs --browser=chromium --reporter=line
+        run: npx playwright test next/tests/accessibility.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Accessibility smoke · WebKit
-        run: npx playwright test next/tests/accessibility.spec.mjs --browser=webkit --reporter=line
+        run: npx playwright test next/tests/accessibility.spec.mjs --browser=webkit --reporter=line --max-failures=1
