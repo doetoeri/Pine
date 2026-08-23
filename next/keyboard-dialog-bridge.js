@@ -3,6 +3,10 @@
 // paths stop the key event before it reaches the custom-element host, so listening on
 // the host is not sufficient. Capture on the Shadow Root itself, before the inner
 // control receives the event, and forward one composed host click.
+//
+// This bridge also makes a freshly rendered #mainContent programmatically focusable in
+// the MutationObserver microtask. app.js moves focus in requestAnimationFrame after a
+// route change, so the main landmark must already have tabindex=-1 before that frame.
 
 const MATERIAL_BUTTON_SELECTOR = [
   "md-icon-button",
@@ -63,7 +67,15 @@ function prepareHost(host) {
   }
 }
 
+function prepareMainFocus(scope = document) {
+  const main = scope instanceof HTMLElement && scope.id === "mainContent"
+    ? scope
+    : scope.querySelector?.("#mainContent");
+  if (main && !main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1");
+}
+
 function prepareScope(scope = document) {
+  prepareMainFocus(scope);
   if (scope instanceof HTMLElement && scope.matches?.(MATERIAL_BUTTON_SELECTOR)) {
     prepareHost(scope);
   }
