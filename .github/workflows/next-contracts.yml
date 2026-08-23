@@ -105,6 +105,10 @@ jobs:
         run: npx playwright test next/tests/orientation.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Phone landscape · WebKit
         run: npx playwright test next/tests/orientation.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Notification single render · Chromium
+        run: npx playwright test next/tests/notification-render.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Notification single render · WebKit
+        run: npx playwright test next/tests/notification-render.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Brand tagline · Chromium
         run: npx playwright test next/tests/brand-tagline.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Brand tagline · WebKit
