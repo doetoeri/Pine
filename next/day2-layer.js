@@ -43,11 +43,16 @@ function eventHost(event, predicate) {
   return event.composedPath?.().find((node) => node instanceof HTMLElement && predicate(node)) || null;
 }
 
+function setCurrentState(control, current) {
+  const focusable = control.shadowRoot?.querySelector("button, a") || control;
+  if (current) focusable.setAttribute("aria-current", "page");
+  else focusable.removeAttribute("aria-current");
+}
+
 function enhanceNavigationSemantics() {
   document.querySelectorAll("[data-route]").forEach((control) => {
     const current = control.getAttribute("data-aria-current") === "page" || control.getAttribute("aria-current") === "page";
-    if (current) control.setAttribute("aria-current", "page");
-    else control.removeAttribute("aria-current");
+    setCurrentState(control, current);
   });
 
   const main = document.querySelector("#mainContent");
