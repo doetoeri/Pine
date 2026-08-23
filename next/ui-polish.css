@@ -1,0 +1,195 @@
+/* PinCon Next UI stabilization layer.
+   Keeps brand/navigation polish separate from data and routing logic. */
+
+#pinconBoot {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  background: var(--md-sys-color-background, #f7f9f1);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 140ms ease, visibility 140ms step-end;
+}
+
+#pinconBoot .pincon-boot__inner {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  color: #191d16;
+}
+
+#pinconBoot img {
+  width: 72px;
+  height: 72px;
+  display: block;
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(44, 92, 21, 0.10);
+}
+
+#pinconBoot span {
+  font: 700 16px/1.2 "Noto Sans KR", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+body:not(.pincon-boot-done) #app {
+  visibility: hidden;
+}
+
+body.pincon-boot-done #pinconBoot {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Data refreshes must not replay entrance animation. Route changes opt in explicitly. */
+.view-enter {
+  animation: none !important;
+}
+
+body.pincon-route-transition .view-enter {
+  animation: pincon-route-enter 160ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+@keyframes pincon-route-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.brand__mark,
+.rail__brand,
+.splash__mark {
+  background: transparent !important;
+  color: inherit !important;
+  overflow: visible;
+}
+
+.pincon-brand-logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.brand__mark {
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(45, 170, 0, 0.10);
+}
+
+.splash__mark {
+  overflow: hidden;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 24px rgba(45, 170, 0, 0.10);
+}
+
+.rail__wordmark {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .shell {
+    grid-template-columns: 88px minmax(0, 1fr) !important;
+  }
+
+  .rail {
+    gap: 18px !important;
+    padding: 16px 10px !important;
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 92%, #fff) !important;
+    border-right: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 72%, transparent) !important;
+  }
+
+  .rail__brand {
+    flex: 0 0 auto;
+    width: 52px !important;
+    height: 52px !important;
+    margin: 0 auto !important;
+    border-radius: 17px !important;
+    overflow: hidden;
+    box-shadow: 0 5px 18px rgba(45, 170, 0, 0.10);
+  }
+
+  .rail__nav {
+    gap: 6px !important;
+  }
+
+  .rail__nav md-text-button,
+  .rail__nav md-filled-tonal-button {
+    width: 100%;
+    min-width: 0;
+    --md-text-button-container-height: 54px;
+    --md-filled-tonal-button-container-height: 54px;
+  }
+}
+
+@media (min-width: 840px) {
+  .shell {
+    grid-template-columns: 220px minmax(0, 1fr) !important;
+  }
+
+  .rail {
+    align-items: stretch !important;
+    gap: 22px !important;
+    padding: 18px 14px !important;
+  }
+
+  .rail__brand {
+    width: 100% !important;
+    height: 58px !important;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 5px 8px;
+    border-radius: 18px !important;
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  .rail__brand .pincon-brand-logo {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    box-shadow: 0 5px 18px rgba(45, 170, 0, 0.10);
+  }
+
+  .rail__wordmark {
+    display: inline-block;
+    min-width: 0;
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .rail__nav md-text-button,
+  .rail__nav md-filled-tonal-button {
+    --md-text-button-container-height: 52px;
+    --md-filled-tonal-button-container-height: 52px;
+  }
+
+  .topbar .brand {
+    display: none;
+  }
+
+  .topbar {
+    min-height: 64px;
+    justify-content: flex-end;
+    padding-inline: 22px;
+  }
+
+  .topbar__actions {
+    margin-left: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pinconBoot,
+  body.pincon-route-transition .view-enter {
+    transition: none !important;
+    animation: none !important;
+  }
+}
