@@ -13,6 +13,8 @@ const MATERIAL_BUTTON_SELECTOR = [
   "md-elevated-button",
 ].join(",");
 
+const boundRoots = new WeakSet();
+
 function activationKey(event) {
   return ["Enter", " "].includes(event.key)
     && !event.repeat
@@ -34,12 +36,7 @@ function bindShadowCapture(host) {
   if (!(host instanceof HTMLElement) || host.hasAttribute("disabled")) return false;
   const root = host.shadowRoot;
   if (!root) return false;
-  if (root.__pinconKeyboardHost === host) return true;
-
-  Object.defineProperty(root, "__pinconKeyboardHost", {
-    value: host,
-    configurable: true,
-  });
+  if (boundRoots.has(root)) return true;
 
   root.addEventListener("keydown", (event) => {
     if (!activationKey(event) || host.hasAttribute("disabled")) return;
@@ -47,7 +44,7 @@ function bindShadowCapture(host) {
     event.stopImmediatePropagation();
     dispatchHostActivation(host);
   }, true);
-
+  boundRoots.add(root);
   return true;
 }
 
@@ -57,6 +54,8 @@ function prepareHost(host) {
   bindShadowCapture(host);
   queueMicrotask(() => bindShadowCapture(host));
   requestAnimationFrame(() => bindShadowCapture(host));
+  window.setTimeout(() => bindShadowCapture(host), 0);
+  window.setTimeout(() => bindShadowCapture(host), 50);
 
   const updateComplete = host.updateComplete;
   if (updateComplete && typeof updateComplete.then === "function") {
