@@ -10,6 +10,13 @@ const VIEWPORTS = [
   { width: 1024, height: 768 },
 ];
 
+async function ariaCurrent(locator) {
+  return locator.evaluate((control) => {
+    const focusable = control.shadowRoot?.querySelector("button, a") || control;
+    return focusable.getAttribute("aria-current");
+  });
+}
+
 for (const viewport of VIEWPORTS) {
   test(`responsive shell ${viewport.width}x${viewport.height}`, async ({ browser }) => {
     const context = await browser.newContext({ viewport });
@@ -37,7 +44,7 @@ for (const viewport of VIEWPORTS) {
     await timetableButton.click();
     await expect(page.locator("#timetable-title")).toBeVisible();
     await expect(page.locator("#today-title")).toHaveCount(0);
-    await expect(timetableButton).toHaveAttribute("aria-current", "page");
+    await expect.poll(() => ariaCurrent(timetableButton)).toBe("page");
 
     await page.locator("#openSearch").click();
     await expect(page.locator("#searchDialog")).toBeVisible();
