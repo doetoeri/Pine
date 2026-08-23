@@ -24,6 +24,7 @@ function applyBrandTagline(root = document) {
     topBadge.textContent = tagline;
     topBadge.title = tagline;
     topBadge.hidden = !tagline;
+    topBadge.setAttribute("data-brand-ready", "true");
   }
 
   const railTagline = root.querySelector?.(".rail__tagline") || document.querySelector(".rail__tagline");
@@ -31,6 +32,7 @@ function applyBrandTagline(root = document) {
     railTagline.textContent = tagline;
     railTagline.title = tagline;
     railTagline.hidden = !tagline;
+    railTagline.setAttribute("data-brand-ready", "true");
   }
 }
 
