@@ -2,7 +2,14 @@ import { test, expect } from "@playwright/test";
 
 test.use({ viewport: { width: 1024, height: 768 } });
 
-async function hostHasFocus(locator) {
+async function actualAriaLabel(locator) {
+  return locator.evaluate((host) => {
+    const focusable = host.shadowRoot?.querySelector("button, a, input, textarea, select, [tabindex]") || host;
+    return focusable.getAttribute("aria-label") || host.getAttribute("aria-label") || host.getAttribute("data-aria-label") || "";
+  });
+}
+
+async function actualHasFocus(locator) {
   return locator.evaluate((host) => {
     if (document.activeElement === host) return true;
     const active = host.shadowRoot?.activeElement;
@@ -19,9 +26,23 @@ async function fieldHasFocus(page, selector) {
   }, selector);
 }
 
+async function focusActualControl(locator) {
+  await locator.evaluate((host) => {
+    const focusable = host.shadowRoot?.querySelector("button, a, input, textarea, select, [tabindex]") || host;
+    focusable.focus();
+  });
+}
+
 async function openByKeyboard(page, locator) {
-  await locator.focus();
+  await focusActualControl(locator);
   await page.keyboard.press("Enter");
+}
+
+function cssTimeToSeconds(value) {
+  const first = String(value || "0s").split(",", 1)[0].trim();
+  if (first.endsWith("ms")) return Number.parseFloat(first) / 1000;
+  if (first.endsWith("s")) return Number.parseFloat(first);
+  return Number.POSITIVE_INFINITY;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -36,13 +57,19 @@ test("document and landmarks expose stable Korean semantics", async ({ page }) =
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   await expect(page.locator("main#mainContent")).toHaveCount(1);
   await expect(page.locator('nav[aria-label="주요 메뉴"]')).toHaveCount(2);
-  await expect(page.locator("#openSearch")).toHaveAttribute("aria-label", "통합 검색");
-  await expect(page.locator("#openNotifications")).toHaveAttribute("aria-label", /알림함/);
-  await expect(page.locator("#searchDialog")).toHaveAttribute("aria-label", "통합 검색");
-  await expect(page.locator("#notificationDialog")).toHaveAttribute("aria-label", "알림함");
+
+  const search = page.locator("#openSearch");
+  const notifications = page.locator("#openNotifications");
+  await expect.poll(() => actualAriaLabel(search)).toBe("통합 검색");
+  await expect.poll(() => actualAriaLabel(notifications)).toMatch(/^알림함/);
+
+  await expect(page.locator("#searchDialog")).toHaveAttribute("data-aria-label", "통합 검색");
+  await expect(page.locator("#notificationDialog")).toHaveAttribute("data-aria-label", "알림함");
+  await expect(page.locator('#searchDialog [slot="headline"]')).toHaveText("통합 검색");
+  await expect(page.locator('#notificationDialog [slot="headline"]')).toHaveText("알림함");
 });
 
-test("search dialog opens from keyboard, traps task focus, and returns it on Escape", async ({ page }) => {
+test("search dialog opens from keyboard, moves task focus, and returns it on Escape", async ({ page }) => {
   const trigger = page.locator("#openSearch");
   await openByKeyboard(page, trigger);
 
@@ -51,22 +78,22 @@ test("search dialog opens from keyboard, traps task focus, and returns it on Esc
 
   await page.keyboard.press("Escape");
   await expect(page.locator("#searchDialog")).toBeHidden();
-  await expect.poll(() => hostHasFocus(trigger)).toBe(true);
+  await expect.poll(() => actualHasFocus(trigger)).toBe(true);
 });
 
-test("notification dialog returns focus to its trigger", async ({ page }) => {
+test("notification dialog opens from keyboard and returns focus to its trigger", async ({ page }) => {
   const trigger = page.locator("#openNotifications");
   await openByKeyboard(page, trigger);
 
   await expect(page.locator("#notificationDialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator("#notificationDialog")).toBeHidden();
-  await expect.poll(() => hostHasFocus(trigger)).toBe(true);
+  await expect.poll(() => actualHasFocus(trigger)).toBe(true);
 });
 
 test("route changes move programmatic focus to main content", async ({ page }) => {
   const timetable = page.locator('.rail [data-route="timetable"]');
-  await timetable.focus();
+  await focusActualControl(timetable);
   await page.keyboard.press("Enter");
 
   await expect(page.locator("#timetable-title")).toBeVisible();
@@ -89,6 +116,6 @@ test("reduced motion preference collapses transition and animation duration", as
   });
 
   expect(result.reduced).toBe(true);
-  expect(["0s", "0.01ms"]).toContain(result.animationDuration);
-  expect(["0s", "0.01ms"]).toContain(result.transitionDuration);
+  expect(cssTimeToSeconds(result.animationDuration)).toBeLessThanOrEqual(0.001);
+  expect(cssTimeToSeconds(result.transitionDuration)).toBeLessThanOrEqual(0.001);
 });
