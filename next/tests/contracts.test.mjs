@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+import {
+  BRAND_TAGLINE_MAX_LENGTH,
+  DEFAULT_BRAND_TAGLINE,
+  brandTaglineFor,
+  normalizeBrandTagline,
+  validateBrandTagline,
+} from "../core/brand-settings.js";
 import { buildNotificationFeed } from "../core/notification-store.js";
 import {
   NEXT_ROLE,
@@ -11,6 +18,27 @@ import {
   restorePatch,
   softDeletePatch,
 } from "../core/trust-model.js";
+
+test("brand tagline defaults to NEXT and follows classSettings", () => {
+  assert.equal(brandTaglineFor({}, "1-8"), DEFAULT_BRAND_TAGLINE);
+  assert.equal(brandTaglineFor({
+    classSettings: [
+      { id: "1-7", classKey: "1-7", brandTagline: "다른 반" },
+      { id: "1-8", classKey: "1-8", brandTagline: "  우리 반   허브  " },
+    ],
+  }, "1-8"), "우리 반 허브");
+});
+
+test("brand tagline may be hidden and rejects overlong text", () => {
+  assert.equal(brandTaglineFor({
+    classSettings: [{ id: "1-8", classKey: "1-8", brandTagline: "" }],
+  }, "1-8"), "");
+  assert.equal(normalizeBrandTagline("  A   B  "), "A B");
+  assert.throws(
+    () => validateBrandTagline("가".repeat(BRAND_TAGLINE_MAX_LENGTH + 1)),
+    /이하/,
+  );
+});
 
 test("notification feed combines canonical class sources and excludes hidden records", () => {
   const feed = buildNotificationFeed({
