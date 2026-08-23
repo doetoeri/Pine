@@ -1,12 +1,12 @@
 // PinCon Next keyboard activation normalizer for Material buttons.
-// Material Web renders its real native control inside an open Shadow Root. Some browser
-// paths stop the key event before it reaches the custom-element host, so listening on
-// the host is not sufficient. Capture on the Shadow Root itself, before the inner
-// control receives the event, and forward one composed host click.
+// Material Web renders its real native control inside an open Shadow Root. Keyboard
+// events can cross that boundary differently by browser, while an older Day 2 fallback
+// also listens at document capture. This module loads before Day 2, so it owns keyboard
+// activation first and forwards exactly one composed host click. Shadow-root capture
+// remains a fallback for keyboard events that are not composed across the boundary.
 //
-// This bridge also makes a freshly rendered #mainContent programmatically focusable in
-// the MutationObserver microtask. app.js moves focus in requestAnimationFrame after a
-// route change, so the main landmark must already have tabindex=-1 before that frame.
+// It also makes a freshly rendered #mainContent programmatically focusable in the
+// MutationObserver microtask, before app.js tries to focus it in requestAnimationFrame.
 
 const MATERIAL_BUTTON_SELECTOR = [
   "md-icon-button",
@@ -35,6 +35,24 @@ function dispatchHostActivation(host) {
     view: window,
   }));
 }
+
+function materialHostFromEvent(event) {
+  return event.composedPath?.().find((node) => (
+    node instanceof HTMLElement && node.matches?.(MATERIAL_BUTTON_SELECTOR)
+  )) || null;
+}
+
+// Registered before day2-layer.js. For composed keyboard events this is the single
+// authoritative path, preventing the older bridge and Material internals from racing.
+document.addEventListener("keydown", (event) => {
+  if (!activationKey(event)) return;
+  const host = materialHostFromEvent(event);
+  if (!host || host.hasAttribute("disabled")) return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  dispatchHostActivation(host);
+}, true);
 
 function bindShadowCapture(host) {
   if (!(host instanceof HTMLElement) || host.hasAttribute("disabled")) return false;
