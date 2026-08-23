@@ -36,13 +36,13 @@ export const NEXT_WRITE_GATE = Object.freeze({
 
 function classScopeIncludes(role, classKey) {
   if (!role?.enabled) return false;
-  if (role.level === "school") return true;
+  if (["school", "admin", "system", "school-admin"].includes(role.level)) return true;
   return Array.isArray(role.classKeys) && role.classKeys.includes(classKey);
 }
 
 export function mapLegacyRole(role, classKey = "") {
   if (!classScopeIncludes(role, classKey)) return NEXT_ROLE.VIEWER;
-  if (["admin", "system", "school-admin"].includes(role.level)) return NEXT_ROLE.SYSTEM_ADMIN;
+  if (["school", "admin", "system", "school-admin"].includes(role.level)) return NEXT_ROLE.SYSTEM_ADMIN;
   if (["president", "grade", "class", "manager"].includes(role.level)) return NEXT_ROLE.MANAGER;
   if (["editor", "staff"].includes(role.level)) return NEXT_ROLE.EDITOR;
   return NEXT_ROLE.VIEWER;
