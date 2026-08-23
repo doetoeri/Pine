@@ -45,6 +45,20 @@ test("legacy manager mapping never opens the Beta write gate", () => {
   assert.equal(canAccess(access, PERMISSION.ARCHIVE), false);
 });
 
+test("legacy school authority maps to system-admin but remains write-gated", () => {
+  const access = resolveNextAccess({
+    user: { uid: "admin-1", displayName: "School admin" },
+    classKey: "1-8",
+    legacyRole: { enabled: true, level: "school" },
+  });
+
+  assert.equal(access.role, NEXT_ROLE.SYSTEM_ADMIN);
+  assert.equal(access.configuredPermissions.includes(PERMISSION.MANAGE_ROLES), true);
+  assert.equal(access.canRead, true);
+  assert.equal(access.canWrite, false);
+  assert.equal(canAccess(access, PERMISSION.MANAGE_ROLES), false);
+});
+
 test("audit and recovery contracts retain actor and time metadata", () => {
   const deleted = softDeletePatch({ actorUid: "u1", now: 1000 });
   const restored = restorePatch({ actorUid: "u2", now: 2000 });
