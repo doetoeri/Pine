@@ -14,6 +14,8 @@ on:
       - "index.html"
       - "manifest.webmanifest"
       - "REBUILD.md"
+      - "automation/deploy-firestore-rules.mjs"
+      - ".github/workflows/firebase-rules.yml"
       - ".github/workflows/next-contracts.yml"
 
 permissions:
@@ -39,16 +41,19 @@ jobs:
             next/admin/admin.js \
             next/admin/brand-settings.js \
             next/admin/content-editor.js \
+            next/admin/today-open-write-ui.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
             next/core/notification-store.js \
-            next/core/trust-model.js
+            next/core/today-open-write.js \
+            next/core/trust-model.js \
+            automation/deploy-firestore-rules.mjs
           do
             node --input-type=module --check < "$file"
           done
       - name: Run Next contract tests
-        run: node --test next/tests/contracts.test.mjs next/tests/admin-policy.test.mjs
+        run: node --test next/tests/contracts.test.mjs next/tests/admin-policy.test.mjs next/tests/today-open-write.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest
