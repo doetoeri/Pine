@@ -39,3 +39,8 @@ jobs:
           NEIS_API_KEY: ${{ secrets.NEIS_API_KEY }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           FIREBASE_STORAGE_BUCKET: studio-2803086992-2d4cf.firebasestorage.app
+      - name: Verify and refresh priority class directly from Comcigan
+        run: node automation/comcigan-priority-sync.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          PINCON_COMCIGAN_PRIORITY_CLASSES: "1-8"
