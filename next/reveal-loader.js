@@ -1,0 +1,192 @@
+const boot = document.querySelector("#pinconBoot");
+const field = document.querySelector("#pinconBootField");
+
+if (boot && field) {
+  document.body.classList.add("pincon-reveal-loader");
+
+  const style = document.createElement("style");
+  style.dataset.pinconRevealLoader = "true";
+  style.textContent = `
+    body.pincon-reveal-loader:not(.pincon-boot-done) #app {
+      visibility: visible !important;
+    }
+
+    #pinconBoot {
+      overflow: hidden !important;
+      background: var(--md-sys-color-background, #f7f9f1) !important;
+      transition: background-color 120ms linear, opacity 160ms cubic-bezier(.2,0,0,1) !important;
+    }
+
+    #pinconBoot.pincon-boot__revealing {
+      background: transparent !important;
+    }
+
+    #pinconBootField {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .pincon-reveal-tile {
+      position: absolute;
+      width: var(--tile-size);
+      height: calc(var(--tile-size) * 1.287);
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.72) rotate(var(--tile-rotation));
+      transform-origin: center;
+      transition:
+        opacity 180ms cubic-bezier(.2,0,0,1),
+        transform 360ms cubic-bezier(.2,.8,.2,1);
+      will-change: opacity, transform;
+    }
+
+    .pincon-reveal-tile > img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      filter: saturate(1.02);
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .pincon-reveal-tile.is-visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(var(--tile-rotation));
+    }
+
+    .pincon-reveal-tile.is-leaving {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(.54) rotate(calc(var(--tile-rotation) + 18deg));
+    }
+
+    .pincon-boot__sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pincon-reveal-tile {
+        transition: opacity 120ms linear !important;
+        transform: translate(-50%, -50%) scale(1) !important;
+      }
+    }
+  `;
+  document.head.append(style);
+
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const tiles = [];
+  let finishRequested = false;
+  let finishStarted = false;
+  let fillCompleteAt = performance.now();
+
+  function shuffle(items) {
+    const copy = [...items];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function seedTiles() {
+    const width = Math.max(window.innerWidth, 280);
+    const height = Math.max(window.innerHeight, 420);
+    const spacing = Math.max(58, Math.min(92, Math.round(Math.min(width, height) / 6)));
+    const cols = Math.ceil(width / spacing) + 2;
+    const rows = Math.ceil(height / spacing) + 2;
+    const tileSize = Math.round(spacing * 1.8);
+    const fragment = document.createDocumentFragment();
+
+    for (let row = -1; row < rows - 1; row += 1) {
+      for (let col = -1; col < cols - 1; col += 1) {
+        const tile = document.createElement("span");
+        tile.className = "pincon-reveal-tile";
+        tile.setAttribute("aria-hidden", "true");
+
+        const jitterX = (Math.random() - 0.5) * spacing * 0.42;
+        const jitterY = (Math.random() - 0.5) * spacing * 0.42;
+        tile.style.left = `${col * spacing + spacing / 2 + jitterX}px`;
+        tile.style.top = `${row * spacing + spacing / 2 + jitterY}px`;
+        tile.style.setProperty("--tile-size", `${tileSize * (0.88 + Math.random() * 0.28)}px`);
+        tile.style.setProperty("--tile-rotation", `${-24 + Math.random() * 48}deg`);
+
+        const image = document.createElement("img");
+        image.src = "./assets/loader-drop.svg";
+        image.alt = "";
+        image.decoding = "async";
+        tile.append(image);
+        tiles.push(tile);
+        fragment.append(tile);
+      }
+    }
+
+    field.replaceChildren(fragment);
+
+    if (reducedMotion) {
+      tiles.forEach((tile) => tile.classList.add("is-visible"));
+      fillCompleteAt = performance.now() + 120;
+      return;
+    }
+
+    const appearanceOrder = shuffle(tiles);
+    const step = Math.max(2, Math.min(11, Math.floor(460 / Math.max(appearanceOrder.length, 1))));
+    appearanceOrder.forEach((tile, index) => {
+      window.setTimeout(() => tile.classList.add("is-visible"), index * step + Math.random() * 34);
+    });
+    fillCompleteAt = performance.now() + appearanceOrder.length * step + 260;
+  }
+
+  function completeReveal() {
+    document.body.classList.add("pincon-boot-done");
+    document.body.classList.remove("pincon-reveal-loader");
+    boot.remove();
+    style.remove();
+    globalThis.PinConRevealLoader = null;
+  }
+
+  function beginReveal() {
+    if (finishStarted) return;
+    finishStarted = true;
+    boot.classList.add("pincon-boot__revealing");
+
+    if (reducedMotion) {
+      tiles.forEach((tile) => tile.classList.add("is-leaving"));
+      window.setTimeout(completeReveal, 150);
+      return;
+    }
+
+    const exitOrder = shuffle(tiles);
+    const step = Math.max(3, Math.min(16, Math.floor(720 / Math.max(exitOrder.length, 1))));
+    exitOrder.forEach((tile, index) => {
+      window.setTimeout(() => {
+        tile.classList.remove("is-visible");
+        tile.classList.add("is-leaving");
+      }, index * step + Math.random() * 44);
+    });
+
+    window.setTimeout(completeReveal, exitOrder.length * step + 440);
+  }
+
+  function finish() {
+    if (finishRequested) return;
+    finishRequested = true;
+    const wait = Math.max(0, fillCompleteAt - performance.now());
+    window.setTimeout(beginReveal, wait);
+  }
+
+  seedTiles();
+  globalThis.PinConRevealLoader = Object.freeze({ finish });
+
+  window.setTimeout(finish, 5200);
+}
