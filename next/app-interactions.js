@@ -11,6 +11,7 @@ const notificationStore = new NotificationStore(profile?.classKey || "");
 let feed = [];
 let reconcileQueued = false;
 let lastDialogTrigger = null;
+let lastDialogTriggerId = "";
 let bootReleased = false;
 let routeTimer = 0;
 let lastFocusedRoute = "";
@@ -262,10 +263,24 @@ function focusMainAfterRouteChange() {
   });
 }
 
+function rememberDialogTrigger(trigger) {
+  lastDialogTrigger = trigger || null;
+  lastDialogTriggerId = trigger?.id || "";
+}
+
+function currentDialogTrigger() {
+  if (lastDialogTriggerId) {
+    const current = document.getElementById(lastDialogTriggerId);
+    if (current) return current;
+  }
+  return lastDialogTrigger?.isConnected ? lastDialogTrigger : null;
+}
+
 function restoreDialogTriggerFocus() {
-  const trigger = lastDialogTrigger;
-  if (!trigger?.isConnected) return;
-  requestAnimationFrame(() => focusActual(trigger));
+  requestAnimationFrame(() => {
+    const trigger = currentDialogTrigger();
+    if (trigger) focusActual(trigger);
+  });
 }
 
 function anyDialogOpen() {
@@ -391,7 +406,7 @@ document.addEventListener("click", (event) => {
 
   const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
   if (!notificationOpenButton) return;
-  lastDialogTrigger = notificationOpenButton;
+  rememberDialogTrigger(notificationOpenButton);
   event.preventDefault();
   event.stopPropagation();
   renderInbox();
@@ -408,7 +423,7 @@ document.addEventListener("click", (event) => {
     return;
   }
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
-  if (searchOpenButton) lastDialogTrigger = searchOpenButton;
+  if (searchOpenButton) rememberDialogTrigger(searchOpenButton);
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
   if (closeButton) window.setTimeout(restoreDialogTriggerFocus, 0);
 
