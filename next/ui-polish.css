@@ -145,7 +145,7 @@ body.pincon-route-transition .view-enter {
     align-items: center !important;
     gap: 14px !important;
     padding: 12px 8px !important;
-    overflow: auto;
+    overflow: visible;
     border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 66%, transparent) !important;
     border-radius: 28px;
     background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 88%, transparent) !important;
@@ -176,7 +176,6 @@ body.pincon-route-transition .view-enter {
   .rail__nav md-filled-tonal-button {
     width: 100%;
     min-width: 0;
-    font-size: 0;
     --md-text-button-container-height: 52px;
     --md-filled-tonal-button-container-height: 52px;
   }
@@ -205,6 +204,54 @@ body.pincon-route-transition .view-enter {
 
   .content-wrap {
     padding-inline: 24px;
+  }
+}
+
+/* Tablet: collapse label geometry as well as label text so the Material button
+   cannot push its icon outside the narrow floating rail. */
+@media (min-width: 600px) and (max-width: 839px) {
+  .app-frame {
+    margin-left: 116px;
+  }
+
+  .rail {
+    left: 16px;
+    width: 80px;
+    padding-inline: 11px !important;
+  }
+
+  .rail__nav {
+    place-items: center;
+  }
+
+  .rail__nav md-text-button,
+  .rail__nav md-filled-tonal-button {
+    display: block;
+    width: 56px;
+    height: 52px;
+    margin: 0 auto;
+    overflow: visible;
+    font-size: 0;
+    line-height: 0;
+    --md-text-button-container-height: 52px;
+    --md-text-button-leading-space: 0px;
+    --md-text-button-trailing-space: 0px;
+    --md-text-button-with-leading-icon-leading-space: 0px;
+    --md-text-button-with-leading-icon-trailing-space: 0px;
+    --md-text-button-icon-spacing: 0px;
+    --md-filled-tonal-button-container-height: 52px;
+    --md-filled-tonal-button-leading-space: 0px;
+    --md-filled-tonal-button-trailing-space: 0px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 0px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 0px;
+    --md-filled-tonal-button-icon-spacing: 0px;
+  }
+
+  .rail__nav md-icon {
+    display: block;
+    margin: 0 !important;
+    font-size: 24px;
+    line-height: 1;
   }
 }
 
