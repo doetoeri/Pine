@@ -13,9 +13,9 @@ let reconcileQueued = false;
 let lastDialogTrigger = null;
 let bootReleased = false;
 let routeTimer = 0;
+let lastFocusedRoute = "";
+let routeFocusRestoreQueued = false;
 
-// Material Web keyboard activation normalizer. Register before the rest of the
-// interaction enhancements so Enter/Space produces one composed host click.
 const MATERIAL_BUTTON_SELECTOR = [
   "md-icon-button",
   "md-text-button",
@@ -220,6 +220,23 @@ function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
 }
 
+function activeElementIsLost() {
+  const active = document.activeElement;
+  return !active || active === document.body || active === document.documentElement || active === appRoot;
+}
+
+function queueRouteFocusRestore() {
+  if (!lastFocusedRoute || routeFocusRestoreQueued) return;
+  routeFocusRestoreQueued = true;
+  requestAnimationFrame(() => {
+    routeFocusRestoreQueued = false;
+    if (!lastFocusedRoute || !activeElementIsLost() || anyDialogOpen()) return;
+    const selector = `[data-route="${CSS.escape(lastFocusedRoute)}"]`;
+    const control = document.querySelector(`.rail ${selector}`) || document.querySelector(`.bottom-nav ${selector}`);
+    if (control) focusActual(control);
+  });
+}
+
 function setCurrentState(control, current) {
   const focusable = actualFocusable(control);
   if (!focusable) return;
@@ -335,6 +352,7 @@ function reconcile() {
   enhanceNotificationButton();
   injectTrustCard();
   releaseBootWhenStable();
+  queueRouteFocusRestore();
 }
 
 function queueReconcile() {
@@ -349,17 +367,27 @@ gateway.addEventListener("change", (event) => {
 });
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const enhancementObserver = new MutationObserver(() => queueReconcile());
+const enhancementObserver = new MutationObserver(() => {
+  queueReconcile();
+  queueRouteFocusRestore();
+});
 if (appRoot) enhancementObserver.observe(appRoot, { childList: true, subtree: true });
+
+document.addEventListener("focusin", (event) => {
+  const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
+  lastFocusedRoute = routeControl?.getAttribute("data-route") || "";
+}, true);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) window.setTimeout(restoreDialogTriggerFocus, 0);
 });
 
-// Capture route intent before app.js renders, so only real route changes animate.
 document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
-  if (routeControl) animateRouteOnce();
+  if (routeControl) {
+    lastFocusedRoute = "";
+    animateRouteOnce();
+  }
 
   const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
   if (!notificationOpenButton) return;
@@ -408,7 +436,6 @@ prepareReducedMotionLoader();
 queueReconcile();
 await gateway.start();
 
-// Never strand the user behind the boot surface if a third-party dependency fails.
 window.setTimeout(() => {
   if (!bootReleased) {
     bootReleased = true;
