@@ -1,0 +1,319 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function allowedClassKeys() {
+      return [
+        '1-1', '1-2', '1-3', '1-4', '1-5', '1-6', '1-7', '1-8', '1-9', '1-10',
+        '2-1', '2-2', '2-3', '2-4', '2-5', '2-6', '2-7', '2-8', '2-9', '2-10',
+        '3-1', '3-2', '3-3', '3-4', '3-5', '3-6', '3-7', '3-8', '3-9', '3-10'
+      ];
+    }
+
+    function validClassKey(classKey) {
+      return classKey is string && classKey in allowedClassKeys();
+    }
+
+    function rolePath(schoolId, userId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/roles/$(userId);
+    }
+
+    function myRolePath(schoolId) {
+      return rolePath(schoolId, request.auth.uid);
+    }
+
+    function hasActiveRole(schoolId) {
+      return signedIn()
+        && exists(myRolePath(schoolId))
+        && get(myRolePath(schoolId)).data.enabled == true;
+    }
+
+    function myRoleLevel(schoolId) {
+      return get(myRolePath(schoolId)).data.level;
+    }
+
+    function schoolAdmin(schoolId) {
+      return hasActiveRole(schoolId)
+        && myRoleLevel(schoolId) in ['school', 'admin', 'system', 'school-admin'];
+    }
+
+    function hasClassScope(schoolId, classKey) {
+      return validClassKey(classKey)
+        && hasActiveRole(schoolId)
+        && (
+          schoolAdmin(schoolId)
+          || (
+            get(myRolePath(schoolId)).data.get('classKeys', []) is list
+            && classKey in get(myRolePath(schoolId)).data.get('classKeys', [])
+          )
+        );
+    }
+
+    function editorOrHigher(schoolId, classKey) {
+      return hasClassScope(schoolId, classKey)
+        && myRoleLevel(schoolId) in [
+          'editor', 'staff',
+          'class', 'grade', 'president', 'manager',
+          'school', 'admin', 'system', 'school-admin'
+        ];
+    }
+
+    function managerOrHigher(schoolId, classKey) {
+      return hasClassScope(schoolId, classKey)
+        && myRoleLevel(schoolId) in [
+          'class', 'grade', 'president', 'manager',
+          'school', 'admin', 'system', 'school-admin'
+        ];
+    }
+
+    function validRoleDocument() {
+      return request.resource.data.enabled is bool
+        && request.resource.data.level in [
+          'viewer', 'editor', 'staff',
+          'class', 'grade', 'president', 'manager',
+          'school', 'admin', 'system', 'school-admin'
+        ]
+        && request.resource.data.get('classKeys', []) is list
+        && request.resource.data.get('classKeys', []).size() <= 30
+        && request.resource.data.get('classKeys', []).hasOnly(allowedClassKeys());
+    }
+
+    function auditPath(schoolId, auditId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/nextAuditEvents/$(auditId);
+    }
+
+    function validAuditId(auditId) {
+      return auditId is string && auditId.size() > 0 && auditId.size() <= 120;
+    }
+
+    function auditMatches(schoolId, auditId, action, recordId, classKey, occurredAtMs) {
+      return validAuditId(auditId)
+        && !exists(auditPath(schoolId, auditId))
+        && existsAfter(auditPath(schoolId, auditId))
+        && getAfter(auditPath(schoolId, auditId)).data.action == action
+        && getAfter(auditPath(schoolId, auditId)).data.actorUid == request.auth.uid
+        && getAfter(auditPath(schoolId, auditId)).data.classKey == classKey
+        && getAfter(auditPath(schoolId, auditId)).data.collection == 'nextResources'
+        && getAfter(auditPath(schoolId, auditId)).data.recordId == recordId
+        && getAfter(auditPath(schoolId, auditId)).data.occurredAtMs == occurredAtMs;
+    }
+
+    function validResource(schoolId) {
+      return request.resource.data.schoolId == schoolId
+        && validClassKey(request.resource.data.classKey)
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 160
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 5000
+        && request.resource.data.status in ['active', 'draft', 'pending', 'approved', 'archived']
+        && request.resource.data.deleted is bool
+        && (
+          (request.resource.data.deleted == true && request.resource.data.status == 'archived')
+          || (
+            request.resource.data.deleted == false
+            && request.resource.data.status in ['active', 'draft', 'pending', 'approved']
+          )
+        )
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs >= request.resource.data.createdAtMs
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedBy is string
+        && validAuditId(request.resource.data.auditId)
+        && (
+          request.resource.data.get('approvedBy', null) == null
+          || request.resource.data.get('approvedBy', null) is string
+        )
+        && (
+          request.resource.data.get('approvedAtMs', null) == null
+          || request.resource.data.get('approvedAtMs', null) is int
+        );
+    }
+
+    function immutableResourceIdentity() {
+      return request.resource.data.schoolId == resource.data.schoolId
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.createdAtMs == resource.data.createdAtMs
+        && request.resource.data.createdBy == resource.data.createdBy;
+    }
+
+    function freshMutation() {
+      return request.resource.data.updatedAtMs >= resource.data.updatedAtMs
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.auditId != resource.data.auditId;
+    }
+
+    function isArchiveTransition() {
+      return resource.data.deleted == false
+        && request.resource.data.deleted == true
+        && request.resource.data.status == 'archived';
+    }
+
+    function isRestoreTransition() {
+      return resource.data.deleted == true
+        && request.resource.data.deleted == false
+        && request.resource.data.status in ['active', 'draft', 'pending'];
+    }
+
+    function isApprovalTransition() {
+      return resource.data.deleted == false
+        && request.resource.data.deleted == false
+        && resource.data.status != 'approved'
+        && request.resource.data.status == 'approved';
+    }
+
+    function isRegularUpdate() {
+      return request.resource.data.deleted == resource.data.deleted
+        && !isApprovalTransition()
+        && request.resource.data.status != 'archived'
+        && !(
+          resource.data.status == 'approved'
+          && request.resource.data.status == 'approved'
+          && request.resource.data.diff(resource.data).affectedKeys().hasAny(['title', 'body'])
+        );
+    }
+
+    function validAuditEvent(schoolId) {
+      return request.resource.data.schoolId == schoolId
+        && request.resource.data.action in ['create', 'update', 'archive', 'restore', 'approve']
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.actorRole is string
+        && request.resource.data.actorRole in ['editor', 'manager', 'system-admin']
+        && validClassKey(request.resource.data.classKey)
+        && request.resource.data.collection == 'nextResources'
+        && request.resource.data.recordId is string
+        && request.resource.data.recordId.size() > 0
+        && request.resource.data.recordId.size() <= 160
+        && request.resource.data.occurredAtMs is int
+        && request.resource.data.get('reason', '') is string
+        && request.resource.data.get('reason', '').size() <= 500;
+    }
+
+    function canCreateAudit(schoolId) {
+      return validAuditEvent(schoolId)
+        && (
+          (
+            request.resource.data.action in ['create', 'update']
+            && editorOrHigher(schoolId, request.resource.data.classKey)
+          )
+          || (
+            request.resource.data.action in ['archive', 'restore', 'approve']
+            && managerOrHigher(schoolId, request.resource.data.classKey)
+          )
+        );
+    }
+
+    // Beta sandbox resource. This rules file is intentionally not wired to production firebase.json yet.
+    match /schools/{schoolId}/nextResources/{recordId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && validResource(schoolId)
+        && editorOrHigher(schoolId, request.resource.data.classKey)
+        && request.resource.data.deleted == false
+        && request.resource.data.status in ['active', 'draft', 'pending']
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && auditMatches(
+          schoolId,
+          request.resource.data.auditId,
+          'create',
+          recordId,
+          request.resource.data.classKey,
+          request.resource.data.updatedAtMs
+        );
+
+      allow update: if signedIn()
+        && validResource(schoolId)
+        && immutableResourceIdentity()
+        && freshMutation()
+        && (
+          (
+            isRegularUpdate()
+            && editorOrHigher(schoolId, request.resource.data.classKey)
+            && auditMatches(
+              schoolId,
+              request.resource.data.auditId,
+              'update',
+              recordId,
+              request.resource.data.classKey,
+              request.resource.data.updatedAtMs
+            )
+          )
+          || (
+            isArchiveTransition()
+            && managerOrHigher(schoolId, request.resource.data.classKey)
+            && request.resource.data.get('deletedBy', '') == request.auth.uid
+            && request.resource.data.get('deletedAtMs', 0) == request.resource.data.updatedAtMs
+            && auditMatches(
+              schoolId,
+              request.resource.data.auditId,
+              'archive',
+              recordId,
+              request.resource.data.classKey,
+              request.resource.data.updatedAtMs
+            )
+          )
+          || (
+            isRestoreTransition()
+            && managerOrHigher(schoolId, request.resource.data.classKey)
+            && request.resource.data.get('deletedBy', null) == null
+            && request.resource.data.get('deletedAtMs', null) == null
+            && request.resource.data.get('restoredBy', '') == request.auth.uid
+            && request.resource.data.get('restoredAtMs', 0) == request.resource.data.updatedAtMs
+            && auditMatches(
+              schoolId,
+              request.resource.data.auditId,
+              'restore',
+              recordId,
+              request.resource.data.classKey,
+              request.resource.data.updatedAtMs
+            )
+          )
+          || (
+            isApprovalTransition()
+            && managerOrHigher(schoolId, request.resource.data.classKey)
+            && request.resource.data.get('approvedBy', '') == request.auth.uid
+            && request.resource.data.get('approvedAtMs', 0) == request.resource.data.updatedAtMs
+            && auditMatches(
+              schoolId,
+              request.resource.data.auditId,
+              'approve',
+              recordId,
+              request.resource.data.classKey,
+              request.resource.data.updatedAtMs
+            )
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/nextAuditEvents/{auditId} {
+      allow read: if signedIn()
+        && managerOrHigher(schoolId, resource.data.classKey);
+      allow create: if signedIn()
+        && validAuditId(auditId)
+        && canCreateAudit(schoolId);
+      allow update, delete: if false;
+    }
+
+    // Existing role documents are reused so Next can migrate without inventing a second authority source.
+    match /schools/{schoolId}/roles/{userId} {
+      allow read: if signedIn()
+        && (request.auth.uid == userId || schoolAdmin(schoolId));
+      allow create, update: if schoolAdmin(schoolId)
+        && validRoleDocument();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

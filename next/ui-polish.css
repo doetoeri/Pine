@@ -1,0 +1,663 @@
+/* PinCon Next final UI stabilization.
+   The navigation never hides, truncates, or zero-sizes route labels. */
+
+#pinconBoot {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: grid;
+  place-items: center;
+  background: var(--md-sys-color-background, #f7f9f1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+  transition: opacity 140ms cubic-bezier(0.2, 0, 0, 1), visibility 140ms step-end;
+}
+
+#pinconBoot .pincon-boot__inner {
+  width: min(224px, calc(100vw - 48px));
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  color: var(--md-sys-color-on-background, #191d16);
+}
+
+#pinconBoot img {
+  width: 72px;
+  height: 72px;
+  display: block;
+  border-radius: 20px;
+  box-shadow: 0 8px 28px rgba(44, 92, 21, 0.10);
+}
+
+.pincon-boot__copy {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.pincon-boot__copy strong {
+  font: 700 17px/1.2 "Noto Sans KR", system-ui, sans-serif;
+  letter-spacing: -0.025em;
+}
+
+.pincon-boot__copy span {
+  color: var(--md-sys-color-on-surface-variant, #43483e);
+  font: 500 12px/1.45 "Noto Sans KR", system-ui, sans-serif;
+}
+
+.pincon-boot__progress {
+  width: 168px;
+  --md-linear-progress-track-height: 6px;
+  --md-linear-progress-active-indicator-height: 6px;
+  --md-linear-progress-track-shape: 999px;
+}
+
+body:not(.pincon-boot-done) #app {
+  visibility: hidden;
+}
+
+body.pincon-boot-done #pinconBoot {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.view-enter {
+  animation: none !important;
+}
+
+body.pincon-route-transition .view-enter {
+  animation: pincon-route-enter 160ms cubic-bezier(0.2, 0, 0, 1) !important;
+}
+
+@keyframes pincon-route-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.brand__mark,
+.rail__brand,
+.splash__mark {
+  background: transparent !important;
+  color: inherit !important;
+  overflow: visible;
+}
+
+.pincon-brand-logo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.brand__mark {
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(45, 170, 0, 0.10);
+}
+
+.splash__mark {
+  overflow: hidden;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 24px rgba(45, 170, 0, 0.10);
+}
+
+.rail__wordmark {
+  display: none;
+}
+
+.bottom-nav [data-route],
+.rail__nav [data-route] {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.bottom-nav [data-route] md-icon,
+.rail__nav [data-route] md-icon {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+@media (max-width: 599px) {
+  .bottom-nav {
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    width: min(calc(100vw - 16px), 560px) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px !important;
+    transform: translateX(-50%);
+    padding: 6px !important;
+    border-radius: 30px !important;
+    overflow: visible !important;
+    background: color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 68%, transparent) !important;
+    box-shadow: 0 12px 36px rgba(25, 29, 22, 0.14), 0 2px 10px rgba(25, 29, 22, 0.08);
+    backdrop-filter: blur(24px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.08) !important;
+  }
+
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button {
+    width: 100%;
+    min-width: 0;
+    overflow: visible !important;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    --md-text-button-container-height: 56px;
+    --md-text-button-leading-space: 3px;
+    --md-text-button-trailing-space: 3px;
+    --md-text-button-with-leading-icon-leading-space: 3px;
+    --md-text-button-with-leading-icon-trailing-space: 3px;
+    --md-text-button-icon-spacing: 3px;
+    --md-filled-tonal-button-container-height: 56px;
+    --md-filled-tonal-button-leading-space: 3px;
+    --md-filled-tonal-button-trailing-space: 3px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 3px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 3px;
+    --md-filled-tonal-button-icon-spacing: 3px;
+  }
+
+  .bottom-nav md-icon {
+    font-size: 20px;
+  }
+
+  .content-wrap {
+    padding-bottom: calc(112px + var(--pincon-safe-bottom)) !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .bottom-nav {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px !important;
+  }
+
+  .bottom-nav > [data-route] {
+    grid-column: span 2;
+  }
+
+  .bottom-nav > [data-route]:nth-child(4) {
+    grid-column: 2 / span 2;
+  }
+
+  .bottom-nav > [data-route]:nth-child(5) {
+    grid-column: 4 / span 2;
+  }
+
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button {
+    font-size: 12px;
+    --md-text-button-container-height: 48px;
+    --md-filled-tonal-button-container-height: 48px;
+  }
+
+  .content-wrap {
+    padding-bottom: calc(166px + var(--pincon-safe-bottom)) !important;
+  }
+}
+
+@media (max-width: 239px) {
+  .bottom-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bottom-nav > [data-route],
+  .bottom-nav > [data-route]:nth-child(4),
+  .bottom-nav > [data-route]:nth-child(5) {
+    grid-column: auto;
+  }
+
+  .content-wrap {
+    padding-bottom: calc(224px + var(--pincon-safe-bottom)) !important;
+  }
+}
+
+@media (min-width: 600px) {
+  .shell {
+    display: block !important;
+    min-height: 100dvh;
+  }
+
+  .app-frame {
+    margin-left: 154px;
+    min-height: 100dvh;
+  }
+
+  .rail {
+    position: fixed !important;
+    z-index: 40;
+    top: 50% !important;
+    left: 16px;
+    width: 120px;
+    height: auto !important;
+    max-height: calc(100dvh - 28px);
+    transform: translateY(-50%);
+    display: flex !important;
+    flex-direction: column;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 11px 10px !important;
+    overflow: visible !important;
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 66%, transparent) !important;
+    border-radius: 30px;
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 88%, transparent) !important;
+    box-shadow: 0 16px 44px rgba(25, 29, 22, 0.13), 0 3px 12px rgba(25, 29, 22, 0.07);
+    backdrop-filter: blur(24px) saturate(1.08);
+    -webkit-backdrop-filter: blur(24px) saturate(1.08);
+  }
+
+  .rail__brand {
+    flex: 0 0 auto;
+    width: 48px !important;
+    height: 48px !important;
+    margin: 0 auto 2px !important;
+    border-radius: 16px !important;
+    overflow: hidden;
+    box-shadow: 0 5px 18px rgba(45, 170, 0, 0.12);
+  }
+
+  .rail__nav {
+    display: grid;
+    place-items: stretch;
+    gap: 4px !important;
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  .rail__nav md-text-button,
+  .rail__nav md-filled-tonal-button {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 52px;
+    overflow: visible !important;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    --md-text-button-container-height: 52px;
+    --md-text-button-leading-space: 8px;
+    --md-text-button-trailing-space: 8px;
+    --md-text-button-with-leading-icon-leading-space: 8px;
+    --md-text-button-with-leading-icon-trailing-space: 8px;
+    --md-text-button-icon-spacing: 6px;
+    --md-filled-tonal-button-container-height: 52px;
+    --md-filled-tonal-button-leading-space: 8px;
+    --md-filled-tonal-button-trailing-space: 8px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 8px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 8px;
+    --md-filled-tonal-button-icon-spacing: 6px;
+  }
+
+  .rail__nav md-icon {
+    font-size: 21px;
+  }
+
+  .rail > .beta-badge {
+    width: auto;
+    min-height: 23px;
+    margin-top: 2px !important;
+    padding: 2px 7px;
+    font-size: 9px;
+    background: var(--md-sys-color-secondary-container);
+  }
+
+  .bottom-nav {
+    display: none !important;
+  }
+
+  .topbar {
+    padding-inline: 18px 22px;
+  }
+
+  .content-wrap {
+    padding-inline: 24px;
+  }
+}
+
+@media (min-width: 840px) {
+  .app-frame {
+    margin-left: 274px;
+  }
+
+  .rail {
+    top: 18px !important;
+    bottom: 18px;
+    left: 18px;
+    width: 232px;
+    max-height: none;
+    height: auto !important;
+    transform: none;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 13px !important;
+    border-radius: 32px;
+  }
+
+  .rail__brand {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 58px;
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 11px;
+    padding: 5px 7px;
+    border-radius: 18px !important;
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  .rail__brand .pincon-brand-logo {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 15px;
+    box-shadow: 0 5px 18px rgba(45, 170, 0, 0.11);
+  }
+
+  .rail__wordmark {
+    display: flex !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 5px 7px;
+    overflow: visible;
+    white-space: normal;
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .rail__wordmark > span:first-child {
+    flex: 0 0 auto;
+  }
+
+  .rail__tagline {
+    flex: 0 1 auto;
+    max-width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    word-break: keep-all;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 9px;
+    font-weight: 750;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+
+  .rail__nav {
+    gap: 5px !important;
+  }
+
+  .rail__nav md-text-button,
+  .rail__nav md-filled-tonal-button {
+    font-size: 14px;
+    text-align: left;
+    --md-text-button-container-height: 52px;
+    --md-text-button-leading-space: 14px;
+    --md-text-button-trailing-space: 12px;
+    --md-text-button-with-leading-icon-leading-space: 14px;
+    --md-text-button-with-leading-icon-trailing-space: 12px;
+    --md-text-button-icon-spacing: 10px;
+    --md-filled-tonal-button-container-height: 52px;
+    --md-filled-tonal-button-leading-space: 14px;
+    --md-filled-tonal-button-trailing-space: 12px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 14px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 12px;
+    --md-filled-tonal-button-icon-spacing: 10px;
+  }
+
+  .rail > .beta-badge {
+    min-height: 25px;
+    margin-top: auto !important;
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .topbar .brand {
+    display: none;
+  }
+
+  .topbar {
+    min-height: 64px;
+    justify-content: flex-end;
+    padding-inline: 22px;
+  }
+
+  .topbar__actions {
+    margin-left: 0 !important;
+  }
+
+  .content-wrap {
+    padding: 34px 34px 64px !important;
+  }
+}
+
+@media (min-width: 600px) and (max-height: 560px) {
+  .rail {
+    display: none !important;
+  }
+
+  .app-frame {
+    margin-left: 0 !important;
+    min-height: 100dvh;
+  }
+
+  .bottom-nav {
+    display: grid !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    width: min(calc(100vw - 24px), 720px) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    transform: translateX(-50%);
+    padding: 6px !important;
+    border-radius: 28px !important;
+    overflow: visible !important;
+    background: color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 68%, transparent) !important;
+    box-shadow: 0 10px 30px rgba(25, 29, 22, 0.14), 0 2px 8px rgba(25, 29, 22, 0.08);
+    backdrop-filter: blur(22px) saturate(1.08) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(1.08) !important;
+  }
+
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button {
+    min-width: 0;
+    width: 100%;
+    overflow: visible !important;
+    font-size: 12px;
+    font-weight: 700;
+    --md-text-button-container-height: 50px;
+    --md-text-button-leading-space: 7px;
+    --md-text-button-trailing-space: 7px;
+    --md-text-button-with-leading-icon-leading-space: 7px;
+    --md-text-button-with-leading-icon-trailing-space: 7px;
+    --md-text-button-icon-spacing: 5px;
+    --md-filled-tonal-button-container-height: 50px;
+    --md-filled-tonal-button-leading-space: 7px;
+    --md-filled-tonal-button-trailing-space: 7px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 7px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 7px;
+    --md-filled-tonal-button-icon-spacing: 5px;
+  }
+
+  .bottom-nav md-icon {
+    font-size: 20px;
+  }
+
+  .topbar .brand {
+    display: flex !important;
+  }
+
+  .topbar {
+    min-height: 62px !important;
+    justify-content: flex-start !important;
+    padding: 7px 16px !important;
+  }
+
+  .topbar__actions {
+    margin-left: auto !important;
+  }
+
+  .content-wrap {
+    padding: 18px 18px calc(94px + var(--pincon-safe-bottom)) !important;
+  }
+}
+
+.brand__title .beta-badge {
+  display: inline-flex;
+  max-width: min(48vw, 220px);
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  vertical-align: middle;
+}
+
+.brand__title .beta-badge:not([data-brand-ready="true"]),
+.rail__tagline:not([data-brand-ready="true"]) {
+  visibility: hidden;
+}
+
+.brand__title .beta-badge[hidden],
+.rail__tagline[hidden] {
+  display: none !important;
+}
+
+/* Notification and trust enhancement styles live in this final UI layer. */
+.notification-trigger-wrap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.notification-badge {
+  position: absolute;
+  z-index: 2;
+  top: 2px;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--md-sys-color-error);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--md-sys-color-background);
+}
+
+.notification-badge[hidden] {
+  display: none;
+}
+
+.notification-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.notification-summary__text {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+}
+
+.notification-list {
+  min-width: min(560px, 82vw);
+  max-height: min(62vh, 620px);
+  overflow: auto;
+}
+
+.notification-list md-list-item[data-read="false"] {
+  --md-list-item-label-text-weight: 700;
+  background: var(--md-sys-color-secondary-container);
+}
+
+.notification-list md-list-item {
+  border-radius: 16px;
+  margin: 3px 0;
+}
+
+.notification-unread-dot {
+  width: 9px;
+  height: 9px;
+  display: block;
+  border-radius: 50%;
+  background: var(--md-sys-color-primary);
+}
+
+.trust-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.trust-line {
+  display: grid;
+  grid-template-columns: minmax(92px, auto) 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.trust-line:last-child {
+  border-bottom: 0;
+}
+
+.trust-line strong {
+  font-size: 12px;
+}
+
+.trust-line span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.trust-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 599px) {
+  .notification-list {
+    min-width: 0;
+    width: 100%;
+    max-height: 58vh;
+  }
+
+  .notification-summary {
+    align-items: flex-start;
+  }
+
+  .trust-actions md-filled-tonal-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #pinconBoot,
+  body.pincon-route-transition .view-enter {
+    transition: none !important;
+    animation: none !important;
+  }
+}
