@@ -1,4 +1,4 @@
-const CLASSIC_RETURN_VERSION = "20260823-smooth2";
+const CLASSIC_RETURN_VERSION = "20260823-smooth3";
 let userOpenedOps = new URL(location.href).searchParams.get("class-ops") === "1";
 let scheduled = false;
 let closing = false;
@@ -209,7 +209,9 @@ function repair() {
     }
     prepareOpsShell();
     syncOpsHeader();
-  } else if (!document.body.classList.contains("pincon-classic-home")) {
+  } else {
+    /* The class-ops data runtime may mark itself open after a refresh. Keep that
+       state invisible and clear its URL flags without observing class changes. */
     markHome();
   }
 }
