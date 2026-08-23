@@ -92,6 +92,10 @@ jobs:
         run: npx playwright test next/tests/boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Boot preflight · WebKit
         run: npx playwright test next/tests/boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Material loading · Chromium
+        run: npx playwright test next/tests/loading.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Material loading · WebKit
+        run: npx playwright test next/tests/loading.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Admin boot · Chromium
         run: npx playwright test next/tests/admin-boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Admin boot · WebKit
@@ -100,6 +104,10 @@ jobs:
         run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Responsive smoke · WebKit
         run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Navigation integrity · Chromium
+        run: npx playwright test next/tests/navigation-integrity.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Navigation integrity · WebKit
+        run: npx playwright test next/tests/navigation-integrity.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Phone landscape · Chromium
         run: npx playwright test next/tests/orientation.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Phone landscape · WebKit

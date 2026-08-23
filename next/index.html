@@ -15,12 +15,17 @@
     <link rel="stylesheet" href="./app-interactions.css" />
     <link rel="stylesheet" href="./ui-polish.css" />
     <script src="../firebase-config.js"></script>
+    <script type="module" src="../material-official-loader.js"></script>
   </head>
   <body>
-    <div id="pinconBoot" aria-hidden="true">
+    <div id="pinconBoot" role="status" aria-live="polite" aria-label="PinCon 불러오는 중">
       <div class="pincon-boot__inner">
         <img src="./assets/pincon-icon.svg" alt="" />
-        <span>PinCon</span>
+        <div class="pincon-boot__copy">
+          <strong>PinCon</strong>
+          <span>학급 허브를 준비하는 중</span>
+        </div>
+        <md-linear-progress class="pincon-boot__progress" four-color indeterminate aria-label="PinCon 불러오는 중"></md-linear-progress>
       </div>
     </div>
     <div id="app" aria-live="polite"></div>
