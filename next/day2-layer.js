@@ -9,6 +9,15 @@ let feed = [];
 let reconcileQueued = false;
 let lastDialogTrigger = null;
 
+const MATERIAL_BUTTON_SELECTOR = [
+  "md-icon-button",
+  "md-text-button",
+  "md-filled-button",
+  "md-filled-tonal-button",
+  "md-outlined-button",
+  "md-elevated-button",
+].join(",");
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -59,66 +68,8 @@ function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
 }
 
-function dispatchHostClick(control) {
-  control.dispatchEvent(new MouseEvent("click", {
-    bubbles: true,
-    cancelable: true,
-    composed: true,
-    view: window,
-  }));
-}
-
-function activateKeyboardControl(control) {
-  if (control.id === "openSearch") {
-    lastDialogTrigger = control;
-    const dialog = document.querySelector("#searchDialog");
-    dialog?.show?.();
-    requestAnimationFrame(() => focusActual(document.querySelector("#searchField")));
-    return;
-  }
-
-  if (control.id === "openNotifications") {
-    lastDialogTrigger = control;
-    renderInbox();
-    document.querySelector("#notificationDialog")?.show?.();
-    return;
-  }
-
-  dispatchHostClick(control);
-}
-
-function bridgeKeyboardActivation(control) {
-  if (!control || control.hasAttribute("disabled")) return;
-  const target = actualFocusable(control);
-  if (!target || target.__pinconKeyboardBridge === control) return;
-
-  Object.defineProperty(target, "__pinconKeyboardBridge", {
-    value: control,
-    configurable: true,
-  });
-
-  target.addEventListener("keydown", (event) => {
-    if (!["Enter", " "].includes(event.key)) return;
-    if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
-    if (control.hasAttribute("disabled")) return;
-
-    // Material Web의 Shadow DOM 키보드 동작이 컴포넌트 종류마다 조금씩 다르다.
-    // Dialog 트리거는 공식 dialog API로, 나머지 버튼은 동일한 host click 계약으로 정규화한다.
-    event.preventDefault();
-    event.stopPropagation();
-    activateKeyboardControl(control);
-  });
-}
-
-function enhanceMaterialKeyboardControls() {
-  document.querySelectorAll([
-    "md-icon-button",
-    "md-text-button",
-    "md-filled-button",
-    "md-filled-tonal-button",
-    "md-outlined-button",
-    "md-elevated-button",
-  ].join(",")).forEach(bridgeKeyboardActivation);
+function materialButtonFromKeyboardEvent(event) {
+  return eventHost(event, (node) => node.matches?.(MATERIAL_BUTTON_SELECTOR));
 }
 
 function setCurrentState(control, current) {
@@ -261,7 +212,6 @@ function reconcile() {
   enhanceNavigationSemantics();
   enhanceDialogSemantics();
   enhanceNotificationButton();
-  enhanceMaterialKeyboardControls();
   injectTrustCard();
 }
 
@@ -282,11 +232,26 @@ const observer = new MutationObserver(() => queueReconcile());
 const appRoot = document.querySelector("#app");
 if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
+// Material Web은 Shadow DOM 내부 native control을 사용하고, PinCon Next는 데이터 갱신 때
+// App Shell 일부를 다시 렌더링한다. 개별 내부 노드에 keydown listener를 붙이면 렌더 직후
+// 교체된 노드에 listener가 아직 없는 짧은 race가 생긴다. 문서 capture 단계에서 현재
+// composedPath의 Material 버튼 host를 찾아 host.click()으로 정규화하면 새 DOM도 즉시 안전하다.
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) {
     window.setTimeout(restoreDialogTriggerFocus, 0);
+    return;
   }
-});
+
+  if (!["Enter", " "].includes(event.key)) return;
+  if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+
+  const control = materialButtonFromKeyboardEvent(event);
+  if (!control || control.hasAttribute("disabled")) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  control.click();
+}, true);
 
 document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
@@ -313,7 +278,6 @@ document.addEventListener("click", (event) => {
     notificationStore.markAllRead(feed);
     renderInbox();
     enhanceNotificationButton();
-    enhanceMaterialKeyboardControls();
     return;
   }
 
@@ -324,7 +288,6 @@ document.addEventListener("click", (event) => {
   notificationStore.markRead(id);
   renderInbox();
   enhanceNotificationButton();
-  enhanceMaterialKeyboardControls();
   document.querySelector("#notificationDialog")?.close?.();
   const destination = route ? document.querySelector(`[data-route="${route}"]`) : null;
   destination?.click?.();
