@@ -50,6 +50,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Install Firebase emulator test runtime
         run: npm install --no-save firebase @firebase/rules-unit-testing firebase-tools
       - name: Run privilege bypass suite
