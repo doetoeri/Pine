@@ -170,12 +170,14 @@ body.pincon-route-transition .view-enter {
     display: grid;
     gap: 5px !important;
     width: 100%;
+    overflow: visible;
   }
 
   .rail__nav md-text-button,
   .rail__nav md-filled-tonal-button {
     width: 100%;
     min-width: 0;
+    overflow: visible;
     --md-text-button-container-height: 52px;
     --md-filled-tonal-button-container-height: 52px;
   }
@@ -207,43 +209,46 @@ body.pincon-route-transition .view-enter {
   }
 }
 
-/* Tablet: collapse label geometry as well as label text so the Material button
-   cannot push its icon outside the narrow floating rail. */
+/* Tablet: give Material's internal button geometry enough room to keep both
+   the icon and the selected tonal state centered without clipping. */
 @media (min-width: 600px) and (max-width: 839px) {
   .app-frame {
-    margin-left: 116px;
+    margin-left: 132px;
   }
 
   .rail {
     left: 16px;
-    width: 80px;
+    width: 96px;
     padding-inline: 11px !important;
+    border-radius: 32px;
   }
 
   .rail__nav {
     place-items: center;
+    overflow: visible;
   }
 
   .rail__nav md-text-button,
   .rail__nav md-filled-tonal-button {
     display: block;
-    width: 56px;
-    height: 52px;
+    width: 72px;
+    min-width: 72px;
+    height: 54px;
     margin: 0 auto;
     overflow: visible;
     font-size: 0;
     line-height: 0;
-    --md-text-button-container-height: 52px;
-    --md-text-button-leading-space: 0px;
-    --md-text-button-trailing-space: 0px;
-    --md-text-button-with-leading-icon-leading-space: 0px;
-    --md-text-button-with-leading-icon-trailing-space: 0px;
+    --md-text-button-container-height: 54px;
+    --md-text-button-leading-space: 12px;
+    --md-text-button-trailing-space: 12px;
+    --md-text-button-with-leading-icon-leading-space: 12px;
+    --md-text-button-with-leading-icon-trailing-space: 12px;
     --md-text-button-icon-spacing: 0px;
-    --md-filled-tonal-button-container-height: 52px;
-    --md-filled-tonal-button-leading-space: 0px;
-    --md-filled-tonal-button-trailing-space: 0px;
-    --md-filled-tonal-button-with-leading-icon-leading-space: 0px;
-    --md-filled-tonal-button-with-leading-icon-trailing-space: 0px;
+    --md-filled-tonal-button-container-height: 54px;
+    --md-filled-tonal-button-leading-space: 12px;
+    --md-filled-tonal-button-trailing-space: 12px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 12px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 12px;
     --md-filled-tonal-button-icon-spacing: 0px;
   }
 
