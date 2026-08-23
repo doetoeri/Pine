@@ -30,6 +30,7 @@ jobs:
           for file in \
             next/app.js \
             next/day2-layer.js \
+            next/keyboard-dialog-bridge.js \
             next/admin/admin.js \
             next/core/admin-policy.js \
             next/core/data-gateway.js \
