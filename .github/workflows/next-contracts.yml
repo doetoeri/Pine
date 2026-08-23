@@ -5,10 +5,14 @@ on:
     branches: [rebuild]
     paths:
       - "next/**"
+      - "index.html"
+      - "manifest.webmanifest"
       - ".github/workflows/next-contracts.yml"
   pull_request:
     paths:
       - "next/**"
+      - "index.html"
+      - "manifest.webmanifest"
       - "REBUILD.md"
       - ".github/workflows/next-contracts.yml"
 
@@ -30,6 +34,7 @@ jobs:
           for file in \
             next/app.js \
             next/app-interactions.js \
+            next/reveal-loader.js \
             next/admin/admin.js \
             next/admin/brand-settings.js \
             next/core/admin-policy.js \
@@ -91,10 +96,14 @@ jobs:
         run: npx playwright test next/tests/boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Boot preflight · WebKit
         run: npx playwright test next/tests/boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
-      - name: Material loading · Chromium
+      - name: Reveal loading · Chromium
         run: npx playwright test next/tests/loading.spec.mjs --browser=chromium --reporter=line --max-failures=1
-      - name: Material loading · WebKit
+      - name: Reveal loading · WebKit
         run: npx playwright test next/tests/loading.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Root entry · Chromium
+        run: npx playwright test next/tests/root-entry.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Root entry · WebKit
+        run: npx playwright test next/tests/root-entry.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Admin boot · Chromium
         run: npx playwright test next/tests/admin-boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Admin boot · WebKit
