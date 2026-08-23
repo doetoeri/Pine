@@ -68,8 +68,31 @@ function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
 }
 
-function materialButtonFromKeyboardEvent(event) {
-  return eventHost(event, (node) => node.matches?.(MATERIAL_BUTTON_SELECTOR));
+function bridgeKeyboardHost(control) {
+  if (!control || control.__pinconHostKeyboardBridge) return;
+  Object.defineProperty(control, "__pinconHostKeyboardBridge", {
+    value: true,
+    configurable: true,
+  });
+
+  control.addEventListener("keydown", (event) => {
+    if (!["Enter", " "].includes(event.key)) return;
+    if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (control.hasAttribute("disabled")) return;
+
+    // Material의 내부 native button이 브라우저별로 host click까지 전달하는 시점이 다르다.
+    // 렌더마다 살아남는 custom-element host에서 키 입력을 포인터 click 계약으로 정규화한다.
+    event.preventDefault();
+    event.stopPropagation();
+    control.click();
+  }, true);
+}
+
+function installKeyboardBridges(scope = document) {
+  const controls = [];
+  if (scope instanceof HTMLElement && scope.matches?.(MATERIAL_BUTTON_SELECTOR)) controls.push(scope);
+  scope.querySelectorAll?.(MATERIAL_BUTTON_SELECTOR).forEach((control) => controls.push(control));
+  controls.forEach(bridgeKeyboardHost);
 }
 
 function setCurrentState(control, current) {
@@ -177,6 +200,7 @@ function renderInbox() {
   const target = document.querySelector("#notificationContent");
   if (!target) return;
   target.innerHTML = inboxMarkup();
+  installKeyboardBridges(target);
 }
 
 function trustMarkup() {
@@ -209,6 +233,7 @@ function reconcile() {
   profile = snapshot.profile || readClassProfile();
   notificationStore.setClassKey(profile?.classKey || "");
   feed = buildNotificationFeed(snapshot.data || {});
+  installKeyboardBridges();
   enhanceNavigationSemantics();
   enhanceDialogSemantics();
   enhanceNotificationButton();
@@ -228,30 +253,24 @@ gateway.addEventListener("change", (event) => {
 
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const observer = new MutationObserver(() => queueReconcile());
+const observer = new MutationObserver((records) => {
+  // MutationObserver는 렌더 직후 같은 task의 microtask 단계에서 실행된다. 새 Material host에는
+  // rAF를 기다리지 않고 즉시 키보드 bridge를 붙여, 첫 Tab/Enter도 놓치지 않는다.
+  for (const record of records) {
+    record.addedNodes.forEach((node) => {
+      if (node instanceof HTMLElement) installKeyboardBridges(node);
+    });
+  }
+  queueReconcile();
+});
 const appRoot = document.querySelector("#app");
 if (appRoot) observer.observe(appRoot, { childList: true, subtree: true });
 
-// Material Web은 Shadow DOM 내부 native control을 사용하고, PinCon Next는 데이터 갱신 때
-// App Shell 일부를 다시 렌더링한다. 개별 내부 노드에 keydown listener를 붙이면 렌더 직후
-// 교체된 노드에 listener가 아직 없는 짧은 race가 생긴다. 문서 capture 단계에서 현재
-// composedPath의 Material 버튼 host를 찾아 host.click()으로 정규화하면 새 DOM도 즉시 안전하다.
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) {
     window.setTimeout(restoreDialogTriggerFocus, 0);
-    return;
   }
-
-  if (!["Enter", " "].includes(event.key)) return;
-  if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
-
-  const control = materialButtonFromKeyboardEvent(event);
-  if (!control || control.hasAttribute("disabled")) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-  control.click();
-}, true);
+});
 
 document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
@@ -293,5 +312,6 @@ document.addEventListener("click", (event) => {
   destination?.click?.();
 });
 
+installKeyboardBridges();
 queueReconcile();
 await gateway.start();
