@@ -1,10 +1,35 @@
+import { NextDataGateway } from "./core/data-gateway.js";
+import { brandTaglineFor } from "./core/brand-settings.js";
+
 const LOGO_URL = "./assets/pincon-icon.svg";
 const app = document.querySelector("#app");
+const gateway = new NextDataGateway();
+let snapshot = gateway.snapshot();
 let bootReleased = false;
 let routeTimer = 0;
 
 function logoMarkup(extra = "") {
   return `<img class="pincon-brand-logo ${extra}" src="${LOGO_URL}" alt="" decoding="async" />`;
+}
+
+function currentTagline() {
+  return brandTaglineFor(snapshot.data || {}, snapshot.profile?.classKey || "");
+}
+
+function applyBrandTagline(root = document) {
+  const tagline = currentTagline();
+
+  const topBadge = root.querySelector?.(".brand__title .beta-badge") || document.querySelector(".brand__title .beta-badge");
+  if (topBadge) {
+    topBadge.textContent = tagline;
+    topBadge.hidden = !tagline;
+  }
+
+  const railTagline = root.querySelector?.(".rail__tagline") || document.querySelector(".rail__tagline");
+  if (railTagline) {
+    railTagline.textContent = tagline;
+    railTagline.hidden = !tagline;
+  }
 }
 
 function applyBranding(root = document) {
@@ -20,8 +45,10 @@ function applyBranding(root = document) {
 
   const railMark = root.querySelector?.(".rail__brand");
   if (railMark && !railMark.querySelector(".pincon-brand-logo")) {
-    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark">PinCon</span>`;
+    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark">PinCon <small class="rail__tagline"></small></span>`;
   }
+
+  applyBrandTagline(root);
 }
 
 function releaseBootWhenStable() {
@@ -49,6 +76,11 @@ function animateRouteOnce() {
   window.clearTimeout(routeTimer);
   routeTimer = window.setTimeout(() => document.body.classList.remove("pincon-route-transition"), 220);
 }
+
+gateway.addEventListener("change", (event) => {
+  snapshot = event.detail;
+  reconcile();
+});
 
 document.addEventListener("click", (event) => {
   const path = event.composedPath?.() || [];
