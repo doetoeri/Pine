@@ -1,0 +1,238 @@
+/* Reference-inspired PinCon bottom dock.
+ * Keeps the existing PinCon navigation semantics and click handlers, while
+ * matching the compact capsule + detached rounded-square action shown in the reference.
+ */
+
+:root {
+  --pincon-ref-dock-height: 76px;
+  --pincon-ref-trigger-size: 76px;
+  --pincon-ref-dock-gap: 12px;
+  --pincon-ref-dock-width: 520px;
+  --pincon-ref-dock-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+body.pincon-classic-home .floating-navigation {
+  left: calc(50% - 44px) !important;
+  right: auto !important;
+  bottom: var(--pincon-ref-dock-bottom) !important;
+  width: var(--pincon-ref-dock-width) !important;
+  height: var(--pincon-ref-dock-height) !important;
+  min-height: var(--pincon-ref-dock-height) !important;
+  padding: 8px 10px !important;
+  gap: 2px !important;
+  justify-content: space-evenly !important;
+  align-items: center !important;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c3c8bb) 55%, transparent) !important;
+  border-radius: 38px !important;
+  background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest, #fff) 86%, var(--md-sys-color-surface-container, #ecefe6)) !important;
+  box-shadow: 0 8px 18px rgba(25, 29, 23, .10), 0 20px 48px rgba(25, 29, 23, .08) !important;
+  transform: translateX(-50%) !important;
+  backdrop-filter: blur(22px) saturate(1.04) !important;
+}
+
+body.pincon-classic-home .floating-navigation > * {
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+body.pincon-classic-home .floating-navigation :is(button, a, [role="button"], md-primary-tab) {
+  width: 60px !important;
+  min-width: 60px !important;
+  max-width: 60px !important;
+  height: 60px !important;
+  min-height: 60px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  gap: 0 !important;
+  border: 0 !important;
+  border-radius: 23px !important;
+  background: transparent !important;
+  color: var(--md-sys-color-on-surface-variant, #43483f) !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition:
+    background-color 180ms cubic-bezier(.2, 0, 0, 1),
+    color 180ms cubic-bezier(.2, 0, 0, 1),
+    box-shadow 180ms cubic-bezier(.2, 0, 0, 1) !important;
+}
+
+body.pincon-classic-home .floating-navigation :is(button, a, [role="button"], md-primary-tab) > :not(md-icon):not(svg):not(.material-symbols-rounded):not(.material-icons):not(.material-icons-round) {
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+body.pincon-classic-home .floating-navigation :is(md-icon, .material-symbols-rounded, .material-icons, .material-icons-round) {
+  width: 30px !important;
+  height: 30px !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 30px !important;
+  line-height: 1 !important;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 30 !important;
+}
+
+body.pincon-classic-home .floating-navigation svg {
+  width: 29px !important;
+  height: 29px !important;
+}
+
+body.pincon-classic-home .floating-navigation :is(
+  button[aria-current="page"],
+  a[aria-current="page"],
+  [role="button"][aria-current="page"],
+  button[aria-selected="true"],
+  [role="button"][aria-selected="true"],
+  button[data-active="true"],
+  [role="button"][data-active="true"],
+  button.active,
+  a.active,
+  [role="button"].active,
+  md-primary-tab[active]
+) {
+  background: color-mix(in srgb, var(--md-sys-color-primary-container, #b7f0b0) 72%, var(--md-sys-color-surface, #f7fbf3)) !important;
+  color: var(--md-sys-color-on-primary-container, #002204) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-primary, #356a35) 8%, transparent) !important;
+}
+
+body.pincon-classic-home .floating-navigation :is(
+  button[aria-current="page"],
+  a[aria-current="page"],
+  [role="button"][aria-current="page"],
+  button[aria-selected="true"],
+  [role="button"][aria-selected="true"],
+  button[data-active="true"],
+  [role="button"][data-active="true"],
+  button.active,
+  a.active,
+  [role="button"].active,
+  md-primary-tab[active]
+) :is(md-icon, .material-symbols-rounded, .material-icons, .material-icons-round) {
+  font-variation-settings: "FILL" 1, "wght" 560, "GRAD" 0, "opsz" 30 !important;
+}
+
+.pincon-class-ops-trigger {
+  left: calc(50% + 228px) !important;
+  right: auto !important;
+  bottom: var(--pincon-ref-dock-bottom) !important;
+  width: var(--pincon-ref-trigger-size) !important;
+  height: var(--pincon-ref-trigger-size) !important;
+  border-radius: 26px !important;
+  transform: none !important;
+  --md-filled-tonal-icon-button-container-width: var(--pincon-ref-trigger-size);
+  --md-filled-tonal-icon-button-container-height: var(--pincon-ref-trigger-size);
+  --md-filled-tonal-icon-button-container-shape: 26px;
+  --md-filled-tonal-icon-button-container-color: color-mix(in srgb, var(--md-sys-color-primary-container, #b7f0b0) 76%, var(--md-sys-color-surface, #f7fbf3));
+  --md-filled-tonal-icon-button-icon-color: var(--md-sys-color-on-primary-container, #002204);
+  --md-filled-tonal-icon-button-icon-size: 34px;
+  box-shadow: 0 8px 18px rgba(25, 29, 23, .11), 0 20px 48px rgba(25, 29, 23, .09) !important;
+  transition:
+    background-color 180ms cubic-bezier(.2, 0, 0, 1),
+    box-shadow 180ms cubic-bezier(.2, 0, 0, 1) !important;
+}
+
+.pincon-class-ops-trigger:hover {
+  box-shadow: 0 10px 22px rgba(25, 29, 23, .13), 0 22px 52px rgba(25, 29, 23, .10) !important;
+}
+
+.pincon-class-ops-trigger:active {
+  transform: none !important;
+}
+
+.pincon-class-ops-trigger[data-state="open"] {
+  --md-filled-tonal-icon-button-container-color: var(--md-sys-color-primary, #356a35);
+  --md-filled-tonal-icon-button-icon-color: var(--md-sys-color-on-primary, #fff);
+}
+
+.pincon-class-ops-trigger md-icon {
+  width: 34px !important;
+  height: 34px !important;
+  font-size: 34px !important;
+  font-variation-settings: "FILL" 0, "wght" 450, "GRAD" 0, "opsz" 34 !important;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --pincon-ref-dock-height: 70px;
+    --pincon-ref-trigger-size: 70px;
+    --pincon-ref-dock-gap: 10px;
+    --pincon-ref-dock-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  body.pincon-classic-home .floating-navigation {
+    left: 12px !important;
+    right: calc(12px + var(--pincon-ref-trigger-size) + var(--pincon-ref-dock-gap)) !important;
+    width: auto !important;
+    height: var(--pincon-ref-dock-height) !important;
+    min-height: var(--pincon-ref-dock-height) !important;
+    padding: 7px 8px !important;
+    border-radius: 35px !important;
+    transform: none !important;
+  }
+
+  body.pincon-classic-home .floating-navigation :is(button, a, [role="button"], md-primary-tab) {
+    width: 54px !important;
+    min-width: 54px !important;
+    max-width: 54px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+    border-radius: 21px !important;
+  }
+
+  body.pincon-classic-home .floating-navigation :is(md-icon, .material-symbols-rounded, .material-icons, .material-icons-round) {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 28px !important;
+  }
+
+  .pincon-class-ops-trigger {
+    left: auto !important;
+    right: 12px !important;
+    width: var(--pincon-ref-trigger-size) !important;
+    height: var(--pincon-ref-trigger-size) !important;
+    border-radius: 24px !important;
+    --md-filled-tonal-icon-button-container-shape: 24px;
+  }
+}
+
+@media (max-width: 390px) {
+  :root {
+    --pincon-ref-dock-height: 66px;
+    --pincon-ref-trigger-size: 66px;
+    --pincon-ref-dock-gap: 8px;
+  }
+
+  body.pincon-classic-home .floating-navigation {
+    left: 10px !important;
+    right: calc(10px + var(--pincon-ref-trigger-size) + var(--pincon-ref-dock-gap)) !important;
+    padding: 6px !important;
+    border-radius: 33px !important;
+  }
+
+  body.pincon-classic-home .floating-navigation :is(button, a, [role="button"], md-primary-tab) {
+    width: 50px !important;
+    min-width: 50px !important;
+    max-width: 50px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    border-radius: 19px !important;
+  }
+
+  .pincon-class-ops-trigger {
+    right: 10px !important;
+    border-radius: 22px !important;
+    --md-filled-tonal-icon-button-container-shape: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.pincon-classic-home .floating-navigation :is(button, a, [role="button"], md-primary-tab),
+  .pincon-class-ops-trigger {
+    transition: none !important;
+  }
+}
