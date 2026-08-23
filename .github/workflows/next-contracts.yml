@@ -1,0 +1,40 @@
+name: PinCon Next contracts
+
+on:
+  push:
+    branches: [rebuild]
+    paths:
+      - "next/**"
+      - ".github/workflows/next-contracts.yml"
+  pull_request:
+    paths:
+      - "next/**"
+      - "REBUILD.md"
+      - ".github/workflows/next-contracts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check browser module syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            next/app.js \
+            next/day2-layer.js \
+            next/core/data-gateway.js \
+            next/core/notification-store.js \
+            next/core/trust-model.js
+          do
+            node --input-type=module --check < "$file"
+          done
+      - name: Run Next contract tests
+        run: node --test next/tests/contracts.test.mjs
