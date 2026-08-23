@@ -1,0 +1,19 @@
+/* Final mobile safety clearance for the floating bottom navigation.
+   Loaded after ui-polish.css so WebKit rounding cannot place content under the dock. */
+@media (max-width: 599px) {
+  .content-wrap {
+    padding-bottom: calc(136px + var(--pincon-safe-bottom)) !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .content-wrap {
+    padding-bottom: calc(190px + var(--pincon-safe-bottom)) !important;
+  }
+}
+
+@media (max-width: 239px) {
+  .content-wrap {
+    padding-bottom: calc(248px + var(--pincon-safe-bottom)) !important;
+  }
+}
