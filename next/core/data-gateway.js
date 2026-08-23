@@ -1,9 +1,10 @@
 import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
 import { classBrandSettings, validateBrandTagline } from "./brand-settings.js";
-import { resolveNextAccess } from "./trust-model.js";
+import { PERMISSION, canAccess, resolveNextAccess } from "./trust-model.js";
 
 const PROFILE_KEY = "pincon-profile-v2";
 const GATEWAY_SINGLETON_KEY = Symbol.for("pincon.next.data-gateway");
+const MANAGED_COLLECTIONS = new Set(["announcements", "classAssignments", "events"]);
 
 function parseJson(value, fallback = null) {
   try {
@@ -57,7 +58,7 @@ function accessFor({ user = null, role = null, profile = null } = {}) {
   });
 }
 
-function canEditExistingClassSettings({ user = null, role = null, profile = null } = {}) {
+function serverCompatibleClassOperator({ user = null, role = null, profile = null } = {}) {
   const classKey = profile?.classKey || "";
   if (!user?.uid || !role?.enabled || !classKey) return false;
   if (role.level === "school") return true;
@@ -66,13 +67,68 @@ function canEditExistingClassSettings({ user = null, role = null, profile = null
     && role.classKeys.includes(classKey);
 }
 
+function cleanString(value, max = 2000) {
+  return String(value ?? "").trim().slice(0, max);
+}
+
+function normalizeManagedValues(collection, values = {}) {
+  if (collection === "announcements") {
+    const title = cleanString(values.title, 100);
+    if (!title) throw new Error("공지 제목을 입력해 주세요.");
+    const priority = ["normal", "important", "urgent"].includes(values.priority) ? values.priority : "normal";
+    return {
+      title,
+      body: cleanString(values.body, 1800),
+      priority,
+      important: priority !== "normal",
+    };
+  }
+
+  if (collection === "classAssignments") {
+    const title = cleanString(values.title, 120);
+    const dueDate = cleanString(values.dueDate, 10);
+    if (!title) throw new Error("수행·숙제 제목을 입력해 주세요.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("마감 날짜를 확인해 주세요.");
+    const dueAtMs = new Date(`${dueDate}T23:59:00`).getTime();
+    if (!Number.isFinite(dueAtMs)) throw new Error("마감 날짜를 확인해 주세요.");
+    return {
+      type: ["assessment", "exam", "preparation"].includes(values.type) ? values.type : "assessment",
+      title,
+      subject: cleanString(values.subject, 40),
+      dueDate,
+      dueAtMs,
+      description: cleanString(values.description, 1200),
+    };
+  }
+
+  if (collection === "events") {
+    const title = cleanString(values.title, 120);
+    const question = cleanString(values.question, 500);
+    if (!title) throw new Error("행사 제목을 입력해 주세요.");
+    if (!question) throw new Error("행사 질문 또는 설명을 입력해 주세요.");
+    const status = ["draft", "open", "closed"].includes(values.status) ? values.status : "draft";
+    return {
+      kind: ["survey34", "family-arcade", "quiz", "balance", "class-vote", "survey", "mini-game"].includes(values.kind)
+        ? values.kind
+        : "survey34",
+      title,
+      question,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(cleanString(values.date, 10)) ? cleanString(values.date, 10) : "",
+      status,
+      acceptingResponses: status === "open",
+      startsAtMs: status === "open" ? Number(values.startsAtMs || Date.now()) : Number(values.startsAtMs || 0),
+      resultsVisible: values.resultsVisible === true,
+      publishedResults: Array.isArray(values.publishedResults) ? values.publishedResults.slice(0, 40) : [],
+    };
+  }
+
+  throw new Error("이 데이터 종류는 Next에서 직접 편집할 수 없습니다.");
+}
+
 export class NextDataGateway extends EventTarget {
   constructor() {
     super();
 
-    // PinCon Next must have exactly one live repository subscription per page.
-    // app.js and enhancement modules may request a gateway independently, but they
-    // all receive this same instance instead of creating duplicate Firestore listeners.
     const existing = globalThis[GATEWAY_SINGLETON_KEY];
     if (existing instanceof NextDataGateway) return existing;
 
@@ -92,6 +148,7 @@ export class NextDataGateway extends EventTarget {
       access: accessFor({ profile }),
       isManager: false,
       canEditBrandSettings: false,
+      canManageContent: false,
       readonly: true,
     };
 
@@ -116,6 +173,9 @@ export class NextDataGateway extends EventTarget {
     const user = snapshot?.user || null;
     const role = snapshot?.role || null;
     const access = accessFor({ user, role, profile });
+    const canManageContent = serverCompatibleClassOperator({ user, role, profile })
+      && canAccess(access, PERMISSION.CREATE)
+      && canAccess(access, PERMISSION.UPDATE);
     this.state = {
       ...this.state,
       ready: Boolean(snapshot?.ready),
@@ -128,8 +188,9 @@ export class NextDataGateway extends EventTarget {
       role,
       access,
       isManager: access.role === "manager" || access.role === "system-admin",
-      canEditBrandSettings: canEditExistingClassSettings({ user, role, profile }),
-      readonly: true,
+      canEditBrandSettings: serverCompatibleClassOperator({ user, role, profile }),
+      canManageContent,
+      readonly: !canManageContent,
     };
     this.emit();
   }
@@ -169,6 +230,49 @@ export class NextDataGateway extends EventTarget {
     })();
 
     return this.startPromise;
+  }
+
+  requireManagedWrite(permission = PERMISSION.UPDATE) {
+    if (!this.state.canManageContent || !canAccess(this.state.access, permission)) {
+      throw new Error("이 학급의 공용 데이터를 편집할 권한이 없습니다.");
+    }
+    if (!this.repository) throw new Error("데이터 연결이 아직 준비되지 않았습니다.");
+  }
+
+  async saveManagedRecord(collection, values, { id = "" } = {}) {
+    if (!this.repository) await this.start();
+    if (!MANAGED_COLLECTIONS.has(collection)) throw new Error("이 데이터 종류는 직접 편집할 수 없습니다.");
+    this.requireManagedWrite(id ? PERMISSION.UPDATE : PERMISSION.CREATE);
+    const normalized = normalizeManagedValues(collection, values);
+    const current = id ? (this.state.data?.[collection] || []).find((item) => item.id === id) : null;
+    const label = normalized.title || current?.title || collection;
+    return this.repository.adminWrite(
+      collection,
+      { ...(current || {}), ...normalized, deleted: false, deletedAtMs: null },
+      { id, action: current ? "update" : "create", label },
+    );
+  }
+
+  async archiveManagedRecord(collection, id) {
+    if (!this.repository) await this.start();
+    if (!MANAGED_COLLECTIONS.has(collection)) throw new Error("이 데이터 종류는 보관할 수 없습니다.");
+    this.requireManagedWrite(PERMISSION.ARCHIVE);
+    const current = (this.state.data?.[collection] || []).find((item) => item.id === id && !item.deleted);
+    if (!current) throw new Error("보관할 항목을 찾지 못했습니다.");
+    return this.repository.softDelete(collection, id, `${current.title || current.name || collection} 보관`);
+  }
+
+  async restoreManagedRecord(collection, id) {
+    if (!this.repository) await this.start();
+    if (!MANAGED_COLLECTIONS.has(collection)) throw new Error("이 데이터 종류는 복원할 수 없습니다.");
+    this.requireManagedWrite(PERMISSION.RESTORE);
+    const current = (this.state.data?.[collection] || []).find((item) => item.id === id && item.deleted === true);
+    if (!current) throw new Error("복원할 항목을 찾지 못했습니다.");
+    return this.repository.adminWrite(
+      collection,
+      { ...current, deleted: false, deletedAtMs: null },
+      { id, action: "restore", label: `${current.title || current.name || collection} 복원` },
+    );
   }
 
   async updateBrandTagline(value) {
