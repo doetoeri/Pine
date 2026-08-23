@@ -59,6 +59,15 @@ function focusActual(control) {
   actualFocusable(control)?.focus?.({ preventScroll: true });
 }
 
+function dispatchHostClick(control) {
+  control.dispatchEvent(new MouseEvent("click", {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    view: window,
+  }));
+}
+
 function bridgeKeyboardActivation(control) {
   if (!control || control.hasAttribute("disabled")) return;
   const target = actualFocusable(control);
@@ -74,11 +83,11 @@ function bridgeKeyboardActivation(control) {
     if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
     if (control.hasAttribute("disabled")) return;
 
-    // Material Web은 내부 native control을 Shadow DOM에 둔다. 일부 브라우저/조합에서는
-    // 그 내부 키보드 활성화가 host의 click 계약까지 전달되지 않으므로 여기서 정규화한다.
+    // Material Web은 내부 native control을 Shadow DOM에 둔다. 브라우저별 키 이벤트가
+    // host의 click 계약까지 일관되게 올라오지 않으므로, 앱이 듣는 host click으로 통일한다.
     event.preventDefault();
     event.stopPropagation();
-    control.click();
+    dispatchHostClick(control);
   });
 }
 
