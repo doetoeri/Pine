@@ -1,9 +1,9 @@
 // PinCon Next keyboard activation normalizer for Material buttons.
 // Material Web renders its real native control inside an open Shadow Root. Keyboard
-// events can cross that boundary differently by browser, while an older Day 2 fallback
-// also listens at document capture. This module loads before Day 2, so it owns keyboard
-// activation first and forwards exactly one composed host click. Shadow-root capture
-// remains a fallback for keyboard events that are not composed across the boundary.
+// events can cross that boundary differently by browser, so this module is the single
+// owner of Enter/Space activation and forwards exactly one composed host click.
+// Shadow-root capture remains a fallback for keyboard events that are not composed
+// across the boundary.
 //
 // It also makes a freshly rendered #mainContent programmatically focusable in the
 // MutationObserver microtask, before app.js tries to focus it in requestAnimationFrame.
@@ -42,8 +42,8 @@ function materialHostFromEvent(event) {
   )) || null;
 }
 
-// Registered before day2-layer.js. For composed keyboard events this is the single
-// authoritative path, preventing the older bridge and Material internals from racing.
+// For composed keyboard events this is the single authoritative path, preventing
+// Material internals and browser-specific shadow behavior from racing each other.
 document.addEventListener("keydown", (event) => {
   if (!activationKey(event)) return;
   const host = materialHostFromEvent(event);
