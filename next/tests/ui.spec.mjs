@@ -63,6 +63,32 @@ for (const viewport of VIEWPORTS) {
         return frame.left - rail.right;
       });
       expect(railClearance).toBeGreaterThanOrEqual(8);
+
+      if (viewport.width < 840) {
+        const iconGeometry = await page.evaluate(() => {
+          const rail = document.querySelector(".rail")?.getBoundingClientRect();
+          if (!rail) return [];
+          return [...document.querySelectorAll(".rail__nav [data-route]")].map((control) => {
+            const host = control.getBoundingClientRect();
+            const icon = control.querySelector("md-icon")?.getBoundingClientRect();
+            return {
+              railLeft: rail.left,
+              railRight: rail.right,
+              hostLeft: host.left,
+              hostRight: host.right,
+              iconLeft: icon?.left ?? -1,
+              iconRight: icon?.right ?? -1,
+            };
+          });
+        });
+        expect(iconGeometry).toHaveLength(5);
+        for (const item of iconGeometry) {
+          expect(item.hostLeft).toBeGreaterThanOrEqual(item.railLeft + 4);
+          expect(item.hostRight).toBeLessThanOrEqual(item.railRight - 4);
+          expect(item.iconLeft).toBeGreaterThanOrEqual(item.railLeft + 4);
+          expect(item.iconRight).toBeLessThanOrEqual(item.railRight - 4);
+        }
+      }
     }
 
     const timetableButton = page.locator('[data-route="timetable"]').nth(viewport.width < 600 ? 1 : 0);
