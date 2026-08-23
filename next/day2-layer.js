@@ -68,6 +68,25 @@ function dispatchHostClick(control) {
   }));
 }
 
+function activateKeyboardControl(control) {
+  if (control.id === "openSearch") {
+    lastDialogTrigger = control;
+    const dialog = document.querySelector("#searchDialog");
+    dialog?.show?.();
+    requestAnimationFrame(() => focusActual(document.querySelector("#searchField")));
+    return;
+  }
+
+  if (control.id === "openNotifications") {
+    lastDialogTrigger = control;
+    renderInbox();
+    document.querySelector("#notificationDialog")?.show?.();
+    return;
+  }
+
+  dispatchHostClick(control);
+}
+
 function bridgeKeyboardActivation(control) {
   if (!control || control.hasAttribute("disabled")) return;
   const target = actualFocusable(control);
@@ -83,11 +102,11 @@ function bridgeKeyboardActivation(control) {
     if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
     if (control.hasAttribute("disabled")) return;
 
-    // Material Web은 내부 native control을 Shadow DOM에 둔다. 브라우저별 키 이벤트가
-    // host의 click 계약까지 일관되게 올라오지 않으므로, 앱이 듣는 host click으로 통일한다.
+    // Material Web의 Shadow DOM 키보드 동작이 컴포넌트 종류마다 조금씩 다르다.
+    // Dialog 트리거는 공식 dialog API로, 나머지 버튼은 동일한 host click 계약으로 정규화한다.
     event.preventDefault();
     event.stopPropagation();
-    dispatchHostClick(control);
+    activateKeyboardControl(control);
   });
 }
 
