@@ -1,8 +1,8 @@
 // PinCon Next keyboard activation normalizer for Material buttons.
-// Material Web renders the actual native <button> inside Shadow DOM. Chromium/WebKit
-// can surface keyboard activation differently across the shadow boundary, especially
-// while the App Shell is being re-rendered. Normalize both the host-capture path and
-// the inner native-control path into the exact same composed host click contract.
+// Material Web renders its real native control inside an open Shadow Root. Some browser
+// paths stop the key event before it reaches the custom-element host, so listening on
+// the host is not sufficient. Capture on the Shadow Root itself, before the inner
+// control receives the event, and forward one composed host click.
 
 const MATERIAL_BUTTON_SELECTOR = [
   "md-icon-button",
@@ -21,10 +21,6 @@ function activationKey(event) {
     && !event.metaKey;
 }
 
-function innerButton(host) {
-  return host?.shadowRoot?.querySelector("button, a") || null;
-}
-
 function dispatchHostActivation(host) {
   host.dispatchEvent(new MouseEvent("click", {
     bubbles: true,
@@ -34,51 +30,37 @@ function dispatchHostActivation(host) {
   }));
 }
 
-function handleActivation(event, host) {
-  if (!activationKey(event) || host.hasAttribute("disabled")) return;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  dispatchHostActivation(host);
-}
-
-function bindHostCapture(host) {
-  if (host.__pinconAuthoritativeKeyboardBridge) return;
-  Object.defineProperty(host, "__pinconAuthoritativeKeyboardBridge", {
-    value: true,
-    configurable: true,
-  });
-  host.addEventListener("keydown", (event) => handleActivation(event, host), true);
-}
-
-function bindInnerControl(host) {
+function bindShadowCapture(host) {
   if (!(host instanceof HTMLElement) || host.hasAttribute("disabled")) return false;
-  const target = innerButton(host);
-  if (!target) return false;
-  if (target.__pinconKeyboardHost === host) return true;
+  const root = host.shadowRoot;
+  if (!root) return false;
+  if (root.__pinconKeyboardHost === host) return true;
 
-  Object.defineProperty(target, "__pinconKeyboardHost", {
+  Object.defineProperty(root, "__pinconKeyboardHost", {
     value: host,
     configurable: true,
   });
-  target.addEventListener("keydown", (event) => handleActivation(event, host), true);
+
+  root.addEventListener("keydown", (event) => {
+    if (!activationKey(event) || host.hasAttribute("disabled")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    dispatchHostActivation(host);
+  }, true);
+
   return true;
 }
 
 function prepareHost(host) {
   if (!(host instanceof HTMLElement)) return;
 
-  // This module is loaded before day2-layer.js. Its host capture listener therefore
-  // wins the registration order and prevents the older fallback bridge from producing
-  // a second or browser-dependent activation. If the event never crosses Shadow DOM,
-  // the inner listener handles it instead.
-  bindHostCapture(host);
-  bindInnerControl(host);
-  queueMicrotask(() => bindInnerControl(host));
-  requestAnimationFrame(() => bindInnerControl(host));
+  bindShadowCapture(host);
+  queueMicrotask(() => bindShadowCapture(host));
+  requestAnimationFrame(() => bindShadowCapture(host));
 
   const updateComplete = host.updateComplete;
   if (updateComplete && typeof updateComplete.then === "function") {
-    updateComplete.then(() => bindInnerControl(host)).catch(() => {});
+    updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
   }
 }
 
