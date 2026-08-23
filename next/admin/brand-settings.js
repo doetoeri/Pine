@@ -107,11 +107,7 @@ function bindCard() {
 function render() {
   renderQueued = false;
   const grid = root?.querySelector(".admin-grid");
-  if (!grid) return;
-
-  const existing = grid.querySelector("[data-brand-settings]");
-  if (existing && existing.contains(document.activeElement)) return;
-  existing?.remove();
+  if (!grid || grid.querySelector("[data-brand-settings]")) return;
   grid.insertAdjacentHTML("afterbegin", cardMarkup());
   bindCard();
 }
