@@ -1,0 +1,45 @@
+.brand__title .beta-badge {
+  display: inline-flex;
+  max-width: min(38vw, 150px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.brand__title .beta-badge[hidden],
+.rail__tagline[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 840px) {
+  .rail__wordmark {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .rail__wordmark > span:first-child {
+    flex: 0 0 auto;
+  }
+
+  .rail__tagline {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 54px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 9px;
+    font-weight: 750;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+  }
+}
