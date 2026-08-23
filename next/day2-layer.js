@@ -44,8 +44,24 @@ function eventHost(event, predicate) {
   return event.composedPath?.().find((node) => node instanceof HTMLElement && predicate(node)) || null;
 }
 
+function actualFocusable(control) {
+  if (!control) return null;
+  return control.shadowRoot?.querySelector("button, a, input, textarea, select, [tabindex]") || control;
+}
+
+function setAccessibleLabel(control, label) {
+  if (!control || !label) return;
+  control.setAttribute("data-aria-label", label);
+  actualFocusable(control)?.setAttribute("aria-label", label);
+}
+
+function focusActual(control) {
+  actualFocusable(control)?.focus?.({ preventScroll: true });
+}
+
 function setCurrentState(control, current) {
-  const focusable = control.shadowRoot?.querySelector("button, a") || control;
+  const focusable = actualFocusable(control);
+  if (!focusable) return;
   if (current) focusable.setAttribute("aria-current", "page");
   else focusable.removeAttribute("aria-current");
 }
@@ -72,7 +88,7 @@ function focusMainAfterRouteChange() {
 function restoreDialogTriggerFocus() {
   const trigger = lastDialogTrigger;
   if (!trigger?.isConnected) return;
-  requestAnimationFrame(() => trigger.focus?.({ preventScroll: true }));
+  requestAnimationFrame(() => focusActual(trigger));
 }
 
 function anyDialogOpen() {
@@ -84,14 +100,12 @@ function anyDialogOpen() {
 
 function enhanceDialogSemantics() {
   const searchDialog = document.querySelector("#searchDialog");
-  if (searchDialog && !searchDialog.hasAttribute("aria-label")) {
-    searchDialog.setAttribute("aria-label", "통합 검색");
-  }
+  if (searchDialog) searchDialog.setAttribute("data-aria-label", "통합 검색");
 
   const notificationDialog = document.querySelector("#notificationDialog");
-  if (notificationDialog && !notificationDialog.hasAttribute("aria-label")) {
-    notificationDialog.setAttribute("aria-label", "알림함");
-  }
+  if (notificationDialog) notificationDialog.setAttribute("data-aria-label", "알림함");
+
+  setAccessibleLabel(document.querySelector("#openSearch"), "통합 검색");
 }
 
 function enhanceNotificationButton() {
@@ -118,7 +132,7 @@ function enhanceNotificationButton() {
   const text = count > 99 ? "99+" : String(count);
   if (badge.textContent !== text) badge.textContent = text;
   badge.hidden = count === 0;
-  button.setAttribute("aria-label", count ? `알림함, 읽지 않은 알림 ${count}개` : "알림함, 모두 읽음");
+  setAccessibleLabel(button, count ? `알림함, 읽지 않은 알림 ${count}개` : "알림함, 모두 읽음");
 }
 
 function inboxMarkup() {
