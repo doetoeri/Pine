@@ -1,0 +1,117 @@
+.managed-editor-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.managed-editor-section {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 22px;
+  background: var(--md-sys-color-surface-container-low, #f1f3eb);
+}
+
+.managed-editor-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.managed-editor-section__head h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.managed-editor-list {
+  display: grid;
+  gap: 8px;
+}
+
+.managed-editor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+}
+
+.managed-editor-row__copy {
+  min-width: 0;
+}
+
+.managed-editor-row__copy strong,
+.managed-editor-row__copy span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.managed-editor-row__copy span {
+  margin-top: 3px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: 13px;
+}
+
+.managed-editor-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.managed-editor-empty {
+  padding: 16px;
+  border-radius: 18px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  background: var(--md-sys-color-surface-container, #ebeee6);
+  font-size: 13px;
+}
+
+.managed-editor-dialog-form {
+  width: min(560px, calc(100vw - 48px));
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.managed-editor-dialog-form md-outlined-text-field,
+.managed-editor-dialog-form md-outlined-select {
+  width: 100%;
+}
+
+.managed-editor-status {
+  min-height: 20px;
+  margin: 4px 0 0;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: 13px;
+}
+
+.managed-editor-status[data-kind="success"] {
+  color: var(--md-sys-color-primary, #49662e);
+}
+
+.managed-editor-status[data-kind="error"] {
+  color: var(--md-sys-color-error, #ba1a1a);
+}
+
+.admin-write-enabled {
+  background: var(--md-sys-color-primary-container, #dbe7c8) !important;
+  color: var(--md-sys-color-on-primary-container, #111f05) !important;
+}
+
+@media (max-width: 760px) {
+  .managed-editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .managed-editor-row__actions {
+    justify-content: flex-start;
+  }
+
+  .managed-editor-section__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
