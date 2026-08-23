@@ -35,8 +35,10 @@ jobs:
             next/app.js \
             next/app-interactions.js \
             next/reveal-loader.js \
+            next/write-mode.js \
             next/admin/admin.js \
             next/admin/brand-settings.js \
+            next/admin/content-editor.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
