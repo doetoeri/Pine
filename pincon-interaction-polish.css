@@ -1,0 +1,124 @@
+/* PinCon interaction polish.
+ * Restores the classic floating navigation, keeps the class-ops action the same
+ * height as the dock, normalizes round icon actions, and removes expensive
+ * clip/scale transitions that caused visible flashing on mobile.
+ */
+
+:root {
+  --pincon-sheet-enter-duration: 240ms;
+  --pincon-sheet-exit-duration: 170ms;
+  --pincon-sheet-easing: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Never let the class-ops runtime briefly expose itself while classic PinCon is active. */
+body.pincon-classic-home .pincon-ops-shell,
+body:not(.pincon-classic-ops-open) .pincon-ops-shell[data-open="true"] {
+  display: none !important;
+}
+
+body.pincon-classic-ops-open .pincon-ops-shell[data-open="true"] {
+  display: block !important;
+}
+
+/* The separate action is exactly as tall as the restored floating bar. */
+.pincon-class-ops-trigger {
+  width: var(--pincon-dock-trigger-size, 68px) !important;
+  height: var(--pincon-dock-trigger-size, 68px) !important;
+  min-width: var(--pincon-dock-trigger-size, 68px) !important;
+  min-height: var(--pincon-dock-trigger-size, 68px) !important;
+  border-radius: 24px !important;
+  transform: none !important;
+  filter: none !important;
+  --md-filled-tonal-icon-button-container-width: var(--pincon-dock-trigger-size, 68px);
+  --md-filled-tonal-icon-button-container-height: var(--pincon-dock-trigger-size, 68px);
+  --md-filled-tonal-icon-button-container-shape: 24px;
+  --md-filled-tonal-icon-button-icon-size: 30px;
+  transition: background-color 160ms cubic-bezier(.2, 0, 0, 1), box-shadow 160ms cubic-bezier(.2, 0, 0, 1) !important;
+}
+
+.pincon-class-ops-trigger:active {
+  transform: none !important;
+}
+
+/* Top icon actions should be one clean circle, not a circle containing another pill. */
+.pincon-ops-top-actions :is(md-icon-button, md-filled-icon-button, md-filled-tonal-icon-button, md-outlined-icon-button),
+:is(md-icon-button, md-filled-icon-button, md-filled-tonal-icon-button, md-outlined-icon-button)[aria-label*="알림"],
+:is(md-icon-button, md-filled-icon-button, md-filled-tonal-icon-button, md-outlined-icon-button)[title*="알림"] {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  --md-icon-button-state-layer-shape: 999px;
+  --md-filled-icon-button-container-width: 48px;
+  --md-filled-icon-button-container-height: 48px;
+  --md-filled-icon-button-container-shape: 999px;
+  --md-filled-tonal-icon-button-container-width: 48px;
+  --md-filled-tonal-icon-button-container-height: 48px;
+  --md-filled-tonal-icon-button-container-shape: 999px;
+  --md-outlined-icon-button-container-width: 48px;
+  --md-outlined-icon-button-container-height: 48px;
+  --md-outlined-icon-button-container-shape: 999px;
+}
+
+:is(button, [role="button"])[aria-label*="알림"],
+:is(button, [role="button"])[title*="알림"] {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  display: inline-grid !important;
+  place-items: center !important;
+}
+
+:is(button, [role="button"])[aria-label*="알림"] :is(.material-symbols-rounded, .material-icons, md-icon),
+:is(button, [role="button"])[title*="알림"] :is(.material-symbols-rounded, .material-icons, md-icon) {
+  margin: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+/* Opening and closing should be a single composited transition. */
+body.pincon-classic-ops-open .pincon-ops-shell[data-open="true"] {
+  will-change: opacity, transform !important;
+  clip-path: none !important;
+}
+
+body.pincon-classic-ops-open::before {
+  animation: pincon-stable-scrim-in 180ms ease-out both !important;
+}
+
+@keyframes pincon-stable-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+body.pincon-classic-ops-open .pincon-ops-view {
+  animation: pincon-stable-view-in 140ms cubic-bezier(.2, 0, 0, 1) both !important;
+}
+
+@keyframes pincon-stable-view-in {
+  from { opacity: .72; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .pincon-class-ops-trigger {
+    border-radius: 22px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.pincon-classic-ops-open::before,
+  body.pincon-classic-ops-open .pincon-ops-view {
+    animation: none !important;
+  }
+
+  .pincon-class-ops-trigger {
+    transition: none !important;
+  }
+}
