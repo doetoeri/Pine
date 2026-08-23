@@ -26,15 +26,17 @@ async function fieldHasFocus(page, selector) {
   }, selector);
 }
 
-async function focusActualControl(locator) {
-  await locator.evaluate((host) => {
-    const focusable = host.shadowRoot?.querySelector("button, a, input, textarea, select, [tabindex]") || host;
-    focusable.focus();
-  });
+async function tabToControl(page, locator, maxTabs = 24) {
+  for (let index = 0; index < maxTabs; index += 1) {
+    await page.keyboard.press("Tab");
+    if (await actualHasFocus(locator)) return;
+  }
+  throw new Error(`Tab 키로 목표 컨트롤에 도달하지 못했습니다: ${await locator.evaluate((node) => node.id || node.getAttribute("data-route") || node.tagName)}`);
 }
 
 async function openByKeyboard(page, locator) {
-  await focusActualControl(locator);
+  await tabToControl(page, locator);
+  await expect.poll(() => actualHasFocus(locator)).toBe(true);
   await page.keyboard.press("Enter");
 }
 
@@ -69,7 +71,7 @@ test("document and landmarks expose stable Korean semantics", async ({ page }) =
   await expect(page.locator('#notificationDialog [slot="headline"]')).toHaveText("알림함");
 });
 
-test("search dialog opens from keyboard, moves task focus, and returns it on Escape", async ({ page }) => {
+test("search dialog opens from real Tab keyboard navigation, moves task focus, and returns it on Escape", async ({ page }) => {
   const trigger = page.locator("#openSearch");
   await openByKeyboard(page, trigger);
 
@@ -81,7 +83,7 @@ test("search dialog opens from keyboard, moves task focus, and returns it on Esc
   await expect.poll(() => actualHasFocus(trigger)).toBe(true);
 });
 
-test("notification dialog opens from keyboard and returns focus to its trigger", async ({ page }) => {
+test("notification dialog opens from real Tab keyboard navigation and returns focus to its trigger", async ({ page }) => {
   const trigger = page.locator("#openNotifications");
   await openByKeyboard(page, trigger);
 
@@ -91,9 +93,10 @@ test("notification dialog opens from keyboard and returns focus to its trigger",
   await expect.poll(() => actualHasFocus(trigger)).toBe(true);
 });
 
-test("route changes move programmatic focus to main content", async ({ page }) => {
+test("route changes from real Tab keyboard navigation move programmatic focus to main content", async ({ page }) => {
   const timetable = page.locator('.rail [data-route="timetable"]');
-  await focusActualControl(timetable);
+  await tabToControl(page, timetable);
+  await expect.poll(() => actualHasFocus(timetable)).toBe(true);
   await page.keyboard.press("Enter");
 
   await expect(page.locator("#timetable-title")).toBeVisible();
