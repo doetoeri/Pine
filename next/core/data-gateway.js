@@ -1,4 +1,5 @@
 import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
+import { resolveNextAccess } from "./trust-model.js";
 
 const PROFILE_KEY = "pincon-profile-v2";
 
@@ -46,19 +47,30 @@ export function saveClassProfile(grade, classNumber) {
   return readClassProfile();
 }
 
+function accessFor({ user = null, role = null, profile = null } = {}) {
+  return resolveNextAccess({
+    user,
+    legacyRole: role,
+    classKey: profile?.classKey || "",
+  });
+}
+
 export class NextDataGateway extends EventTarget {
   constructor() {
     super();
+    const profile = readClassProfile();
     this.repository = null;
     this.repositoryListener = null;
     this.state = {
       ready: false,
       syncing: false,
       online: navigator.onLine,
-      profile: readClassProfile(),
+      profile,
       error: "",
       data: Object.create(null),
+      user: null,
       role: null,
+      access: accessFor({ profile }),
       isManager: false,
       readonly: true,
     };
@@ -78,16 +90,22 @@ export class NextDataGateway extends EventTarget {
   }
 
   applyRepositorySnapshot(snapshot) {
+    const profile = snapshot?.profile || readClassProfile();
+    const user = snapshot?.user || null;
+    const role = snapshot?.role || null;
+    const access = accessFor({ user, role, profile });
     this.state = {
       ...this.state,
       ready: Boolean(snapshot?.ready),
       syncing: Boolean(snapshot?.syncing),
       online: snapshot?.online ?? navigator.onLine,
-      profile: snapshot?.profile || readClassProfile(),
+      profile,
       error: snapshot?.lastError || "",
       data: snapshot?.data || Object.create(null),
-      role: snapshot?.role || null,
-      isManager: Boolean(snapshot?.isPresident),
+      user,
+      role,
+      access,
+      isManager: access.role === "manager" || access.role === "system-admin",
       readonly: true,
     };
     this.emit();
@@ -95,6 +113,7 @@ export class NextDataGateway extends EventTarget {
 
   async start() {
     this.state.profile = readClassProfile();
+    this.state.access = accessFor({ profile: this.state.profile });
     if (!this.state.profile) {
       this.state.ready = false;
       this.state.syncing = false;
