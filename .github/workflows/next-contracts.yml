@@ -93,6 +93,10 @@ jobs:
         run: npx playwright test next/tests/boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Boot preflight · WebKit
         run: npx playwright test next/tests/boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Admin boot · Chromium
+        run: npx playwright test next/tests/admin-boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Admin boot · WebKit
+        run: npx playwright test next/tests/admin-boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Responsive smoke · Chromium
         run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Responsive smoke · WebKit
