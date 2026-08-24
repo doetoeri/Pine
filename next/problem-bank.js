@@ -88,6 +88,13 @@ function subjectOptions(items) {
   return [...new Set(items.map((item) => item.subject).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko-KR"));
 }
 
+function resultsMarkup() {
+  const visible = filteredProblems();
+  return visible.length
+    ? visible.map(problemMarkup).join("")
+    : `<div class="empty"><md-icon>quiz</md-icon><strong>조건에 맞는 문제가 없습니다</strong><span>검색어나 필터를 바꿔 보세요.</span></div>`;
+}
+
 function panelMarkup() {
   const all = publishedProblems();
   const visible = filteredProblems();
@@ -118,37 +125,51 @@ function panelMarkup() {
         <md-select-option value="hard" ${filters.difficulty === "hard" ? "selected" : ""}><div slot="headline">도전</div></md-select-option>
       </md-outlined-select>
     </div>
-    <div class="problem-bank-summary"><span>현재 ${visible.length}문제 표시</span><span>게시된 문제만 학생에게 표시됩니다.</span></div>
-    <div class="problem-bank-list" id="problemBankList">
-      ${visible.length ? visible.map(problemMarkup).join("") : `<div class="empty"><md-icon>quiz</md-icon><strong>조건에 맞는 문제가 없습니다</strong><span>검색어나 필터를 바꿔 보세요.</span></div>`}
-    </div>
+    <div class="problem-bank-summary"><span id="problemBankVisibleCount">현재 ${visible.length}문제 표시</span><span>게시된 문제만 학생에게 표시됩니다.</span></div>
+    <div class="problem-bank-list" id="problemBankList">${resultsMarkup()}</div>
   </article>`;
+}
+
+function updateResults(panel) {
+  if (!panel || loadError) return;
+  const visible = filteredProblems();
+  const count = panel.querySelector("#problemBankVisibleCount");
+  const list = panel.querySelector("#problemBankList");
+  if (count) count.textContent = `현재 ${visible.length}문제 표시`;
+  if (list) list.innerHTML = resultsMarkup();
 }
 
 function bindPanel(panel) {
   panel.querySelector("#problemBankSearch")?.addEventListener("input", (event) => {
     filters.query = event.target.value || "";
-    renderPanel();
+    updateResults(panel);
   });
   panel.querySelector("#problemBankSubject")?.addEventListener("change", (event) => {
     filters.subject = event.target.value || "all";
-    renderPanel();
+    updateResults(panel);
   });
   panel.querySelector("#problemBankDifficulty")?.addEventListener("change", (event) => {
     filters.difficulty = event.target.value || "all";
-    renderPanel();
+    updateResults(panel);
   });
 }
 
-function renderPanel() {
+function renderPanel({ replace = false } = {}) {
   const classroom = document.querySelector('section[aria-labelledby="classroom-title"]');
   if (!classroom) return;
   const grid = classroom.querySelector(".grid");
   if (!grid) return;
   const existing = classroom.querySelector("#problemBankPanel");
+
+  // Route 렌더 감시 때문에 호출되더라도 이미 마운트된 패널은 건드리지 않는다.
+  // 검색·정답 펼치기 중 DOM을 갈아끼우는 self-triggered render loop를 막는다.
+  if (existing && !replace) return;
+
   const wrapper = document.createElement("div");
   wrapper.innerHTML = panelMarkup();
   const panel = wrapper.firstElementChild;
+  if (!panel) return;
+
   if (existing) existing.replaceWith(panel);
   else grid.appendChild(panel);
   bindPanel(panel);
@@ -174,7 +195,9 @@ async function loadBank() {
   } catch (error) {
     loadError = error?.message || "알 수 없는 오류";
   }
-  queueRender();
+
+  // 데이터가 도착하기 전에 빈 패널이 먼저 마운트됐을 수 있으므로 딱 한 번 교체한다.
+  renderPanel({ replace: true });
 }
 
 const observer = new MutationObserver(queueRender);
