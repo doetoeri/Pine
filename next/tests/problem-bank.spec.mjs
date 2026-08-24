@@ -18,8 +18,10 @@ test("classroom renders published problems with filters and answer reveal", asyn
   await first.locator("summary").click();
   await expect(first.locator(".problem-card__answer")).toHaveAttribute("open", "");
 
-  const search = panel.locator("#problemBankSearch");
-  await search.fill("산화");
+  // Material Web text fields are custom elements. Playwright CSS locators pierce
+  // their open shadow root, so type into the real native input rather than the host.
+  const searchInput = panel.locator("#problemBankSearch").locator("input");
+  await searchInput.fill("산화");
   await expect(panel.locator(".problem-card")).toHaveCount(1);
   await expect(panel).toContainText("산화 환원");
 
