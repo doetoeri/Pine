@@ -38,9 +38,13 @@ jobs:
             next/app-interactions.js \
             next/reveal-loader.js \
             next/write-mode.js \
+            next/admin-visibility.js \
+            next/problem-bank.js \
             next/admin/admin.js \
+            next/admin/bootstrap.js \
             next/admin/brand-settings.js \
             next/admin/content-editor.js \
+            next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
@@ -53,7 +57,12 @@ jobs:
             node --input-type=module --check < "$file"
           done
       - name: Run Next contract tests
-        run: node --test next/tests/contracts.test.mjs next/tests/admin-policy.test.mjs next/tests/today-open-write.test.mjs
+        run: >-
+          node --test
+          next/tests/contracts.test.mjs
+          next/tests/admin-policy.test.mjs
+          next/tests/today-open-write.test.mjs
+          next/tests/problem-bank-contract.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest
@@ -115,6 +124,10 @@ jobs:
         run: npx playwright test next/tests/admin-boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Admin boot · WebKit
         run: npx playwright test next/tests/admin-boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Problem bank · Chromium
+        run: npx playwright test next/tests/problem-bank.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Problem bank · WebKit
+        run: npx playwright test next/tests/problem-bank.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Responsive smoke · Chromium
         run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Responsive smoke · WebKit

@@ -12,4 +12,5 @@ if (!snapshot.canArchiveContent) {
   await import("./admin.js");
   await import("./brand-settings.js");
   await import("./content-editor.js");
+  await import("./problem-bank-guide.js");
 }
