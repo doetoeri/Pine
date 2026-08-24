@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("admin beta renders its access gate without a page-level error", async ({ page }) => {
+test("non-admin direct access is returned to the student app without exposing admin UI", async ({ page }) => {
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
@@ -9,7 +9,8 @@ test("admin beta renders its access gate without a page-level error", async ({ p
   });
 
   await page.goto("http://127.0.0.1:4173/next/admin/", { waitUntil: "domcontentloaded" });
-  await expect(page.locator("#admin-loading-title")).toBeVisible({ timeout: 5_000 });
-  await expect(page.locator("#adminApp")).toBeVisible({ timeout: 5_000 });
+  await expect(page).toHaveURL(/\/next\/#more$/, { timeout: 8_000 });
+  await expect(page.locator("#adminMain")).toHaveCount(0);
+  await expect(page.locator("[data-managed-editor]")).toHaveCount(0);
   expect(pageErrors).toEqual([]);
 });
