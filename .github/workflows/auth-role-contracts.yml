@@ -1,0 +1,54 @@
+name: PinCon auth and role contracts
+
+on:
+  pull_request:
+    paths:
+      - "pincon-guest-auth.js"
+      - "next/write-mode.js"
+      - "next/admin/role-manager.js"
+      - "next/admin/role-manager.css"
+      - "next/admin/bootstrap.js"
+      - "next/admin/index.html"
+      - "next/tests/auth-role-contract.test.mjs"
+      - "automation/enable-google-auth.mjs"
+      - ".github/workflows/enable-google-auth.yml"
+      - ".github/workflows/auth-role-contracts.yml"
+  push:
+    branches: [main]
+    paths:
+      - "pincon-guest-auth.js"
+      - "next/write-mode.js"
+      - "next/admin/role-manager.js"
+      - "next/admin/role-manager.css"
+      - "next/admin/bootstrap.js"
+      - "next/admin/index.html"
+      - "next/tests/auth-role-contract.test.mjs"
+      - "automation/enable-google-auth.mjs"
+      - ".github/workflows/enable-google-auth.yml"
+      - ".github/workflows/auth-role-contracts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check module syntax
+        run: |
+          set -euo pipefail
+          for file in \
+            pincon-guest-auth.js \
+            next/write-mode.js \
+            next/admin/role-manager.js \
+            next/admin/bootstrap.js \
+            automation/enable-google-auth.mjs
+          do
+            node --input-type=module --check < "$file"
+          done
+      - name: Run auth and role contracts
+        run: node --test next/tests/auth-role-contract.test.mjs
