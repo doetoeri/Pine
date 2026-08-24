@@ -44,6 +44,7 @@ jobs:
             next/admin/bootstrap.js \
             next/admin/brand-settings.js \
             next/admin/content-editor.js \
+            next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
