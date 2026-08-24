@@ -116,8 +116,6 @@ async function ensureNamedUser() {
 async function ensureNamedUserAndSync() {
   const result = await ensureNamedUser();
   if (!result) return null;
-  // The main app bundles its own Firebase SDK. Reload once so that SDK restores
-  // the anonymous Firebase session from browser persistence too.
   if (result.guest) {
     sessionStorage.setItem("pincon-guest-auth-ready", "1");
     location.reload();
@@ -126,9 +124,67 @@ async function ensureNamedUserAndSync() {
   return result;
 }
 
+function googleErrorMessage(error) {
+  if (error?.code === "auth/popup-closed-by-user") return "Google 로그인 창을 닫았습니다.";
+  if (error?.code === "auth/popup-blocked") return "브라우저가 Google 로그인 팝업을 차단했습니다. 팝업을 허용한 뒤 다시 시도해 주세요.";
+  if (error?.code === "auth/operation-not-allowed") return "Google 로그인이 아직 Firebase에서 활성화되지 않았습니다.";
+  if (error?.code === "auth/unauthorized-domain") return "현재 PinCon 도메인이 Firebase 로그인 허용 목록에 없습니다.";
+  return error?.message || "Google 로그인을 완료하지 못했습니다.";
+}
+
+async function signInWithGoogle() {
+  const api = await authApi();
+  await api.setPersistence(api.auth, api.browserLocalPersistence);
+  await api.auth.authStateReady?.();
+  const provider = new api.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  try {
+    const credential = await api.signInWithPopup(api.auth, provider);
+    const user = credential.user;
+    localStorage.removeItem(NAME_KEY);
+    await user.getIdToken(true);
+    return {
+      user,
+      guest: false,
+      name: user.displayName || user.email || "Google 사용자",
+      provider: "google.com",
+    };
+  } catch (error) {
+    const wrapped = new Error(googleErrorMessage(error));
+    wrapped.code = error?.code || "auth/google-sign-in-failed";
+    throw wrapped;
+  }
+}
+
+async function signInWithGoogleAndSync() {
+  const result = await signInWithGoogle();
+  if (!result) return null;
+  sessionStorage.setItem("pincon-google-auth-ready", "1");
+  location.reload();
+  await new Promise(() => {});
+}
+
+async function signOutAndSync() {
+  const api = await authApi();
+  await api.signOut(api.auth);
+  localStorage.removeItem(NAME_KEY);
+  location.reload();
+  await new Promise(() => {});
+}
+
+async function currentUser() {
+  const api = await authApi();
+  await api.auth.authStateReady?.();
+  return api.auth.currentUser || null;
+}
+
 globalThis.PINCON_GUEST_AUTH = Object.freeze({
   ensureNamedUser,
   ensureNamedUserAndSync,
+  signInWithGoogle,
+  signInWithGoogleAndSync,
+  signOutAndSync,
+  currentUser,
   displayName: savedName,
   clearName: () => localStorage.removeItem(NAME_KEY),
 });
