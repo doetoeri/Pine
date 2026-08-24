@@ -1,6 +1,5 @@
 import { NextDataGateway } from "../core/data-gateway.js";
 
-const root = document.querySelector("#adminApp");
 const gateway = new NextDataGateway();
 
 await gateway.start();
@@ -13,4 +12,5 @@ if (!snapshot.canArchiveContent) {
   await import("./brand-settings.js");
   await import("./content-editor.js");
   await import("./problem-bank-guide.js");
+  await import("./role-manager.js");
 }
