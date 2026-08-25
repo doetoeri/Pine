@@ -31,6 +31,33 @@
     </div>
     <div id="app"></div>
     <noscript>PinCon을 사용하려면 JavaScript가 필요합니다.</noscript>
+    <script>
+      (() => {
+        function eventHost(event, predicate) {
+          return event.composedPath?.().find((node) => node instanceof HTMLElement && predicate(node)) || null;
+        }
+
+        document.addEventListener("click", (event) => {
+          const trigger = eventHost(event, (node) => node.id === "openNotifications");
+          if (!trigger || trigger.hasAttribute("data-aria-label")) return;
+
+          document.querySelector("#notificationDialog")?.show?.();
+
+          let frames = 0;
+          const replayWhenReady = () => {
+            const current = document.querySelector("#openNotifications");
+            if (!current) return;
+            if (current.hasAttribute("data-aria-label")) {
+              current.click();
+              return;
+            }
+            frames += 1;
+            if (frames < 180) requestAnimationFrame(replayWhenReady);
+          };
+          requestAnimationFrame(replayWhenReady);
+        }, true);
+      })();
+    </script>
     <script type="module" src="../pincon-guest-auth.js"></script>
     <script type="module" src="./reveal-loader.js"></script>
     <script type="module" src="./app.js"></script>
