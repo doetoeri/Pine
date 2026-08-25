@@ -812,7 +812,7 @@ function morePage() {
         </div>
       </article>
       <article class="surface">
-        <div class="surface__header"><h2 class="surface__title">PinCon Beta 안내</h2><span class="beta-badge">Beta</span></div>
+        <div class="surface__header"><h2 class="surface__title">PinCon Beta 안내</h2><span class="beta-badge">읽기 전용</span></div>
         <div class="trust-grid">
           <div class="trust-line"><strong>정보 구분</strong><span>학교 공식 자료와 반에서 정리한 정보를 상세 화면에서 구분합니다.</span></div>
           <div class="trust-line"><strong>개인정보</strong><span>학생 이름·성적·전화번호를 새로 수집하지 않습니다.</span></div>
@@ -903,7 +903,6 @@ function render({ preserveView = false } = {}) {
     <aside class="rail" aria-label="PinCon 내비게이션">
       <div class="rail__brand" aria-hidden="true"><md-icon>hub</md-icon></div>
       ${navMarkup("rail__nav")}
-      <span class="beta-badge rail__beta">Beta</span>
     </aside>
     <div class="app-frame">
       <header class="topbar">

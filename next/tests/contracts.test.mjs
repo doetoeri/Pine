@@ -5,6 +5,7 @@ import {
   BRAND_TAGLINE_MAX_LENGTH,
   DEFAULT_BRAND_TAGLINE,
   brandTaglineFor,
+  isLegacyProductTagline,
   normalizeBrandTagline,
   validateBrandTagline,
 } from "../core/brand-settings.js";
@@ -19,7 +20,7 @@ import {
   softDeletePatch,
 } from "../core/trust-model.js";
 
-test("brand tagline defaults to NEXT and follows classSettings", () => {
+test("brand tagline defaults hidden and follows student-friendly classSettings", () => {
   assert.equal(brandTaglineFor({}, "1-8"), DEFAULT_BRAND_TAGLINE);
   assert.equal(brandTaglineFor({
     classSettings: [
@@ -27,6 +28,16 @@ test("brand tagline defaults to NEXT and follows classSettings", () => {
       { id: "1-8", classKey: "1-8", brandTagline: "  우리 반   허브  " },
     ],
   }, "1-8"), "우리 반 허브");
+});
+
+test("legacy product labels never reappear as class taglines", () => {
+  for (const brandTagline of ["Alpha", "NEXT", "NEXT BETA", "SAFE REBUILD", "PinCon Beta"]) {
+    assert.equal(brandTaglineFor({
+      classSettings: [{ id: "1-8", classKey: "1-8", brandTagline }],
+    }, "1-8"), "");
+    assert.equal(isLegacyProductTagline(brandTagline), true);
+    assert.throws(() => validateBrandTagline(brandTagline), /제품 이름/);
+  }
 });
 
 test("brand tagline may be hidden and rejects overlong text", () => {

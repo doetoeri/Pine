@@ -146,7 +146,7 @@ function applyBranding(root = document) {
 
   const railMark = root.querySelector?.(".rail__brand") || document.querySelector(".rail__brand");
   if (railMark && !railMark.querySelector(".pincon-brand-logo")) {
-    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon</span><small class="rail__tagline"></small></span>`;
+    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon Beta</span><small class="rail__tagline"></small></span>`;
   }
 
   const tagline = currentTagline();
