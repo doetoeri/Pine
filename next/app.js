@@ -1210,6 +1210,7 @@ function problemDetail(record) {
   const item = record.item;
   const attempt = state.problemAttempts.get(item.id) || { selected: "", answer: "", submitted: false, correct: false };
   const objective = item.type === "multiple-choice";
+  const answerReady = objective ? attempt.selected !== "" : Boolean(attempt.answer?.trim());
   let interaction = "";
   if (objective) {
     interaction = `<fieldset class="quiz-choices" ${attempt.submitted ? "disabled" : ""}><legend>보기를 선택하세요</legend>
@@ -1226,7 +1227,7 @@ function problemDetail(record) {
       <div><strong>${attempt.correct ? "정답입니다" : "다시 확인해 보세요"}</strong><span><b>정답</b> ${escapeHtml(item.answer)}</span><span><b>해설</b> ${escapeHtml(item.explanation)}</span></div>
     </div>
     <md-filled-tonal-button data-problem-retry><md-icon slot="icon">refresh</md-icon>다시 풀기</md-filled-tonal-button>`
-    : `<md-filled-button data-problem-submit ${objective ? (attempt.selected === "" ? "disabled" : "") : (!attempt.answer ? "disabled" : "")}>제출</md-filled-button>`;
+    : `<md-filled-button data-problem-submit ${answerReady ? 'aria-disabled="false"' : 'disabled aria-disabled="true"'}>제출</md-filled-button>`;
   return {
     eyebrow: `${item.subject} · ${item.unit}`,
     title: item.question,
@@ -1593,6 +1594,7 @@ app.addEventListener("click", async (event) => {
 
   const problemSubmit = eventHost(event, (node) => node.hasAttribute("data-problem-submit"));
   if (problemSubmit) {
+    if (problemSubmit.hasAttribute("disabled") || problemSubmit.getAttribute("aria-disabled") === "true") return;
     const record = detailRegistry.get(state.detailKey);
     if (record?.kind !== "problem") return;
     const item = record.item;
@@ -1638,7 +1640,11 @@ app.addEventListener("input", (event) => {
     attempt.answer = shortAnswer.value || "";
     state.problemAttempts.set(item.id, attempt);
     const submit = app.querySelector("[data-problem-submit]");
-    if (submit) submit.toggleAttribute("disabled", !attempt.answer.trim());
+    if (submit) {
+      const disabled = !attempt.answer.trim();
+      submit.toggleAttribute("disabled", disabled);
+      submit.setAttribute("aria-disabled", String(disabled));
+    }
   }
 });
 
@@ -1650,7 +1656,9 @@ app.addEventListener("change", (event) => {
   const attempt = state.problemAttempts.get(record.item.id) || { answer: "", submitted: false };
   attempt.selected = radio.getAttribute("data-problem-choice");
   state.problemAttempts.set(record.item.id, attempt);
-  app.querySelector("[data-problem-submit]")?.removeAttribute("disabled");
+  const submit = app.querySelector("[data-problem-submit]");
+  submit?.removeAttribute("disabled");
+  submit?.setAttribute("aria-disabled", "false");
   app.querySelectorAll(".quiz-choices label").forEach((label) => label.classList.toggle("is-selected", label.contains(radio)));
 });
 
