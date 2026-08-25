@@ -17,7 +17,10 @@ if (boot && field) {
     }
 
     #pinconBoot {
-      overflow: hidden !important;
+      max-width: 100vw;
+      max-height: 100dvh;
+      overflow: clip !important;
+      contain: strict;
       background: var(--md-sys-color-background, #f7f9f1) !important;
       transition: background-color 120ms linear, opacity 160ms cubic-bezier(.2,0,0,1) !important;
     }
@@ -28,8 +31,9 @@ if (boot && field) {
 
     #pinconBootField {
       position: absolute;
-      inset: -12%;
-      overflow: hidden;
+      inset: 0;
+      overflow: clip;
+      contain: strict;
       pointer-events: none;
     }
 
