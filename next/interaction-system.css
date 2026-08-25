@@ -362,6 +362,23 @@ md-list-item[type="button"] {
   color: var(--md-sys-color-on-secondary-container);
 }
 
+.notice-banner {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.notice-banner p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notice-banner > md-text-button {
+  grid-column: 2;
+  justify-self: start;
+}
+
 .detail-layer[hidden] {
   display: none !important;
 }
