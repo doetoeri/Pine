@@ -35,19 +35,37 @@ function ensureNameDialog() {
   if (nameDialog) return nameDialog;
   nameDialog = document.createElement("md-dialog");
   nameDialog.id = "pincon-guest-name-dialog";
+  nameDialog.className = "pincon-auth-dialog";
   nameDialog.innerHTML = `
-    <div slot="headline">로그인 없이 편집</div>
-    <div slot="content" class="pincon-material-fields">
-      <p class="md-typescale-body-medium" style="margin:0;color:var(--md-sys-color-on-surface-variant)">변경 기록에 표시할 이름을 입력하세요. 계정 로그인은 필요하지 않습니다.</p>
-      <md-outlined-text-field data-guest-name label="이름" maxlength="20" required></md-outlined-text-field>
-      <div data-guest-error class="pincon-material-empty" hidden></div>
+    <div slot="headline">편집 시작</div>
+    <div slot="content" class="pincon-auth-dialog__content">
+      <p class="pincon-auth-dialog__intro">Google 계정으로 로그인하면 관리자 권한과 변경 기록을 같은 계정으로 유지할 수 있습니다.</p>
+      <md-filled-tonal-button data-google-sign-in class="pincon-auth-dialog__google"><md-icon slot="icon">account_circle</md-icon>Google로 로그인</md-filled-tonal-button>
+      <div class="pincon-auth-dialog__divider" aria-hidden="true"><span>또는</span></div>
+      <p class="pincon-auth-dialog__guest-copy">오늘 임시 편집만 필요하면 변경 기록에 표시할 이름을 입력하세요.</p>
+      <md-outlined-text-field data-guest-name label="이름" maxlength="20" required autocomplete="name"></md-outlined-text-field>
+      <div data-guest-error class="pincon-material-empty pincon-auth-dialog__error" role="alert" hidden></div>
     </div>
-    <div slot="actions">
+    <div slot="actions" class="pincon-auth-dialog__actions">
       <md-text-button data-guest-cancel>취소</md-text-button>
-      <md-filled-button data-guest-continue>이름으로 편집</md-filled-button>
+      <md-filled-button data-guest-continue>이름으로 계속</md-filled-button>
     </div>`;
   document.body.appendChild(nameDialog);
   nameDialog.querySelector("[data-guest-cancel]").addEventListener("click", () => nameDialog.close());
+  nameDialog.querySelector("[data-google-sign-in]").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const error = nameDialog.querySelector("[data-guest-error]");
+    if (button.disabled) return;
+    button.disabled = true;
+    error.hidden = true;
+    try {
+      await signInWithGoogleAndSync();
+    } catch (authError) {
+      error.textContent = authError?.message || "Google 로그인을 완료하지 못했습니다.";
+      error.hidden = false;
+      button.disabled = false;
+    }
+  });
   return nameDialog;
 }
 
@@ -106,7 +124,7 @@ async function ensureNamedUser() {
     const box = dialog.querySelector("[data-guest-error]");
     box.textContent = error?.code === "auth/operation-not-allowed"
       ? "익명 편집이 아직 서버에서 활성화되지 않았습니다. 잠시 후 다시 시도해 주세요."
-      : (error?.message || "로그인 없이 편집을 시작하지 못했습니다.");
+      : (error?.message || "이름으로 편집을 시작하지 못했습니다.");
     box.hidden = false;
     if (!dialog.open) await dialog.show();
     throw error;
