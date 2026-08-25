@@ -121,6 +121,13 @@ for (const viewport of VIEWPORTS) {
     await expect(trigger).toBeVisible({ timeout: 8_000 });
     await page.evaluate(() => window.scrollTo(0, 180));
     const scrollBefore = await page.evaluate(() => window.scrollY);
+    const overflowBefore = await page.evaluate(() => ({
+      innerWidth,
+      rootClientWidth: document.documentElement.clientWidth,
+      rootScrollWidth: document.documentElement.scrollWidth,
+      bodyClientWidth: document.body.clientWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+    }));
     await trigger.click();
 
     const layer = page.locator("#detailLayer");
@@ -141,8 +148,28 @@ for (const viewport of VIEWPORTS) {
         && rect.bottom <= innerHeight + 1;
     }), { timeout: 1_500 }).toBe(true);
 
-    const geometry = await surface.evaluate((node) => {
+    const geometry = await surface.evaluate((node, overflowBefore) => {
       const rect = node.getBoundingClientRect();
+      const offenders = [];
+      const visit = (root) => {
+        for (const element of root.querySelectorAll("*")) {
+          const candidate = element.getBoundingClientRect();
+          if (candidate.width > 0 && (candidate.left < -1 || candidate.right > innerWidth + 1)) {
+            offenders.push({
+              tag: element.tagName.toLowerCase(),
+              id: element.id,
+              className: typeof element.className === "string" ? element.className : "",
+              left: candidate.left,
+              right: candidate.right,
+              width: candidate.width,
+              transform: getComputedStyle(element).transform,
+              overflowX: getComputedStyle(element).overflowX,
+            });
+          }
+          if (element.shadowRoot) visit(element.shadowRoot);
+        }
+      };
+      visit(document);
       return {
         left: rect.left,
         top: rect.top,
@@ -150,14 +177,20 @@ for (const viewport of VIEWPORTS) {
         bottom: rect.bottom,
         width: innerWidth,
         height: innerHeight,
+        overflowBefore,
+        rootClientWidth: document.documentElement.clientWidth,
+        rootScrollWidth: document.documentElement.scrollWidth,
+        bodyClientWidth: document.body.clientWidth,
+        bodyScrollWidth: document.body.scrollWidth,
+        offenders: offenders.slice(0, 20),
         pageOverflow: document.documentElement.scrollWidth > innerWidth + 1,
       };
-    });
+    }, overflowBefore);
     expect(geometry.left).toBeGreaterThanOrEqual(-1);
     expect(geometry.top).toBeGreaterThanOrEqual(-1);
     expect(geometry.right).toBeLessThanOrEqual(geometry.width + 1);
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.height + 1);
-    expect(geometry.pageOverflow).toBe(false);
+    expect(geometry).toMatchObject({ pageOverflow: false });
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
     if (viewport.mode === "side") {
