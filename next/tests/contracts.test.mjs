@@ -56,6 +56,9 @@ test("notification feed combines canonical class sources and excludes hidden rec
 
   assert.deepEqual(feed.map((item) => item.id), ["assignment:w1", "announcement:a1"]);
   assert.equal(feed[0].route, "schedule");
+  assert.equal(feed[0].detailKind, "assignment");
+  assert.equal(feed[0].collection, "classAssignments");
+  assert.equal(feed[0].recordId, "w1");
   assert.equal(feed[1].route, "today");
 });
 

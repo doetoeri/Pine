@@ -77,7 +77,7 @@ function activeCount(value) {
 function loadingMarkup() {
   return `<main class="admin-gate" aria-labelledby="admin-loading-title">
     <section class="admin-gate__card">
-      <span class="beta-badge">PINCON NEXT ADMIN</span>
+      <span class="beta-badge">PinCon Beta · 관리자</span>
       <h1 id="admin-loading-title">관리 권한을 확인하는 중</h1>
       <p>학급 데이터와 인증 상태를 같은 원본에서 확인하고 있습니다.</p>
       <md-linear-progress indeterminate></md-linear-progress>
@@ -89,7 +89,7 @@ function deniedMarkup(accessState) {
   const access = snapshot.access || {};
   return `<main class="admin-gate" aria-labelledby="admin-denied-title">
     <section class="admin-gate__card">
-      <span class="beta-badge">ACCESS CONTROLLED</span>
+      <span class="beta-badge">관리자 전용</span>
       <h1 id="admin-denied-title">${escapeHtml(accessState.title)}</h1>
       <p>${escapeHtml(accessState.message)}</p>
       <div class="admin-status admin-status--denied" role="status">
@@ -97,7 +97,7 @@ function deniedMarkup(accessState) {
         <p>현재 역할: <strong>${escapeHtml(roleLabel(access.role))}</strong>. 화면을 숨기는 것과 별개로 실제 데이터 권한은 Firestore 서버 규칙이 강제합니다.</p>
       </div>
       <div class="admin-actions">
-        <md-filled-tonal-button id="backToPincon"><md-icon slot="icon">arrow_back</md-icon>PinCon으로 돌아가기</md-filled-tonal-button>
+        <md-filled-tonal-button id="backToPincon"><md-icon slot="icon">arrow_back</md-icon>PinCon Beta로 돌아가기</md-filled-tonal-button>
       </div>
     </section>
   </main>`;
@@ -159,7 +159,7 @@ function dashboardMarkup(accessState) {
       <div class="admin-brand">
         <div class="admin-brand__mark" aria-hidden="true"><md-icon>admin_panel_settings</md-icon></div>
         <div class="admin-brand__copy">
-          <strong>PinCon Next 관리자</strong>
+          <strong>PinCon Beta 관리자</strong>
           <span>고촌고등학교 · ${escapeHtml(classLabel(profile))}</span>
         </div>
       </div>
@@ -169,7 +169,7 @@ function dashboardMarkup(accessState) {
     <section class="admin-hero" aria-labelledby="admin-title">
       <p class="admin-hero__eyebrow">권한 기반 운영 콘솔</p>
       <h1 id="admin-title">운영은 한 곳에서,<br />변경은 기록과 함께.</h1>
-      <p>학생 화면과 같은 데이터 원본을 사용합니다. Next Beta에서는 관리자가 들어와도 공용 쓰기·삭제·복원은 잠겨 있어 현황과 감사 가능성부터 검증합니다.</p>
+      <p>학생 화면과 같은 학급 정보를 사용합니다. 변경 권한과 기록을 확인한 뒤 허용된 작업만 진행할 수 있습니다.</p>
     </section>
 
     <div class="admin-status" role="status">
@@ -181,16 +181,16 @@ function dashboardMarkup(accessState) {
 
     <div class="admin-grid">
       <section class="admin-card" aria-labelledby="access-title">
-        <div class="admin-card__header"><h2 id="access-title">접근 상태</h2><span class="beta-badge">WRITE LOCKED</span></div>
+        <div class="admin-card__header"><h2 id="access-title">접근 상태</h2><span class="beta-badge">${accessState.mode === "write-enabled" ? "관리 가능" : "읽기 전용"}</span></div>
         <div class="admin-list">
           <div class="admin-row"><span>역할</span><div class="admin-row__main"><strong>${escapeHtml(roleLabel(access.role))}</strong><span>${escapeHtml(access.displayName || "인증 계정")}</span></div><span></span></div>
           <div class="admin-row"><span>학급 범위</span><div class="admin-row__main"><strong>${escapeHtml(classLabel(profile))}</strong><span>${escapeHtml(profile?.classKey || "범위 없음")}</span></div><span></span></div>
-          <div class="admin-row"><span>공용 쓰기</span><div class="admin-row__main"><strong>잠김</strong><span>운영 규칙을 production에 적용하기 전까지 활성화하지 않습니다.</span></div><span></span></div>
+          <div class="admin-row"><span>학급 정보 변경</span><div class="admin-row__main"><strong>${accessState.mode === "write-enabled" ? "허용된 항목만 가능" : "잠김"}</strong><span>${escapeHtml(accessState.message)}</span></div><span></span></div>
         </div>
       </section>
 
       <section class="admin-card" aria-labelledby="summary-title">
-        <div class="admin-card__header"><h2 id="summary-title">데이터 현황</h2><span class="admin-meta">단일 데이터 게이트웨이</span></div>
+        <div class="admin-card__header"><h2 id="summary-title">정보 현황</h2><span class="admin-meta">실시간 연결</span></div>
         <div class="admin-stat-grid">
           <div class="admin-stat"><span>활성 항목</span><strong>${active}</strong></div>
           <div class="admin-stat"><span>보관 항목</span><strong>${archived.length}</strong></div>
@@ -199,7 +199,7 @@ function dashboardMarkup(accessState) {
       </section>
 
       <section class="admin-card admin-card--wide" aria-labelledby="collections-title">
-        <div class="admin-card__header"><h2 id="collections-title">컬렉션 상태</h2><span class="admin-meta">현재 읽힌 배열형 데이터만 표시</span></div>
+        <div class="admin-card__header"><h2 id="collections-title">정보 종류별 상태</h2><span class="admin-meta">현재 연결된 정보</span></div>
         ${collections.length ? `<div class="admin-list">${collections.map(([key, value]) => `<div class="admin-row"><span>${escapeHtml(collectionLabel(key))}</span><div class="admin-row__main"><strong>${activeCount(value)}개 활성</strong><span>전체 ${value.length}개</span></div><span></span></div>`).join("")}</div>` : `<div class="admin-empty"><md-icon>database</md-icon><strong>표시할 데이터가 없습니다</strong><span>데이터 동기화가 완료되면 컬렉션 현황이 표시됩니다.</span></div>`}
       </section>
 

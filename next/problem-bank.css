@@ -22,108 +22,76 @@
   gap: 12px;
   margin: 8px 0 14px;
   color: var(--md-sys-color-on-surface-variant, #44483f);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 .problem-bank-list {
   display: grid;
-  gap: 14px;
+  gap: 9px;
 }
 
 .problem-card {
-  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c5c8bc) 72%, transparent);
-  border-radius: 22px;
-  padding: 18px;
-  background: var(--md-sys-color-surface-container-low, #f2f4eb);
+  min-height: 82px;
 }
 
-.problem-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 10px;
+.problem-card__number {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--md-sys-color-tertiary-container, #bcece7);
+  color: var(--md-sys-color-on-tertiary-container, #00201e);
+  font-weight: 800;
 }
 
-.problem-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--md-sys-color-secondary-container, #dfe8ce);
-  color: var(--md-sys-color-on-secondary-container, #151f0e);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.problem-chip--difficulty {
-  background: var(--md-sys-color-tertiary-container, #dbe8d3);
-  color: var(--md-sys-color-on-tertiary-container, #111f12);
+.problem-card__question,
+.problem-card__support {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 .problem-card__question {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.65;
-  font-weight: 650;
-  white-space: pre-wrap;
-}
-
-.problem-card__choices {
-  margin: 14px 0 0;
-  padding-left: 1.55rem;
-  display: grid;
-  gap: 7px;
-  color: var(--md-sys-color-on-surface, #1b1d19);
-}
-
-.problem-card__answer {
-  margin-top: 14px;
-  border-radius: 16px;
-  background: var(--md-sys-color-surface-container, #ecefe5);
-  overflow: clip;
-}
-
-.problem-card__answer summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 13px 14px;
   font-weight: 700;
+  line-height: 1.55;
+}
+
+.problem-card__support {
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  line-height: 1.5;
+}
+
+.problem-card__end {
+  max-width: 150px;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
-.problem-card__answer summary::-webkit-details-marker {
-  display: none;
+.problem-card__end > md-icon {
+  flex: 0 0 auto;
+  color: var(--md-sys-color-primary);
 }
 
-.problem-card__answer-body {
-  padding: 0 14px 14px;
-  display: grid;
-  gap: 8px;
-  line-height: 1.6;
+.problem-source {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.problem-card__answer-body p {
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.problem-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
-  color: var(--md-sys-color-on-surface-variant, #44483f);
-  font-size: 0.78rem;
-}
-
-.problem-card__source {
-  margin-top: 10px;
-  color: var(--md-sys-color-on-surface-variant, #44483f);
-  font-size: 0.76rem;
+.problem-source--class {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
 }
 
 @media (max-width: 700px) {
@@ -131,8 +99,21 @@
     grid-template-columns: 1fr;
   }
 
-  .problem-card {
-    border-radius: 18px;
-    padding: 15px;
+  .problem-bank-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .problem-card__end {
+    max-width: 108px;
+  }
+}
+
+@media (max-width: 399px) {
+  .problem-source {
+    max-width: 76px;
+    white-space: normal;
+    text-align: center;
   }
 }

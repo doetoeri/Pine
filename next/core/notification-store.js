@@ -47,21 +47,27 @@ function normalize(kind, item, index, options) {
   if (!title) return null;
   return {
     id: `${kind}:${item.id || fallbackId(kind, item, index)}`,
+    recordId: item.id || "",
+    detailKind: options.detailKind || kind,
+    collection: options.collection || `${kind}s`,
     kind: options.label,
     icon: options.icon,
     title,
     body: cleanText(item.body || item.description || item.subject || item.location || options.body || ""),
     date: dateFrom(item),
-    route: options.route,
+    route: typeof options.route === "function" ? options.route(item) : options.route,
     order: orderFrom(item),
+    occurredAtMs: orderFrom(item),
+    changeSummary: cleanText(item.changeSummary || item.changeDescription || item.body || item.description || options.body || ""),
   };
 }
 
 export function buildNotificationFeed(data = {}, limit = 80) {
   const specs = [
-    ["announcement", data.announcements || [], { label: "공지", icon: "campaign", route: "today", fallbackTitle: "새 공지" }],
-    ["assignment", data.classAssignments || [], { label: "수행·숙제", icon: "assignment", route: "schedule", fallbackTitle: "새 수행·숙제" }],
-    ["event", data.events || [], { label: "학급 행사", icon: "celebration", route: "classroom", fallbackTitle: "새 학급 행사" }],
+    ["announcement", data.announcements || [], { label: "공지", icon: "campaign", route: "today", collection: "announcements", detailKind: "announcement", fallbackTitle: "새 공지" }],
+    ["content", (data.content || []).filter((item) => item?.kind === "notice"), { label: "공지", icon: "update", route: (item) => item.category === "수업 변경" ? "timetable" : "today", collection: "content", detailKind: "announcement", fallbackTitle: "새 공지" }],
+    ["assignment", data.classAssignments || [], { label: "수행·숙제", icon: "assignment", route: "schedule", collection: "classAssignments", detailKind: "assignment", fallbackTitle: "새 수행·숙제" }],
+    ["event", data.events || [], { label: "학급 행사", icon: "celebration", route: "classroom", collection: "events", detailKind: "event", fallbackTitle: "새 학급 행사" }],
   ];
 
   const rows = [];

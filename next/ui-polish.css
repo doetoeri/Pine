@@ -1,4 +1,4 @@
-/* PinCon Next final UI stabilization.
+/* PinCon Beta final UI stabilization.
    The navigation never hides, truncates, or zero-sizes route labels. */
 
 #pinconBoot {
@@ -526,12 +526,12 @@ body.pincon-route-transition .view-enter {
   vertical-align: middle;
 }
 
-.brand__title .beta-badge:not([data-brand-ready="true"]),
+.brand__tagline:not([data-brand-ready="true"]),
 .rail__tagline:not([data-brand-ready="true"]) {
   visibility: hidden;
 }
 
-.brand__title .beta-badge[hidden],
+.brand__tagline[hidden],
 .rail__tagline[hidden] {
   display: none !important;
 }

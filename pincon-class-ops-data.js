@@ -194,19 +194,26 @@ export class PinconClassOpsRepository extends EventTarget {
       isPresident: false,
       syncing: false,
       lastError: "",
+      collectionStatus: Object.fromEntries(PUBLIC_COLLECTIONS.map((name) => [name, "idle"])),
+      cacheSavedAtMs: 0,
+      usingCache: false,
       data: Object.fromEntries([...PUBLIC_COLLECTIONS, "patchNoteDrafts", "changeLogs", "supplyReports"].map((name) => [name, []])),
     };
     this.unsubscribers = [];
     this.privateUnsubscribers = [];
+    this.cachedCollections = new Set();
     this.api = null;
     this.authUnsubscribe = null;
-    window.addEventListener("online", () => this.setOnline(true));
-    window.addEventListener("offline", () => this.setOnline(false));
+    this.handleOnline = () => this.setOnline(true);
+    this.handleOffline = () => this.setOnline(false);
+    window.addEventListener("online", this.handleOnline);
+    window.addEventListener("offline", this.handleOffline);
   }
 
   snapshot() {
     return {
       ...this.state,
+      collectionStatus: { ...this.state.collectionStatus },
       data: Object.fromEntries(Object.entries(this.state.data).map(([key, value]) => [key, [...value]])),
       notificationPreferences: this.notificationPreferences(),
     };
@@ -226,6 +233,10 @@ export class PinconClassOpsRepository extends EventTarget {
     this.state.ready = false;
     this.state.syncing = false;
     this.state.lastError = "";
+    this.state.collectionStatus = Object.fromEntries(PUBLIC_COLLECTIONS.map((name) => [name, "idle"]));
+    this.state.cacheSavedAtMs = 0;
+    this.state.usingCache = false;
+    this.cachedCollections.clear();
     this.state.role = null;
     this.state.isPresident = false;
     this.state.data = Object.fromEntries(
@@ -247,9 +258,16 @@ export class PinconClassOpsRepository extends EventTarget {
   loadCache() {
     const cached = safeJsonParse(localStorage.getItem(CACHE_KEY) || "null", null);
     if (!cached || cached.classKey !== this.state.classKey || !cached.data) return;
+    let restored = false;
     for (const name of PUBLIC_COLLECTIONS) {
-      if (Array.isArray(cached.data[name])) this.state.data[name] = rowsForProfile(name, cached.data[name].map(normalizedRecord), this.state.profile);
+      if (!Array.isArray(cached.data[name])) continue;
+      this.state.data[name] = rowsForProfile(name, cached.data[name].map(normalizedRecord), this.state.profile);
+      this.state.collectionStatus[name] = "cached";
+      this.cachedCollections.add(name);
+      restored = true;
     }
+    this.state.cacheSavedAtMs = Number(cached.savedAtMs || 0);
+    this.state.usingCache = restored;
   }
 
   saveCache() {
@@ -260,6 +278,9 @@ export class PinconClassOpsRepository extends EventTarget {
     if (this.state.ready || this.state.syncing) return this.snapshot();
     if (!this.state.classKey) throw new Error("먼저 PinCon에서 학년과 반을 선택해 주세요.");
     this.loadCache();
+    for (const name of PUBLIC_COLLECTIONS) {
+      if (this.state.collectionStatus[name] === "idle") this.state.collectionStatus[name] = "loading";
+    }
     this.state.syncing = true;
     this.emit();
     this.api = await firebaseApi();
@@ -318,11 +339,23 @@ export class PinconClassOpsRepository extends EventTarget {
       if (!queryRef) continue;
       const unsubscribe = listenQuery(this.api, queryRef, (snapshot) => {
         this.state.data[name] = rowsForProfile(name, rowsFromSnapshot(snapshot), this.state.profile);
+        this.state.collectionStatus[name] = snapshot.metadata?.fromCache ? "cached" : "success";
+        if (snapshot.metadata?.fromCache) {
+          this.cachedCollections.add(name);
+          this.state.usingCache = true;
+        } else {
+          this.cachedCollections.delete(name);
+          this.state.usingCache = this.cachedCollections.size > 0;
+          this.state.cacheSavedAtMs = Date.now();
+        }
         this.state.lastError = "";
-        this.saveCache();
+        if (!snapshot.metadata?.fromCache) this.saveCache();
         this.emit();
       }, (error) => {
+        this.state.collectionStatus[name] = this.cachedCollections.has(name) ? "cached-error" : "error";
+        this.state.usingCache = this.cachedCollections.size > 0;
         if (name !== "polls" || this.state.user) this.recordError(error);
+        else this.emit();
       });
       this.unsubscribers.push(unsubscribe);
     }
@@ -337,6 +370,15 @@ export class PinconClassOpsRepository extends EventTarget {
       }, (error) => this.recordError(error));
       this.privateUnsubscribers.push(unsubscribe);
     }
+  }
+
+  dispose() {
+    this.unsubscribers.splice(0).forEach((stop) => stop());
+    this.privateUnsubscribers.splice(0).forEach((stop) => stop());
+    this.authUnsubscribe?.();
+    this.authUnsubscribe = null;
+    window.removeEventListener("online", this.handleOnline);
+    window.removeEventListener("offline", this.handleOffline);
   }
 
   async ensureUser() {
