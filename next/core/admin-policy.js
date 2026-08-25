@@ -21,7 +21,7 @@ export function adminAccessState(access) {
       allowed: false,
       mode: "forbidden",
       title: "관리 권한이 없습니다",
-      message: "현재 계정에는 PinCon Next 관리 영역을 볼 권한이 없습니다.",
+      message: "현재 계정에는 PinCon Beta 관리자 화면을 볼 권한이 없습니다.",
     });
   }
 

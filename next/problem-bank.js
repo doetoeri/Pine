@@ -2,6 +2,7 @@ const DATA_URL = "./data/problem-bank.json";
 const PROFILE_KEY = "pincon-profile-v2";
 
 let bank = { schemaVersion: 1, problems: [] };
+let loading = true;
 let loadError = "";
 let renderQueued = false;
 let filters = { query: "", subject: "all", difficulty: "all" };
@@ -36,11 +37,10 @@ function difficultyLabel(value) {
   return value === "easy" ? "기초" : value === "hard" ? "도전" : "보통";
 }
 
-function sourceLabel(source) {
-  if (source?.kind === "ai-generated") return "AI 생성 · 검토 후 게시";
-  if (source?.kind === "teacher-approved") return "교사 승인";
-  if (source?.kind === "open-license") return "공개 라이선스";
-  return "직접 제작";
+function sourceLabel(item) {
+  const note = String(item?.source?.note || "");
+  if (item?.example === true || /예시|sample/i.test(note)) return "예시 문제";
+  return "실제 학급 자료";
 }
 
 function filteredProblems() {
@@ -49,50 +49,60 @@ function filteredProblems() {
     if (filters.subject !== "all" && item.subject !== filters.subject) return false;
     if (filters.difficulty !== "all" && item.difficulty !== filters.difficulty) return false;
     if (!query) return true;
-    const haystack = [item.subject, item.unit, item.question, ...(item.tags || [])]
-      .join(" ")
-      .toLocaleLowerCase("ko-KR");
+    const haystack = [
+      item.subject,
+      item.unit,
+      item.question,
+      sourceLabel(item),
+      ...(item.tags || []),
+    ].join(" ").toLocaleLowerCase("ko-KR");
     return haystack.includes(query);
   });
 }
 
-function choiceMarkup(item) {
-  if (item.type !== "multiple-choice" || !Array.isArray(item.choices) || !item.choices.length) return "";
-  return `<ol class="problem-card__choices">${item.choices.map((choice) => `<li>${escapeHtml(choice)}</li>`).join("")}</ol>`;
+function detailKey(item) {
+  const api = globalThis.PinConNext;
+  return api?.registerDetail?.("problem", item, {
+    collection: "problemBank",
+    route: "classroom",
+  }) || api?.detailKeyForReference?.("problem", "problemBank", item.id) || "";
 }
 
 function problemMarkup(item, index) {
-  const tags = Array.isArray(item.tags) ? item.tags : [];
-  return `<article class="problem-card" data-problem-id="${escapeHtml(item.id)}">
-    <div class="problem-card__meta">
-      <span class="problem-chip">${escapeHtml(item.subject)}</span>
-      <span class="problem-chip">${escapeHtml(item.unit)}</span>
-      <span class="problem-chip problem-chip--difficulty">${escapeHtml(difficultyLabel(item.difficulty))}</span>
-      <span class="problem-chip">${item.type === "multiple-choice" ? "객관식" : "주관식"}</span>
-    </div>
-    <p class="problem-card__question"><strong>${index + 1}.</strong> ${escapeHtml(item.question)}</p>
-    ${choiceMarkup(item)}
-    <details class="problem-card__answer">
-      <summary><md-icon>visibility</md-icon>정답·해설 보기</summary>
-      <div class="problem-card__answer-body">
-        <p><strong>정답</strong> ${escapeHtml(item.answer)}</p>
-        <p><strong>해설</strong> ${escapeHtml(item.explanation)}</p>
-      </div>
-    </details>
-    ${tags.length ? `<div class="problem-card__tags">${tags.map((tag) => `<span>#${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
-    <div class="problem-card__source">${escapeHtml(sourceLabel(item.source))}${item.source?.note ? ` · ${escapeHtml(item.source.note)}` : ""}</div>
-  </article>`;
+  const key = detailKey(item);
+  const tags = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
+  const source = sourceLabel(item);
+  return `<md-list-item type="button" class="problem-card interactive-item" data-problem-id="${escapeHtml(item.id)}" ${key ? `data-detail-key="${escapeHtml(key)}"` : "disabled"} data-detail-route="classroom" aria-label="${escapeHtml(`${item.question}, ${item.subject}, ${difficultyLabel(item.difficulty)}, 문제 풀기`)}">
+    <span slot="start" class="problem-card__number">${index + 1}</span>
+    <div slot="headline" class="problem-card__question">${escapeHtml(item.question)}</div>
+    <div slot="supporting-text" class="problem-card__support">${escapeHtml([
+      item.subject,
+      item.unit,
+      difficultyLabel(item.difficulty),
+      item.type === "multiple-choice" ? "객관식" : "주관식",
+      ...tags.map((tag) => `#${tag}`),
+    ].filter(Boolean).join(" · "))}</div>
+    <span slot="end" class="problem-card__end"><span class="problem-source problem-source--${source === "예시 문제" ? "example" : "class"}">${escapeHtml(source)}</span><md-icon aria-hidden="true">chevron_right</md-icon></span>
+  </md-list-item>`;
 }
 
 function subjectOptions(items) {
-  return [...new Set(items.map((item) => item.subject).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko-KR"));
+  return [...new Set(items.map((item) => item.subject).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "ko-KR"));
 }
 
 function resultsMarkup() {
   const visible = filteredProblems();
-  return visible.length
-    ? visible.map(problemMarkup).join("")
-    : `<div class="empty"><md-icon>quiz</md-icon><strong>조건에 맞는 문제가 없습니다</strong><span>검색어나 필터를 바꿔 보세요.</span></div>`;
+  if (visible.length) {
+    return `<md-list class="problem-bank-list interactive-list" aria-label="문제 검색 결과">${visible.map(problemMarkup).join("")}</md-list>`;
+  }
+  return `<div class="empty" role="status"><md-icon>search_off</md-icon><strong>조건에 맞는 문제가 없습니다</strong><span>검색어, 과목 또는 난이도 필터를 바꿔 보세요.</span></div>`;
+}
+
+function loadingMarkup() {
+  return `<div class="skeleton-list" role="status" aria-label="문제은행 불러오는 중">
+    ${Array.from({ length: 3 }, () => '<div class="skeleton-row"><span></span><span></span></div>').join("")}
+  </div>`;
 }
 
 function panelMarkup() {
@@ -100,17 +110,24 @@ function panelMarkup() {
   const visible = filteredProblems();
   const subjects = subjectOptions(all);
 
+  if (loading) {
+    return `<article class="surface problem-bank-surface" id="problemBankPanel" aria-labelledby="problem-bank-title">
+      <div class="surface__header"><h2 class="surface__title" id="problem-bank-title">문제은행</h2><span class="surface__meta">불러오는 중</span></div>
+      ${loadingMarkup()}
+    </article>`;
+  }
+
   if (loadError) {
-    return `<article class="surface problem-bank-surface" id="problemBankPanel">
-      <div class="surface__header"><h2 class="surface__title">문제은행</h2><span class="surface__meta">오류</span></div>
-      <div class="empty"><md-icon>error</md-icon><strong>문제은행을 불러오지 못했습니다</strong><span>${escapeHtml(loadError)}</span></div>
+    return `<article class="surface problem-bank-surface" id="problemBankPanel" aria-labelledby="problem-bank-title">
+      <div class="surface__header"><h2 class="surface__title" id="problem-bank-title">문제은행</h2><span class="surface__meta">연결 오류</span></div>
+      <div class="data-error" role="alert"><md-icon>cloud_off</md-icon><div><strong>문제은행을 불러오지 못했습니다</strong><span>${escapeHtml(loadError)}</span></div><md-filled-tonal-button data-problem-bank-retry>다시 시도</md-filled-tonal-button></div>
     </article>`;
   }
 
   return `<article class="surface problem-bank-surface" id="problemBankPanel" aria-labelledby="problem-bank-title">
     <div class="surface__header">
-      <div><h2 class="surface__title" id="problem-bank-title">문제은행</h2><p class="row__support">과목·단원·난이도로 골라 풀고, 정답과 해설은 필요할 때 펼칩니다.</p></div>
-      <span class="surface__meta">${all.length}문제</span>
+      <div><h2 class="surface__title" id="problem-bank-title">문제은행</h2><p class="row__support">문제를 선택해 답을 제출하고 정답·해설을 확인할 수 있습니다.</p></div>
+      <span class="surface__meta">${all.length ? `${all.length}문제` : ""}</span>
     </div>
     <div class="problem-bank-toolbar">
       <md-outlined-text-field id="problemBankSearch" type="search" label="문제·단원 검색" value="${escapeHtml(filters.query)}"></md-outlined-text-field>
@@ -125,17 +142,17 @@ function panelMarkup() {
         <md-select-option value="hard" ${filters.difficulty === "hard" ? "selected" : ""}><div slot="headline">도전</div></md-select-option>
       </md-outlined-select>
     </div>
-    <div class="problem-bank-summary"><span id="problemBankVisibleCount">현재 ${visible.length}문제 표시</span><span>게시된 문제만 학생에게 표시됩니다.</span></div>
-    <div class="problem-bank-list" id="problemBankList">${resultsMarkup()}</div>
+    <div class="problem-bank-summary" role="status" aria-live="polite"><span id="problemBankVisibleCount">검색 결과 ${visible.length}문제</span><span>예시 문제와 실제 학급 자료를 구분합니다.</span></div>
+    <div id="problemBankList">${all.length ? resultsMarkup() : '<div class="empty"><md-icon>quiz</md-icon><strong>아직 등록된 문제가 없습니다</strong><span>게시된 학급 자료가 생기면 이곳에 표시됩니다.</span></div>'}</div>
   </article>`;
 }
 
 function updateResults(panel) {
-  if (!panel || loadError) return;
+  if (!panel || loading || loadError) return;
   const visible = filteredProblems();
   const count = panel.querySelector("#problemBankVisibleCount");
   const list = panel.querySelector("#problemBankList");
-  if (count) count.textContent = `현재 ${visible.length}문제 표시`;
+  if (count) count.textContent = `검색 결과 ${visible.length}문제`;
   if (list) list.innerHTML = resultsMarkup();
 }
 
@@ -152,6 +169,7 @@ function bindPanel(panel) {
     filters.difficulty = event.target.value || "all";
     updateResults(panel);
   });
+  panel.querySelector("[data-problem-bank-retry]")?.addEventListener("click", () => loadBank());
 }
 
 function renderPanel({ replace = false } = {}) {
@@ -160,16 +178,12 @@ function renderPanel({ replace = false } = {}) {
   const grid = classroom.querySelector(".grid");
   if (!grid) return;
   const existing = classroom.querySelector("#problemBankPanel");
-
-  // Route 렌더 감시 때문에 호출되더라도 이미 마운트된 패널은 건드리지 않는다.
-  // 검색·정답 펼치기 중 DOM을 갈아끼우는 self-triggered render loop를 막는다.
   if (existing && !replace) return;
 
   const wrapper = document.createElement("div");
   wrapper.innerHTML = panelMarkup();
   const panel = wrapper.firstElementChild;
   if (!panel) return;
-
   if (existing) existing.replaceWith(panel);
   else grid.appendChild(panel);
   bindPanel(panel);
@@ -185,19 +199,23 @@ function queueRender() {
 }
 
 async function loadBank() {
+  loading = true;
+  loadError = "";
+  renderPanel({ replace: true });
   try {
-    const response = await fetch(DATA_URL, { cache: "no-store" });
+    const response = await fetch(DATA_URL, { cache: "default" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const next = await response.json();
-    if (next?.schemaVersion !== 1 || !Array.isArray(next.problems)) throw new Error("문제 데이터 형식이 올바르지 않습니다.");
+    if (next?.schemaVersion !== 1 || !Array.isArray(next.problems)) {
+      throw new Error("문제 데이터 형식이 올바르지 않습니다.");
+    }
     bank = next;
-    loadError = "";
   } catch (error) {
     loadError = error?.message || "알 수 없는 오류";
+  } finally {
+    loading = false;
+    renderPanel({ replace: true });
   }
-
-  // 데이터가 도착하기 전에 빈 패널이 먼저 마운트됐을 수 있으므로 딱 한 번 교체한다.
-  renderPanel({ replace: true });
 }
 
 const observer = new MutationObserver(queueRender);

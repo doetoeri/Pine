@@ -165,6 +165,9 @@ export class NextDataGateway extends EventTarget {
       online: navigator.onLine,
       profile,
       error: "",
+      collectionStatus: Object.create(null),
+      cacheSavedAtMs: 0,
+      usingCache: false,
       data: Object.create(null),
       user: null,
       role: null,
@@ -212,6 +215,9 @@ export class NextDataGateway extends EventTarget {
       online: snapshot?.online ?? navigator.onLine,
       profile,
       error: snapshot?.lastError || "",
+      collectionStatus: snapshot?.collectionStatus || Object.create(null),
+      cacheSavedAtMs: Number(snapshot?.cacheSavedAtMs || 0),
+      usingCache: Boolean(snapshot?.usingCache),
       data: snapshot?.data || Object.create(null),
       user,
       role,
@@ -253,6 +259,12 @@ export class NextDataGateway extends EventTarget {
       } catch (error) {
         this.state.syncing = false;
         this.state.error = error?.message || "PinCon 데이터를 불러오지 못했습니다.";
+        this.state.collectionStatus = Object.fromEntries(
+          Object.entries(this.state.collectionStatus || {}).map(([name, status]) => [
+            name,
+            ["idle", "loading"].includes(status) ? "error" : status,
+          ]),
+        );
         this.emit();
       } finally {
         this.startPromise = null;
@@ -392,10 +404,23 @@ export class NextDataGateway extends EventTarget {
     return tagline;
   }
 
+  async retry() {
+    this.dispose();
+    this.state.ready = false;
+    this.state.syncing = false;
+    this.state.error = "";
+    this.state.collectionStatus = Object.fromEntries(
+      Object.keys(this.state.collectionStatus || {}).map((name) => [name, "loading"]),
+    );
+    this.emit();
+    return this.start();
+  }
+
   dispose() {
     if (this.repository && this.repositoryListener) {
       this.repository.removeEventListener("change", this.repositoryListener);
     }
+    this.repository?.dispose?.();
     this.repository = null;
     this.repositoryListener = null;
     this.startPromise = null;

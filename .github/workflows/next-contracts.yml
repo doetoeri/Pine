@@ -7,12 +7,14 @@ on:
       - "next/**"
       - "index.html"
       - "manifest.webmanifest"
+      - "pincon-class-ops-data.js"
       - ".github/workflows/next-contracts.yml"
   pull_request:
     paths:
       - "next/**"
       - "index.html"
       - "manifest.webmanifest"
+      - "pincon-class-ops-data.js"
       - "REBUILD.md"
       - "automation/deploy-firestore-rules.mjs"
       - ".github/workflows/firebase-rules.yml"
@@ -52,6 +54,7 @@ jobs:
             next/core/notification-store.js \
             next/core/today-open-write.js \
             next/core/trust-model.js \
+            pincon-class-ops-data.js \
             automation/deploy-firestore-rules.mjs
           do
             node --input-type=module --check < "$file"
@@ -128,6 +131,10 @@ jobs:
         run: npx playwright test next/tests/problem-bank.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Problem bank · WebKit
         run: npx playwright test next/tests/problem-bank.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Detail interactions · Chromium
+        run: npx playwright test next/tests/detail-interactions.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Detail interactions · WebKit
+        run: npx playwright test next/tests/detail-interactions.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Responsive smoke · Chromium
         run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Responsive smoke · WebKit

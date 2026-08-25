@@ -150,7 +150,7 @@ function applyBranding(root = document) {
   }
 
   const tagline = currentTagline();
-  syncTaglineNode(document.querySelector(".brand__title .beta-badge"), tagline);
+  syncTaglineNode(document.querySelector(".brand__tagline"), tagline);
   syncTaglineNode(document.querySelector(".rail__tagline"), tagline);
 }
 
@@ -330,7 +330,7 @@ function inboxMarkup() {
   }
   return `<div class="notification-summary"><span class="notification-summary__text">전체 ${rows.length}개 · 읽지 않음 ${unread}개</span><md-text-button id="markAllNotificationsRead" ${unread ? "" : "disabled"}>모두 읽음</md-text-button></div>
     <md-list class="notification-list" aria-label="알림 기록">
-      ${rows.map((item) => `<md-list-item type="button" data-notification-id="${escapeHtml(item.id)}" data-notification-route="${escapeHtml(item.route)}" data-read="${item.read}"><md-icon slot="start">${escapeHtml(item.icon)}</md-icon><div slot="headline">${escapeHtml(item.title)}</div><div slot="supporting-text">${escapeHtml([item.kind, item.body, dateLabel(item.date)].filter(Boolean).join(" · "))}</div>${item.read ? "" : '<span slot="end" class="notification-unread-dot" aria-label="읽지 않음"></span>'}</md-list-item>`).join("")}
+      ${rows.map((item) => `<md-list-item type="button" data-notification-id="${escapeHtml(item.id)}" data-notification-route="${escapeHtml(item.route)}" data-notification-kind="${escapeHtml(item.detailKind)}" data-notification-collection="${escapeHtml(item.collection)}" data-notification-record-id="${escapeHtml(item.recordId)}" data-read="${item.read}" aria-label="${escapeHtml(`${item.read ? "읽음" : "읽지 않음"}, ${item.title}, 관련 항목 열기`)}"><md-icon slot="start">${escapeHtml(item.icon)}</md-icon><div slot="headline">${escapeHtml(item.title)}</div><div slot="supporting-text">${escapeHtml([item.kind, item.body, dateLabel(item.date)].filter(Boolean).join(" · "))}</div><span slot="end" class="notification-row-end">${item.read ? "" : '<span class="notification-unread-dot" aria-label="읽지 않음"></span>'}<md-icon aria-hidden="true">chevron_right</md-icon></span></md-list-item>`).join("")}
     </md-list>`;
 }
 
@@ -340,16 +340,11 @@ function renderInbox() {
 }
 
 function trustMarkup() {
-  const access = snapshot.access || {};
-  const signedIn = access.signedIn ? "인증된 계정" : "로그인하지 않음";
-  const identity = access.displayName ? ` · ${access.displayName}` : "";
-  const adminAction = snapshot.isManager
-    ? `<div class="trust-actions"><md-filled-tonal-button id="openAdminBeta"><md-icon slot="icon">admin_panel_settings</md-icon>관리자 Beta</md-filled-tonal-button></div>`
-    : "";
-  return `<article class="surface" data-day2-trust><div class="surface__header"><h2 class="surface__title">권한과 복구</h2><span class="beta-badge">WRITE LOCKED</span></div><div class="trust-grid"><div class="trust-line"><strong>현재 역할</strong><span>${escapeHtml(roleLabel(access.role))}</span></div><div class="trust-line"><strong>인증 상태</strong><span>${escapeHtml(signedIn + identity)}</span></div><div class="trust-line"><strong>공용 편집</strong><span>일반 콘텐츠 쓰기는 Beta에서 잠금. 기존 운영 권한이 허용하는 학급 브랜드 문구만 관리자에서 수정할 수 있습니다.</span></div><div class="trust-line"><strong>삭제 정책</strong><span>영구 삭제 대신 보관 처리 후 복원 가능하게 설계합니다. 삭제·복원 모두 감사 기록이 필수입니다.</span></div></div>${adminAction}</article>`;
+  return `<article class="surface" data-day2-trust><div class="surface__header"><h2 class="surface__title">관리자 도구</h2><span class="beta-badge">PinCon Beta</span></div><p class="page-subtitle">학급 정보를 관리하려면 별도의 관리자 화면을 사용하세요. 학생 화면은 계속 읽기 전용으로 유지됩니다.</p><div class="trust-actions"><md-filled-tonal-button id="openAdminBeta"><md-icon slot="icon">admin_panel_settings</md-icon>관리자 화면 열기</md-filled-tonal-button></div></article>`;
 }
 
 function injectTrustCard() {
+  if (!snapshot.isManager) return;
   const section = document.querySelector("#more-title")?.closest("section");
   const grid = section?.querySelector(".grid");
   if (!grid || grid.querySelector("[data-day2-trust]")) return;
@@ -439,10 +434,20 @@ document.addEventListener("click", (event) => {
   if (!row) return;
   const id = row.getAttribute("data-notification-id");
   const route = row.getAttribute("data-notification-route");
+  const detailKind = row.getAttribute("data-notification-kind");
+  const collection = row.getAttribute("data-notification-collection");
+  const recordId = row.getAttribute("data-notification-record-id");
   notificationStore.markRead(id);
   renderInbox();
   enhanceNotificationButton();
   document.querySelector("#notificationDialog")?.close?.();
+  const detailKey = detailKind && collection && recordId
+    ? globalThis.PinConNext?.detailKeyForReference?.(detailKind, collection, recordId)
+    : "";
+  if (detailKey && globalThis.PinConNext?.navigateToDetail) {
+    globalThis.PinConNext.navigateToDetail(route || "today", detailKey, row, { notificationId: id });
+    return;
+  }
   const destination = route ? document.querySelector(`[data-route="${route}"]`) : null;
   destination?.click?.();
 });

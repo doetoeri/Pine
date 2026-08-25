@@ -14,7 +14,7 @@ async function seedClass(page, tagline) {
   await page.route("https://www.gstatic.com/**", (route) => route.abort());
 }
 
-test("mobile header uses the class brand tagline", async ({ browser }) => {
+test("mobile header keeps PinCon Beta and shows the class tagline separately", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await seedClass(page, "우리 반 허브");
@@ -23,7 +23,9 @@ test("mobile header uses the class brand tagline", async ({ browser }) => {
   await expect(page.locator(".shell")).toBeVisible();
   const badge = page.locator(".brand__title .beta-badge");
   await expect(badge).toBeVisible();
-  await expect(badge).toHaveText("우리 반 허브");
+  await expect(badge).toHaveText("Beta");
+  await expect(page.locator(".brand__tagline")).toBeVisible();
+  await expect(page.locator(".brand__tagline")).toHaveText("우리 반 허브");
   await context.close();
 });
 

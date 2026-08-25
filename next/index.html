@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9f1" />
-    <meta name="description" content="공지·시간표·일정·학급 운영을 하나의 정보 구조로 연결하는 PinCon 학급 허브" />
+    <meta name="description" content="공지·시간표·일정·급식을 자연스럽게 탐색하는 PinCon Beta 학교 정보 서비스" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="PinCon" />
-    <title>PinCon</title>
+    <meta name="apple-mobile-web-app-title" content="PinCon Beta" />
+    <title>PinCon Beta</title>
     <link rel="icon" href="./assets/pincon-icon.svg" type="image/svg+xml" />
     <link rel="manifest" href="../manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,15 +19,17 @@
     <link rel="stylesheet" href="./mobile-clearance.css" />
     <link rel="stylesheet" href="./dialog-polish.css?v=20260825-device3" />
     <link rel="stylesheet" href="./problem-bank.css" />
+    <link rel="stylesheet" href="./interaction-system.css?v=20260825-production" />
     <script src="../firebase-config.js"></script>
     <script type="module" src="../material-official-loader.js"></script>
   </head>
   <body>
+    <a class="skip-link" href="#mainContent">본문으로 바로 이동</a>
     <div id="pinconBoot" role="status" aria-live="polite" aria-label="PinCon 불러오는 중">
       <div id="pinconBootField" aria-hidden="true"></div>
       <span class="pincon-boot__sr-only">PinCon 학급 허브를 준비하는 중</span>
     </div>
-    <div id="app" aria-live="polite"></div>
+    <div id="app"></div>
     <noscript>PinCon을 사용하려면 JavaScript가 필요합니다.</noscript>
     <script type="module" src="../pincon-guest-auth.js"></script>
     <script type="module" src="./reveal-loader.js"></script>
