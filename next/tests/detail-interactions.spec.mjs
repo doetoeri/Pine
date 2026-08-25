@@ -116,6 +116,7 @@ for (const viewport of VIEWPORTS) {
     const page = await context.newPage();
     await seedCache(page);
     await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("#pinconBoot")).toHaveCount(0, { timeout: 7_000 });
 
     const trigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
     await expect(trigger).toBeVisible({ timeout: 8_000 });
