@@ -33,11 +33,45 @@
     <noscript>PinCon을 사용하려면 JavaScript가 필요합니다.</noscript>
     <script>
       (() => {
+        const ROUTES = new Set(["today", "timetable", "schedule", "classroom", "more"]);
+
         function eventHost(event, predicate) {
           return event.composedPath?.().find((node) => node instanceof HTMLElement && predicate(node)) || null;
         }
 
+        function currentRoute() {
+          const route = location.hash.replace(/^#/, "").split("/")[0];
+          return ROUTES.has(route) ? route : "today";
+        }
+
+        function commitCapturedRoute(route) {
+          if (!ROUTES.has(route) || currentRoute() === route) return;
+          history.pushState({ route, detailKey: "" }, "", `#${route}`);
+          window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
+        }
+
+        function replayRouteWhenReady(route) {
+          let frames = 0;
+          const replay = () => {
+            if (globalThis.PinConNext) {
+              commitCapturedRoute(route);
+              return;
+            }
+            frames += 1;
+            if (frames < 180) requestAnimationFrame(replay);
+          };
+          requestAnimationFrame(replay);
+        }
+
         document.addEventListener("click", (event) => {
+          const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
+          if (routeControl) {
+            const route = routeControl.getAttribute("data-route") || "";
+            if (globalThis.PinConNext) commitCapturedRoute(route);
+            else replayRouteWhenReady(route);
+            return;
+          }
+
           const trigger = eventHost(event, (node) => node.id === "openNotifications");
           if (!trigger || trigger.hasAttribute("data-aria-label")) return;
 
