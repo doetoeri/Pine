@@ -370,6 +370,9 @@ md-list-item[type="button"] {
   position: fixed;
   z-index: 90;
   inset: 0;
+  max-width: 100vw;
+  overflow: hidden;
+  contain: layout paint;
 }
 
 .detail-backdrop {
@@ -385,6 +388,7 @@ md-list-item[type="button"] {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  max-width: 100%;
   max-height: calc(var(--pincon-visual-height, 100dvh) - 24px);
   overflow: hidden;
   background: var(--md-sys-color-surface-container-lowest);
@@ -405,6 +409,8 @@ md-list-item[type="button"] {
   flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
   gap: 16px;
   padding: 22px 22px 16px;
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
@@ -435,6 +441,8 @@ md-list-item[type="button"] {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  min-width: 0;
+  max-width: 100%;
   gap: 10px;
   margin-top: 10px;
   color: var(--md-sys-color-on-surface-variant);
@@ -446,12 +454,16 @@ md-list-item[type="button"] {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
   gap: 6px;
 }
 
 .detail-body {
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
   padding: 8px 22px max(28px, env(safe-area-inset-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -742,7 +754,7 @@ md-list-item[type="button"] {
   left: 0;
   right: 0;
   bottom: var(--pincon-visual-bottom-offset, 0px);
-  width: 100%;
+  width: auto;
   height: min(68vh, calc(var(--pincon-visual-height, 100dvh) - 64px));
   max-height: calc(var(--pincon-visual-height, 100dvh) - 8px);
   border-radius: 30px 30px 0 0;
@@ -861,12 +873,21 @@ body.detail-modal-open {
     flex-direction: column;
   }
 
+  .detail-summary > span,
+  .detail-badges,
+  .detail-badges > * {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
   .detail-badges {
     justify-content: flex-start;
   }
 
   .detail-body {
     padding-inline: 17px;
+    overflow-x: hidden;
+    scrollbar-gutter: auto;
   }
 
   .detail-fields {
