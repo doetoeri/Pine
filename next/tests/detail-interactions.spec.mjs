@@ -190,7 +190,7 @@ for (const viewport of VIEWPORTS) {
     expect(geometry.top).toBeGreaterThanOrEqual(-1);
     expect(geometry.right).toBeLessThanOrEqual(geometry.width + 1);
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.height + 1);
-    expect(geometry).toMatchObject({ pageOverflow: false });
+    expect(geometry.pageOverflow, JSON.stringify(geometry, null, 2)).toBe(false);
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 
     if (viewport.mode === "side") {
