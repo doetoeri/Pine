@@ -133,6 +133,14 @@ for (const viewport of VIEWPORTS) {
     await expect(surface).toContainText("확정");
     await expect(surface).toContainText("공통영어");
 
+    await expect.poll(() => surface.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return rect.left >= -1
+        && rect.top >= -1
+        && rect.right <= innerWidth + 1
+        && rect.bottom <= innerHeight + 1;
+    }), { timeout: 1_500 }).toBe(true);
+
     const geometry = await surface.evaluate((node) => {
       const rect = node.getBoundingClientRect();
       return {
