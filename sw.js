@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260823-smooth3";
+const PINCON_SW_VERSION = "20260825-dialog-device2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -56,7 +56,7 @@ const PINCON_APP_SHELL = [
 ];
 
 try {
-  importScripts("./firebase-messaging-sw.js?v=20260821-pwa-buttons3");
+  importScripts("./firebase-messaging-sw.js?v=20260825-android-notify2");
 } catch (error) {
   console.warn("[PinCon SW] Firebase messaging worker could not be loaded", error);
 }
