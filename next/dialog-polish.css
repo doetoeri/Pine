@@ -1,0 +1,164 @@
+/* Dialog-specific fixes from real-device QA.
+   Keep the Material components, but remove accidental nested surfaces and poor intrinsic sizing. */
+
+#notificationDialog,
+#pincon-guest-name-dialog {
+  --md-dialog-container-shape: 32px;
+  --md-dialog-container-min-inline-size: 0px;
+  --md-dialog-container-max-inline-size: 560px;
+}
+
+#notificationContent {
+  width: min(520px, calc(100vw - 72px));
+  min-width: 0;
+  overflow: hidden;
+}
+
+#notificationContent .notification-summary {
+  margin: 0 0 14px;
+}
+
+/* md-list has its own opaque Material surface by default. That was the white
+   rectangle visible behind the green notification cards on Samsung. */
+#notificationContent .notification-list {
+  width: 100%;
+  min-width: 0 !important;
+  margin: 0;
+  padding: 0 !important;
+  background: transparent !important;
+  --md-list-container-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#notificationContent .notification-list md-list-item {
+  margin: 0 0 10px;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--md-sys-color-surface-container-low);
+  --md-list-item-container-color: var(--md-sys-color-surface-container-low);
+  --md-list-item-container-shape: 24px;
+}
+
+#notificationContent .notification-list md-list-item:last-child {
+  margin-bottom: 0;
+}
+
+#notificationContent .notification-list md-list-item[data-read="false"] {
+  background: var(--md-sys-color-secondary-container) !important;
+  --md-list-item-container-color: var(--md-sys-color-secondary-container);
+}
+
+#notificationContent .notification-unread-dot {
+  margin-inline-start: 8px;
+}
+
+/* Auth dialog: use the full dialog width instead of Material fields keeping
+   their small intrinsic width. */
+#pincon-guest-name-dialog {
+  --md-dialog-container-max-inline-size: 480px;
+}
+
+.pincon-auth-dialog__content {
+  width: min(416px, calc(100vw - 72px));
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.pincon-auth-dialog__intro,
+.pincon-auth-dialog__guest-copy {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.pincon-auth-dialog__guest-copy {
+  font-size: 13px;
+}
+
+.pincon-auth-dialog__google,
+.pincon-auth-dialog__content md-outlined-text-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.pincon-auth-dialog__divider {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 20px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+}
+
+.pincon-auth-dialog__divider::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--md-sys-color-outline-variant);
+}
+
+.pincon-auth-dialog__divider span {
+  position: relative;
+  z-index: 1;
+  padding: 0 10px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.pincon-auth-dialog__error {
+  margin: 0;
+}
+
+.pincon-auth-dialog__actions {
+  gap: 6px;
+}
+
+@media (max-width: 599px) {
+  #notificationDialog,
+  #pincon-guest-name-dialog {
+    --md-dialog-container-shape: 28px;
+    --md-dialog-container-max-inline-size: calc(100vw - 24px);
+  }
+
+  #notificationContent,
+  .pincon-auth-dialog__content {
+    width: calc(100vw - 64px);
+    max-width: 100%;
+  }
+
+  #notificationContent .notification-list {
+    max-height: min(54vh, 520px);
+  }
+
+  #notificationContent .notification-list md-list-item {
+    border-radius: 22px;
+    --md-list-item-container-shape: 22px;
+  }
+
+  .pincon-auth-dialog__content {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 379px) {
+  #notificationContent,
+  .pincon-auth-dialog__content {
+    width: calc(100vw - 48px);
+  }
+
+  .pincon-auth-dialog__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .pincon-auth-dialog__actions md-text-button,
+  .pincon-auth-dialog__actions md-filled-button {
+    width: 100%;
+  }
+}
