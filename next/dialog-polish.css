@@ -1,15 +1,17 @@
 /* Dialog-specific fixes from real-device QA.
-   Keep the Material components, but remove accidental nested surfaces and poor intrinsic sizing. */
+   Keep the official Material components, but remove accidental nested surfaces
+   and stop intrinsic component sizing from making the dialogs look unfinished. */
 
 #notificationDialog,
 #pincon-guest-name-dialog {
   --md-dialog-container-shape: 32px;
   --md-dialog-container-min-inline-size: 0px;
-  --md-dialog-container-max-inline-size: 560px;
+  --md-dialog-container-max-inline-size: 540px;
 }
 
+/* Notification dialog ----------------------------------------------------- */
 #notificationContent {
-  width: min(520px, calc(100vw - 72px));
+  width: min(500px, calc(100vw - 72px));
   min-width: 0;
   overflow: hidden;
 }
@@ -18,24 +20,33 @@
   margin: 0 0 14px;
 }
 
-/* md-list has its own opaque Material surface by default. That was the white
-   rectangle visible behind the green notification cards on Samsung. */
+/* md-list owns an opaque Material surface by default. On Samsung this showed
+   up as the square white sheet behind the rounded notification cards. */
 #notificationContent .notification-list {
+  display: block;
   width: 100%;
   min-width: 0 !important;
   margin: 0;
   padding: 0 !important;
-  background: transparent !important;
-  --md-list-container-color: transparent;
+  border: 0;
   border-radius: 0;
-  box-shadow: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  --md-list-container-color: transparent;
 }
 
 #notificationContent .notification-list md-list-item {
+  display: block;
+  width: 100%;
+  min-width: 0;
   margin: 0 0 10px;
   overflow: hidden;
+  isolation: isolate;
+  border: 0;
   border-radius: 24px;
   background: var(--md-sys-color-surface-container-low);
+  box-shadow: none;
   --md-list-item-container-color: var(--md-sys-color-surface-container-low);
   --md-list-item-container-shape: 24px;
 }
@@ -53,14 +64,13 @@
   margin-inline-start: 8px;
 }
 
-/* Auth dialog: use the full dialog width instead of Material fields keeping
-   their small intrinsic width. */
+/* Authentication dialog ------------------------------------------------- */
 #pincon-guest-name-dialog {
-  --md-dialog-container-max-inline-size: 480px;
+  --md-dialog-container-max-inline-size: 460px;
 }
 
 .pincon-auth-dialog__content {
-  width: min(416px, calc(100vw - 72px));
+  width: min(396px, calc(100vw - 72px));
   min-width: 0;
   display: grid;
   gap: 14px;
@@ -81,8 +91,10 @@
 
 .pincon-auth-dialog__google,
 .pincon-auth-dialog__content md-outlined-text-field {
-  width: 100%;
-  min-width: 0;
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
 }
 
 .pincon-auth-dialog__divider {
@@ -115,7 +127,10 @@
 }
 
 .pincon-auth-dialog__actions {
-  gap: 6px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (max-width: 599px) {
@@ -127,12 +142,14 @@
 
   #notificationContent,
   .pincon-auth-dialog__content {
-    width: calc(100vw - 64px);
+    width: calc(100vw - 56px);
     max-width: 100%;
   }
 
   #notificationContent .notification-list {
     max-height: min(54vh, 520px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   #notificationContent .notification-list md-list-item {
@@ -148,7 +165,7 @@
 @media (max-width: 379px) {
   #notificationContent,
   .pincon-auth-dialog__content {
-    width: calc(100vw - 48px);
+    width: calc(100vw - 44px);
   }
 
   .pincon-auth-dialog__actions {
