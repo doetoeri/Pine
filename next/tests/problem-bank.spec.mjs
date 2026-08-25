@@ -29,7 +29,11 @@ test("problem cards open an interactive quiz and filters combine", async ({ page
 
   await page.locator("[data-problem-retry]").click();
   await expect(page.locator(".quiz-result")).toHaveCount(0);
-  await expect(page.locator("[data-problem-submit]")).toBeDisabled();
+  const submit = page.locator("[data-problem-submit]");
+  await expect(submit).toHaveAttribute("disabled", "");
+  await expect.poll(() => submit.evaluate((host) => (
+    host.disabled === true || host.shadowRoot?.querySelector("button")?.disabled === true
+  ))).toBe(true);
 
   await page.goBack();
   await expect(page.locator("#detailLayer")).toBeHidden();
