@@ -63,32 +63,39 @@
           requestAnimationFrame(replay);
         }
 
-        document.addEventListener("click", (event) => {
-          const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
-          if (routeControl) {
-            const route = routeControl.getAttribute("data-route") || "";
-            if (globalThis.PinConNext) commitCapturedRoute(route);
-            else replayRouteWhenReady(route);
-            return;
-          }
+        function notificationDialogIsOpen() {
+          const dialog = document.querySelector("#notificationDialog");
+          return Boolean(dialog && (dialog.open === true || dialog.hasAttribute("open")));
+        }
 
-          const trigger = eventHost(event, (node) => node.id === "openNotifications");
-          if (!trigger || trigger.hasAttribute("data-aria-label")) return;
-
-          document.querySelector("#notificationDialog")?.show?.();
-
+        function replayNotificationWhenNeeded() {
           let frames = 0;
-          const replayWhenReady = () => {
-            const current = document.querySelector("#openNotifications");
-            if (!current) return;
-            if (current.hasAttribute("data-aria-label")) {
-              current.click();
+          const replay = () => {
+            if (notificationDialogIsOpen()) return;
+            const trigger = document.querySelector("#openNotifications");
+            if (!trigger) return;
+            if (trigger.hasAttribute("data-aria-label")) {
+              trigger.click();
               return;
             }
             frames += 1;
-            if (frames < 180) requestAnimationFrame(replayWhenReady);
+            if (frames < 180) requestAnimationFrame(replay);
           };
-          requestAnimationFrame(replayWhenReady);
+          window.setTimeout(replay, 0);
+        }
+
+        document.addEventListener("click", (event) => {
+          const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
+          if (!routeControl) return;
+          const route = routeControl.getAttribute("data-route") || "";
+          if (globalThis.PinConNext) commitCapturedRoute(route);
+          else replayRouteWhenReady(route);
+        }, true);
+
+        document.addEventListener("pointerup", (event) => {
+          const trigger = eventHost(event, (node) => node.id === "openNotifications");
+          if (!trigger) return;
+          replayNotificationWhenNeeded();
         }, true);
       })();
     </script>
