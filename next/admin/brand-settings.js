@@ -44,7 +44,7 @@ function cardMarkup() {
           label="PinCon 옆 작은 문구"
           value="${escapeHtml(tagline)}"
           maxlength="${BRAND_TAGLINE_MAX_LENGTH}"
-          supporting-text="예: NEXT, 1-8, 우리 반 허브 · 비워두면 문구를 숨깁니다."
+          supporting-text="예: 1-8, 우리 반 허브 · 비워두면 문구를 숨깁니다."
           ${disabled ? "disabled" : ""}
         ></md-outlined-text-field>
         <div class="brand-settings-meta">
@@ -59,7 +59,7 @@ function cardMarkup() {
       </div>
       <div class="brand-settings-preview" aria-label="브랜드 문구 미리보기">
         <span class="brand-settings-preview__label">미리보기</span>
-        <div class="brand-settings-preview__title">PinCon <span id="brandTaglinePreview" class="beta-badge" ${tagline ? "" : "hidden"}>${escapeHtml(tagline)}</span></div>
+        <div class="brand-settings-preview__title">PinCon Beta <span id="brandTaglinePreview" class="beta-badge" ${tagline ? "" : "hidden"}>${escapeHtml(tagline)}</span></div>
         <span>학생 화면 상단과 PC 플로팅바에 같은 문구가 표시됩니다.</span>
       </div>
     </div>

@@ -31,6 +31,74 @@
     </div>
     <div id="app"></div>
     <noscript>PinCon을 사용하려면 JavaScript가 필요합니다.</noscript>
+    <script>
+      (() => {
+        const ROUTES = new Set(["today", "timetable", "schedule", "classroom", "more"]);
+
+        function eventHost(event, predicate) {
+          return event.composedPath?.().find((node) => node instanceof HTMLElement && predicate(node)) || null;
+        }
+
+        function currentRoute() {
+          const route = location.hash.replace(/^#/, "").split("/")[0];
+          return ROUTES.has(route) ? route : "today";
+        }
+
+        function commitCapturedRoute(route) {
+          if (!ROUTES.has(route) || currentRoute() === route) return;
+          history.pushState({ route, detailKey: "" }, "", `#${route}`);
+          window.dispatchEvent(new PopStateEvent("popstate", { state: history.state }));
+        }
+
+        function replayRouteWhenReady(route) {
+          let frames = 0;
+          const replay = () => {
+            if (globalThis.PinConNext) {
+              commitCapturedRoute(route);
+              return;
+            }
+            frames += 1;
+            if (frames < 180) requestAnimationFrame(replay);
+          };
+          requestAnimationFrame(replay);
+        }
+
+        function notificationDialogIsOpen() {
+          const dialog = document.querySelector("#notificationDialog");
+          return Boolean(dialog && (dialog.open === true || dialog.hasAttribute("open")));
+        }
+
+        function replayNotificationWhenNeeded() {
+          let frames = 0;
+          const replay = () => {
+            if (notificationDialogIsOpen()) return;
+            const trigger = document.querySelector("#openNotifications");
+            if (!trigger) return;
+            if (trigger.hasAttribute("data-aria-label")) {
+              trigger.click();
+              return;
+            }
+            frames += 1;
+            if (frames < 180) requestAnimationFrame(replay);
+          };
+          window.setTimeout(replay, 0);
+        }
+
+        document.addEventListener("click", (event) => {
+          const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
+          if (!routeControl) return;
+          const route = routeControl.getAttribute("data-route") || "";
+          if (globalThis.PinConNext) commitCapturedRoute(route);
+          else replayRouteWhenReady(route);
+        }, true);
+
+        document.addEventListener("pointerup", (event) => {
+          const trigger = eventHost(event, (node) => node.id === "openNotifications");
+          if (!trigger) return;
+          replayNotificationWhenNeeded();
+        }, true);
+      })();
+    </script>
     <script type="module" src="../pincon-guest-auth.js"></script>
     <script type="module" src="./reveal-loader.js"></script>
     <script type="module" src="./app.js"></script>
