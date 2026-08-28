@@ -20,6 +20,8 @@
     <link rel="stylesheet" href="./dialog-polish.css?v=20260825-device3" />
     <link rel="stylesheet" href="./problem-bank.css" />
     <link rel="stylesheet" href="./interaction-system.css?v=20260825-production" />
+    <link rel="stylesheet" href="./student-account.css?v=20260828-rbac1" />
+    <link rel="stylesheet" href="./student-ops.css?v=20260828-rbac1" />
     <script src="../firebase-config.js"></script>
     <script type="module" src="../material-official-loader.js"></script>
   </head>
@@ -90,10 +92,9 @@
 
         document.addEventListener("click", (event) => {
           const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
-          if (!routeControl) return;
+          if (!routeControl || globalThis.PinConNext) return;
           const route = routeControl.getAttribute("data-route") || "";
-          if (globalThis.PinConNext) commitCapturedRoute(route);
-          else replayRouteWhenReady(route);
+          replayRouteWhenReady(route);
         }, true);
 
         document.addEventListener("pointerup", (event) => {
@@ -103,12 +104,8 @@
         }, true);
       })();
     </script>
-    <script type="module" src="../pincon-guest-auth.js"></script>
     <script type="module" src="./reveal-loader.js"></script>
-    <script type="module" src="./app.js"></script>
-    <script type="module" src="./app-interactions.js"></script>
-    <script type="module" src="./write-mode.js"></script>
-    <script type="module" src="./admin-visibility.js"></script>
-    <script type="module" src="./problem-bank.js"></script>
+    <script type="module" src="../pincon-guest-auth.js"></script>
+    <script type="module" src="./app-bootstrap.js"></script>
   </body>
 </html>

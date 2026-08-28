@@ -1,0 +1,205 @@
+:root {
+  --pincon-account-surface: color-mix(in srgb, var(--md-sys-color-surface, #f7f9f1) 94%, transparent);
+}
+
+.pincon-account-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--md-sys-color-surface, #f7f9f1);
+  color: var(--md-sys-color-on-surface, #1a1c19);
+  padding: max(20px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(32px, calc(env(safe-area-inset-bottom) + 24px)) max(18px, env(safe-area-inset-left));
+}
+
+.pincon-account-gate__frame {
+  width: min(100%, 460px);
+  min-width: 0;
+  margin: clamp(16px, 9vh, 88px) auto 0;
+}
+
+.pincon-account-gate__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.pincon-account-gate__mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--md-sys-color-primary-container, #d9e7cb);
+  color: var(--md-sys-color-on-primary-container, #12210d);
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -.06em;
+}
+
+.pincon-account-gate h1,
+.pincon-account-gate h2,
+.pincon-account-gate p {
+  margin: 0;
+}
+
+.pincon-account-gate__brand h1 {
+  font-size: clamp(30px, 9vw, 42px);
+  line-height: 1;
+  letter-spacing: -.055em;
+}
+
+.pincon-account-gate__tagline {
+  margin-top: 7px !important;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 15px;
+}
+
+.pincon-account-card {
+  min-width: 0;
+  border-radius: 30px;
+  padding: clamp(20px, 5vw, 30px);
+  background: var(--md-sys-color-surface-container-low, #f1f3eb);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant, #c4c8bc) 55%, transparent);
+}
+
+.pincon-account-card h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -.035em;
+  margin-bottom: 8px;
+}
+
+.pincon-account-card__support {
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  line-height: 1.55;
+  margin-bottom: 22px !important;
+}
+
+.pincon-account-form {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.pincon-account-form md-outlined-text-field,
+.pincon-account-form md-filled-button,
+.pincon-account-form md-filled-tonal-button {
+  width: 100%;
+  min-width: 0;
+}
+
+.pincon-account-form md-outlined-text-field {
+  --md-outlined-text-field-container-shape: 18px;
+}
+
+.pincon-account-form md-filled-button,
+.pincon-account-form md-filled-tonal-button {
+  min-height: 52px;
+  --md-filled-button-container-shape: 18px;
+  --md-filled-tonal-button-container-shape: 18px;
+}
+
+.pincon-account-remember {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-inline: 2px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  cursor: pointer;
+  user-select: none;
+}
+
+.pincon-account-error {
+  min-height: 22px;
+  color: var(--md-sys-color-error, #ba1a1a);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pincon-account-identity {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  margin: 20px 0 24px;
+  padding: 15px;
+  border-radius: 22px;
+  background: var(--md-sys-color-secondary-container, #dfe8d7);
+}
+
+.pincon-account-identity md-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+}
+
+.pincon-account-identity strong,
+.pincon-account-identity span {
+  display: block;
+  min-width: 0;
+}
+
+.pincon-account-identity span {
+  margin-top: 3px;
+  color: var(--md-sys-color-on-secondary-container, #171d13);
+  opacity: .8;
+  font-size: 14px;
+}
+
+.pincon-account-security-note {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  margin-top: 18px !important;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.pincon-account-security-note md-icon {
+  flex: 0 0 auto;
+  font-size: 19px;
+  margin-top: 1px;
+}
+
+@media (max-width: 480px) {
+  .pincon-account-gate__frame {
+    margin-top: 12px;
+  }
+
+  .pincon-account-gate__brand {
+    margin-bottom: 20px;
+  }
+
+  .pincon-account-card {
+    border-radius: 26px;
+    padding: 20px;
+  }
+}
+
+@media (max-height: 620px) {
+  .pincon-account-gate__frame {
+    margin-top: 0;
+  }
+
+  .pincon-account-gate__brand {
+    margin-bottom: 14px;
+  }
+
+  .pincon-account-gate__mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 15px;
+  }
+}

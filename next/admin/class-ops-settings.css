@@ -1,0 +1,118 @@
+.pincon-ops-settings__intro {
+  margin: 0 0 18px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  line-height: 1.65;
+}
+
+.pincon-ops-settings__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pincon-ops-settings__panel {
+  min-width: 0;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--md-sys-color-surface-container-low, #f1f4ec);
+}
+
+.pincon-ops-settings__panel--wide {
+  grid-column: 1 / -1;
+}
+
+.pincon-ops-settings__panel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pincon-ops-settings__panel-head,
+.pincon-ops-settings__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pincon-ops-setting-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pincon-ops-setting-check > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 8px;
+}
+
+.pincon-ops-setting-check small,
+.pincon-ops-exemptions small {
+  color: var(--md-sys-color-on-surface-variant, #5d6259);
+  line-height: 1.45;
+}
+
+.pincon-ops-exemptions {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container, #ecefe7);
+}
+
+.pincon-ops-row {
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) auto;
+}
+
+.pincon-ops-dialog__body,
+.pincon-ops-dialog__form {
+  display: grid;
+  gap: 14px;
+  min-width: min(520px, calc(100vw - 56px));
+}
+
+.pincon-ops-dialog__status {
+  min-height: 20px;
+  color: var(--md-sys-color-on-surface-variant, #5d6259);
+}
+
+.pincon-ops-dialog md-outlined-text-field,
+.pincon-ops-dialog md-outlined-select,
+.pincon-ops-settings md-outlined-select {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .pincon-ops-settings__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pincon-ops-settings__panel--wide {
+    grid-column: auto;
+  }
+
+  .pincon-ops-settings__panel {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .pincon-ops-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pincon-ops-row > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .pincon-ops-dialog__body,
+  .pincon-ops-dialog__form {
+    min-width: 0;
+    width: 100%;
+  }
+}

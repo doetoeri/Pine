@@ -25,6 +25,38 @@
     {
       "source": "/oauth/register",
       "destination": "/api/oauth-router?route=register"
+    },
+    {
+      "source": "/api/accounts/session",
+      "destination": "/api/class-ops-router?route=account-session"
+    },
+    {
+      "source": "/api/accounts/manage",
+      "destination": "/api/class-ops-router?route=account-manage"
+    },
+    {
+      "source": "/api/accounts/change-pin",
+      "destination": "/api/class-ops-router?route=account-change-pin"
+    },
+    {
+      "source": "/api/class-ops/home",
+      "destination": "/api/class-ops-router?route=home"
+    },
+    {
+      "source": "/api/class-ops/cleaning",
+      "destination": "/api/class-ops-router?route=cleaning"
+    },
+    {
+      "source": "/api/class-ops/phone",
+      "destination": "/api/class-ops-router?route=phone"
+    },
+    {
+      "source": "/api/class-ops/subject",
+      "destination": "/api/class-ops-router?route=subject"
+    },
+    {
+      "source": "/api/class-ops/settings",
+      "destination": "/api/class-ops-router?route=settings"
     }
   ]
 }
