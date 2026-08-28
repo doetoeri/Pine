@@ -11,7 +11,9 @@ on:
       - "next/core/student-auth.js"
       - "next/admin/admin.js"
       - "next/admin/admin.css"
+      - "next/admin/admin-extras.css"
       - "next/admin/admin-shortcuts.js"
+      - "next/admin/class-switcher.js"
       - "next/admin/bootstrap.js"
       - "next/admin/index.html"
       - "next/admin/user-manager.js"
@@ -50,6 +52,7 @@ jobs:
             next/core/student-auth.js \
             next/admin/admin.js \
             next/admin/admin-shortcuts.js \
+            next/admin/class-switcher.js \
             next/admin/bootstrap.js \
             next/admin/user-manager.js \
             next/admin/class-ops-settings.js \
