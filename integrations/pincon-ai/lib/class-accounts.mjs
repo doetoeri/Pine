@@ -31,7 +31,6 @@ export const ROLE_TIMING = Object.freeze([
   "WEEKLY",
 ]);
 
-const ELEVATED = new Set([ROLE.CLASS_PRESIDENT, ROLE.TEACHER, ROLE.ADMIN]);
 const ACCOUNT_STATUSES = new Set(["ACTIVE", "DISABLED"]);
 
 function text(value, max = 160) {
@@ -148,12 +147,63 @@ export async function profileForUid(uid) {
   return snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null;
 }
 
+export async function legacyRoleForUid(uid) {
+  const snapshot = await firestore().doc(`schools/${SCHOOL_ID}/roles/${uid}`).get();
+  return snapshot.exists ? { id: snapshot.id, ...snapshot.data() } : null;
+}
+
+function legacyActor(token, legacyRole) {
+  if (!legacyRole?.enabled) return null;
+  const level = String(legacyRole.level || "").toLowerCase();
+  const classKey = Array.isArray(legacyRole.classKeys) ? String(legacyRole.classKeys[0] || "") : "";
+  const [grade, classNumber] = classKey.split("-").map(Number);
+  let roles = [ROLE.STUDENT];
+  if (level === "school") roles = [ROLE.STUDENT, ROLE.ADMIN];
+  else if (["president", "class", "grade"].includes(level)) roles = [ROLE.STUDENT, ROLE.CLASS_PRESIDENT];
+  else return null;
+  return {
+    schemaVersion: 0,
+    legacy: true,
+    uid: token.uid,
+    schoolId: SCHOOL_ID,
+    studentNumber: "",
+    name: text(token.name || token.display_name || "기존 관리자", 30),
+    grade: Number.isInteger(grade) ? grade : 0,
+    classNumber: Number.isInteger(classNumber) ? classNumber : 0,
+    classKey,
+    number: 0,
+    roles,
+    subjectRoles: [],
+    departmentId: "",
+    onePersonRoleId: "",
+    status: "ACTIVE",
+    mustChangePin: false,
+  };
+}
+
 export async function requireProfile(req, { allowDisabled = false } = {}) {
   const token = await requireFirebaseUser(req);
   const profile = await profileForUid(token.uid);
   if (!profile) throw Object.assign(new Error("account-not-provisioned"), { status: 403 });
   if (!allowDisabled && profile.status !== "ACTIVE") throw Object.assign(new Error("account-disabled"), { status: 403 });
   return { token, profile };
+}
+
+export async function requireProfileOrLegacy(req, { allowDisabled = false, legacyLevels = ["school", "president", "class", "grade"] } = {}) {
+  const token = await requireFirebaseUser(req);
+  const profile = await profileForUid(token.uid);
+  if (profile) {
+    if (!allowDisabled && profile.status !== "ACTIVE") throw Object.assign(new Error("account-disabled"), { status: 403 });
+    return { token, profile, legacyRole: null };
+  }
+  const legacyRole = await legacyRoleForUid(token.uid);
+  const level = String(legacyRole?.level || "").toLowerCase();
+  if (!legacyRole?.enabled || !legacyLevels.includes(level)) {
+    throw Object.assign(new Error("account-not-provisioned"), { status: 403 });
+  }
+  const actor = legacyActor(token, legacyRole);
+  if (!actor) throw Object.assign(new Error("legacy-role-not-supported"), { status: 403 });
+  return { token, profile: actor, legacyRole };
 }
 
 export function hasRole(profile, role) {
@@ -222,6 +272,7 @@ export function publicProfile(profile) {
     onePersonRoleId: profile.onePersonRoleId || "",
     status: profile.status,
     mustChangePin: profile.mustChangePin === true,
+    legacy: profile.legacy === true,
   };
 }
 
