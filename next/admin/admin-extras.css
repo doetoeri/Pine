@@ -7,6 +7,16 @@
   width: 100%;
 }
 
+/* The mobile navigation is fixed for the full scroll. A live backdrop blur forces
+   expensive recompositing on Android/WebKit, so keep the Material surface opaque. */
+@media (max-width: 820px) {
+  .admin-sidebar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: var(--md-sys-color-surface-container-highest, #dfe3d9) !important;
+  }
+}
+
 @media (max-width: 760px) {
   .admin-class-switcher {
     width: 150px;
