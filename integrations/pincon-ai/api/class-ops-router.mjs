@@ -6,6 +6,7 @@ import cleaning from "../handlers/class-ops/cleaning.mjs";
 import phone from "../handlers/class-ops/phone.mjs";
 import subject from "../handlers/class-ops/subject.mjs";
 import settings from "../handlers/class-ops/settings.mjs";
+import adminOverview from "../handlers/class-ops/admin-overview.mjs";
 import { sendJson } from "../lib/request.mjs";
 
 // Keep account and class-operation endpoints in one Vercel Function. The public URLs stay stable through vercel.json rewrites.
@@ -18,6 +19,7 @@ const ROUTES = Object.freeze({
   phone,
   subject,
   settings,
+  "admin-overview": adminOverview,
 });
 
 export default async function classOpsRouter(req, res) {

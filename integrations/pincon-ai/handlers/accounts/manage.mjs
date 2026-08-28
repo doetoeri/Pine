@@ -138,10 +138,15 @@ async function resetPin(actor, body) {
 }
 
 async function listAccounts(actor) {
-  const snapshot = await usersCollection().limit(300).get();
+  // School admins may manage every class, so cover the full 3-grade × 10-class population.
+  // Class-scoped teachers only read their class to avoid paying for a school-wide scan.
+  const query = hasRole(actor, ROLE.ADMIN)
+    ? usersCollection().limit(1500)
+    : usersCollection().where("classKey", "==", actor.classKey).limit(80);
+  const snapshot = await query.get();
   return snapshot.docs
     .map((doc) => publicProfile({ id: doc.id, ...doc.data() }))
-    .filter((profile) => hasRole(actor, ROLE.ADMIN) || profile.classKey === actor.classKey)
+    .filter(Boolean)
     .sort((a, b) => `${a.classKey}-${String(a.number).padStart(2, "0")}`.localeCompare(`${b.classKey}-${String(b.number).padStart(2, "0")}`));
 }
 
