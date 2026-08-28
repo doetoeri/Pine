@@ -44,20 +44,21 @@ jobs:
             integrations/pincon-ai/lib/class-accounts.mjs \
             integrations/pincon-ai/lib/class-operations.mjs \
             integrations/pincon-ai/lib/class-ops-store.mjs \
-            integrations/pincon-ai/api/accounts/session.mjs \
-            integrations/pincon-ai/api/accounts/manage.mjs \
-            integrations/pincon-ai/api/accounts/change-pin.mjs \
-            integrations/pincon-ai/api/class-ops/home.mjs \
-            integrations/pincon-ai/api/class-ops/cleaning.mjs \
-            integrations/pincon-ai/api/class-ops/phone.mjs \
-            integrations/pincon-ai/api/class-ops/subject.mjs \
-            integrations/pincon-ai/api/class-ops/settings.mjs \
+            integrations/pincon-ai/api/class-ops-router.mjs \
+            integrations/pincon-ai/handlers/accounts/session.mjs \
+            integrations/pincon-ai/handlers/accounts/manage.mjs \
+            integrations/pincon-ai/handlers/accounts/change-pin.mjs \
+            integrations/pincon-ai/handlers/class-ops/home.mjs \
+            integrations/pincon-ai/handlers/class-ops/cleaning.mjs \
+            integrations/pincon-ai/handlers/class-ops/phone.mjs \
+            integrations/pincon-ai/handlers/class-ops/subject.mjs \
+            integrations/pincon-ai/handlers/class-ops/settings.mjs \
             integrations/pincon-ai/scripts/migrate-class-accounts.mjs
           do
             node --input-type=module --check < "$file"
           done
       - name: Install PinCon server dependencies
-        run: npm ci --prefix integrations/pincon-ai
+        run: npm install --prefix integrations/pincon-ai --ignore-scripts
       - name: Run RBAC core tests
         run: npm run test:rbac --prefix integrations/pincon-ai
       - name: Run student auth contracts
