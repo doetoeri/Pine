@@ -15,7 +15,7 @@ if (!snapshot.canArchiveContent) {
   await import("./brand-settings.js");
   await import("./content-editor.js");
   await import("./problem-bank-guide.js");
-  await import("./role-manager.js");
   await import("./user-manager.js");
+  await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
 }

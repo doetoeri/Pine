@@ -33,6 +33,25 @@ test("user manager supports filters, bulk provisioning, export and reactivation 
   assert.equal(/localStorage[^\n]*(pin|password|temporary)/i.test(source), false, "PIN/password material must not be stored in localStorage");
 });
 
+test("user and access management are one canonical RBAC surface", async () => {
+  const [bootstrap, navFix, index, users] = await Promise.all([
+    read("next/admin/bootstrap.js"),
+    read("next/admin/admin-user-access-v2.js"),
+    read("next/admin/index.html"),
+    read("next/admin/user-manager.js"),
+  ]);
+  assert.doesNotMatch(bootstrap, /import\("\.\/role-manager\.js"\)/, "legacy UID role manager must not boot");
+  assert.match(bootstrap, /admin-user-access-v2\.js/);
+  assert.doesNotMatch(index, /role-manager\.css/, "legacy role-manager stylesheet must not load");
+  assert.match(navFix, /data-admin-target=\"access\"/);
+  assert.match(navFix, /사용자·권한/);
+  assert.match(navFix, /observe\(root, \{ childList: true \}\)/);
+  assert.doesNotMatch(navFix, /subtree\s*:\s*true/);
+  for (const role of ["DEPARTMENT_HEAD", "SUBJECT_MANAGER", "CLASS_PRESIDENT", "TEACHER", "ADMIN"]) {
+    assert.ok(users.includes(role), `canonical user manager must retain role ${role}`);
+  }
+});
+
 test("admin overview stays behind the existing router function and enforces operator auth", async () => {
   const [router, handler, vercel, bootstrap] = await Promise.all([
     read("integrations/pincon-ai/api/class-ops-router.mjs"),
