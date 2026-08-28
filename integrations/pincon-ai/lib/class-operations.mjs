@@ -72,27 +72,29 @@ export function recommendCleaningCandidate(candidates, assignments, { lastAssign
     if (String(assignment.date || "") > stat.lastDate) stat.lastDate = String(assignment.date || "");
   }
 
-  const avoidRepeat = active.length > 1 ? active.filter((item) => item.uid !== lastAssigneeUid) : active;
-  const pool = avoidRepeat.length ? avoidRepeat : active;
-  const ranked = pool.map((candidate) => {
+  const ranked = active.map((candidate) => {
     const stat = stats.get(candidate.uid) || { count: 0, lastDate: "" };
+    const repeatPenalty = candidate.uid === lastAssigneeUid ? 1 : 0;
     const burden = Math.max(0, (candidate.roles?.length || 1) - 1) + (candidate.onePersonRoleId ? 1 : 0) + (candidate.subjectRoles?.length || 0);
-    return { candidate, stat, burden };
+    return { candidate, stat, repeatPenalty, burden };
   }).sort((a, b) => (
     a.stat.count - b.stat.count
     || String(a.stat.lastDate || "").localeCompare(String(b.stat.lastDate || ""))
+    || a.repeatPenalty - b.repeatPenalty
     || a.burden - b.burden
   ));
 
   const best = ranked[0];
   const ties = ranked.filter((item) => item.stat.count === best.stat.count
     && String(item.stat.lastDate || "") === String(best.stat.lastDate || "")
+    && item.repeatPenalty === best.repeatPenalty
     && item.burden === best.burden);
   const chosen = ties[randomInt(0, ties.length)];
   return {
     user: chosen.candidate,
     count: chosen.stat.count,
     lastDate: chosen.stat.lastDate,
+    repeatPenalty: chosen.repeatPenalty,
     burden: chosen.burden,
     reason: cleaningReason(chosen.candidate, stats),
   };
