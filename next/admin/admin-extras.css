@@ -1,0 +1,55 @@
+.admin-class-switcher {
+  width: 176px;
+  min-width: 176px;
+}
+
+.admin-class-switcher md-outlined-select {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .admin-class-switcher {
+    width: 150px;
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-class-switcher {
+    order: -1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-topbar__actions {
+    align-items: stretch;
+  }
+}
+
+@media print {
+  .admin-sidebar,
+  .admin-topbar__actions,
+  .admin-quick-actions,
+  .admin-search-dialog,
+  #adminModuleGrid md-filled-button,
+  #adminModuleGrid md-filled-tonal-button,
+  #adminModuleGrid md-outlined-button,
+  #adminModuleGrid md-text-button {
+    display: none !important;
+  }
+
+  .admin-shell {
+    display: block;
+  }
+
+  .admin-workspace {
+    width: 100%;
+  }
+
+  .admin-card,
+  .admin-overview,
+  .admin-metric {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}
