@@ -9,6 +9,7 @@ if (!snapshot.canArchiveContent) {
   location.replace("../#more");
 } else {
   await import("./admin.js");
+  await import("./admin-nav-performance.js");
   await import("./admin-shortcuts.js");
   await import("./class-switcher.js");
   await import("./brand-settings.js");
