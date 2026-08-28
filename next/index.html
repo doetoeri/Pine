@@ -92,10 +92,9 @@
 
         document.addEventListener("click", (event) => {
           const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
-          if (!routeControl) return;
+          if (!routeControl || globalThis.PinConNext) return;
           const route = routeControl.getAttribute("data-route") || "";
-          if (globalThis.PinConNext) commitCapturedRoute(route);
-          else replayRouteWhenReady(route);
+          replayRouteWhenReady(route);
         }, true);
 
         document.addEventListener("pointerup", (event) => {
