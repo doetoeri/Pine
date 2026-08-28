@@ -5,11 +5,13 @@ import {
   assertSameClass,
   corsHeaders,
   generateTemporaryPin,
+  hasRole,
   isAccountAdmin,
   normalizeProfile,
   profileForUid,
   publicProfile,
-  requireProfile,
+  requireProfileOrLegacy,
+  ROLE,
   studentEmail,
   syncCompatibilityRole,
 } from "../../lib/class-accounts.mjs";
@@ -136,10 +138,11 @@ async function resetPin(actor, body) {
 }
 
 async function listAccounts(actor) {
-  let query = usersCollection().orderBy("number", "asc").limit(80);
-  if (!actor.roles?.includes("ADMIN")) query = usersCollection().where("classKey", "==", actor.classKey).orderBy("number", "asc").limit(80);
-  const snapshot = await query.get();
-  return snapshot.docs.map((doc) => publicProfile({ id: doc.id, ...doc.data() }));
+  const snapshot = await usersCollection().limit(300).get();
+  return snapshot.docs
+    .map((doc) => publicProfile({ id: doc.id, ...doc.data() }))
+    .filter((profile) => hasRole(actor, ROLE.ADMIN) || profile.classKey === actor.classKey)
+    .sort((a, b) => `${a.classKey}-${String(a.number).padStart(2, "0")}`.localeCompare(`${b.classKey}-${String(b.number).padStart(2, "0")}`));
 }
 
 export default async function manageAccounts(req, res) {
@@ -147,7 +150,7 @@ export default async function manageAccounts(req, res) {
   if (req.method === "OPTIONS") return sendJson(res, 204, {}, headers);
 
   try {
-    const { profile: actor } = await requireProfile(req);
+    const { profile: actor } = await requireProfileOrLegacy(req, { legacyLevels: ["school"] });
     assertAdmin(actor);
 
     if (req.method === "GET") return sendJson(res, 200, { accounts: await listAccounts(actor) }, headers);
