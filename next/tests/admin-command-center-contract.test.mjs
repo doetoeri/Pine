@@ -47,3 +47,17 @@ test("admin overview stays behind the existing router function and enforces oper
   assert.doesNotMatch(handler, /temporaryPin|password\s*:/i);
   assert.match(bootstrap, /admin-shortcuts\.js/);
 });
+
+test("admin operations mounting cannot create a subtree mutation rerender loop", async () => {
+  const [bootstrap, settings, extras] = await Promise.all([
+    read("next/admin/bootstrap.js"),
+    read("next/admin/class-ops-settings-v2.js"),
+    read("next/admin/admin-extras.css"),
+  ]);
+  assert.match(bootstrap, /class-ops-settings-v2\.js/);
+  assert.doesNotMatch(bootstrap, /import\("\.\/class-ops-settings\.js"\)/);
+  assert.match(settings, /observe\(root, \{ childList: true \}\)/);
+  assert.doesNotMatch(settings, /subtree\s*:\s*true/);
+  assert.match(settings, /if \(existing && !force\) return/);
+  assert.match(extras, /backdrop-filter:\s*none\s*!important/);
+});
