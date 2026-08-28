@@ -5,6 +5,11 @@ import { dateKey, safeText } from "./class-operations.mjs";
 export const collection = (name) => firestore().collection(`schools/${SCHOOL_ID}/${name}`);
 export const document = (name, id) => firestore().doc(`schools/${SCHOOL_ID}/${name}/${id}`);
 
+async function classRows(name, classKey, limit = 500) {
+  const snapshot = await collection(name).where("classKey", "==", classKey).limit(limit).get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
 export function safeSnapshot(value) {
   if (!value || typeof value !== "object") return null;
   const result = {};
@@ -42,12 +47,10 @@ export async function appendOpsAudit({ actor, action, collectionName, recordId, 
 }
 
 export async function classUsers(classKey, { activeOnly = true } = {}) {
-  let query = collection("users").where("classKey", "==", classKey).limit(80);
-  if (activeOnly) query = query.where("status", "==", "ACTIVE");
-  const snapshot = await query.get();
-  return snapshot.docs
-    .map((doc) => publicProfile({ id: doc.id, ...doc.data() }))
-    .filter(Boolean)
+  const rows = await classRows("users", classKey, 80);
+  return rows
+    .map((item) => publicProfile(item))
+    .filter((item) => item && (!activeOnly || item.status === "ACTIVE"))
     .sort((a, b) => a.number - b.number);
 }
 
@@ -75,26 +78,14 @@ export async function classSettings(classKey) {
 }
 
 export async function activeExemptions(classKey, date = dateKey()) {
-  const snapshot = await collection("cleaningExemptions")
-    .where("classKey", "==", classKey)
-    .where("date", "==", date)
-    .where("status", "==", "APPROVED")
-    .limit(80)
-    .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const rows = await classRows("cleaningExemptions", classKey, 200);
+  return rows.filter((item) => item.date === date && item.status === "APPROVED");
 }
 
 export async function cleaningAssignmentsForMonth(classKey, departmentId, date = dateKey()) {
-  const from = `${date.slice(0, 7)}-01`;
-  const to = `${date.slice(0, 7)}-31`;
-  const snapshot = await collection("cleaningAssignments")
-    .where("classKey", "==", classKey)
-    .where("departmentId", "==", departmentId)
-    .where("date", ">=", from)
-    .where("date", "<=", to)
-    .limit(200)
-    .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const month = String(date).slice(0, 7);
+  const rows = await classRows("cleaningAssignments", classKey, 500);
+  return rows.filter((item) => item.departmentId === departmentId && String(item.date || "").startsWith(month));
 }
 
 export function assignmentId(classKey, departmentId, date = dateKey()) {
@@ -106,12 +97,8 @@ export function phoneStateId(classKey, date, uid) {
 }
 
 export async function phoneStates(classKey, date = dateKey()) {
-  const snapshot = await collection("phoneStates")
-    .where("classKey", "==", classKey)
-    .where("date", "==", date)
-    .limit(80)
-    .get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const rows = await classRows("phoneStates", classKey, 500);
+  return rows.filter((item) => item.date === date);
 }
 
 export async function ownPhoneState(profile, date = dateKey()) {
