@@ -1,8 +1,9 @@
 const appRoot = document.querySelector("#app");
 const ROUTES = new Set(["today", "timetable", "schedule", "classroom", "more"]);
 const pointerRoutes = new Map();
-let keyboardRoute = "";
+let keyboardRoute = null;
 let routeFocusSequence = 0;
+let routeIntentSequence = 0;
 
 function eventRouteControl(event) {
   return event.composedPath?.().find((node) => (
@@ -64,6 +65,11 @@ function stabilizeRouteFocus(route) {
   }
 }
 
+function beginRouteIntent(route) {
+  if (!ROUTES.has(route)) return null;
+  return { route, token: ++routeIntentSequence };
+}
+
 function recoverRoute(route) {
   if (!ROUTES.has(route) || routeIsRendered(route)) return;
   if (currentRoute() !== route) {
@@ -73,23 +79,28 @@ function recoverRoute(route) {
   stabilizeRouteFocus(route);
 }
 
-function scheduleRouteRecovery(route) {
-  if (!ROUTES.has(route)) return;
-  // Let app.js handle the normal click first. This only repairs activations whose
-  // Material button was replaced by a background render between press and click.
-  window.setTimeout(() => recoverRoute(route), 0);
-  window.setTimeout(() => recoverRoute(route), 80);
+function scheduleRouteRecovery(intent) {
+  if (!intent || !ROUTES.has(intent.route)) return;
+  const apply = () => {
+    if (intent.token !== routeIntentSequence) return;
+    recoverRoute(intent.route);
+  };
+  // app.js owns the normal activation. These delayed checks only repair the
+  // WebKit case where a background rerender replaces the Material button while
+  // the press is in flight and the browser therefore drops the click event.
+  window.setTimeout(apply, 0);
+  window.setTimeout(apply, 80);
 }
 
 document.addEventListener("pointerdown", (event) => {
-  const route = controlRoute(eventRouteControl(event));
-  if (route) pointerRoutes.set(event.pointerId, route);
+  const intent = beginRouteIntent(controlRoute(eventRouteControl(event)));
+  if (intent) pointerRoutes.set(event.pointerId, intent);
 }, true);
 
 document.addEventListener("pointerup", (event) => {
-  const route = pointerRoutes.get(event.pointerId) || "";
+  const intent = pointerRoutes.get(event.pointerId) || null;
   pointerRoutes.delete(event.pointerId);
-  if (route) scheduleRouteRecovery(route);
+  scheduleRouteRecovery(intent);
 }, true);
 
 document.addEventListener("pointercancel", (event) => {
@@ -97,20 +108,21 @@ document.addEventListener("pointercancel", (event) => {
 }, true);
 
 document.addEventListener("keydown", (event) => {
-  if (!['Enter', ' '].includes(event.key)) return;
-  keyboardRoute = controlRoute(eventRouteControl(event));
+  if (!["Enter", " "].includes(event.key)) return;
+  keyboardRoute = beginRouteIntent(controlRoute(eventRouteControl(event)));
 }, true);
 
 document.addEventListener("keyup", (event) => {
-  if (!['Enter', ' '].includes(event.key)) return;
-  const route = keyboardRoute;
-  keyboardRoute = "";
-  if (route) scheduleRouteRecovery(route);
+  if (!["Enter", " "].includes(event.key)) return;
+  const intent = keyboardRoute;
+  keyboardRoute = null;
+  scheduleRouteRecovery(intent);
 }, true);
 
 document.addEventListener("click", (event) => {
   const route = controlRoute(eventRouteControl(event));
-  if (!route) return;
+  const intent = beginRouteIntent(route);
+  if (!intent) return;
   stabilizeRouteFocus(route);
-  scheduleRouteRecovery(route);
+  scheduleRouteRecovery(intent);
 }, true);
