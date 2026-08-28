@@ -9,6 +9,7 @@ let saving = false;
 const EDITABLE = Object.freeze({
   announcements: { label: "공지", icon: "campaign" },
   classAssignments: { label: "수행·숙제", icon: "assignment" },
+  evaluationPlans: { label: "평가계획서", icon: "picture_as_pdf" },
   events: { label: "학급 행사", icon: "celebration" },
 });
 
@@ -31,6 +32,14 @@ function dateValue(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
 }
 
+function localToday() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function itemTitle(item) {
   return item?.title || item?.name || item?.subject || item?.id || "제목 없음";
 }
@@ -40,7 +49,10 @@ function itemSupport(collection, item) {
     return [item.priority === "urgent" ? "긴급" : item.priority === "important" ? "중요" : "일반", item.body].filter(Boolean).join(" · ");
   }
   if (collection === "classAssignments") {
-    return [item.subject, item.dueDate, item.type].filter(Boolean).join(" · ");
+    return [item.subject, item.dueDate || "날짜 미정", item.type, item.verificationStatus].filter(Boolean).join(" · ");
+  }
+  if (collection === "evaluationPlans") {
+    return [item.subject, `${item.schoolYear || "-"}학년도 ${item.semester || "-"}학기`, item.status].filter(Boolean).join(" · ");
   }
   if (collection === "events") {
     return [item.date, item.status, item.question].filter(Boolean).join(" · ");
@@ -100,14 +112,14 @@ function archiveMarkup() {
     ${rows.length ? `<div class="managed-editor-list">${rows.slice(0, 50).map(({ collection, item }) => `<div class="managed-editor-row">
       <div class="managed-editor-row__copy"><strong>${escapeHtml(itemTitle(item))}</strong><span>${escapeHtml(`${EDITABLE[collection].label} · 보관됨`)}</span></div>
       <div class="managed-editor-row__actions"><md-outlined-button data-managed-restore="${collection}" data-record-id="${escapeHtml(item.id)}"><md-icon slot="icon">restore</md-icon>복원</md-outlined-button></div>
-    </div>`).join("")}</div>` : `<div class="managed-editor-empty">보관된 공지·수행·행사가 없습니다.</div>`}
+    </div>`).join("")}</div>` : `<div class="managed-editor-empty">보관된 공지·수행·평가계획서·행사가 없습니다.</div>`}
   </section>`;
 }
 
 function cardMarkup() {
   const allowed = Boolean(snapshot.canManageContent);
   const roleNote = allowed
-    ? "저장하면 학생 화면에 실시간 반영되고, 생성·수정·보관·복원 기록이 changeLogs에 남습니다."
+    ? "저장하면 학생 화면에 실시간 반영되고, 생성·수정·보관·복원 기록이 changeLogs에 남습니다. 평가계획서는 먼저 한 번 등록한 뒤 여러 수행평가에 재사용할 수 있습니다."
     : "현재 계정은 production Firestore의 학급 운영 권한과 일치하지 않아 편집할 수 없습니다.";
   return `<section class="admin-card admin-card--wide" data-managed-editor aria-labelledby="managed-editor-title">
     <div class="admin-card__header">
@@ -126,6 +138,18 @@ function selectOptions(options, selected) {
   return options.map(([value, label]) => `<md-select-option value="${value}" ${value === selected ? "selected" : ""}><div slot="headline">${label}</div></md-select-option>`).join("");
 }
 
+function planOptions(selected) {
+  const rows = activeRows("evaluationPlans").filter((item) => item.status !== "draft");
+  return selectOptions([
+    ["", "연결하지 않음"],
+    ...rows.map((item) => [item.id, `${item.subject || "과목 미정"} · ${item.title || "평가계획서"}`]),
+  ], selected || "");
+}
+
+function nativeCheckbox(id, label, checked = false) {
+  return `<label class="managed-native-check" for="${id}"><input id="${id}" type="checkbox" ${checked ? "checked" : ""}><span>${escapeHtml(label)}</span></label>`;
+}
+
 function fieldsMarkup(collection, item = {}) {
   if (collection === "announcements") {
     return `<md-outlined-text-field id="managedTitle" label="공지 제목" value="${escapeHtml(item.title || "")}" maxlength="100" required></md-outlined-text-field>
@@ -137,8 +161,37 @@ function fieldsMarkup(collection, item = {}) {
     return `<md-outlined-text-field id="managedTitle" label="제목" value="${escapeHtml(item.title || "")}" maxlength="120" required></md-outlined-text-field>
       <md-outlined-text-field id="managedSubject" label="과목" value="${escapeHtml(item.subject || "")}" maxlength="40"></md-outlined-text-field>
       <md-outlined-select id="managedType" label="종류" value="${escapeHtml(item.type || "assessment")}">${selectOptions([["assessment","수행평가"],["exam","시험"],["preparation","준비물·숙제"]], item.type || "assessment")}</md-outlined-select>
-      <md-outlined-text-field id="managedDueDate" label="마감 날짜" type="date" value="${escapeHtml(dateValue(item.dueDate))}" required></md-outlined-text-field>
-      <md-outlined-text-field id="managedDescription" label="설명" type="textarea" rows="4" value="${escapeHtml(item.description || "")}" maxlength="1200"></md-outlined-text-field>`;
+      <md-outlined-select id="managedDateType" label="날짜 확정 상태" value="${escapeHtml(item.dateType || (item.dueDate ? "exact" : "undecided"))}">${selectOptions([["exact","정확한 날짜"],["range","기간형"],["month","월 중 예정"],["undecided","날짜 미정"]], item.dateType || (item.dueDate ? "exact" : "undecided"))}</md-outlined-select>
+      <md-outlined-text-field id="managedDueDate" label="마감 날짜 · 확정된 경우만" type="date" value="${escapeHtml(dateValue(item.dueDate))}"></md-outlined-text-field>
+      <md-outlined-text-field id="managedEvaluationRange" label="평가 범위" value="${escapeHtml(item.evaluationRange || "")}" maxlength="600"></md-outlined-text-field>
+      <md-outlined-text-field id="managedEvaluationMethod" label="평가 방식" value="${escapeHtml(item.evaluationMethod || "")}" maxlength="500"></md-outlined-text-field>
+      <md-outlined-text-field id="managedMaterials" label="준비물·제출물" value="${escapeHtml(item.materials || "")}" maxlength="500"></md-outlined-text-field>
+      <md-outlined-text-field id="managedPoints" label="배점·반영 비율" value="${escapeHtml(item.points || "")}" maxlength="120"></md-outlined-text-field>
+      <md-outlined-select id="managedEvaluationPlanId" label="연결할 평가계획서" value="${escapeHtml(item.evaluationPlanId || "")}">${planOptions(item.evaluationPlanId)}</md-outlined-select>
+      <md-outlined-text-field id="managedPageReferences" label="관련 페이지 · 예: 4~6쪽" value="${escapeHtml(item.pageReferences || "")}" maxlength="120"></md-outlined-text-field>
+      <md-outlined-select id="managedVerificationStatus" label="확인 상태" value="${escapeHtml(item.verificationStatus || "review")}">${selectOptions([["review","확인 중"],["verified","공식 자료 확인"],["changed","수업 중 변경됨"]], item.verificationStatus || "review")}</md-outlined-select>
+      <md-outlined-text-field id="managedAnnouncedDate" label="학생에게 안내된 날짜" type="date" value="${escapeHtml(dateValue(item.announcedDate) || localToday())}"></md-outlined-text-field>
+      <md-outlined-text-field id="managedDescription" label="학생용 요약" type="textarea" rows="4" value="${escapeHtml(item.description || "")}" maxlength="1200"></md-outlined-text-field>
+      ${nativeCheckbox("managedPublished", "학생 화면에 공개", item.published !== false)}
+      ${nativeCheckbox("managedRecoveryRelevant", "안내 날짜의 결석자 복귀팩에 포함", item.recoveryRelevant !== false)}`;
+  }
+
+  if (collection === "evaluationPlans") {
+    return `<md-outlined-text-field id="managedTitle" label="평가계획서 제목" value="${escapeHtml(item.title || "")}" maxlength="140" required></md-outlined-text-field>
+      <md-outlined-text-field id="managedSubject" label="과목" value="${escapeHtml(item.subject || "")}" maxlength="40" required></md-outlined-text-field>
+      <div class="managed-editor-split">
+        <md-outlined-text-field id="managedSchoolYear" label="학년도" type="number" value="${escapeHtml(item.schoolYear || new Date().getFullYear())}"></md-outlined-text-field>
+        <md-outlined-select id="managedSemester" label="학기" value="${escapeHtml(String(item.semester || 2))}">${selectOptions([["1","1학기"],["2","2학기"]], String(item.semester || 2))}</md-outlined-select>
+      </div>
+      <md-outlined-select id="managedPlanStatus" label="검토 상태" value="${escapeHtml(item.status || "review")}">${selectOptions([["draft","초안 · 학생에게 숨김"],["review","담당자 확인 중"],["verified","원본 확인 완료"]], item.status || "review")}</md-outlined-select>
+      <md-outlined-text-field id="managedSourceUrl" label="학교 홈페이지 원문 링크 · 선택" type="url" value="${escapeHtml(item.sourceUrl || "")}" maxlength="1200"></md-outlined-text-field>
+      <label class="managed-file-field" for="managedPlanFile"><span>PDF 파일 · 10MB 이하</span><input id="managedPlanFile" type="file" accept="application/pdf,.pdf"><small>${escapeHtml(item.fileName ? `현재 파일: ${item.fileName}` : "PDF 또는 원문 링크 중 하나는 필요합니다.")}</small></label>
+      <md-outlined-text-field id="managedSourceAttribution" label="출처" value="${escapeHtml(item.sourceAttribution || "고촌고등학교 평가계획서")}" maxlength="300"></md-outlined-text-field>
+      <md-outlined-text-field id="managedPageCount" label="전체 페이지 수 · 선택" type="number" value="${escapeHtml(item.pageCount || 0)}"></md-outlined-text-field>
+      <md-outlined-text-field id="managedPlanAnnouncedDate" label="학생에게 공개한 날짜" type="date" value="${escapeHtml(dateValue(item.announcedDate) || localToday())}"></md-outlined-text-field>
+      <md-outlined-text-field id="managedDescription" label="설명" type="textarea" rows="3" value="${escapeHtml(item.description || "")}" maxlength="1000"></md-outlined-text-field>
+      ${nativeCheckbox("managedPlanRecoveryRelevant", "공개 날짜의 결석자 복귀팩에 포함", item.recoveryRelevant !== false)}
+      ${nativeCheckbox("managedPlanFileConfirmed", "학급 내 공유 권한을 확인했고 개인정보가 없는 문서입니다", false)}`;
   }
 
   return `<md-outlined-text-field id="managedTitle" label="행사 제목" value="${escapeHtml(item.title || "")}" maxlength="120" required></md-outlined-text-field>
@@ -190,6 +243,10 @@ function fieldValue(id) {
   return root?.querySelector(`#${id}`)?.value ?? "";
 }
 
+function fieldChecked(id) {
+  return root?.querySelector(`#${id}`)?.checked === true;
+}
+
 function valuesFromDialog(dialog) {
   const collection = dialog.dataset.collection;
   const current = dialog.dataset.recordId ? findRecord(collection, dialog.dataset.recordId) : null;
@@ -199,7 +256,23 @@ function valuesFromDialog(dialog) {
   if (collection === "classAssignments") {
     return {
       title: fieldValue("managedTitle"), subject: fieldValue("managedSubject"), type: fieldValue("managedType"),
-      dueDate: fieldValue("managedDueDate"), description: fieldValue("managedDescription"),
+      dateType: fieldValue("managedDateType"), dueDate: fieldValue("managedDueDate"),
+      evaluationRange: fieldValue("managedEvaluationRange"), evaluationMethod: fieldValue("managedEvaluationMethod"),
+      materials: fieldValue("managedMaterials"), points: fieldValue("managedPoints"),
+      evaluationPlanId: fieldValue("managedEvaluationPlanId"), pageReferences: fieldValue("managedPageReferences"),
+      verificationStatus: fieldValue("managedVerificationStatus"), announcedDate: fieldValue("managedAnnouncedDate"),
+      description: fieldValue("managedDescription"), published: fieldChecked("managedPublished"),
+      recoveryRelevant: fieldChecked("managedRecoveryRelevant"),
+    };
+  }
+  if (collection === "evaluationPlans") {
+    return {
+      title: fieldValue("managedTitle"), subject: fieldValue("managedSubject"),
+      schoolYear: fieldValue("managedSchoolYear"), semester: fieldValue("managedSemester"),
+      status: fieldValue("managedPlanStatus"), sourceUrl: fieldValue("managedSourceUrl"),
+      sourceAttribution: fieldValue("managedSourceAttribution"), pageCount: fieldValue("managedPageCount"),
+      announcedDate: fieldValue("managedPlanAnnouncedDate"), description: fieldValue("managedDescription"),
+      recoveryRelevant: fieldChecked("managedPlanRecoveryRelevant"),
     };
   }
   return {
@@ -227,7 +300,12 @@ async function saveDialog() {
   if (save) save.disabled = true;
   if (status) { setText(status, "서버에 저장하고 변경 기록을 남기는 중…"); status.dataset.kind = ""; }
   try {
-    await gateway.saveManagedRecord(dialog.dataset.collection, valuesFromDialog(dialog), { id: dialog.dataset.recordId || "" });
+    const file = dialog.dataset.collection === "evaluationPlans" ? root?.querySelector("#managedPlanFile")?.files?.[0] || null : null;
+    await gateway.saveManagedRecord(dialog.dataset.collection, valuesFromDialog(dialog), {
+      id: dialog.dataset.recordId || "",
+      file,
+      fileConfirmed: fieldChecked("managedPlanFileConfirmed"),
+    });
     dialog.close?.();
     setStatus("저장되었습니다. 학생 화면에 실시간 반영됩니다.", "success");
   } catch (error) {
@@ -283,7 +361,7 @@ function patchBaseDashboard() {
   const allowed = Boolean(snapshot.canManageContent);
   const heroCopy = root?.querySelector(".admin-hero p:last-child");
   setText(heroCopy, allowed
-    ? "학생 화면과 같은 데이터 원본을 사용합니다. 권한이 있는 학급 운영 계정은 공지·수행·행사를 실제로 편집할 수 있고 모든 변경이 기록됩니다."
+    ? "학생 화면과 같은 데이터 원본을 사용합니다. 권한이 있는 학급 운영 계정은 공지·수행·평가계획서·행사를 실제로 편집할 수 있고 모든 변경이 기록됩니다."
     : "학생 화면과 같은 데이터 원본을 사용합니다. 현재 계정의 서버 권한을 확인한 뒤 허용된 경우에만 편집 기능이 열립니다.");
 
   const accessCard = root?.querySelector("#access-title")?.closest(".admin-card");
@@ -299,7 +377,7 @@ function patchBaseDashboard() {
       const support = writeRow.querySelector(".admin-row__main span");
       setText(strong, allowed ? "활성" : "잠김");
       setText(support, allowed
-        ? "공지·수행·행사는 production 서버 권한과 변경 기록을 거쳐 저장됩니다."
+        ? "공지·수행·평가계획서·행사는 production 서버 권한과 변경 기록을 거쳐 저장됩니다."
         : "현재 계정은 서버의 학급 운영 권한 범위에 포함되지 않습니다.");
     }
   }
@@ -324,7 +402,12 @@ function render() {
   const grid = root?.querySelector(".admin-grid");
   if (!grid) return;
   patchBaseDashboard();
-  if (grid.querySelector("[data-managed-editor]")) return;
+  const existing = grid.querySelector("[data-managed-editor]");
+  if (existing) {
+    if (root?.querySelector("#managedEditorDialog")?.open || root?.querySelector("#managedArchiveDialog")?.open) return;
+    existing.remove();
+    grid.querySelector("[data-managed-archive-card]")?.remove();
+  }
   grid.insertAdjacentHTML("afterbegin", cardMarkup());
   if (snapshot.canManageContent) grid.insertAdjacentHTML("beforeend", archiveMarkup());
   bindCard();

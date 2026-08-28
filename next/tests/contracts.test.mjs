@@ -60,17 +60,22 @@ test("notification feed combines canonical class sources and excludes hidden rec
     classAssignments: [
       { id: "w1", title: "수학 수행", dueDate: "2026-08-25", updatedAtMs: 300 },
     ],
+    evaluationPlans: [
+      { id: "p1", title: "수학 평가계획서", status: "verified", updatedAtMs: 350 },
+      { id: "hidden-plan", title: "검토 전 계획서", status: "draft", updatedAtMs: 600 },
+    ],
     events: [
       { id: "draft", title: "초안 행사", status: "draft", updatedAtMs: 500 },
     ],
   });
 
-  assert.deepEqual(feed.map((item) => item.id), ["assignment:w1", "announcement:a1"]);
-  assert.equal(feed[0].route, "schedule");
-  assert.equal(feed[0].detailKind, "assignment");
-  assert.equal(feed[0].collection, "classAssignments");
-  assert.equal(feed[0].recordId, "w1");
-  assert.equal(feed[1].route, "today");
+  assert.deepEqual(feed.map((item) => item.id), ["evaluation-plan:p1", "assignment:w1", "announcement:a1"]);
+  assert.equal(feed[0].route, "classroom");
+  assert.equal(feed[0].detailKind, "evaluation-plan");
+  assert.equal(feed[0].collection, "evaluationPlans");
+  assert.equal(feed[0].recordId, "p1");
+  assert.equal(feed[1].route, "schedule");
+  assert.equal(feed[2].route, "today");
 });
 
 test("authenticated class manager receives audited write permissions", () => {

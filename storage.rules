@@ -42,6 +42,16 @@ service firebase.storage {
       allow delete: if classOperator(schoolId, classKey);
     }
 
+    match /class-evaluation-plans/{schoolId}/{classKey}/{recordId}/{fileName} {
+      allow read: if signedIn();
+      allow create: if classOperator(schoolId, classKey)
+        && request.resource.size > 0
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
+      allow update: if false;
+      allow delete: if classOperator(schoolId, classKey);
+    }
+
     match /class-lost-items/{schoolId}/{classKey}/{recordId}/{fileName} {
       allow read: if signedIn();
       allow create: if validClassKey(classKey)

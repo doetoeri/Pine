@@ -5,7 +5,7 @@ import { TODAY_OPEN_WRITE_CLASS_KEY, TODAY_OPEN_WRITE_UNTIL_MS, todayOpenWriteEl
 
 const PROFILE_KEY = "pincon-profile-v2";
 const GATEWAY_SINGLETON_KEY = Symbol.for("pincon.next.data-gateway");
-const MANAGED_COLLECTIONS = new Set(["announcements", "classAssignments", "events"]);
+const MANAGED_COLLECTIONS = new Set(["announcements", "classAssignments", "evaluationPlans", "events"]);
 
 function parseJson(value, fallback = null) {
   try {
@@ -83,6 +83,38 @@ function cleanString(value, max = 2000) {
   return String(value ?? "").trim().slice(0, max);
 }
 
+function cleanHttpUrl(value) {
+  const text = cleanString(value, 1200);
+  if (!text) return "";
+  try {
+    const url = new URL(text);
+    if (!["https:", "http:"].includes(url.protocol)) throw new Error("unsupported protocol");
+    return url.href;
+  } catch {
+    throw new Error("평가계획서 링크 주소를 확인해 주세요.");
+  }
+}
+
+function uniqueRecordId() {
+  return globalThis.crypto?.randomUUID?.()
+    || `plan-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function validDateOrEmpty(value) {
+  const text = cleanString(value, 10);
+  if (!text) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new Error("날짜를 확인해 주세요.");
+  return text;
+}
+
+function todayString() {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function auditCopy(value = {}) {
   const result = {};
   for (const [key, item] of Object.entries(value || {}).slice(0, 50)) {
@@ -109,11 +141,16 @@ function normalizeManagedValues(collection, values = {}) {
 
   if (collection === "classAssignments") {
     const title = cleanString(values.title, 120);
-    const dueDate = cleanString(values.dueDate, 10);
+    const dueDate = validDateOrEmpty(values.dueDate);
     if (!title) throw new Error("수행·숙제 제목을 입력해 주세요.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) throw new Error("마감 날짜를 확인해 주세요.");
-    const dueAtMs = new Date(`${dueDate}T23:59:00`).getTime();
-    if (!Number.isFinite(dueAtMs)) throw new Error("마감 날짜를 확인해 주세요.");
+    const dueAtMs = dueDate ? new Date(`${dueDate}T23:59:00`).getTime() : 0;
+    if (dueDate && !Number.isFinite(dueAtMs)) throw new Error("마감 날짜를 확인해 주세요.");
+    const dateType = ["exact", "range", "month", "undecided"].includes(values.dateType)
+      ? values.dateType
+      : (dueDate ? "exact" : "undecided");
+    const verificationStatus = ["review", "verified", "changed"].includes(values.verificationStatus)
+      ? values.verificationStatus
+      : "review";
     return {
       type: ["assessment", "exam", "preparation"].includes(values.type) ? values.type : "assessment",
       title,
@@ -121,6 +158,42 @@ function normalizeManagedValues(collection, values = {}) {
       dueDate,
       dueAtMs,
       description: cleanString(values.description, 1200),
+      dateType,
+      evaluationRange: cleanString(values.evaluationRange, 600),
+      evaluationMethod: cleanString(values.evaluationMethod, 500),
+      materials: cleanString(values.materials, 500),
+      points: cleanString(values.points, 120),
+      evaluationPlanId: cleanString(values.evaluationPlanId, 160),
+      pageReferences: cleanString(values.pageReferences, 120),
+      verificationStatus,
+      confirmed: verificationStatus === "verified",
+      changed: verificationStatus === "changed",
+      published: values.published !== false,
+      announcedDate: validDateOrEmpty(values.announcedDate) || todayString(),
+      recoveryRelevant: values.recoveryRelevant !== false,
+    };
+  }
+
+  if (collection === "evaluationPlans") {
+    const title = cleanString(values.title, 140);
+    const subject = cleanString(values.subject, 40);
+    if (!title) throw new Error("평가계획서 제목을 입력해 주세요.");
+    if (!subject) throw new Error("과목을 입력해 주세요.");
+    const schoolYear = Math.max(2000, Math.min(2100, Math.trunc(Number(values.schoolYear || new Date().getFullYear()))));
+    const semester = Number(values.semester) === 2 ? 2 : 1;
+    const status = ["draft", "review", "verified"].includes(values.status) ? values.status : "review";
+    return {
+      title,
+      subject,
+      schoolYear,
+      semester,
+      status,
+      sourceUrl: cleanHttpUrl(values.sourceUrl),
+      sourceAttribution: cleanString(values.sourceAttribution, 300),
+      pageCount: Math.max(0, Math.min(999, Math.trunc(Number(values.pageCount || 0)))),
+      description: cleanString(values.description, 1000),
+      announcedDate: validDateOrEmpty(values.announcedDate) || todayString(),
+      recoveryRelevant: values.recoveryRelevant !== false,
     };
   }
 
@@ -340,18 +413,53 @@ export class NextDataGateway extends EventTarget {
     return this.repository.adminWrite(collection, values, options);
   }
 
-  async saveManagedRecord(collection, values, { id = "" } = {}) {
+  async saveManagedRecord(collection, values, { id = "", file = null, fileConfirmed = false } = {}) {
     if (!this.repository) await this.start();
     if (!MANAGED_COLLECTIONS.has(collection)) throw new Error("이 데이터 종류는 직접 편집할 수 없습니다.");
     this.requireManagedWrite(id ? PERMISSION.UPDATE : PERMISSION.CREATE);
-    const normalized = normalizeManagedValues(collection, values);
+    let normalized = normalizeManagedValues(collection, values);
     const current = id ? (this.state.data?.[collection] || []).find((item) => item.id === id) : null;
+    let targetId = id;
+    if (collection === "evaluationPlans") {
+      if (!this.state.canArchiveContent) throw new Error("평가계획서 업로드는 회장 계정에서만 가능합니다.");
+      if (file) {
+        if (!fileConfirmed) throw new Error("공유 권한과 개인정보 제거 여부를 확인해 주세요.");
+        targetId ||= uniqueRecordId();
+        const upload = await this.repository.uploadFile("evaluation-plans", targetId, file);
+        normalized = { ...normalized, fileName: upload?.fileName || "", storagePath: upload?.storagePath || "" };
+      } else {
+        normalized = {
+          ...normalized,
+          fileName: current?.fileName || "",
+          storagePath: current?.storagePath || "",
+        };
+      }
+      if (!normalized.sourceUrl && !normalized.storagePath) throw new Error("평가계획서 PDF 또는 학교 원문 링크를 등록해 주세요.");
+    }
+    if (collection === "classAssignments") {
+      const now = Date.now();
+      const previousHistory = Array.isArray(current?.changeHistory) ? current.changeHistory.slice(0, 7) : [];
+      const tracked = ["dueDate", "evaluationRange", "evaluationMethod", "materials", "points", "evaluationPlanId"];
+      const changedFields = current ? tracked.filter((key) => String(current[key] ?? "") !== String(normalized[key] ?? "")) : [];
+      normalized = {
+        ...normalized,
+        lastVerifiedAtMs: ["verified", "changed"].includes(normalized.verificationStatus) ? now : Number(current?.lastVerifiedAtMs || 0),
+        changeHistory: changedFields.length
+          ? [{ summary: `${changedFields.length}개 항목 수정`, occurredAtMs: now }, ...previousHistory]
+          : previousHistory,
+      };
+    }
     const label = normalized.title || current?.title || collection;
     return this.managedWrite(
       collection,
       { ...(current || {}), ...normalized, deleted: false, deletedAtMs: null },
-      { id, action: current ? "update" : "create", label },
+      { id: targetId, action: current ? "update" : "create", label },
     );
+  }
+
+  async openClassFile(storagePath, fileName = "자료") {
+    if (!this.repository) await this.start();
+    return this.repository.openResourceFile(storagePath, fileName);
   }
 
   async archiveManagedRecord(collection, id) {
