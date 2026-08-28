@@ -1,5 +1,6 @@
 import { firebaseAuth, firestore } from "../../lib/firebase.mjs";
 import {
+  SCHOOL_ID,
   appendAccountAudit,
   assertSameClass,
   corsHeaders,
@@ -14,9 +15,11 @@ import {
 } from "../../lib/class-accounts.mjs";
 import { jsonBody, sendJson } from "../../lib/request.mjs";
 
+const usersCollection = () => firestore().collection(`schools/${SCHOOL_ID}/users`);
+const userDocument = (uid) => firestore().doc(`schools/${SCHOOL_ID}/users/${uid}`);
+
 async function findByStudentNumber(studentNumber) {
-  const snapshot = await firestore()
-    .collection("schools/gochon-high/users")
+  const snapshot = await usersCollection()
     .where("studentNumber", "==", String(studentNumber || ""))
     .limit(1)
     .get();
@@ -57,15 +60,20 @@ async function createAccount(actor, body) {
   }
 
   const profile = normalizeProfile(candidate, { uid: authUser.uid });
-  await firestore().runTransaction(async (transaction) => {
-    transaction.create(firestore().doc(`schools/gochon-high/users/${authUser.uid}`), {
-      ...profile,
-      createdAtMs: Date.now(),
-      updatedAtMs: Date.now(),
-      createdByUid: actor.uid,
-      updatedByUid: actor.uid,
+  try {
+    await firestore().runTransaction(async (transaction) => {
+      transaction.create(userDocument(authUser.uid), {
+        ...profile,
+        createdAtMs: Date.now(),
+        updatedAtMs: Date.now(),
+        createdByUid: actor.uid,
+        updatedByUid: actor.uid,
+      });
     });
-  });
+  } catch (error) {
+    await firebaseAuth().deleteUser(authUser.uid).catch(() => {});
+    throw error;
+  }
   await syncCompatibilityRole(profile, actor.uid);
   await appendAccountAudit({ actor, action: "ACCOUNT_CREATE", targetUid: profile.uid, after: profile });
   return { account: publicProfile(profile), temporaryPin: pin };
@@ -86,7 +94,7 @@ async function updateAccount(actor, body) {
   if (next.name !== before.name) await firebaseAuth().updateUser(before.uid, { displayName: next.name || next.studentNumber });
   if (next.status !== before.status) await firebaseAuth().updateUser(before.uid, { disabled: next.status === "DISABLED" });
 
-  await firestore().doc(`schools/gochon-high/users/${before.uid}`).set({
+  await userDocument(before.uid).set({
     ...next,
     updatedAtMs: Date.now(),
     updatedByUid: actor.uid,
@@ -103,7 +111,7 @@ async function disableAccount(actor, body) {
   if (before.uid === actor.uid) throw Object.assign(new Error("cannot-disable-self"), { status: 400 });
   const after = { ...before, status: "DISABLED", updatedAtMs: Date.now(), updatedByUid: actor.uid };
   await firebaseAuth().updateUser(before.uid, { disabled: true });
-  await firestore().doc(`schools/gochon-high/users/${before.uid}`).set(after, { merge: true });
+  await userDocument(before.uid).set(after, { merge: true });
   await syncCompatibilityRole(after, actor.uid);
   await appendAccountAudit({ actor, action: "ACCOUNT_DISABLE", targetUid: before.uid, before, after });
   return { account: publicProfile(after) };
@@ -116,7 +124,7 @@ async function resetPin(actor, body) {
   const temporaryPin = generateTemporaryPin();
   await firebaseAuth().updateUser(before.uid, { password: temporaryPin, disabled: false });
   const after = { ...before, status: "ACTIVE", mustChangePin: true, updatedAtMs: Date.now(), updatedByUid: actor.uid };
-  await firestore().doc(`schools/gochon-high/users/${before.uid}`).set({
+  await userDocument(before.uid).set({
     status: "ACTIVE",
     mustChangePin: true,
     updatedAtMs: after.updatedAtMs,
@@ -128,8 +136,8 @@ async function resetPin(actor, body) {
 }
 
 async function listAccounts(actor) {
-  let query = firestore().collection("schools/gochon-high/users").orderBy("number", "asc").limit(80);
-  if (!actor.roles?.includes("ADMIN")) query = query.where("classKey", "==", actor.classKey);
+  let query = usersCollection().orderBy("number", "asc").limit(80);
+  if (!actor.roles?.includes("ADMIN")) query = usersCollection().where("classKey", "==", actor.classKey).orderBy("number", "asc").limit(80);
   const snapshot = await query.get();
   return snapshot.docs.map((doc) => publicProfile({ id: doc.id, ...doc.data() }));
 }
