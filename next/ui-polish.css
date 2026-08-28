@@ -381,7 +381,9 @@ body.pincon-route-transition .view-enter {
 
   .rail__tagline {
     flex: 0 1 auto;
-    max-width: 100%;
+    max-width: calc(100% - 2px);
+    margin-inline: 1px;
+    box-sizing: border-box;
     overflow: visible;
     text-overflow: clip;
     white-space: normal;
