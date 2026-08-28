@@ -8,6 +8,7 @@ import subject from "../handlers/class-ops/subject.mjs";
 import settings from "../handlers/class-ops/settings.mjs";
 import { sendJson } from "../lib/request.mjs";
 
+// Keep account and class-operation endpoints in one Vercel Function. The public URLs stay stable through vercel.json rewrites.
 const ROUTES = Object.freeze({
   "account-session": accountSession,
   "account-manage": accountManage,
