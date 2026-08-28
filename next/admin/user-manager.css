@@ -1,0 +1,130 @@
+.pincon-user-manager__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.pincon-user-manager__toolbar md-outlined-text-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.pincon-user-manager__list {
+  display: grid;
+  gap: 8px;
+}
+
+.pincon-user-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-low, #f1f3eb);
+}
+
+.pincon-user-row strong,
+.pincon-user-row span {
+  display: block;
+  min-width: 0;
+}
+
+.pincon-user-row span {
+  margin-top: 3px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 12px;
+}
+
+.pincon-user-row[data-disabled="true"] {
+  opacity: .66;
+}
+
+.pincon-user-dialog {
+  width: min(94vw, 720px);
+  max-width: 720px;
+}
+
+.pincon-user-dialog__body {
+  display: grid;
+  gap: 14px;
+  max-height: min(70vh, 720px);
+  overflow: auto;
+  padding: 2px 4px 8px;
+}
+
+.pincon-user-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+
+.pincon-user-form md-outlined-text-field,
+.pincon-user-form md-outlined-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.pincon-user-form .pincon-user-form--wide {
+  grid-column: 1 / -1;
+}
+
+.pincon-role-checks {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 13px;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-low, #f1f3eb);
+}
+
+.pincon-role-checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+}
+
+.pincon-temp-pin {
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--md-sys-color-primary-container, #d9e7cb);
+}
+
+.pincon-temp-pin strong,
+.pincon-temp-pin code,
+.pincon-temp-pin span {
+  display: block;
+}
+
+.pincon-temp-pin code {
+  margin-block: 7px;
+  font-size: 28px;
+  letter-spacing: .12em;
+  font-weight: 800;
+}
+
+.pincon-user-dialog__status {
+  min-height: 22px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 13px;
+}
+
+.pincon-user-dialog__status[data-error="true"] {
+  color: var(--md-sys-color-error, #ba1a1a);
+}
+
+@media (max-width: 620px) {
+  .pincon-user-manager__toolbar,
+  .pincon-user-form,
+  .pincon-role-checks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pincon-user-manager__toolbar md-filled-button {
+    width: 100%;
+  }
+}
