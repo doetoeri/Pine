@@ -42,7 +42,7 @@ function fallbackId(kind, item = {}, index = 0) {
 }
 
 function normalize(kind, item, index, options) {
-  if (!item || item.deleted || item.status === "draft") return null;
+  if (!item || item.deleted || item.status === "draft" || item.published === false) return null;
   const title = titleFrom(item, options.fallbackTitle);
   if (!title) return null;
   return {
@@ -67,6 +67,7 @@ export function buildNotificationFeed(data = {}, limit = 80) {
     ["announcement", data.announcements || [], { label: "공지", icon: "campaign", route: "today", collection: "announcements", detailKind: "announcement", fallbackTitle: "새 공지" }],
     ["content", (data.content || []).filter((item) => item?.kind === "notice"), { label: "공지", icon: "update", route: (item) => item.category === "수업 변경" ? "timetable" : "today", collection: "content", detailKind: "announcement", fallbackTitle: "새 공지" }],
     ["assignment", data.classAssignments || [], { label: "수행·숙제", icon: "assignment", route: "schedule", collection: "classAssignments", detailKind: "assignment", fallbackTitle: "새 수행·숙제" }],
+    ["evaluation-plan", data.evaluationPlans || [], { label: "평가계획서", icon: "picture_as_pdf", route: "classroom", collection: "evaluationPlans", detailKind: "evaluation-plan", fallbackTitle: "새 평가계획서" }],
     ["event", data.events || [], { label: "학급 행사", icon: "celebration", route: "classroom", collection: "events", detailKind: "event", fallbackTitle: "새 학급 행사" }],
   ];
 

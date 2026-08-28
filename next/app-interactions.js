@@ -12,6 +12,7 @@ let feed = [];
 let reconcileQueued = false;
 let lastDialogTrigger = null;
 let lastDialogTriggerId = "";
+let dialogFocusRestoreSequence = 0;
 let bootReleased = false;
 let routeTimer = 0;
 let lastFocusedRoute = "";
@@ -283,10 +284,24 @@ function restoreDialogTriggerFocus() {
   });
 }
 
+function scheduleDialogTriggerFocusRestore() {
+  const sequence = ++dialogFocusRestoreSequence;
+  [0, 120].forEach((delay) => {
+    window.setTimeout(() => {
+      if (sequence !== dialogFocusRestoreSequence || anyDialogOpen()) return;
+      restoreDialogTriggerFocus();
+    }, delay);
+  });
+}
+
 function anyDialogOpen() {
   return ["#searchDialog", "#notificationDialog"].some((selector) => {
     const dialog = document.querySelector(selector);
-    return Boolean(dialog?.open || dialog?.hasAttribute?.("open"));
+    return Boolean(
+      dialog?.open
+      || dialog?.hasAttribute?.("open")
+      || dialog?.getAttribute?.("data-pincon-opening") === "true"
+    );
   });
 }
 
@@ -389,7 +404,7 @@ document.addEventListener("focusin", (event) => {
 }, true);
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && anyDialogOpen()) window.setTimeout(restoreDialogTriggerFocus, 0);
+  if (event.key === "Escape" && anyDialogOpen()) scheduleDialogTriggerFocusRestore();
 });
 
 document.addEventListener("click", (event) => {
@@ -405,7 +420,15 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   event.stopPropagation();
   renderInbox();
-  document.querySelector("#notificationDialog")?.show?.();
+  const dialog = document.querySelector("#notificationDialog");
+  if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
+  dialog.setAttribute("data-pincon-opening", "true");
+  Promise.resolve(dialog.show?.())
+    .catch((error) => console.error(error))
+    .finally(() => {
+      dialog.removeAttribute("data-pincon-opening");
+      globalThis.PinConNext?.resumeDataRender?.();
+    });
 }, true);
 
 document.addEventListener("click", (event) => {
@@ -420,7 +443,7 @@ document.addEventListener("click", (event) => {
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
   if (searchOpenButton) rememberDialogTrigger(searchOpenButton);
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
-  if (closeButton) window.setTimeout(restoreDialogTriggerFocus, 0);
+  if (closeButton) scheduleDialogTriggerFocusRestore();
 
   const markAll = eventHost(event, (node) => node.id === "markAllNotificationsRead");
   if (markAll) {

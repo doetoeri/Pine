@@ -1,5 +1,6 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "./core/data-gateway.js";
 import { buildNotificationFeed } from "./core/notification-store.js";
+import { buildRecoveryPack, recoveryProgress, setRecoveryItemCompleted } from "./core/recovery-pack.js";
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
@@ -36,6 +37,7 @@ const state = {
   detailNotificationId: history.state?.notificationId || "",
   data: gateway.snapshot(),
   timetableDate: localIsoDate(new Date()),
+  recoveryDate: localIsoDate(new Date()),
   scheduleFilter: "all",
   problemAttempts: new Map(),
 };
@@ -46,6 +48,46 @@ let lastDetailTrigger = null;
 let lastDetailTriggerKey = "";
 let detailPointer = null;
 let renderTimer = 0;
+let dataRenderDeferred = false;
+
+function appDialogBusy() {
+  return ["#searchDialog", "#notificationDialog"].some((selector) => {
+    const dialog = app.querySelector(selector);
+    return Boolean(
+      dialog?.open
+      || dialog?.hasAttribute?.("open")
+      || dialog?.getAttribute?.("data-pincon-opening") === "true"
+    );
+  });
+}
+
+function scheduleDataRender() {
+  window.clearTimeout(renderTimer);
+  renderTimer = window.setTimeout(() => {
+    if (appDialogBusy()) {
+      dataRenderDeferred = true;
+      return;
+    }
+    dataRenderDeferred = false;
+    render({ preserveView: true });
+  }, 32);
+}
+
+function resumeDeferredDataRender() {
+  if (!dataRenderDeferred || appDialogBusy()) return;
+  scheduleDataRender();
+}
+
+function showMaterialDialog(dialog) {
+  if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
+  dialog.setAttribute("data-pincon-opening", "true");
+  Promise.resolve(dialog.show?.())
+    .catch((error) => console.error(error))
+    .finally(() => {
+      dialog.removeAttribute("data-pincon-opening");
+      resumeDeferredDataRender();
+    });
+}
 
 function locationState() {
   const raw = location.hash.replace(/^#\/?/, "");
@@ -288,8 +330,10 @@ function prepareDetailRegistry() {
       collection: "content",
       route: item.category === "수업 변경" ? "timetable" : "today",
     }));
-  (collections().classAssignments || []).filter((item) => !item.deleted)
+  (collections().classAssignments || []).filter((item) => !item.deleted && item.published !== false)
     .forEach((item) => registerDetail("assignment", item, { collection: "classAssignments", route: "schedule" }));
+  (collections().evaluationPlans || []).filter((item) => !item.deleted && item.status !== "draft")
+    .forEach((item) => registerDetail("evaluation-plan", item, { collection: "evaluationPlans", route: "classroom" }));
   (collections().events || []).filter((item) => !item.deleted && item.status !== "draft")
     .forEach((item) => registerDetail("event", item, { collection: "events", route: "classroom" }));
   (collections().academicSchedules || []).filter((item) => !item.deleted)
@@ -350,7 +394,7 @@ function timetableChanges(limit = 8) {
 function scheduleItems() {
   const rows = [];
   for (const item of collections().classAssignments || []) {
-    if (item.deleted) continue;
+    if (item.deleted || item.published === false) continue;
     rows.push({
       category: assignmentCategory(item),
       filter: "work",
@@ -518,7 +562,7 @@ function navMarkup(className) {
 function seasonDashboardMarkup() {
   const today = localIsoDate(new Date());
   const assignments = (collections().classAssignments || [])
-    .filter((item) => !item.deleted && (!itemDate(item) || itemDate(item) >= today));
+    .filter((item) => !item.deleted && item.published !== false && (!itemDate(item) || itemDate(item) >= today));
   const performance = assignments.filter((item) => assignmentCategory(item) === "수행평가").slice(0, 6);
   const exams = assignments.filter((item) => assignmentCategory(item) === "시험 범위").slice(0, 8);
   const loading = collectionLoading(["classAssignments"]);
@@ -755,8 +799,35 @@ function lostItemRows(items) {
   </md-list>`;
 }
 
+function recoveryPackMarkup() {
+  const profile = state.data.profile || readClassProfile();
+  const classKey = profile?.classKey || (profile ? `${profile.grade}-${profile.classNumber}` : "");
+  const items = buildRecoveryPack(collections(), state.recoveryDate);
+  const progress = recoveryProgress(localStorage, classKey, state.recoveryDate);
+  const completed = items.filter((item) => progress[item.id]).length;
+  const rows = items.length ? `<div class="recovery-list">${items.map((row) => {
+    const route = row.kind === "announcement" ? "today" : "classroom";
+    const key = registerDetail(row.kind, row.item, { collection: row.collection, route });
+    return `<div class="recovery-row ${progress[row.id] ? "is-complete" : ""}">
+      <label class="recovery-check"><input type="checkbox" data-recovery-id="${escapeHtml(row.id)}" ${progress[row.id] ? "checked" : ""}><span class="sr-only">${escapeHtml(row.title)} 완료</span></label>
+      <button class="recovery-row__open" type="button" data-detail-key="${escapeHtml(key)}" data-detail-route="${route}">
+        <span><strong>${escapeHtml(row.title)}</strong><small>${escapeHtml([row.subject ? fullSubjectName(row.subject) : "", row.action].filter(Boolean).join(" · "))}</small></span><md-icon>chevron_right</md-icon>
+      </button>
+    </div>`;
+  }).join("")}</div>` : emptyMarkup("task_alt", "이 날짜에 등록된 복귀 항목이 없습니다", "공지나 수행평가 안내가 등록되면 자동으로 모입니다.");
+  return `<article class="surface recovery-pack" aria-labelledby="recovery-pack-title">
+    <div class="surface__header recovery-pack__header">
+      <div><p class="page-eyebrow">결석자 복귀팩</p><h2 class="surface__title" id="recovery-pack-title">빠진 날짜의 안내를 한 번에</h2></div>
+      <label class="recovery-date"><span>결석한 날짜</span><input id="recoveryDate" type="date" value="${escapeHtml(state.recoveryDate)}"></label>
+    </div>
+    <p class="recovery-pack__summary">${items.length ? `${completed}/${items.length}개 확인 완료` : "개인 결석 사유나 이름은 저장하지 않습니다."}</p>
+    ${rows}
+  </article>`;
+}
+
 function classroomPage() {
-  const assignments = (collections().classAssignments || []).filter((item) => !item.deleted).slice(0, 8);
+  const assignments = (collections().classAssignments || []).filter((item) => !item.deleted && item.published !== false).slice(0, 8);
+  const evaluationPlans = (collections().evaluationPlans || []).filter((item) => !item.deleted && item.status !== "draft").slice(0, 12);
   const events = (collections().events || []).filter((item) => !item.deleted && item.status !== "draft").slice(0, 8);
   const resources = (collections().resources || []).filter((item) => !item.deleted && (!item.moderationStatus || item.moderationStatus === "approved")).slice(0, 8);
   const lostItems = (collections().lostItems || []).filter((item) => !item.deleted && item.status !== "resolved").slice(0, 8);
@@ -778,6 +849,16 @@ function classroomPage() {
     source: item,
     detailKey: registerDetail("event", item, { collection: "events", route: "classroom" }),
   }));
+  const planRows = evaluationPlans.length ? `<md-list class="interactive-list" aria-label="평가계획서 목록">
+    ${evaluationPlans.map((item) => interactiveListItem({
+      key: registerDetail("evaluation-plan", item, { collection: "evaluationPlans", route: "classroom" }),
+      title: itemTitle(item),
+      supporting: `${fullSubjectName(item.subject)} · ${item.schoolYear || "-"}학년도 ${item.semester || "-"}학기`,
+      leading: "<md-icon>picture_as_pdf</md-icon>",
+      status: statusChipMarkup(item),
+      route: "classroom",
+    })).join("")}
+  </md-list>` : emptyMarkup("picture_as_pdf", "등록된 평가계획서가 없습니다", "회장이 과목별 원본을 한 번 등록하면 수행평가와 연결됩니다.");
   return `<section class="view-enter" aria-labelledby="classroom-title">
     <div class="page-head"><div class="page-head__copy">
       <p class="page-eyebrow">우리 반 정보</p>
@@ -785,8 +866,10 @@ function classroomPage() {
       <p class="page-subtitle">수행·숙제, 학급 행사, 학습 자료와 문제를 항목별로 살펴봅니다.</p>
     </div></div>
     ${syncMarkup()}
+    ${recoveryPackMarkup()}
     <div class="grid grid--2">
       <article class="surface"><div class="surface__header"><h2 class="surface__title">수행·숙제</h2><span class="surface__meta">${assignments.length ? `${assignments.length}건` : ""}</span></div>${scheduleRows(assignmentRows, { loadingNames: ["classAssignments"] })}</article>
+      <article class="surface"><div class="surface__header"><h2 class="surface__title">평가계획서 자료실</h2><span class="surface__meta">${evaluationPlans.length ? `${evaluationPlans.length}개` : ""}</span></div>${planRows}</article>
       <article class="surface"><div class="surface__header"><h2 class="surface__title">학급 행사</h2><span class="surface__meta">${events.length ? `${events.length}건` : ""}</span></div>${scheduleRows(eventRows, { loadingNames: ["events"] })}</article>
       <article class="surface"><div class="surface__header"><h2 class="surface__title">학습 자료</h2><span class="surface__meta">${resources.length ? `${resources.length}건` : ""}</span></div>${resourceRows(resources)}</article>
       <article class="surface"><div class="surface__header"><h2 class="surface__title">분실물</h2><span class="surface__meta">${lostItems.length ? `${lostItems.length}건` : ""}</span></div>${lostItemRows(lostItems)}</article>
@@ -979,8 +1062,18 @@ function linkedMaterialsMarkup(item = {}) {
     const url = safeUrl(typeof row === "string" ? row : row.url || row.fileUrl);
     if (url) links.push({ label: cleanText(row.title || row.name || row.fileName) || "연결된 자료", url });
   }
-  if (!links.length) return `<p class="detail-muted">연결된 원본 자료가 아직 등록되지 않았습니다.</p>`;
-  return `<div class="detail-actions">${links.slice(0, 8).map((link) => `<md-outlined-button href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><md-icon slot="icon">open_in_new</md-icon>${escapeHtml(link.label)}</md-outlined-button>`).join("")}</div>`;
+  const storagePath = cleanText(item.evaluationPlanStoragePath || item.storagePath);
+  if (!links.length && !storagePath) return `<p class="detail-muted">연결된 원본 자료가 아직 등록되지 않았습니다.</p>`;
+  return `<div class="detail-actions">
+    ${links.slice(0, 8).map((link) => `<md-outlined-button href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer"><md-icon slot="icon">open_in_new</md-icon>${escapeHtml(link.label)}</md-outlined-button>`).join("")}
+    ${storagePath ? `<md-outlined-button data-class-file-path="${escapeHtml(storagePath)}" data-class-file-name="${escapeHtml(item.fileName || "평가계획서.pdf")}"><md-icon slot="icon">download</md-icon>${escapeHtml(item.fileName || "원본 PDF 받기")}</md-outlined-button>` : ""}
+  </div>`;
+}
+
+function evaluationPlanFor(item = {}) {
+  const planId = cleanText(item.evaluationPlanId);
+  if (!planId) return null;
+  return (collections().evaluationPlans || []).find((plan) => plan.id === planId && !plan.deleted) || null;
 }
 
 function changeHistoryMarkup(record) {
@@ -1012,7 +1105,7 @@ function assignmentDetail(record) {
   const { item, context } = record;
   const category = assignmentCategory(item);
   const date = itemDate(item);
-  const originalUrl = sourceUrlFor(item);
+  const plan = evaluationPlanFor(item);
   const lastChecked = firstTimestamp(item, ["lastVerifiedAtMs", "lastCheckedAtMs", "verifiedAtMs", "updatedAtMs", "createdAtMs"]);
   const fields = [
     ["과목", fullSubjectName(item.subject), "menu_book"],
@@ -1031,8 +1124,29 @@ function assignmentDetail(record) {
     badges: `${statusChipMarkup(item)}${originChipMarkup(item, context)}`,
     body: `${notificationContextMarkup()}
       ${detailSection("핵심 정보", detailFieldsMarkup(fields))}
-      ${detailSection(category === "시험 범위" ? "평가계획서 원본" : "원본 평가계획서", originalUrl ? linkedMaterialsMarkup(item) : '<p class="detail-muted">원본 평가계획서가 아직 등록되지 않았습니다.</p>')}
+      ${detailSection(category === "시험 범위" ? "평가계획서 원본" : "원본 평가계획서", plan
+        ? `${item.pageReferences ? `<p class="detail-muted">관련 페이지 · ${escapeHtml(item.pageReferences)}</p>` : ""}${linkedMaterialsMarkup(plan)}`
+        : linkedMaterialsMarkup(item))}
       ${detailSection("변경 기록", changeHistoryMarkup(record))}`,
+  };
+}
+
+function evaluationPlanDetail(record) {
+  const item = record.item;
+  const fields = [
+    ["과목", fullSubjectName(item.subject), "menu_book"],
+    ["학기", `${item.schoolYear || "-"}학년도 ${item.semester || "-"}학기`, "calendar_month"],
+    ["검토 상태", statusInfo(item).label, "fact_check"],
+    ["전체 페이지", item.pageCount ? `${item.pageCount}쪽` : "등록되지 않음", "description"],
+    ["출처", fieldValue(item, ["sourceAttribution"], "학교·교사 배부 자료"), "source"],
+    ["설명", fieldValue(item, ["description"], "과목별 공식 평가계획서"), "notes"],
+  ];
+  return {
+    eyebrow: "평가계획서",
+    title: itemTitle(item),
+    summary: `${fullSubjectName(item.subject)} · ${item.schoolYear || "-"}학년도 ${item.semester || "-"}학기`,
+    badges: `${statusChipMarkup(item)}${originChipMarkup({ ...item, sourceType: "OFFICIAL" }, record.context)}`,
+    body: `${detailSection("문서 정보", detailFieldsMarkup(fields))}${detailSection("원본 문서", linkedMaterialsMarkup(item))}${detailSection("변경 기록", changeHistoryMarkup(record))}`,
   };
 }
 
@@ -1152,7 +1266,7 @@ function relatedAssignmentsForLesson(item, date) {
   const full = fullSubjectName(item.subject);
   const short = cleanText(item.subject);
   return (collections().classAssignments || [])
-    .filter((row) => !row.deleted)
+    .filter((row) => !row.deleted && row.published !== false)
     .filter((row) => {
       const subject = fullSubjectName(row.subject);
       return subject === full || cleanText(row.subject) === short;
@@ -1240,6 +1354,7 @@ function problemDetail(record) {
 function detailSpec(record) {
   if (!record) return null;
   if (record.kind === "assignment") return assignmentDetail(record);
+  if (record.kind === "evaluation-plan") return evaluationPlanDetail(record);
   if (record.kind === "event") return scheduleDetail(record, "학급 행사");
   if (record.kind === "academic") return scheduleDetail(record, "학사일정");
   if (record.kind === "announcement") return announcementDetail(record);
@@ -1431,6 +1546,7 @@ function searchIndex() {
     ["공지", "announcement", "announcements", "today", collections().announcements || []],
     ["시간표 변경", "announcement", "content", "timetable", (collections().content || []).filter((item) => item.kind === "notice")],
     ["수행·숙제", "assignment", "classAssignments", "schedule", collections().classAssignments || []],
+    ["평가계획서", "evaluation-plan", "evaluationPlans", "classroom", collections().evaluationPlans || []],
     ["학급 행사", "event", "events", "classroom", collections().events || []],
     ["학사일정", "academic", "academicSchedules", "schedule", collections().academicSchedules || []],
     ["학습 자료", "resource", "resources", "classroom", collections().resources || []],
@@ -1438,7 +1554,7 @@ function searchIndex() {
   ];
   for (const [label, kind, collection, route, items] of specs) {
     for (const item of items) {
-      if (item?.deleted || item?.status === "draft") continue;
+      if (item?.deleted || item?.status === "draft" || item?.published === false) continue;
       rows.push({
         label,
         title: itemTitle(item),
@@ -1485,7 +1601,7 @@ function eventHost(event, predicate) {
 
 function updateVisualViewport() {
   const viewport = window.visualViewport;
-  const height = viewport?.height || innerHeight;
+  const height = viewport ? Math.min(innerHeight, viewport.height || innerHeight) : innerHeight;
   const bottomOffset = viewport ? Math.max(0, innerHeight - viewport.height - viewport.offsetTop) : 0;
   document.documentElement.style.setProperty("--pincon-visual-height", `${height}px`);
   document.documentElement.style.setProperty("--pincon-visual-bottom-offset", `${bottomOffset}px`);
@@ -1555,10 +1671,23 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
+  const classFile = eventHost(event, (node) => node.hasAttribute("data-class-file-path"));
+  if (classFile) {
+    classFile.setAttribute("disabled", "");
+    try {
+      await gateway.openClassFile(classFile.getAttribute("data-class-file-path"), classFile.getAttribute("data-class-file-name") || "자료");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      classFile.removeAttribute("disabled");
+    }
+    return;
+  }
+
   const openSearch = eventHost(event, (node) => node.id === "openSearch");
   if (openSearch) {
     renderSearchResults("");
-    app.querySelector("#searchDialog")?.show?.();
+    showMaterialDialog(app.querySelector("#searchDialog"));
     requestAnimationFrame(() => app.querySelector("#searchField")?.focus?.());
     return;
   }
@@ -1648,6 +1777,21 @@ app.addEventListener("input", (event) => {
 });
 
 app.addEventListener("change", (event) => {
+  const recoveryDate = eventHost(event, (node) => node.id === "recoveryDate");
+  if (recoveryDate) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(recoveryDate.value || "")) state.recoveryDate = recoveryDate.value;
+    render();
+    requestAnimationFrame(() => app.querySelector("#recoveryDate")?.focus?.());
+    return;
+  }
+  const recoveryCheck = eventHost(event, (node) => node.hasAttribute("data-recovery-id"));
+  if (recoveryCheck) {
+    const profile = state.data.profile || readClassProfile();
+    const classKey = profile?.classKey || (profile ? `${profile.grade}-${profile.classNumber}` : "");
+    setRecoveryItemCompleted(localStorage, classKey, state.recoveryDate, recoveryCheck.getAttribute("data-recovery-id"), recoveryCheck.checked);
+    render();
+    return;
+  }
   const radio = eventHost(event, (node) => node.hasAttribute("data-problem-choice"));
   if (!radio) return;
   const record = detailRegistry.get(state.detailKey);
@@ -1718,9 +1862,16 @@ window.visualViewport?.addEventListener("resize", updateVisualViewport);
 
 gateway.addEventListener("change", (event) => {
   state.data = event.detail;
-  window.clearTimeout(renderTimer);
-  renderTimer = window.setTimeout(() => render({ preserveView: true }), 32);
+  if (appDialogBusy()) {
+    dataRenderDeferred = true;
+    return;
+  }
+  scheduleDataRender();
 });
+
+document.addEventListener("closed", (event) => {
+  if (event.target?.matches?.("#searchDialog, #notificationDialog")) resumeDeferredDataRender();
+}, true);
 
 globalThis.PinConNext = Object.freeze({
   registerDetail(kind, item, context = {}) {
@@ -1732,6 +1883,7 @@ globalThis.PinConNext = Object.freeze({
   refreshDetail() {
     if (state.detailKey) renderDetailSurface({ focus: false, swap: true });
   },
+  resumeDataRender: resumeDeferredDataRender,
 });
 
 if (!location.hash) {

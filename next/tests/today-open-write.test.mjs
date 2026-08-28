@@ -54,7 +54,7 @@ test("production deploy transform scopes temporary writes to managed content and
     assert.match(block, /temporaryClassEditor\(request\.resource\.data\.classKey\)/);
   }
 
-  for (const collection of ["supplies", "resources", "classSettings"]) {
+  for (const collection of ["evaluationPlans", "supplies", "resources", "classSettings"]) {
     const marker = `match /schools/{schoolId}/${collection}/`;
     const start = patched.indexOf(marker);
     assert.notEqual(start, -1, `${collection} block should exist`);

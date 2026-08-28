@@ -575,6 +575,115 @@ md-icon {
   }
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.recovery-pack {
+  margin-bottom: 16px;
+  background: var(--md-sys-color-tertiary-container, #dbe7ff);
+}
+
+.recovery-pack__header {
+  align-items: flex-end;
+}
+
+.recovery-date {
+  display: grid;
+  gap: 5px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recovery-date input {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--md-sys-color-outline, #74796f);
+  border-radius: 14px;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.recovery-pack__summary {
+  margin: -4px 0 12px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+  font-size: 13px;
+}
+
+.recovery-list {
+  display: grid;
+  gap: 8px;
+}
+
+.recovery-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+  overflow: hidden;
+}
+
+.recovery-row.is-complete {
+  opacity: .68;
+}
+
+.recovery-row.is-complete strong {
+  text-decoration: line-through;
+}
+
+.recovery-check {
+  min-width: 48px;
+  min-height: 56px;
+  display: grid;
+  place-items: center;
+}
+
+.recovery-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--md-sys-color-primary, #49662e);
+}
+
+.recovery-row__open {
+  min-width: 0;
+  min-height: 62px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.recovery-row__open span,
+.recovery-row__open strong,
+.recovery-row__open small {
+  min-width: 0;
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.recovery-row__open small {
+  margin-top: 3px;
+  color: var(--md-sys-color-on-surface-variant, #43483f);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -676,5 +785,15 @@ md-icon {
 
   .profile-form md-filled-button {
     grid-column: auto;
+  }
+
+  .recovery-pack__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recovery-date input {
+    width: 100%;
+    box-sizing: border-box;
   }
 }

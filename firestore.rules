@@ -408,10 +408,51 @@ service cloud.firestore {
         && request.resource.data.subject is string
         && request.resource.data.subject.size() <= 40
         && request.resource.data.dueDate is string
-        && request.resource.data.dueDate.size() == 10
+        && request.resource.data.dueDate.size() in [0, 10]
         && request.resource.data.dueAtMs is int
         && request.resource.data.description is string
-        && request.resource.data.description.size() <= 1200;
+        && request.resource.data.description.size() <= 1200
+        && request.resource.data.dateType in ['exact', 'range', 'month', 'undecided']
+        && request.resource.data.verificationStatus in ['review', 'verified', 'changed']
+        && request.resource.data.published is bool
+        && request.resource.data.recoveryRelevant is bool
+        && request.resource.data.announcedDate is string
+        && request.resource.data.announcedDate.size() == 10;
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/evaluationPlans/{planId} {
+      allow read: if signedIn();
+      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.title, 140)
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 40
+        && request.resource.data.schoolYear is int
+        && request.resource.data.schoolYear >= 2000
+        && request.resource.data.schoolYear <= 2100
+        && request.resource.data.semester in [1, 2]
+        && request.resource.data.status in ['draft', 'review', 'verified']
+        && request.resource.data.sourceUrl is string
+        && request.resource.data.sourceUrl.size() <= 1200
+        && (
+          request.resource.data.sourceUrl.size() == 0
+          || request.resource.data.sourceUrl.matches('^https?://.*$')
+        )
+        && request.resource.data.sourceAttribution is string
+        && request.resource.data.sourceAttribution.size() <= 300
+        && request.resource.data.pageCount is int
+        && request.resource.data.pageCount >= 0
+        && request.resource.data.pageCount <= 999
+        && request.resource.data.fileName is string
+        && request.resource.data.fileName.size() <= 120
+        && request.resource.data.storagePath is string
+        && request.resource.data.storagePath.size() <= 600
+        && (request.resource.data.sourceUrl.size() > 0 || request.resource.data.storagePath.size() > 0)
+        && request.resource.data.recoveryRelevant is bool
+        && request.resource.data.announcedDate is string
+        && request.resource.data.announcedDate.size() == 10;
       allow delete: if false;
     }
 
@@ -655,7 +696,7 @@ service cloud.firestore {
         && request.resource.data.actorUid == request.auth.uid
         && request.resource.data.collection in [
           'announcements', 'classAssignments', 'events', 'polls', 'feedback',
-          'supplies', 'supplyLoans', 'lostItems', 'resources', 'patchNotes',
+          'evaluationPlans', 'supplies', 'supplyLoans', 'lostItems', 'resources', 'patchNotes',
           'patchNoteDrafts', 'classSettings'
         ]
         && request.resource.data.action in ['create', 'update', 'delete', 'restore', 'publish']

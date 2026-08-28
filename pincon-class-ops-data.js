@@ -22,6 +22,7 @@ const RESPONSE_KEY = "pincon-class-ops-event-responses-v1";
 const PUBLIC_COLLECTIONS = Object.freeze([
   "announcements",
   "classAssignments",
+  "evaluationPlans",
   "events",
   "polls",
   "feedback",
@@ -40,6 +41,7 @@ const PUBLIC_COLLECTIONS = Object.freeze([
 const ADMIN_COLLECTIONS = new Set([
   "announcements",
   "classAssignments",
+  "evaluationPlans",
   "events",
   "polls",
   "feedback",
@@ -116,8 +118,11 @@ function auditSnapshot(value = {}) {
   const allowed = [
     "classKey", "title", "name", "body", "description", "category", "subject", "type", "priority",
     "date", "dueDate", "dueAtMs", "startsAtMs", "endsAtMs", "closesAtMs", "status", "quantity", "unit",
+    "dateType", "evaluationRange", "evaluationMethod", "materials", "points", "evaluationPlanId", "pageReferences",
+    "verificationStatus", "confirmed", "changed", "published", "announcedDate", "recoveryRelevant", "changeHistory", "lastVerifiedAtMs",
     "location", "loanable", "important", "pinned", "url", "fileName", "fileUrl", "photoUrl", "month",
-    "version", "unit", "materialType", "schoolYear", "semester", "pageCount", "sourceAttribution", "rightsBasis", "rightsConfirmed",
+    "storagePath", "sourceUrl", "pageCount", "schoolYear", "semester",
+    "version", "unit", "materialType", "sourceAttribution", "rightsBasis", "rightsConfirmed",
     "personalDataRemoved", "added", "improved", "fixed", "reviewing", "feedbackSummary", "officialReply", "resultSummary",
     "publishedResults", "options", "multiple", "resultVisibility", "deleted", "deletedAtMs", "moderationStatus",
   ];
@@ -603,11 +608,12 @@ export class PinconClassOpsRepository extends EventTarget {
     const allowed = /^(image\/(jpeg|png|webp|gif)|application\/pdf|text\/plain|application\/msword|application\/vnd\.ms-(powerpoint|excel)|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|presentationml\.presentation|spreadsheetml\.sheet))$/i;
     if (!allowed.test(contentType)) throw new Error("이미지, PDF, 문서 파일만 올릴 수 있습니다.");
     if (folder === "lost-items" && !contentType.startsWith("image/")) throw new Error("분실물 사진은 이미지 파일만 올릴 수 있습니다.");
+    if (folder === "evaluation-plans" && contentType !== "application/pdf") throw new Error("평가계획서는 PDF 파일만 올릴 수 있습니다.");
     const safeName = String(file.name || "file").replace(/[^0-9A-Za-z가-힣._-]+/g, "-").slice(-120);
     const storageRef = this.api.ref(this.api.storage, `class-${folder}/${SCHOOL.id}/${this.state.classKey}/${recordId}/${Date.now()}-${safeName}`);
     const result = await this.api.uploadBytes(storageRef, file, {
       contentType,
-      contentDisposition: folder === "resources" ? `attachment; filename="${safeName.replaceAll('"', "")}"` : "inline",
+      contentDisposition: ["resources", "evaluation-plans"].includes(folder) ? `attachment; filename="${safeName.replaceAll('"', "")}"` : "inline",
       customMetadata: { classKey: this.state.classKey },
     });
     const fileUrl = folder === "lost-items" ? await this.api.getDownloadURL(result.ref) : "";
@@ -670,7 +676,11 @@ export class PinconClassOpsRepository extends EventTarget {
   async openResourceFile(storagePath, fileName = "학습지") {
     await this.ensureUser();
     const path = plainText(storagePath, 500);
-    if (!path.startsWith(`class-resources/${SCHOOL.id}/${this.state.classKey}/`)) throw new Error("현재 학급의 자료 파일이 아닙니다.");
+    const allowedPrefixes = [
+      `class-resources/${SCHOOL.id}/${this.state.classKey}/`,
+      `class-evaluation-plans/${SCHOOL.id}/${this.state.classKey}/`,
+    ];
+    if (!allowedPrefixes.some((prefix) => path.startsWith(prefix))) throw new Error("현재 학급의 자료 파일이 아닙니다.");
     const blob = await this.api.getBlob(this.api.ref(this.api.storage, path));
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
