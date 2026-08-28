@@ -1601,7 +1601,7 @@ function eventHost(event, predicate) {
 
 function updateVisualViewport() {
   const viewport = window.visualViewport;
-  const height = viewport?.height || innerHeight;
+  const height = viewport ? Math.min(innerHeight, viewport.height || innerHeight) : innerHeight;
   const bottomOffset = viewport ? Math.max(0, innerHeight - viewport.height - viewport.offsetTop) : 0;
   document.documentElement.style.setProperty("--pincon-visual-height", `${height}px`);
   document.documentElement.style.setProperty("--pincon-visual-bottom-offset", `${bottomOffset}px`);
