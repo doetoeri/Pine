@@ -12,14 +12,13 @@ import { sendJson } from "../../lib/request.mjs";
 
 const collection = (name) => firestore().collection(`schools/${SCHOOL_ID}/${name}`);
 
-async function rows(name, limit = 300) {
-  const snapshot = await collection(name).limit(limit).get();
+async function queryRows(query) {
+  const snapshot = await query.get();
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-async function newestRows(name, limit = 300) {
-  const snapshot = await collection(name).orderBy("createdAtMs", "desc").limit(limit).get();
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+async function newestRows(name, limit = 400) {
+  return queryRows(collection(name).orderBy("createdAtMs", "desc").limit(limit));
 }
 
 function inScope(actor, item) {
@@ -55,6 +54,12 @@ function publicAccount(item) {
   };
 }
 
+function accountQuery(actor) {
+  return hasRole(actor, ROLE.ADMIN)
+    ? collection("users").limit(1500)
+    : collection("users").where("classKey", "==", actor.classKey).limit(80);
+}
+
 export default async function adminOverview(req, res) {
   const headers = corsHeaders(req);
   if (req.method === "OPTIONS") return sendJson(res, 204, {}, headers);
@@ -66,18 +71,18 @@ export default async function adminOverview(req, res) {
 
     const today = dateKey();
     const [users, subjectEntries, cleaningRequests, phoneStates, accountAudit, opsAudit] = await Promise.all([
-      rows("users", 300),
-      rows("subjectEntries", 500),
-      rows("cleaningRequests", 500),
-      rows("phoneStates", 500),
-      newestRows("accountAudit", 300),
-      newestRows("classOpsAudit", 300),
+      queryRows(accountQuery(actor)),
+      queryRows(collection("subjectEntries").where("status", "==", "PENDING_REVIEW").limit(1500)),
+      queryRows(collection("cleaningRequests").where("status", "==", "PENDING").limit(1500)),
+      queryRows(collection("phoneStates").where("date", "==", today).limit(1500)),
+      newestRows("accountAudit"),
+      newestRows("classOpsAudit"),
     ]);
 
     const scopedUsers = users.filter((item) => inScope(actor, item)).map(publicAccount);
-    const pendingSubjects = subjectEntries.filter((item) => inScope(actor, item) && item.status === "PENDING_REVIEW" && item.archived !== true);
-    const pendingCleaning = cleaningRequests.filter((item) => inScope(actor, item) && item.status === "PENDING");
-    const phoneChecks = phoneStates.filter((item) => inScope(actor, item) && item.date === today && item.status === "CHECK_REQUIRED");
+    const pendingSubjects = subjectEntries.filter((item) => inScope(actor, item) && item.archived !== true);
+    const pendingCleaning = cleaningRequests.filter((item) => inScope(actor, item));
+    const phoneChecks = phoneStates.filter((item) => inScope(actor, item) && item.status === "CHECK_REQUIRED");
     const audits = [
       ...accountAudit.filter((item) => inScope(actor, item)).map((item) => safeAudit(item, "account")),
       ...opsAudit.filter((item) => inScope(actor, item)).map((item) => safeAudit(item, "class-ops")),
