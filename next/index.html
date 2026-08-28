@@ -65,7 +65,11 @@
 
         function notificationDialogIsOpen() {
           const dialog = document.querySelector("#notificationDialog");
-          return Boolean(dialog && (dialog.open === true || dialog.hasAttribute("open")));
+          return Boolean(dialog && (
+            dialog.open === true
+            || dialog.hasAttribute("open")
+            || dialog.getAttribute("data-pincon-opening") === "true"
+          ));
         }
 
         function replayNotificationWhenNeeded() {

@@ -286,7 +286,11 @@ function restoreDialogTriggerFocus() {
 function anyDialogOpen() {
   return ["#searchDialog", "#notificationDialog"].some((selector) => {
     const dialog = document.querySelector(selector);
-    return Boolean(dialog?.open || dialog?.hasAttribute?.("open"));
+    return Boolean(
+      dialog?.open
+      || dialog?.hasAttribute?.("open")
+      || dialog?.getAttribute?.("data-pincon-opening") === "true"
+    );
   });
 }
 
@@ -405,7 +409,15 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   event.stopPropagation();
   renderInbox();
-  document.querySelector("#notificationDialog")?.show?.();
+  const dialog = document.querySelector("#notificationDialog");
+  if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
+  dialog.setAttribute("data-pincon-opening", "true");
+  Promise.resolve(dialog.show?.())
+    .catch((error) => console.error(error))
+    .finally(() => {
+      dialog.removeAttribute("data-pincon-opening");
+      globalThis.PinConNext?.resumeDataRender?.();
+    });
 }, true);
 
 document.addEventListener("click", (event) => {

@@ -48,6 +48,46 @@ let lastDetailTrigger = null;
 let lastDetailTriggerKey = "";
 let detailPointer = null;
 let renderTimer = 0;
+let dataRenderDeferred = false;
+
+function appDialogBusy() {
+  return ["#searchDialog", "#notificationDialog"].some((selector) => {
+    const dialog = app.querySelector(selector);
+    return Boolean(
+      dialog?.open
+      || dialog?.hasAttribute?.("open")
+      || dialog?.getAttribute?.("data-pincon-opening") === "true"
+    );
+  });
+}
+
+function scheduleDataRender() {
+  window.clearTimeout(renderTimer);
+  renderTimer = window.setTimeout(() => {
+    if (appDialogBusy()) {
+      dataRenderDeferred = true;
+      return;
+    }
+    dataRenderDeferred = false;
+    render({ preserveView: true });
+  }, 32);
+}
+
+function resumeDeferredDataRender() {
+  if (!dataRenderDeferred || appDialogBusy()) return;
+  scheduleDataRender();
+}
+
+function showMaterialDialog(dialog) {
+  if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
+  dialog.setAttribute("data-pincon-opening", "true");
+  Promise.resolve(dialog.show?.())
+    .catch((error) => console.error(error))
+    .finally(() => {
+      dialog.removeAttribute("data-pincon-opening");
+      resumeDeferredDataRender();
+    });
+}
 
 function locationState() {
   const raw = location.hash.replace(/^#\/?/, "");
@@ -1647,7 +1687,7 @@ app.addEventListener("click", async (event) => {
   const openSearch = eventHost(event, (node) => node.id === "openSearch");
   if (openSearch) {
     renderSearchResults("");
-    app.querySelector("#searchDialog")?.show?.();
+    showMaterialDialog(app.querySelector("#searchDialog"));
     requestAnimationFrame(() => app.querySelector("#searchField")?.focus?.());
     return;
   }
@@ -1822,9 +1862,16 @@ window.visualViewport?.addEventListener("resize", updateVisualViewport);
 
 gateway.addEventListener("change", (event) => {
   state.data = event.detail;
-  window.clearTimeout(renderTimer);
-  renderTimer = window.setTimeout(() => render({ preserveView: true }), 32);
+  if (appDialogBusy()) {
+    dataRenderDeferred = true;
+    return;
+  }
+  scheduleDataRender();
 });
+
+document.addEventListener("closed", (event) => {
+  if (event.target?.matches?.("#searchDialog, #notificationDialog")) resumeDeferredDataRender();
+}, true);
 
 globalThis.PinConNext = Object.freeze({
   registerDetail(kind, item, context = {}) {
@@ -1836,6 +1883,7 @@ globalThis.PinConNext = Object.freeze({
   refreshDetail() {
     if (state.detailKey) renderDetailSurface({ focus: false, swap: true });
   },
+  resumeDataRender: resumeDeferredDataRender,
 });
 
 if (!location.hash) {
