@@ -41,7 +41,7 @@ async function loadAccounts(force = false) {
     if (error?.status === 403) allowed = false;
   } finally {
     loading = false;
-    renderSection();
+    renderSection(true);
   }
 }
 
@@ -66,6 +66,10 @@ function userRows(rows) {
   </div>`).join("");
 }
 
+function bindEditButtons(section) {
+  section.querySelectorAll("[data-edit-user]").forEach((button) => button.addEventListener("click", () => openUserDialog(accounts.find((item) => item.uid === button.dataset.editUser))));
+}
+
 function bindSection() {
   const section = root.querySelector("#pinconUserManager");
   if (!section) return;
@@ -74,15 +78,21 @@ function bindSection() {
     const query = String(event.target.value || "").trim().toLowerCase();
     const filtered = !query ? accounts : accounts.filter((item) => `${item.name} ${item.studentNumber}`.toLowerCase().includes(query));
     section.querySelector("#pinconUserList").innerHTML = filtered.length ? userRows(filtered) : `<div class="admin-empty"><strong>검색 결과가 없습니다</strong></div>`;
-    section.querySelectorAll("[data-edit-user]").forEach((button) => button.addEventListener("click", () => openUserDialog(accounts.find((item) => item.uid === button.dataset.editUser))));
+    bindEditButtons(section);
   });
-  section.querySelectorAll("[data-edit-user]").forEach((button) => button.addEventListener("click", () => openUserDialog(accounts.find((item) => item.uid === button.dataset.editUser))));
+  bindEditButtons(section);
 }
 
-function renderSection() {
+function renderSection(force = false) {
   const grid = root.querySelector("#adminMain .admin-grid");
-  if (!grid || !allowed) return;
-  grid.querySelector("#pinconUserManager")?.remove();
+  if (!grid) return;
+  const existing = grid.querySelector("#pinconUserManager");
+  if (!allowed) {
+    existing?.remove();
+    return;
+  }
+  if (existing && !force) return;
+  existing?.remove();
   grid.insertAdjacentHTML("afterbegin", sectionMarkup());
   bindSection();
 }
@@ -193,9 +203,9 @@ function openUserDialog(account) {
 
 new MutationObserver(() => {
   if (!root.querySelector("#adminMain")) return;
-  renderSection();
+  renderSection(false);
   loadAccounts();
 }).observe(root, { childList: true, subtree: true });
 
-renderSection();
+renderSection(false);
 loadAccounts();
