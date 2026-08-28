@@ -9,10 +9,16 @@ on:
       - "next/student-ops.css"
       - "next/student-account.css"
       - "next/core/student-auth.js"
+      - "next/admin/admin.js"
+      - "next/admin/admin.css"
+      - "next/admin/admin-shortcuts.js"
+      - "next/admin/bootstrap.js"
+      - "next/admin/index.html"
       - "next/admin/user-manager.js"
       - "next/admin/user-manager.css"
       - "next/admin/class-ops-settings.js"
       - "next/admin/class-ops-settings.css"
+      - "next/tests/admin-command-center-contract.test.mjs"
       - "next/tests/student-auth-contract.test.mjs"
       - "next/tests/student-rbac-rules.test.mjs"
       - "next/firebase-production-test.json"
@@ -42,6 +48,9 @@ jobs:
             next/app-bootstrap.js \
             next/student-ops.js \
             next/core/student-auth.js \
+            next/admin/admin.js \
+            next/admin/admin-shortcuts.js \
+            next/admin/bootstrap.js \
             next/admin/user-manager.js \
             next/admin/class-ops-settings.js \
             integrations/pincon-ai/lib/class-accounts.mjs \
@@ -56,6 +65,7 @@ jobs:
             integrations/pincon-ai/handlers/class-ops/phone.mjs \
             integrations/pincon-ai/handlers/class-ops/subject.mjs \
             integrations/pincon-ai/handlers/class-ops/settings.mjs \
+            integrations/pincon-ai/handlers/class-ops/admin-overview.mjs \
             integrations/pincon-ai/scripts/migrate-class-accounts.mjs
           do
             node --input-type=module --check < "$file"
@@ -66,6 +76,8 @@ jobs:
         run: npm run test:rbac --prefix integrations/pincon-ai
       - name: Run student auth contracts
         run: node --test next/tests/student-auth-contract.test.mjs
+      - name: Run admin command center contracts
+        run: node --test next/tests/admin-command-center-contract.test.mjs
 
   production-rules:
     runs-on: ubuntu-latest
