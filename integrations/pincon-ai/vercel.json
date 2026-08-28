@@ -57,6 +57,10 @@
     {
       "source": "/api/class-ops/settings",
       "destination": "/api/class-ops-router?route=settings"
+    },
+    {
+      "source": "/api/class-ops/admin-overview",
+      "destination": "/api/class-ops-router?route=admin-overview"
     }
   ]
 }
