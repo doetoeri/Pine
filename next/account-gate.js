@@ -10,6 +10,7 @@ import {
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
+await import("../pincon-guest-auth.js");
 
 let resolveReady;
 export const accountReady = new Promise((resolve) => { resolveReady = resolve; });
@@ -66,8 +67,21 @@ function fieldValue(root, selector) {
 }
 
 function setBusy(root, busy) {
-  root.querySelectorAll("md-filled-button, md-filled-tonal-button, md-outlined-text-field, md-checkbox")
+  root.querySelectorAll("md-filled-button, md-filled-tonal-button, md-outlined-text-field, md-checkbox, md-text-button")
     .forEach((element) => { element.disabled = busy; });
+}
+
+async function signInLegacyAdmin(root, errorBox) {
+  const auth = globalThis.PINCON_GUEST_AUTH;
+  if (!auth?.signInWithGoogleAndSync) throw new Error("관리자 로그인을 준비하지 못했습니다.");
+  setBusy(root, true);
+  errorBox.textContent = "";
+  try {
+    await auth.signInWithGoogleAndSync();
+  } catch (error) {
+    errorBox.textContent = error?.message || "관리자 로그인을 완료하지 못했습니다.";
+    setBusy(root, false);
+  }
 }
 
 function loginScreen(message = "") {
@@ -82,6 +96,7 @@ function loginScreen(message = "") {
       <div class="pincon-account-error" id="pinconLoginError" role="alert" aria-live="polite">${message}</div>
       <md-filled-button id="pinconLoginButton" type="submit"><md-icon slot="icon">login</md-icon>로그인</md-filled-button>
     </form>
+    <div class="pincon-account-admin-entry"><md-text-button id="pinconAdminLogin"><md-icon slot="icon">admin_panel_settings</md-icon>관리자 Google 로그인</md-text-button></div>
     <p class="pincon-account-security-note"><md-icon>shield_lock</md-icon><span>학번은 계정 식별에만 사용합니다. PIN은 이 기기의 localStorage나 PinCon 데이터베이스에 저장하지 않습니다.</span></p>
   </section>`);
 
@@ -112,6 +127,7 @@ function loginScreen(message = "") {
       setBusy(root, false);
     }
   });
+  root.querySelector("#pinconAdminLogin")?.addEventListener("click", () => signInLegacyAdmin(root, errorBox));
   requestAnimationFrame(() => numberField?.focus?.());
 }
 
@@ -162,8 +178,19 @@ function firstLoginScreen(session) {
   requestAnimationFrame(() => root.querySelector("#pinconNewPin")?.focus?.());
 }
 
+function localE2eBypassEnabled() {
+  const local = ["127.0.0.1", "localhost"].includes(location.hostname);
+  return local && new URLSearchParams(location.search).get("auth") !== "1";
+}
+
 async function boot() {
   try {
+    // 기존 Playwright 회귀 테스트는 로컬 정적 서버에서 실행된다. 실서비스 호스트에서는 절대 우회되지 않는다.
+    if (localE2eBypassEnabled()) {
+      complete({ mode: "e2e", user: null, account: null });
+      return;
+    }
+
     let user = await currentFirebaseUser();
     if (user?.isAnonymous) {
       await signOutStudent();
