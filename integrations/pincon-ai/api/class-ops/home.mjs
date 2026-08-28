@@ -2,6 +2,7 @@ import { corsHeaders, isClassOperator, publicProfile, requireProfile } from "../
 import { canManagePhone, dateKey } from "../../lib/class-operations.mjs";
 import {
   classSettings,
+  classUsers,
   collection,
   onePersonRoleFor,
   ownPhoneState,
@@ -32,7 +33,7 @@ export default async function classOpsHome(req, res) {
   try {
     const { profile } = await requireProfile(req);
     const date = dateKey();
-    const [settings, onePersonRole, phone, cleaningAssignments, cleaningRequests, subjectEntries, phoneStates] = await Promise.all([
+    const [settings, onePersonRole, phone, cleaningAssignments, cleaningRequests, subjectEntries, phoneStates, users] = await Promise.all([
       classSettings(profile.classKey),
       onePersonRoleFor(profile),
       ownPhoneState(profile, date),
@@ -40,6 +41,7 @@ export default async function classOpsHome(req, res) {
       rows("cleaningRequests", profile.classKey),
       rows("subjectEntries", profile.classKey),
       rows("phoneStates", profile.classKey, 100),
+      classUsers(profile.classKey),
     ]);
 
     const todayCleaning = cleaningAssignments.find((item) => item.date === date && item.assigneeUid === profile.uid && item.status !== "EXEMPTED") || null;
@@ -50,18 +52,30 @@ export default async function classOpsHome(req, res) {
     const pending = pendingForActor(profile, { cleaningRequests, subjectEntries, phoneStates, date });
     if (!phoneManager) pending.phoneChecks = 0;
 
+    const exchangeTargets = todayCleaning
+      ? users.filter((item) => item.departmentId === todayCleaning.departmentId && item.uid !== profile.uid)
+        .map((item) => ({ uid: item.uid, name: item.name, number: item.number }))
+      : [];
+    const publishedSubjectEntries = subjectEntries
+      .filter((item) => item.status === "APPROVED" && item.deleted !== true)
+      .sort((a, b) => Number(b.updatedAtMs || 0) - Number(a.updatedAtMs || 0))
+      .slice(0, 80);
+
     return sendJson(res, 200, {
       date,
       account: publicProfile(profile),
       settings: {
         phoneMovementPolicy: settings.phoneMovementPolicy,
         cleaningAutoAssignEnabled: settings.cleaningAutoAssignEnabled !== false,
+        cleaningExemptionPolicy: settings.cleaningExemptionPolicy,
       },
       today: {
         cleaning: todayCleaning,
         onePersonRole,
         phone,
         subjectRoles: profile.subjectRoles || [],
+        subjectEntries: publishedSubjectEntries,
+        exchangeTargets,
       },
       requests: ownRequests,
       management: {
