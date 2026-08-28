@@ -11,6 +11,8 @@ on:
       - "next/core/student-auth.js"
       - "next/admin/user-manager.js"
       - "next/admin/user-manager.css"
+      - "next/admin/class-ops-settings.js"
+      - "next/admin/class-ops-settings.css"
       - "next/tests/student-auth-contract.test.mjs"
       - "next/tests/student-rbac-rules.test.mjs"
       - "next/firebase-production-test.json"
@@ -41,6 +43,7 @@ jobs:
             next/student-ops.js \
             next/core/student-auth.js \
             next/admin/user-manager.js \
+            next/admin/class-ops-settings.js \
             integrations/pincon-ai/lib/class-accounts.mjs \
             integrations/pincon-ai/lib/class-operations.mjs \
             integrations/pincon-ai/lib/class-ops-store.mjs \
