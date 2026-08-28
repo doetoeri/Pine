@@ -17,6 +17,11 @@ async function rows(name, limit = 300) {
   return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
+async function newestRows(name, limit = 300) {
+  const snapshot = await collection(name).orderBy("createdAtMs", "desc").limit(limit).get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
 function inScope(actor, item) {
   if (hasRole(actor, ROLE.ADMIN)) return true;
   return Boolean(actor?.classKey) && item?.classKey === actor.classKey;
@@ -65,8 +70,8 @@ export default async function adminOverview(req, res) {
       rows("subjectEntries", 500),
       rows("cleaningRequests", 500),
       rows("phoneStates", 500),
-      rows("accountAudit", 300),
-      rows("classOpsAudit", 300),
+      newestRows("accountAudit", 300),
+      newestRows("classOpsAudit", 300),
     ]);
 
     const scopedUsers = users.filter((item) => inScope(actor, item)).map(publicAccount);
