@@ -5,7 +5,7 @@ let accounts = [];
 let loaded = false;
 let loading = false;
 let allowed = true;
-const filters = { query: "", status: "ALL", role: "ALL", attention: false };
+const filters = { query: "", status: "ALL", role: "ALL", attention: false, privileged: false };
 
 const ROLE_OPTIONS = Object.freeze([
   ["STUDENT", "학생", "기본 사용자"],
@@ -50,6 +50,7 @@ function filteredAccounts() {
     if (filters.status !== "ALL" && item.status !== filters.status) return false;
     if (filters.role !== "ALL" && !accountRoles(item).includes(filters.role)) return false;
     if (filters.attention && !isAttention(item)) return false;
+    if (filters.privileged && !accountRoles(item).some((role) => role !== "STUDENT")) return false;
     return true;
   });
 }
@@ -166,14 +167,17 @@ function bindSection() {
   section.querySelector("#pinconExportUsers")?.addEventListener("click", exportUsers);
   section.querySelector("#pinconUserSearch")?.addEventListener("input", (event) => { filters.query = String(event.target.value || ""); rerenderList(section); });
   section.querySelector("#pinconUserStatusFilter")?.addEventListener("change", (event) => { filters.status = event.target.value || "ALL"; rerenderList(section); });
-  section.querySelector("#pinconUserRoleFilter")?.addEventListener("change", (event) => { filters.role = event.target.value || "ALL"; rerenderList(section); });
-  section.querySelector("#pinconAttentionFilter")?.addEventListener("click", (event) => { filters.attention = !filters.attention; event.currentTarget.selected = filters.attention; rerenderList(section); });
+  section.querySelector("#pinconUserRoleFilter")?.addEventListener("change", (event) => { filters.role = event.target.value || "ALL"; filters.privileged = false; rerenderList(section); });
+  section.querySelector("#pinconAttentionFilter")?.addEventListener("click", (event) => { filters.attention = !filters.attention; filters.privileged = false; event.currentTarget.selected = filters.attention; rerenderList(section); });
   section.querySelectorAll("[data-account-metric]").forEach((button) => button.addEventListener("click", () => {
     const metric = button.dataset.accountMetric;
-    filters.status = metric === "active" ? "ACTIVE" : "ALL";
+    filters.status = "ALL";
     filters.role = "ALL";
-    filters.attention = metric === "attention";
-    if (metric === "privileged") filters.role = "CLASS_PRESIDENT";
+    filters.attention = false;
+    filters.privileged = false;
+    if (metric === "active") filters.status = "ACTIVE";
+    else if (metric === "attention") filters.attention = true;
+    else if (metric === "privileged") filters.privileged = true;
     renderSection(true);
   }));
   bindRows(section);
@@ -196,7 +200,6 @@ function roleChecks(account) {
 }
 
 function formAccount(dialog, existing) {
-  const roles = ["STUDENT", ...dialog.querySelectorAll("[data-role-check]")].filter(Boolean);
   const checked = [...dialog.querySelectorAll("[data-role-check]")].filter((item) => item.checked).map((item) => item.dataset.roleCheck);
   const subjects = String(dialog.querySelector("#accountSubjects")?.value || "").split(/[,，]/).map((item) => item.trim()).filter(Boolean);
   return {
@@ -266,11 +269,13 @@ function openAccountDialog(account) {
 
   const status = dialog.querySelector("#accountEditorStatus");
   const result = dialog.querySelector("#accountEditorResult");
+  const saveButton = dialog.querySelector("#accountEditorSave");
   const setBusy = (busy) => dialog.querySelectorAll("md-filled-button, md-filled-tonal-button, md-outlined-button, md-outlined-text-field, md-checkbox").forEach((element) => { element.disabled = busy; });
   const setStatus = (message, error = false) => { status.textContent = message; status.dataset.error = error ? "true" : "false"; };
 
   dialog.querySelectorAll("[data-role-check]").forEach((checkbox) => checkbox.addEventListener("change", () => { checkbox.closest(".pincon-account-role-card").dataset.selected = checkbox.checked ? "true" : "false"; }));
-  dialog.querySelector("#accountEditorSave")?.addEventListener("click", async () => {
+  saveButton?.addEventListener("click", async () => {
+    if (dialog.dataset.createdUid) return;
     const value = formAccount(dialog, existing);
     const validation = validateAccount(value);
     if (validation) { setStatus(validation, true); return; }
@@ -281,13 +286,19 @@ function openAccountDialog(account) {
         ? await accountRequest("/api/accounts/manage", { method: "POST", body: { action: "UPDATE", uid: existing.uid, patch: value } })
         : await accountRequest("/api/accounts/manage", { method: "POST", body: { action: "CREATE", account: value } });
       updateAccountInMemory(response.account);
-      if (response.temporaryPin) result.innerHTML = tempPinMarkup(response.temporaryPin, response.account?.name);
+      if (response.temporaryPin) {
+        result.innerHTML = tempPinMarkup(response.temporaryPin, response.account?.name);
+        dialog.dataset.createdUid = response.account?.uid || "created";
+      }
       setStatus(existing ? "계정 정보를 저장했습니다." : "계정을 만들었습니다.");
       renderSection(true);
     } catch (error) {
       const message = error?.message === "student-number-exists" ? "이미 사용 중인 학번입니다." : "계정을 저장하지 못했습니다. 입력값과 권한을 확인해주세요.";
       setStatus(message, true);
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+      if (dialog.dataset.createdUid && saveButton) saveButton.disabled = true;
+    }
   });
 
   dialog.querySelector("#accountResetPin")?.addEventListener("click", async () => {
