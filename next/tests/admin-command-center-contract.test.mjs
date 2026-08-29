@@ -19,17 +19,21 @@ test("admin command center exposes operations navigation, inbox, search and heal
   ]) assert.ok(source.includes(contract), `missing admin contract: ${contract}`);
 });
 
-test("user manager supports filters, bulk provisioning, export and reactivation without persisting PINs", async () => {
+test("account directory supports search, filters, provisioning, security actions and export", async () => {
   const source = await read("next/admin/user-manager.js");
   for (const contract of [
     "pinconUserStatusFilter",
     "pinconUserRoleFilter",
+    "pinconAttentionFilter",
     "pinconBulkUsers",
     "pinconExportUsers",
-    "pinconEnableUser",
+    "openAccountDialog",
+    "RESET_PIN",
+    "DISABLE",
+    "status: \"ACTIVE\"",
     "parseBulkRows",
-    "pinconDownloadPins",
-  ]) assert.ok(source.includes(contract), `missing user-management contract: ${contract}`);
+    "temporaryPin",
+  ]) assert.ok(source.includes(contract), `missing account-directory contract: ${contract}`);
   assert.equal(/localStorage[^\n]*(pin|password|temporary)/i.test(source), false, "PIN/password material must not be stored in localStorage");
 });
 
@@ -48,8 +52,21 @@ test("user and access management are one canonical RBAC surface", async () => {
   assert.match(navFix, /observe\(root, \{ childList: true \}\)/);
   assert.doesNotMatch(navFix, /subtree\s*:\s*true/);
   for (const role of ["DEPARTMENT_HEAD", "SUBJECT_MANAGER", "CLASS_PRESIDENT", "TEACHER", "ADMIN"]) {
-    assert.ok(users.includes(role), `canonical user manager must retain role ${role}`);
+    assert.ok(users.includes(role), `canonical account directory must retain role ${role}`);
   }
+});
+
+test("account directory models identity, affiliation, permissions and security separately", async () => {
+  const [users, styles] = await Promise.all([
+    read("next/admin/user-manager.js"),
+    read("next/admin/user-manager.css"),
+  ]);
+  for (const contract of ["신원과 소속", "권한", "로그인과 보안", "계정 일괄 등록", "첫 로그인 대기"]) {
+    assert.ok(users.includes(contract), `missing account information architecture: ${contract}`);
+  }
+  assert.match(styles, /pincon-account-directory__hero/);
+  assert.match(styles, /pincon-account-editor__section/);
+  assert.match(styles, /@media \(max-width: 640px\)/);
 });
 
 test("admin overview stays behind the existing router function and enforces operator auth", async () => {
@@ -68,15 +85,17 @@ test("admin overview stays behind the existing router function and enforces oper
 });
 
 test("admin operations mounting cannot create a subtree mutation rerender loop", async () => {
-  const [bootstrap, settings, extras] = await Promise.all([
+  const [bootstrap, settings, extras, users] = await Promise.all([
     read("next/admin/bootstrap.js"),
     read("next/admin/class-ops-settings-v2.js"),
     read("next/admin/admin-extras.css"),
+    read("next/admin/user-manager.js"),
   ]);
   assert.match(bootstrap, /class-ops-settings-v2\.js/);
   assert.doesNotMatch(bootstrap, /import\("\.\/class-ops-settings\.js"\)/);
   assert.match(settings, /observe\(root, \{ childList: true \}\)/);
   assert.doesNotMatch(settings, /subtree\s*:\s*true/);
-  assert.match(settings, /if \(existing && !force\) return/);
+  assert.match(users, /observe\(root, \{ childList: true \}\)/);
+  assert.doesNotMatch(users, /subtree\s*:\s*true/);
   assert.match(extras, /backdrop-filter:\s*none\s*!important/);
 });
