@@ -8,6 +8,7 @@ const snapshot = gateway.snapshot();
 if (!snapshot.canArchiveContent) {
   location.replace("../#more");
 } else {
+  await import("./admin-stable-render.js");
   await import("./admin.js");
   await import("./admin-nav-performance.js");
   await import("./admin-shortcuts.js");
