@@ -22,6 +22,29 @@ function replaceRegion(currentMain, nextMain, selector, { always = false } = {})
   current.replaceWith(next);
 }
 
+function patchTopbar(currentMain, nextMain) {
+  const current = currentMain.querySelector(".admin-topbar");
+  const next = nextMain.querySelector(".admin-topbar");
+  if (!current || !next) return;
+
+  current.className = next.className;
+
+  const currentCopy = current.firstElementChild;
+  const nextCopy = next.firstElementChild;
+  if (currentCopy && nextCopy && !sameNode(currentCopy, nextCopy)) currentCopy.replaceWith(nextCopy);
+
+  const currentActions = current.querySelector(".admin-topbar__actions");
+  const nextActions = next.querySelector(".admin-topbar__actions");
+  if (!currentActions || !nextActions) return;
+
+  // The system-admin class switcher owns its own change listener and state.
+  // Keep that node connected while refreshing only the ordinary topbar buttons.
+  [...currentActions.children].forEach((child) => {
+    if (!child.classList.contains("admin-class-switcher")) child.remove();
+  });
+  currentActions.append(...nextActions.children);
+}
+
 function patchErrorStatus(currentMain, nextMain) {
   const selector = '.admin-status.admin-status--denied[role="alert"]';
   const current = currentMain.querySelector(selector);
@@ -59,7 +82,7 @@ function patchDashboardMarkup(markup) {
   currentMain.tabIndex = nextMain.tabIndex;
 
   replaceRegion(currentMain, nextMain, ".admin-sidebar");
-  replaceRegion(currentMain, nextMain, ".admin-topbar", { always: true });
+  patchTopbar(currentMain, nextMain);
   replaceRegion(currentMain, nextMain, "#adminOverview");
   patchErrorStatus(currentMain, nextMain);
   replaceRegion(currentMain, nextMain, ".admin-metrics");
