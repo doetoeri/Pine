@@ -1,0 +1,239 @@
+.pincon-account-center {
+  width: min(94vw, 720px);
+  max-width: 720px;
+}
+
+.pincon-account-center__headline {
+  display: grid;
+  gap: 2px;
+}
+
+.pincon-account-center__headline span {
+  color: var(--md-sys-color-primary, #49662e);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.pincon-account-center__headline strong {
+  font-size: 26px;
+  letter-spacing: -.04em;
+}
+
+.pincon-account-center__content {
+  display: grid;
+  gap: 12px;
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  padding: 2px 4px 10px;
+}
+
+.pincon-account-center__hero {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--md-sys-color-primary-container, #d9e7cb);
+  color: var(--md-sys-color-on-primary-container, #12210d);
+}
+
+.pincon-account-center__avatar {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 19px;
+  background: color-mix(in srgb, var(--md-sys-color-primary, #49662e) 14%, transparent);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.pincon-account-center__hero strong,
+.pincon-account-center__hero span,
+.pincon-account-center__hero small {
+  display: block;
+}
+
+.pincon-account-center__hero > div > strong {
+  font-size: 18px;
+}
+
+.pincon-account-center__hero > div > span {
+  margin-top: 3px;
+  font-size: 13px;
+}
+
+.pincon-account-center__hero > div > small {
+  margin-top: 2px;
+  opacity: .72;
+  font-size: 11px;
+}
+
+.pincon-account-center__state {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--md-sys-color-surface, #fff) 58%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pincon-account-center__state md-icon {
+  font-size: 17px;
+}
+
+.pincon-account-center__section {
+  padding: 18px;
+  border-radius: 22px;
+  background: var(--md-sys-color-surface-container-low, #f1f3eb);
+}
+
+.pincon-account-center__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pincon-account-center__section-head span,
+.pincon-account-center__section-head h3 {
+  margin: 0;
+}
+
+.pincon-account-center__section-head span {
+  color: var(--md-sys-color-primary, #49662e);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.pincon-account-center__section-head h3 {
+  margin-top: 2px;
+  font-size: 17px;
+  letter-spacing: -.025em;
+}
+
+.pincon-account-center__section > p {
+  margin: 12px 0 0;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.pincon-account-center__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pincon-account-center__role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 12px;
+  background: var(--md-sys-color-secondary-container, #dfe7d5);
+  color: var(--md-sys-color-on-secondary-container, #151e10);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pincon-account-center__role md-icon {
+  font-size: 17px;
+}
+
+.pincon-account-center__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pincon-account-center__form md-outlined-text-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.pincon-account-center__status,
+.pincon-account-center__form md-filled-tonal-button {
+  grid-column: 1 / -1;
+}
+
+.pincon-account-center__status {
+  min-height: 20px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 12px;
+}
+
+.pincon-account-center__status[data-error="true"] {
+  color: var(--md-sys-color-error, #ba1a1a);
+}
+
+.pincon-account-center__session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.pincon-account-center__session > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pincon-account-center__session strong,
+.pincon-account-center__session span {
+  display: block;
+}
+
+.pincon-account-center__session span {
+  margin-top: 2px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 11px;
+}
+
+@media (max-width: 620px) {
+  .pincon-account-center {
+    width: min(96vw, 560px);
+  }
+
+  .pincon-account-center__hero {
+    grid-template-columns: 50px minmax(0, 1fr);
+  }
+
+  .pincon-account-center__avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+  }
+
+  .pincon-account-center__state {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+
+  .pincon-account-center__form {
+    grid-template-columns: 1fr;
+  }
+
+  .pincon-account-center__status,
+  .pincon-account-center__form md-filled-tonal-button {
+    grid-column: auto;
+  }
+
+  .pincon-account-center__session {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pincon-account-center__session md-outlined-button {
+    width: 100%;
+  }
+}
