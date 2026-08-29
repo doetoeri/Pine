@@ -17,6 +17,7 @@ on:
       - "next/admin/admin-shortcuts.js"
       - "next/admin/admin-nav-performance.js"
       - "next/admin/admin-user-access-v2.js"
+      - "next/admin/admin-stable-render.js"
       - "next/admin/class-switcher.js"
       - "next/admin/bootstrap.js"
       - "next/admin/index.html"
@@ -61,6 +62,7 @@ jobs:
             next/admin/admin-shortcuts.js \
             next/admin/admin-nav-performance.js \
             next/admin/admin-user-access-v2.js \
+            next/admin/admin-stable-render.js \
             next/admin/class-switcher.js \
             next/admin/bootstrap.js \
             next/admin/user-manager.js \

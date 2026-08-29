@@ -99,3 +99,17 @@ test("admin operations mounting cannot create a subtree mutation rerender loop",
   assert.doesNotMatch(users, /subtree\s*:\s*true/);
   assert.match(extras, /backdrop-filter:\s*none\s*!important/);
 });
+
+test("live admin refreshes preserve the management module DOM", async () => {
+  const [bootstrap, stableRender] = await Promise.all([
+    read("next/admin/bootstrap.js"),
+    read("next/admin/admin-stable-render.js"),
+  ]);
+  const stableIndex = bootstrap.indexOf('import("./admin-stable-render.js")');
+  const adminIndex = bootstrap.indexOf('import("./admin.js")');
+  assert.ok(stableIndex >= 0 && adminIndex > stableIndex, "stable render guard must load before admin.js");
+  assert.match(stableRender, /#adminModuleGrid/);
+  assert.match(stableRender, /Object\.defineProperty\(root, "innerHTML"/);
+  assert.match(stableRender, /if \(patchDashboardMarkup\(value\)\) return/);
+  assert.doesNotMatch(stableRender, /moduleGrid\.(?:remove|replaceWith)|currentMain\.replaceWith|root\.replaceChildren/);
+});
