@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "next/account-gate.js"
+      - "next/account-center.js"
+      - "next/account-center.css"
       - "next/app-bootstrap.js"
       - "next/student-ops.js"
       - "next/student-ops.css"
@@ -51,6 +53,7 @@ jobs:
           set -euo pipefail
           for file in \
             next/account-gate.js \
+            next/account-center.js \
             next/app-bootstrap.js \
             next/student-ops.js \
             next/core/student-auth.js \
