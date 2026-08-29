@@ -7,4 +7,5 @@ await import("./route-focus-stability.js");
 await import("./write-mode.js");
 await import("./admin-visibility.js");
 await import("./problem-bank.js");
+await import("./account-center.js");
 await import("./student-ops.js");
