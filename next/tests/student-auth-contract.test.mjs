@@ -15,26 +15,40 @@ test("student auth uses Firebase email/password without storing PIN locally", as
   assert.doesNotMatch(auth, /localStorage\.(?:setItem|getItem)\([^\n]*(?:pin|password|secret)/i);
 });
 
-test("login errors do not reveal whether the student number or PIN was wrong", async () => {
+test("account entry keeps login failures generic and validates locally", async () => {
   const gate = await source("../account-gate.js");
-  assert.match(gate, /학번 또는 PIN을 다시 확인해주세요\./);
+  assert.match(gate, /학번 또는 PIN이 맞지 않습니다/);
+  assert.match(gate, /\^\\d\{5\}\$/);
+  assert.match(gate, /\^\\d\{6,12\}\$/);
   assert.doesNotMatch(gate, /존재하지 않는 학번|PIN이 틀|비밀번호가 틀/);
 });
 
-test("first login forces a PIN change and never exposes an old PIN lookup path", async () => {
+test("first login forces a PIN change without an old PIN lookup path", async () => {
   const gate = await source("../account-gate.js");
   const auth = await source("../core/student-auth.js");
   assert.match(gate, /account\.mustChangePin/);
-  assert.match(gate, /PinCon 시작하기/);
+  assert.match(gate, /보안 설정/);
+  assert.match(gate, /changeStudentPin/);
   assert.match(auth, /changeStudentPin/);
   assert.doesNotMatch(`${gate}\n${auth}`, /기존 PIN 확인|currentPin|oldPin/i);
 });
 
 test("legacy Google administrators retain a migration login path", async () => {
   const gate = await source("../account-gate.js");
-  assert.match(gate, /관리자 Google 로그인/);
+  assert.match(gate, /관리자 Google 계정으로 계속/);
   assert.match(gate, /PINCON_GUEST_AUTH/);
   assert.match(gate, /mode: "legacy"/);
+});
+
+test("student account center owns profile security and logout", async () => {
+  const center = await source("../account-center.js");
+  const bootstrap = await source("../app-bootstrap.js");
+  assert.match(center, /PinConAccountCenter/);
+  assert.match(center, /changeStudentPin/);
+  assert.match(center, /signOutStudent/);
+  assert.match(center, /stopImmediatePropagation/);
+  assert.match(bootstrap, /account-center\.js/);
+  assert.doesNotMatch(center, /localStorage|sessionStorage/);
 });
 
 test("application modules boot only after the account gate resolves", async () => {
@@ -43,6 +57,7 @@ test("application modules boot only after the account gate resolves", async () =
   assert.match(bootstrap, /await accountReady/);
   assert.match(bootstrap, /await import\("\.\/app\.js"\)/);
   assert.match(html, /src="\.\/app-bootstrap\.js"/);
+  assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
 
