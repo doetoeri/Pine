@@ -390,6 +390,11 @@ md-list-item[type="button"] {
   max-width: 100vw;
   overflow: hidden;
   contain: layout paint;
+  pointer-events: none;
+}
+
+.detail-layer.is-open {
+  pointer-events: auto;
 }
 
 .detail-backdrop {
