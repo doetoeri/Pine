@@ -15,6 +15,7 @@ if (!snapshot.canArchiveContent) {
   await import("./class-switcher.js");
   await import("./brand-settings.js");
   await import("./content-editor.js?v=20260830-archive1");
+  await import("./personal-notifications.js?v=20260830-personal1");
   await import("./problem-bank-guide.js");
   await import("./user-manager.js");
   await import("./admin-user-access-v2.js");
