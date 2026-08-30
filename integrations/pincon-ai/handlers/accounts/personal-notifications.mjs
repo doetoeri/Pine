@@ -2,6 +2,7 @@ import { firestore } from "../../lib/firebase.mjs";
 import {
   SCHOOL_ID,
   assertSameClass,
+  corsHeaders,
   isClassOperator,
   profileForUid,
   publicProfile,
@@ -21,7 +22,7 @@ function priority(value) {
 }
 
 function publicNotification(doc) {
-  const data = doc.data ? doc.data() : doc;
+  const data = typeof doc.data === "function" ? doc.data() : doc;
   return {
     id: doc.id || data.id || "",
     title: text(data.title, 100),
@@ -71,7 +72,7 @@ async function sendOne(actor, body) {
   const level = priority(body.priority);
   const now = Date.now();
   const ref = collection().doc();
-  await ref.set({
+  const record = {
     schoolId: SCHOOL_ID,
     classKey: actor.classKey,
     targetUid: target.uid,
@@ -83,24 +84,27 @@ async function sendOne(actor, body) {
     createdAtMs: now,
     updatedAtMs: now,
     createdByUid: actor.uid,
-  });
-  return { notification: publicNotification({ id: ref.id, ...await ref.get().then((snap) => snap.data()) }), recipient: publicProfile(target) };
+  };
+  await ref.set(record);
+  return { notification: publicNotification({ id: ref.id, ...record }), recipient: publicProfile(target) };
 }
 
 export default async function personalNotifications(req, res) {
+  const headers = corsHeaders(req);
+  if (req.method === "OPTIONS") return sendJson(res, 204, {}, headers);
   try {
     const { profile } = await requireProfileOrLegacy(req);
     if (req.method === "GET") {
       const url = new URL(req.url || "/", "https://pincon.invalid");
       if (url.searchParams.get("mode") === "recipients") {
-        return sendJson(res, 200, { recipients: await listRecipients(profile) });
+        return sendJson(res, 200, { recipients: await listRecipients(profile) }, headers);
       }
-      return sendJson(res, 200, { notifications: await listOwn(profile) });
+      return sendJson(res, 200, { notifications: await listOwn(profile) }, headers);
     }
-    if (req.method !== "POST") return sendJson(res, 405, { error: "method-not-allowed" });
+    if (req.method !== "POST") return sendJson(res, 405, { error: "method-not-allowed" }, headers);
     const body = await jsonBody(req);
-    return sendJson(res, 200, await sendOne(profile, body));
+    return sendJson(res, 200, await sendOne(profile, body), headers);
   } catch (error) {
-    return sendJson(res, error?.status || 500, { error: error?.message || "personal-notification-failed" });
+    return sendJson(res, error?.status || 500, { error: error?.message || "personal-notification-failed" }, headers);
   }
 }
