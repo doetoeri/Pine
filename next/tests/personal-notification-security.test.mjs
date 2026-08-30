@@ -37,5 +37,6 @@ test("legacy targeted announcements are migrated off the public collection", asy
   assert.match(handler, /personalNotification/);
   assert.match(handler, /targetStudentNumber/);
   assert.match(handler, /announcements/);
-  assert.match(handler, /delete\(\)/);
+  assert.match(handler, /batch\.delete\(doc\.ref\)/);
+  assert.match(handler, /batch\.commit\(\)/);
 });
