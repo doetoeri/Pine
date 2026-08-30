@@ -1439,6 +1439,7 @@ function renderDetailSurface({ focus = false, swap = false } = {}) {
 
 function hideDetailSurface({ restoreFocus = true } = {}) {
   const layer = app.querySelector("#detailLayer");
+  detailPointer = null;
   if (!layer || layer.hidden) {
     clearModalInert();
     if (restoreFocus) restoreDetailFocus();
