@@ -56,6 +56,18 @@ if (root) {
     return Boolean(layer && !layer.hidden && layer.getAttribute("aria-hidden") !== "true");
   }
 
+  function ensureDetailCloseControl() {
+    const close = root.querySelector(".detail-header [data-detail-close]");
+    if (!close) return;
+    if (close.getAttribute("aria-label") !== "상세 화면 닫기") {
+      close.setAttribute("aria-label", "상세 화면 닫기");
+    }
+    const internal = close.shadowRoot?.querySelector("button, [role='button']");
+    if (internal && internal.getAttribute("aria-label") !== "상세 화면 닫기") {
+      internal.setAttribute("aria-label", "상세 화면 닫기");
+    }
+  }
+
   function removeUnknownStatusChips() {
     root.querySelectorAll(".status-chip--checking").forEach((chip) => chip.remove());
     root.querySelectorAll("[aria-label*='확인 중']").forEach((node) => {
@@ -100,6 +112,7 @@ if (root) {
 
   function applyFixes() {
     queued = false;
+    ensureDetailCloseControl();
     removeUnknownStatusChips();
     removeSaturdayClosureRows();
     repairInteractionState();
@@ -116,7 +129,7 @@ if (root) {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ["hidden", "open", "aria-hidden", "inert", "data-pincon-opening"],
+    attributeFilter: ["hidden", "open", "aria-hidden", "aria-label", "inert", "data-pincon-opening"],
   });
 
   document.addEventListener("closed", queueFixes, true);
