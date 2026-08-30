@@ -29,6 +29,7 @@ const SERVER_ONLY_COLLECTIONS = [
   "phoneSessions",
   "subjectEntries",
   "classOpsAudit",
+  "personalNotifications",
 ];
 
 let env;
@@ -46,6 +47,7 @@ async function seed() {
       ...SERVER_ONLY_COLLECTIONS.map((collection) => setDoc(doc(db, privatePath(collection)), {
         classKey: CLASS_KEY,
         userUid: "student",
+        targetUid: "student",
         status: "ACTIVE",
         createdAtMs: 1,
         updatedAtMs: 1,
@@ -76,6 +78,7 @@ test("student operations collections are inaccessible directly from the browser 
       await assertFails(setDoc(doc(db, privatePath(collection, `${uid}-write`)), {
         classKey: CLASS_KEY,
         userUid: uid,
+        targetUid: uid,
         createdAtMs: 2,
         updatedAtMs: 2,
       }));
@@ -86,7 +89,9 @@ test("student operations collections are inaccessible directly from the browser 
 test("unauthenticated clients cannot read or write student operations collections", async () => {
   const db = env.unauthenticatedContext().firestore();
   await assertFails(getDoc(doc(db, privatePath("users"))));
+  await assertFails(getDoc(doc(db, privatePath("personalNotifications"))));
   await assertFails(setDoc(doc(db, privatePath("phoneStates", "public-write")), { classKey: CLASS_KEY }));
+  await assertFails(setDoc(doc(db, privatePath("personalNotifications", "public-write")), { classKey: CLASS_KEY, targetUid: "student" }));
 });
 
 test("legacy role documents remain self-readable while role mutation stays school-admin only", async () => {

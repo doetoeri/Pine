@@ -56,3 +56,35 @@ test("problem cards open an interactive quiz and filters combine", async ({ page
 
   expect(errors).toEqual([]);
 });
+
+test("problem bank filters stay inside the panel at tablet width", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+  });
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("http://127.0.0.1:4173/next/#classroom", { waitUntil: "domcontentloaded" });
+
+  const panel = page.locator("#problemBankPanel");
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+
+  const geometry = await panel.evaluate((node) => {
+    const panelRect = node.getBoundingClientRect();
+    const ids = ["problemBankSearch", "problemBankSubject", "problemBankDifficulty"];
+    const rects = ids.map((id) => document.getElementById(id)?.getBoundingClientRect()).filter(Boolean);
+    return {
+      panelLeft: panelRect.left,
+      panelRight: panelRect.right,
+      allInside: rects.every((rect) => rect.left >= panelRect.left - 1 && rect.right <= panelRect.right + 1),
+      noOverlap: rects.every((rect, index) => rects.every((other, otherIndex) => (
+        index === otherIndex
+        || rect.bottom <= other.top + 1
+        || rect.top >= other.bottom - 1
+        || rect.right <= other.left + 1
+        || rect.left >= other.right - 1
+      ))),
+    };
+  });
+
+  expect(geometry.allInside).toBe(true);
+  expect(geometry.noOverlap).toBe(true);
+});

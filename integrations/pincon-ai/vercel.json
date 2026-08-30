@@ -39,6 +39,10 @@
       "destination": "/api/class-ops-router?route=account-change-pin"
     },
     {
+      "source": "/api/accounts/personal-notifications",
+      "destination": "/api/class-ops-router?route=personal-notifications"
+    },
+    {
       "source": "/api/class-ops/home",
       "destination": "/api/class-ops-router?route=home"
     },

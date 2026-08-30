@@ -7,6 +7,7 @@ on:
       - "next/account-center.js"
       - "next/account-center.css"
       - "next/app-bootstrap.js"
+      - "next/personal-notification-filter.js"
       - "next/student-ops.js"
       - "next/student-ops.css"
       - "next/student-account.css"
@@ -21,6 +22,7 @@ on:
       - "next/admin/class-switcher.js"
       - "next/admin/bootstrap.js"
       - "next/admin/index.html"
+      - "next/admin/personal-notifications.js"
       - "next/admin/user-manager.js"
       - "next/admin/user-manager.css"
       - "next/admin/class-ops-settings.js"
@@ -28,6 +30,7 @@ on:
       - "next/admin/class-ops-settings.css"
       - "next/tests/admin-command-center-contract.test.mjs"
       - "next/tests/admin-mobile-nav-performance.test.mjs"
+      - "next/tests/personal-notification-security.test.mjs"
       - "next/tests/student-auth-contract.test.mjs"
       - "next/tests/student-rbac-rules.test.mjs"
       - "next/firebase-production-test.json"
@@ -56,6 +59,7 @@ jobs:
             next/account-gate.js \
             next/account-center.js \
             next/app-bootstrap.js \
+            next/personal-notification-filter.js \
             next/student-ops.js \
             next/core/student-auth.js \
             next/admin/admin.js \
@@ -65,6 +69,7 @@ jobs:
             next/admin/admin-stable-render.js \
             next/admin/class-switcher.js \
             next/admin/bootstrap.js \
+            next/admin/personal-notifications.js \
             next/admin/user-manager.js \
             next/admin/class-ops-settings-v2.js \
             integrations/pincon-ai/lib/class-accounts.mjs \
@@ -74,6 +79,7 @@ jobs:
             integrations/pincon-ai/handlers/accounts/session.mjs \
             integrations/pincon-ai/handlers/accounts/manage.mjs \
             integrations/pincon-ai/handlers/accounts/change-pin.mjs \
+            integrations/pincon-ai/handlers/accounts/personal-notifications.mjs \
             integrations/pincon-ai/handlers/class-ops/home.mjs \
             integrations/pincon-ai/handlers/class-ops/cleaning.mjs \
             integrations/pincon-ai/handlers/class-ops/phone.mjs \
@@ -90,6 +96,8 @@ jobs:
         run: npm run test:rbac --prefix integrations/pincon-ai
       - name: Run student auth contracts
         run: node --test next/tests/student-auth-contract.test.mjs
+      - name: Run personal notification security contracts
+        run: node --test next/tests/personal-notification-security.test.mjs
       - name: Run admin command center contracts
         run: node --test next/tests/admin-command-center-contract.test.mjs
       - name: Run mobile admin navigation performance contracts
