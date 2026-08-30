@@ -42,6 +42,7 @@ if (root) {
   document.head.append(style);
 
   let queued = false;
+  let notificationOpenSequence = 0;
 
   function dialogIsOpen(dialog) {
     return Boolean(
@@ -110,9 +111,13 @@ if (root) {
     document.body.classList.remove("detail-modal-open");
   }
 
+  function eventHost(event, id) {
+    return event.composedPath?.().find((node) => node instanceof HTMLElement && node.id === id) || null;
+  }
+
   function closeNotificationDialogFrom(event) {
-    const close = event.composedPath?.().find((node) => node instanceof HTMLElement && node.id === "closeNotifications");
-    if (!close) return false;
+    if (!eventHost(event, "closeNotifications")) return false;
+    notificationOpenSequence += 1;
     const dialog = root.querySelector("#notificationDialog");
     if (!dialog) return true;
     dialog.removeAttribute("data-pincon-opening");
@@ -120,6 +125,34 @@ if (root) {
     else dialog.removeAttribute("open");
     queueFixes();
     return true;
+  }
+
+  function ensureNotificationDialogOpensFrom(event) {
+    if (!eventHost(event, "openNotifications")) return;
+    const sequence = ++notificationOpenSequence;
+    const openWhenReady = async () => {
+      try {
+        await customElements.whenDefined("md-dialog");
+        const dialog = root.querySelector("#notificationDialog");
+        if (!dialog || sequence !== notificationOpenSequence || dialogIsOpen(dialog)) return;
+        if (dialog.updateComplete && typeof dialog.updateComplete.then === "function") {
+          await dialog.updateComplete;
+        }
+        if (sequence !== notificationOpenSequence || dialogIsOpen(dialog)) return;
+        if (typeof dialog.show === "function") {
+          dialog.setAttribute("data-pincon-opening", "true");
+          await Promise.resolve(dialog.show());
+          dialog.removeAttribute("data-pincon-opening");
+        } else {
+          dialog.setAttribute("open", "");
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        queueFixes();
+      }
+    };
+    requestAnimationFrame(() => void openWhenReady());
   }
 
   function applyFixes() {
@@ -147,6 +180,7 @@ if (root) {
   document.addEventListener("closed", queueFixes, true);
   document.addEventListener("click", (event) => {
     closeNotificationDialogFrom(event);
+    ensureNotificationDialogOpensFrom(event);
     requestAnimationFrame(repairInteractionState);
   }, true);
   window.addEventListener("popstate", queueFixes);
