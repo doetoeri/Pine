@@ -11,6 +11,8 @@ import {
 import { jsonBody, sendJson } from "../../lib/request.mjs";
 
 const collection = () => firestore().collection(`schools/${SCHOOL_ID}/personalNotifications`);
+const announcements = () => firestore().collection(`schools/${SCHOOL_ID}/announcements`);
+const users = () => firestore().collection(`schools/${SCHOOL_ID}/users`);
 
 function text(value, max) {
   return String(value ?? "").trim().replace(/\s+/g, " ").slice(0, max);
@@ -48,7 +50,7 @@ async function listOwn(profile) {
 
 async function listRecipients(actor) {
   if (!isClassOperator(actor)) throw Object.assign(new Error("class-operator-required"), { status: 403 });
-  const snapshot = await firestore().collection(`schools/${SCHOOL_ID}/users`)
+  const snapshot = await users()
     .where("classKey", "==", actor.classKey)
     .limit(80)
     .get();
@@ -56,6 +58,52 @@ async function listRecipients(actor) {
     .map((doc) => publicProfile({ id: doc.id, ...doc.data() }))
     .filter((item) => item && item.status === "ACTIVE")
     .sort((a, b) => Number(a.number || 0) - Number(b.number || 0));
+}
+
+async function migrateLegacy(actor) {
+  if (!isClassOperator(actor)) return 0;
+  const legacy = await announcements()
+    .where("classKey", "==", actor.classKey)
+    .where("personalNotification", "==", true)
+    .limit(80)
+    .get();
+  if (legacy.empty) return 0;
+
+  const recipientSnapshot = await users()
+    .where("classKey", "==", actor.classKey)
+    .limit(80)
+    .get();
+  const byStudentNumber = new Map(recipientSnapshot.docs.map((doc) => {
+    const data = doc.data();
+    return [String(data.studentNumber || ""), { uid: doc.id, ...data }];
+  }));
+
+  const batch = firestore().batch();
+  let moved = 0;
+  for (const doc of legacy.docs) {
+    const data = doc.data();
+    const target = byStudentNumber.get(String(data.targetStudentNumber || ""));
+    if (!target?.uid) continue;
+    const privateRef = collection().doc(`legacy-${doc.id}`);
+    batch.set(privateRef, {
+      schoolId: SCHOOL_ID,
+      classKey: actor.classKey,
+      targetUid: target.uid,
+      targetStudentNumber: target.studentNumber,
+      title: text(data.title, 100),
+      body: text(data.body, 800),
+      priority: priority(data.priority),
+      important: data.important === true || priority(data.priority) !== "normal",
+      createdAtMs: Number(data.createdAtMs || Date.now()),
+      updatedAtMs: Number(data.updatedAtMs || data.createdAtMs || Date.now()),
+      createdByUid: String(data.createdByUid || data.authorUid || actor.uid),
+      migratedFromAnnouncementId: doc.id,
+    }, { merge: true });
+    batch.delete(doc.ref);
+    moved += 1;
+  }
+  if (moved) await batch.commit();
+  return moved;
 }
 
 async function sendOne(actor, body) {
@@ -97,7 +145,8 @@ export default async function personalNotifications(req, res) {
     if (req.method === "GET") {
       const url = new URL(req.url || "/", "https://pincon.invalid");
       if (url.searchParams.get("mode") === "recipients") {
-        return sendJson(res, 200, { recipients: await listRecipients(profile) }, headers);
+        const migrated = await migrateLegacy(profile);
+        return sendJson(res, 200, { recipients: await listRecipients(profile), migrated }, headers);
       }
       return sendJson(res, 200, { notifications: await listOwn(profile) }, headers);
     }
