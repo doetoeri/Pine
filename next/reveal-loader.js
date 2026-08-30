@@ -43,7 +43,7 @@ if (boot && field) {
       height: calc(var(--tile-size) * 1.287);
       display: grid;
       place-items: center;
-      opacity: 0;
+      opacity: 1;
       margin: 0;
       padding: 0;
       border: 0 !important;
@@ -52,7 +52,7 @@ if (boot && field) {
       background: transparent !important;
       box-shadow: none !important;
       overflow: visible !important;
-      transform: translate(-50%, -50%) scale(.78) rotate(var(--tile-rotation));
+      transform: translate(-50%, -50%) scale(.82) rotate(var(--tile-rotation));
       transform-origin: center;
       transition:
         opacity 180ms cubic-bezier(.2,0,0,1),
@@ -79,7 +79,7 @@ if (boot && field) {
 
     .pincon-reveal-tile.is-visible {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.16) rotate(var(--tile-rotation));
+      transform: translate(-50%, -50%) scale(1.18) rotate(var(--tile-rotation));
     }
 
     .pincon-reveal-tile.is-leaving {
@@ -102,7 +102,7 @@ if (boot && field) {
     @media (prefers-reduced-motion: reduce) {
       .pincon-reveal-tile {
         transition: opacity 120ms linear !important;
-        transform: translate(-50%, -50%) scale(1.16) !important;
+        transform: translate(-50%, -50%) scale(1.18) !important;
       }
     }
   `;

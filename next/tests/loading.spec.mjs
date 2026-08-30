@@ -5,7 +5,7 @@ test("boot uses frameless overlapping reveal shapes and fully yields to the app"
   expect(response.ok()).toBe(true);
   const html = await response.text();
   expect(html).toContain('id="pinconBootField"');
-  expect(html).toContain('src="./reveal-loader.js?v=20260830-interaction1"');
+  expect(html).toContain('src="./reveal-loader.js?v=20260830-loader2"');
   expect(html).not.toContain("<md-linear-progress");
   expect(html).toContain('aria-label="PinCon 불러오는 중"');
 
