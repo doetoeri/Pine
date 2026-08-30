@@ -96,6 +96,12 @@ function setError(root, message = "") {
   box.hidden = !message;
 }
 
+function releaseLoaderWhenGateIsReady() {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => globalThis.PinConRevealLoader?.finish?.());
+  });
+}
+
 async function signInLegacyAdmin(root) {
   const auth = globalThis.PINCON_GUEST_AUTH;
   if (!auth?.signInWithGoogleAndSync) {
@@ -119,14 +125,14 @@ function loginScreen(message = "") {
     <form class="pincon-account-form" id="pinconStudentLogin" novalidate>
       <md-outlined-text-field id="pinconStudentNumber" label="학번" inputmode="numeric" autocomplete="username" maxlength="5" supporting-text="예: 10804" required></md-outlined-text-field>
       <md-outlined-text-field id="pinconStudentPin" label="PIN" type="password" inputmode="numeric" autocomplete="current-password" minlength="6" maxlength="12" supporting-text="6~12자리 숫자" required></md-outlined-text-field>
-      <label class="pincon-account-remember"><md-checkbox id="pinconRememberLogin" checked></md-checkbox><span><strong>이 기기에서 로그인 유지</strong><small>공용 기기라면 체크를 해제하세요.</small></span></label>
+      <label class="pincon-account-remember"><md-checkbox id="pinconRememberLogin"></md-checkbox><span><strong>이 기기에서 로그인 유지</strong><small>개인 기기에서만 선택하세요.</small></span></label>
       <div class="pincon-account-error" data-account-error role="alert" aria-live="polite" ${message ? "" : "hidden"}>${escapeHtml(message)}</div>
       <md-linear-progress id="pinconAccountProgress" indeterminate hidden></md-linear-progress>
       <span id="pinconAccountBusyText" class="pincon-account-sr" aria-live="polite"></span>
-      <md-filled-button id="pinconLoginButton" type="submit"><md-icon slot="icon">login</md-icon>내 PinCon 열기</md-filled-button>
+      <md-filled-button id="pinconLoginButton" type="submit" disabled aria-disabled="true"><md-icon slot="icon">login</md-icon>내 PinCon 열기</md-filled-button>
     </form>
     <div class="pincon-account-help">
-      <button type="button" id="pinconForgotPin"><md-icon>help</md-icon><span><strong>PIN을 잊었나요?</strong><small>담임 선생님 또는 관리자에게 임시 PIN 재발급을 요청하세요.</small></span></button>
+      <button type="button" id="pinconForgotPin"><md-icon>help</md-icon><span><strong>PIN 재발급 안내 보기</strong><small>담임 선생님 또는 관리자에게 임시 PIN 재발급을 요청하세요.</small></span><md-icon aria-hidden="true">chevron_right</md-icon></button>
     </div>
     <div class="pincon-account-divider"><span>관리자</span></div>
     <md-filled-tonal-button id="pinconAdminLogin" class="pincon-account-admin"><md-icon slot="icon">admin_panel_settings</md-icon>관리자 Google 계정으로 계속</md-filled-tonal-button>
@@ -135,20 +141,33 @@ function loginScreen(message = "") {
   const form = root.querySelector("#pinconStudentLogin");
   const numberField = root.querySelector("#pinconStudentNumber");
   const pinField = root.querySelector("#pinconStudentPin");
+  const loginButton = root.querySelector("#pinconLoginButton");
+
+  function syncLoginButton() {
+    const ready = /^\d{5}$/.test(fieldValue(root, "#pinconStudentNumber"))
+      && /^\d{6,12}$/.test(fieldValue(root, "#pinconStudentPin"));
+    loginButton.disabled = !ready;
+    loginButton.setAttribute("aria-disabled", String(!ready));
+  }
+
+  form.addEventListener("input", () => {
+    setError(root, "");
+    syncLoginButton();
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (form.dataset.busy === "1") return;
     const studentNumber = fieldValue(root, "#pinconStudentNumber");
     const pin = fieldValue(root, "#pinconStudentPin");
-    if (!/^\d{5}$/.test(studentNumber)) {
-      setError(root, "학번 5자리를 확인해주세요.");
-      numberField.focus?.();
-      return;
-    }
-    if (!/^\d{6,12}$/.test(pin)) {
-      setError(root, "PIN은 6~12자리 숫자입니다.");
-      pinField.focus?.();
+    const invalidNumber = !/^\d{5}$/.test(studentNumber);
+    const invalidPin = !/^\d{6,12}$/.test(pin);
+    if (invalidNumber || invalidPin) {
+      setError(root, [
+        invalidNumber ? "학번은 5자리 숫자로 입력해주세요." : "",
+        invalidPin ? "PIN은 6~12자리 숫자로 입력해주세요." : "",
+      ].filter(Boolean).join(" "));
+      (invalidNumber ? numberField : pinField).focus?.();
       return;
     }
 
@@ -178,6 +197,8 @@ function loginScreen(message = "") {
   });
   root.querySelector("#pinconAdminLogin")?.addEventListener("click", () => signInLegacyAdmin(root));
   requestAnimationFrame(() => numberField?.focus?.());
+  syncLoginButton();
+  releaseLoaderWhenGateIsReady();
 }
 
 function firstLoginScreen(session) {
@@ -235,6 +256,7 @@ function firstLoginScreen(session) {
     }
   });
   requestAnimationFrame(() => root.querySelector("#pinconNewPin")?.focus?.());
+  releaseLoaderWhenGateIsReady();
 }
 
 function localE2eBypassEnabled() {

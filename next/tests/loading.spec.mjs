@@ -52,7 +52,7 @@ test("boot uses frameless overlapping reveal shapes and fully yields to the app"
     };
   });
 
-  expect(visual.tileWidth).toBeGreaterThan(240);
+  expect(visual.tileWidth).toBeGreaterThan(380);
   expect(visual.tileBackground).toBe("rgba(0, 0, 0, 0)");
   expect(visual.imageBackground).toBe("rgba(0, 0, 0, 0)");
   expect(visual.tileBorderTop).toBe("0px");
