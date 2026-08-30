@@ -249,7 +249,10 @@ test("closed overlays immediately release pointer input for every other control"
   await expect(detailTrigger).toBeVisible();
   await detailTrigger.click();
   await expect(page.locator("#detailLayer")).toBeVisible();
-  await page.locator('[data-detail-close][aria-label="상세 화면 닫기"]').click();
+
+  const closeDetail = page.locator('.detail-header [data-detail-close]');
+  await expect(closeDetail).toBeVisible();
+  await closeDetail.click();
 
   await expect(page.locator("#detailLayer")).toHaveCSS("pointer-events", "none");
   await page.locator('.bottom-nav [data-route="timetable"]').click();
