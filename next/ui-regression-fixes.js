@@ -110,6 +110,18 @@ if (root) {
     document.body.classList.remove("detail-modal-open");
   }
 
+  function closeNotificationDialogFrom(event) {
+    const close = event.composedPath?.().find((node) => node instanceof HTMLElement && node.id === "closeNotifications");
+    if (!close) return false;
+    const dialog = root.querySelector("#notificationDialog");
+    if (!dialog) return true;
+    dialog.removeAttribute("data-pincon-opening");
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.removeAttribute("open");
+    queueFixes();
+    return true;
+  }
+
   function applyFixes() {
     queued = false;
     ensureDetailCloseControl();
@@ -133,7 +145,10 @@ if (root) {
   });
 
   document.addEventListener("closed", queueFixes, true);
-  document.addEventListener("click", () => requestAnimationFrame(repairInteractionState), true);
+  document.addEventListener("click", (event) => {
+    closeNotificationDialogFrom(event);
+    requestAnimationFrame(repairInteractionState);
+  }, true);
   window.addEventListener("popstate", queueFixes);
   queueFixes();
 }
