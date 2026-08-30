@@ -232,6 +232,9 @@ function assignmentCategory(item = {}) {
 
 function statusInfo(item = {}) {
   const raw = String(item.verificationStatus || item.confirmationStatus || item.status || "").toLowerCase();
+  if (!raw || ["hidden", "none", "off"].includes(raw)) {
+    return { label: "", icon: "", tone: "", hidden: true };
+  }
   if (item.changed === true || ["changed", "updated", "modified"].includes(raw)) {
     return { label: "변경됨", icon: "update", tone: "changed" };
   }
@@ -418,7 +421,7 @@ function scheduleItems() {
     });
   }
   for (const item of collections().academicSchedules || []) {
-    if (item.deleted) continue;
+    if (item.deleted || /토요\s*(?:휴업일|공휴일)/.test(itemTitle(item))) continue;
     rows.push({
       category: "학사일정",
       filter: "academic",
@@ -431,10 +434,7 @@ function scheduleItems() {
   }
   const priority = { 수행평가: 0, "시험 범위": 1, 숙제: 2, "학급 행사": 3, 학사일정: 4 };
   return rows.sort((a, b) => {
-    const recurringA = /토요휴업일/.test(a.title) ? 1 : 0;
-    const recurringB = /토요휴업일/.test(b.title) ? 1 : 0;
-    return recurringA - recurringB
-      || (a.date || "9999-99-99").localeCompare(b.date || "9999-99-99")
+    return (a.date || "9999-99-99").localeCompare(b.date || "9999-99-99")
       || (priority[a.category] ?? 9) - (priority[b.category] ?? 9);
   });
 }
@@ -449,6 +449,7 @@ function upcomingSchedule(limit = 6, filter = "all") {
 
 function statusChipMarkup(item) {
   const status = statusInfo(item);
+  if (status.hidden) return "";
   return `<span class="status-chip status-chip--${status.tone}"><md-icon>${status.icon}</md-icon>${status.label}</span>`;
 }
 
@@ -739,8 +740,6 @@ function timetablePage() {
 
 function schedulePage() {
   const all = upcomingSchedule(120, state.scheduleFilter);
-  const recurring = all.filter((item) => /토요휴업일/.test(item.title));
-  const primary = all.filter((item) => !/토요휴업일/.test(item.title));
   const filters = [
     ["all", "전체"],
     ["academic", "학사일정"],
@@ -751,15 +750,14 @@ function schedulePage() {
     <div class="page-head"><div class="page-head__copy">
       <p class="page-eyebrow">날짜 정보</p>
       <h1 class="page-title" id="schedule-title">일정</h1>
-      <p class="page-subtitle">수행평가·시험·학급 행사를 먼저 보여주고, 반복 일정은 접어서 정리합니다.</p>
+      <p class="page-subtitle">수행평가·시험·학급 행사를 날짜순으로 정리합니다.</p>
     </div></div>
     ${syncMarkup()}
     <div class="filter-bar" aria-label="일정 종류 필터">
       ${filters.map(([value, label]) => `<md-filter-chip data-schedule-filter="${value}" ${state.scheduleFilter === value ? "selected" : ""} aria-pressed="${state.scheduleFilter === value}">${label}</md-filter-chip>`).join("")}
     </div>
     <article class="surface">
-      ${scheduleRows(primary, { emptySupport: recurring.length ? "반복 일정은 아래에서 펼쳐 볼 수 있습니다." : "선택한 종류의 예정된 일정이 없습니다." })}
-      ${recurring.length ? `<details class="recurring-group"><summary><span><md-icon>event_repeat</md-icon>토요휴업일 ${recurring.length}회</span><span>펼쳐보기</span></summary>${scheduleRows(recurring, { loadingNames: [] })}</details>` : ""}
+      ${scheduleRows(all, { emptySupport: "선택한 종류의 예정된 일정이 없습니다." })}
     </article>
   </section>`;
 }
