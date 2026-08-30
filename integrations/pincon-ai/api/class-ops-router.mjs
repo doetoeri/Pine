@@ -1,6 +1,7 @@
 import accountSession from "../handlers/accounts/session.mjs";
 import accountManage from "../handlers/accounts/manage.mjs";
 import changePin from "../handlers/accounts/change-pin.mjs";
+import personalNotifications from "../handlers/accounts/personal-notifications.mjs";
 import home from "../handlers/class-ops/home.mjs";
 import cleaning from "../handlers/class-ops/cleaning.mjs";
 import phone from "../handlers/class-ops/phone.mjs";
@@ -14,6 +15,7 @@ const ROUTES = Object.freeze({
   "account-session": accountSession,
   "account-manage": accountManage,
   "account-change-pin": changePin,
+  "personal-notifications": personalNotifications,
   home,
   cleaning,
   phone,
