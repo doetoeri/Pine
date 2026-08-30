@@ -1,5 +1,6 @@
 .problem-bank-surface {
   grid-column: 1 / -1;
+  min-width: 0;
 }
 
 .problem-bank-toolbar {
@@ -8,11 +9,15 @@
   gap: 12px;
   margin: 14px 0 18px;
   align-items: end;
+  min-width: 0;
 }
 
+.problem-bank-toolbar > *,
 .problem-bank-toolbar md-outlined-text-field,
 .problem-bank-toolbar md-outlined-select {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .problem-bank-summary {
@@ -28,10 +33,12 @@
 .problem-bank-list {
   display: grid;
   gap: 9px;
+  min-width: 0;
 }
 
 .problem-card {
   min-height: 82px;
+  min-width: 0;
 }
 
 .problem-card__number {
@@ -94,9 +101,26 @@
   color: var(--md-sys-color-on-primary-container);
 }
 
+/* The rail reduces the actual content width on tablets long before the viewport
+   itself reaches phone size. Collapse the filters before Material select hosts
+   can force an intrinsic minimum width and overlap the neighboring field. */
+@media (max-width: 1040px) {
+  .problem-bank-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  #problemBankSearch {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 700px) {
   .problem-bank-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  #problemBankSearch {
+    grid-column: auto;
   }
 
   .problem-bank-summary {
