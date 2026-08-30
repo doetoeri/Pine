@@ -21,7 +21,8 @@ if (boot && field) {
       max-height: 100dvh;
       overflow: clip !important;
       contain: strict;
-      background: var(--md-sys-color-background, #f7f9f1) !important;
+      background:
+        linear-gradient(145deg, #dff7c8 0%, #a8ef83 48%, #66dc55 100%) !important;
       transition: background-color 120ms linear, opacity 160ms cubic-bezier(.2,0,0,1) !important;
     }
 
@@ -52,7 +53,7 @@ if (boot && field) {
       background: transparent !important;
       box-shadow: none !important;
       overflow: visible !important;
-      transform: translate(-50%, -50%) scale(.82) rotate(var(--tile-rotation));
+      transform: translate(-50%, -50%) scale(.94) rotate(var(--tile-rotation));
       transform-origin: center;
       transition:
         opacity 180ms cubic-bezier(.2,0,0,1),
@@ -72,19 +73,19 @@ if (boot && field) {
       background: transparent !important;
       box-shadow: none !important;
       object-fit: fill;
-      filter: saturate(1.04);
+      filter: saturate(.82) brightness(1.02);
       user-select: none;
       -webkit-user-drag: none;
     }
 
     .pincon-reveal-tile.is-visible {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.18) rotate(var(--tile-rotation));
+      transform: translate(-50%, -50%) scale(1) rotate(var(--tile-rotation));
     }
 
     .pincon-reveal-tile.is-leaving {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(.5) rotate(calc(var(--tile-rotation) + 18deg));
+      transform: translate(-50%, -50%) scale(.88) rotate(calc(var(--tile-rotation) + 6deg));
     }
 
     .pincon-boot__sr-only {
@@ -102,7 +103,7 @@ if (boot && field) {
     @media (prefers-reduced-motion: reduce) {
       .pincon-reveal-tile {
         transition: opacity 120ms linear !important;
-        transform: translate(-50%, -50%) scale(1.18) !important;
+        transform: translate(-50%, -50%) scale(1) !important;
       }
     }
   `;
@@ -128,24 +129,29 @@ if (boot && field) {
     const width = Math.max(window.innerWidth, 280);
     const height = Math.max(window.innerHeight, 420);
     const shortSide = Math.min(width, height);
-    const spacing = Math.max(84, Math.min(138, Math.round(shortSide / 3.8)));
-    const cols = Math.ceil(width / spacing) + 7;
-    const rows = Math.ceil(height / spacing) + 7;
-    const tileSize = Math.round(spacing * 4.35);
+    const spacing = Math.max(118, Math.min(196, Math.round(shortSide / 3.1)));
+    const tileSize = Math.round(spacing * 1.32);
+    const safeInset = Math.round(tileSize * 0.72);
+    const usableWidth = Math.max(0, width - safeInset * 2);
+    const usableHeight = Math.max(0, height - safeInset * 2);
+    const cols = Math.max(2, Math.floor(usableWidth / spacing) + 1);
+    const rows = Math.max(3, Math.floor(usableHeight / spacing) + 1);
     const fragment = document.createDocumentFragment();
 
-    for (let row = -3; row < rows - 3; row += 1) {
-      for (let col = -3; col < cols - 3; col += 1) {
+    for (let row = 0; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
         const tile = document.createElement("span");
         tile.className = "pincon-reveal-tile";
         tile.setAttribute("aria-hidden", "true");
 
-        const jitterX = (Math.random() - 0.5) * spacing * 0.12;
-        const jitterY = (Math.random() - 0.5) * spacing * 0.12;
-        tile.style.left = `${col * spacing + spacing / 2 + jitterX}px`;
-        tile.style.top = `${row * spacing + spacing / 2 + jitterY}px`;
-        tile.style.setProperty("--tile-size", `${tileSize * (0.98 + Math.random() * 0.12)}px`);
-        tile.style.setProperty("--tile-rotation", `${-30 + Math.random() * 60}deg`);
+        const x = cols === 1 ? width / 2 : safeInset + col * (usableWidth / (cols - 1));
+        const y = rows === 1 ? height / 2 : safeInset + row * (usableHeight / (rows - 1));
+        const jitterX = (Math.random() - 0.5) * spacing * 0.035;
+        const jitterY = (Math.random() - 0.5) * spacing * 0.035;
+        tile.style.left = `${x + jitterX}px`;
+        tile.style.top = `${y + jitterY}px`;
+        tile.style.setProperty("--tile-size", `${tileSize * (0.94 + Math.random() * 0.06)}px`);
+        tile.style.setProperty("--tile-rotation", `${-7 + Math.random() * 14}deg`);
 
         const image = document.createElement("img");
         image.src = "./assets/loader-drop.svg";

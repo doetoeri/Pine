@@ -212,7 +212,7 @@ function editorDialogMarkup() {
 function archiveDialogMarkup() {
   return `<md-dialog id="managedArchiveDialog">
     <div slot="headline">항목을 보관할까요?</div>
-    <div slot="content"><p>영구 삭제하지 않습니다. 보관 후 관리자 화면에서 다시 복원할 수 있고 변경 기록도 남습니다.</p></div>
+    <div slot="content"><p>영구 삭제하지 않습니다. 보관 후 관리자 화면에서 다시 복원할 수 있고 변경 기록도 남습니다.</p><p class="managed-editor-status" id="managedArchiveStatus" role="status"></p></div>
     <div slot="actions"><md-text-button id="managedArchiveCancel">취소</md-text-button><md-filled-tonal-button id="managedArchiveConfirm"><md-icon slot="icon">archive</md-icon>보관</md-filled-tonal-button></div>
   </md-dialog>`;
 }
@@ -318,24 +318,28 @@ async function saveDialog() {
 
 function openArchive(collection, id) {
   const dialog = root?.querySelector("#managedArchiveDialog");
+  const status = root?.querySelector("#managedArchiveStatus");
   if (!dialog || !findRecord(collection, id)) return;
   dialog.dataset.collection = collection;
   dialog.dataset.recordId = id;
+  if (status) { setText(status, ""); status.dataset.kind = ""; }
   dialog.show?.();
 }
 
 async function confirmArchive() {
   const dialog = root?.querySelector("#managedArchiveDialog");
   const button = root?.querySelector("#managedArchiveConfirm");
+  const status = root?.querySelector("#managedArchiveStatus");
   if (!dialog || saving) return;
   saving = true;
   if (button) button.disabled = true;
+  if (status) { setText(status, "보관하고 변경 기록을 남기는 중…"); status.dataset.kind = ""; }
   try {
     await gateway.archiveManagedRecord(dialog.dataset.collection, dialog.dataset.recordId);
     dialog.close?.();
     setStatus("보관했습니다. 필요하면 아래 보관함에서 복원할 수 있습니다.", "success");
   } catch (error) {
-    setStatus(error?.message || "보관하지 못했습니다.", "error");
+    if (status) { setText(status, error?.message || "보관하지 못했습니다."); status.dataset.kind = "error"; }
   } finally {
     saving = false;
     if (button) button.disabled = false;
@@ -387,14 +391,25 @@ function patchBaseDashboard() {
 }
 
 function bindCard() {
-  root?.querySelectorAll("[data-managed-create]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.managedCreate)));
-  root?.querySelectorAll("[data-managed-edit]").forEach((button) => button.addEventListener("click", () => openEditor(button.dataset.managedEdit, button.dataset.recordId)));
-  root?.querySelectorAll("[data-managed-archive]").forEach((button) => button.addEventListener("click", () => openArchive(button.dataset.managedArchive, button.dataset.recordId)));
-  root?.querySelectorAll("[data-managed-restore]").forEach((button) => button.addEventListener("click", () => restoreRecord(button.dataset.managedRestore, button.dataset.recordId, button)));
   root?.querySelector("#managedEditorCancel")?.addEventListener("click", () => root.querySelector("#managedEditorDialog")?.close?.());
   root?.querySelector("#managedEditorSave")?.addEventListener("click", saveDialog);
   root?.querySelector("#managedArchiveCancel")?.addEventListener("click", () => root.querySelector("#managedArchiveDialog")?.close?.());
   root?.querySelector("#managedArchiveConfirm")?.addEventListener("click", confirmArchive);
+}
+
+function eventAction(event, attribute) {
+  return event.composedPath?.().find((node) => node instanceof HTMLElement && node.hasAttribute(attribute)) || null;
+}
+
+function handleManagedAction(event) {
+  const create = eventAction(event, "data-managed-create");
+  if (create) return openEditor(create.dataset.managedCreate);
+  const edit = eventAction(event, "data-managed-edit");
+  if (edit) return openEditor(edit.dataset.managedEdit, edit.dataset.recordId);
+  const archive = eventAction(event, "data-managed-archive");
+  if (archive) return openArchive(archive.dataset.managedArchive, archive.dataset.recordId);
+  const restore = eventAction(event, "data-managed-restore");
+  if (restore) return restoreRecord(restore.dataset.managedRestore, restore.dataset.recordId, restore);
 }
 
 function render() {
@@ -426,4 +441,5 @@ gateway.addEventListener("change", (event) => {
 
 const observer = new MutationObserver(() => queueRender());
 if (root) observer.observe(root, { childList: true, subtree: true });
+root?.addEventListener("click", handleManagedAction);
 queueRender();
