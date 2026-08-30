@@ -148,7 +148,7 @@ function normalizeManagedValues(collection, values = {}) {
     const dateType = ["exact", "range", "month", "undecided"].includes(values.dateType)
       ? values.dateType
       : (dueDate ? "exact" : "undecided");
-    const verificationStatus = ["review", "verified", "changed"].includes(values.verificationStatus)
+    const verificationStatus = ["review", "verified", "changed", "hidden"].includes(values.verificationStatus)
       ? values.verificationStatus
       : "review";
     return {
