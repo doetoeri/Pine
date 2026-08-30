@@ -169,7 +169,7 @@ function fieldsMarkup(collection, item = {}) {
       <md-outlined-text-field id="managedPoints" label="배점·반영 비율" value="${escapeHtml(item.points || "")}" maxlength="120"></md-outlined-text-field>
       <md-outlined-select id="managedEvaluationPlanId" label="연결할 평가계획서" value="${escapeHtml(item.evaluationPlanId || "")}">${planOptions(item.evaluationPlanId)}</md-outlined-select>
       <md-outlined-text-field id="managedPageReferences" label="관련 페이지 · 예: 4~6쪽" value="${escapeHtml(item.pageReferences || "")}" maxlength="120"></md-outlined-text-field>
-      <md-outlined-select id="managedVerificationStatus" label="확인 상태" value="${escapeHtml(item.verificationStatus || "review")}">${selectOptions([["review","확인 중"],["verified","공식 자료 확인"],["changed","수업 중 변경됨"]], item.verificationStatus || "review")}</md-outlined-select>
+      <md-outlined-select id="managedVerificationStatus" label="확인 상태" value="${escapeHtml(item.verificationStatus || "review")}">${selectOptions([["hidden","표시 안 함"],["review","확인 중"],["verified","공식 자료 확인"],["changed","수업 중 변경됨"]], item.verificationStatus || "review")}</md-outlined-select>
       <md-outlined-text-field id="managedAnnouncedDate" label="학생에게 안내된 날짜" type="date" value="${escapeHtml(dateValue(item.announcedDate) || localToday())}"></md-outlined-text-field>
       <md-outlined-text-field id="managedDescription" label="학생용 요약" type="textarea" rows="4" value="${escapeHtml(item.description || "")}" maxlength="1200"></md-outlined-text-field>
       ${nativeCheckbox("managedPublished", "학생 화면에 공개", item.published !== false)}
