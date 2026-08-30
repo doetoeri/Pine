@@ -240,6 +240,35 @@ test("notification opens its related item, keeps read state, and moves focus", a
   await expect(page.locator('[data-notification-id="announcement:notice-1"]')).toHaveAttribute("data-read", "true");
 });
 
+test("closed overlays immediately release pointer input for every other control", async ({ page }) => {
+  await seedCache(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
+
+  const detailTrigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
+  await expect(detailTrigger).toBeVisible();
+  await detailTrigger.click();
+  await expect(page.locator("#detailLayer")).toBeVisible();
+  await page.locator('[data-detail-close][aria-label="상세 화면 닫기"]').click();
+
+  await expect(page.locator("#detailLayer")).toHaveCSS("pointer-events", "none");
+  await page.locator('.bottom-nav [data-route="timetable"]').click();
+  await expect(page.locator("#timetable-title")).toBeVisible();
+
+  await page.locator("#openSearch").click();
+  await expect(page.locator("#searchDialog")).toBeVisible();
+  await page.locator("#closeSearch").click();
+  await expect(page.locator("#searchDialog")).toBeHidden();
+
+  await page.locator("#openNotifications").click();
+  await expect(page.locator("#notificationDialog")).toBeVisible();
+  await page.locator("#closeNotifications").click();
+  await expect(page.locator("#notificationDialog")).toBeHidden();
+
+  await page.locator('.bottom-nav [data-route="more"]').click();
+  await expect(page.locator("#more-title")).toBeVisible();
+});
+
 test("loading never reports zero and known empty cache uses an actual empty state", async ({ browser }) => {
   const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const loadingPage = await loadingContext.newPage();
