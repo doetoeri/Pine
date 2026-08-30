@@ -5,7 +5,7 @@ test("boot uses frameless overlapping reveal shapes and fully yields to the app"
   expect(response.ok()).toBe(true);
   const html = await response.text();
   expect(html).toContain('id="pinconBootField"');
-  expect(html).toContain('src="./reveal-loader.js?v=20260830-loader2"');
+  expect(html).toContain('src="./reveal-loader.js?v=20260830-loader3"');
   expect(html).not.toContain("<md-linear-progress");
   expect(html).toContain('aria-label="PinCon 불러오는 중"');
 
@@ -43,6 +43,7 @@ test("boot uses frameless overlapping reveal shapes and fully yields to the app"
     }
     return {
       tileWidth: rects[0]?.width || 0,
+      imageWidth: firstImage?.getBoundingClientRect().width || 0,
       tileBackground: tileStyle?.backgroundColor || "",
       tileBorderTop: tileStyle?.borderTopWidth || "",
       tileShadow: tileStyle?.boxShadow || "",
@@ -53,6 +54,7 @@ test("boot uses frameless overlapping reveal shapes and fully yields to the app"
   });
 
   expect(visual.tileWidth).toBeGreaterThan(380);
+  expect(visual.imageWidth).toBeGreaterThan(380);
   expect(visual.tileBackground).toBe("rgba(0, 0, 0, 0)");
   expect(visual.imageBackground).toBe("rgba(0, 0, 0, 0)");
   expect(visual.tileBorderTop).toBe("0px");
