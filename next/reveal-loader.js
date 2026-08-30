@@ -11,81 +11,69 @@ if (boot && field) {
       visibility: visible !important;
     }
 
-    body.pincon-reveal-loader.pincon-boot-done #pinconBoot {
-      opacity: 1 !important;
-      visibility: visible !important;
-    }
-
     #pinconBoot {
-      max-width: 100vw;
-      max-height: 100dvh;
-      overflow: clip !important;
-      contain: strict;
+      overflow: hidden !important;
       background:
-        linear-gradient(145deg, #dff7c8 0%, #a8ef83 48%, #66dc55 100%) !important;
-      transition: background-color 120ms linear, opacity 160ms cubic-bezier(.2,0,0,1) !important;
+        radial-gradient(circle at 50% 42%, rgba(117, 217, 75, .12), transparent 34%),
+        var(--md-sys-color-background, #f7f9f1) !important;
+      transition: opacity 220ms cubic-bezier(.2, 0, 0, 1), visibility 220ms step-end !important;
     }
 
-    #pinconBoot.pincon-boot__revealing {
-      background: transparent !important;
+    #pinconBoot.pincon-loader--leaving {
+      opacity: 0 !important;
+      visibility: hidden !important;
     }
 
     #pinconBootField {
       position: absolute;
       inset: 0;
-      overflow: clip;
-      contain: strict;
+      display: grid;
+      place-items: center;
+      padding: max(28px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+      box-sizing: border-box;
       pointer-events: none;
     }
 
-    .pincon-reveal-tile {
-      position: absolute;
-      width: var(--tile-size);
-      height: calc(var(--tile-size) * 1.287);
+    .pincon-loader__content {
+      width: min(280px, calc(100vw - 48px));
+      display: grid;
+      justify-items: center;
+      color: var(--md-sys-color-on-background, #191d16);
+      text-align: center;
+      animation: pincon-loader-enter 420ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .pincon-loader__mark {
+      width: 104px;
+      height: 112px;
       display: grid;
       place-items: center;
-      opacity: 1;
-      margin: 0;
-      padding: 0;
-      border: 0 !important;
-      outline: 0 !important;
-      border-radius: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      overflow: visible !important;
-      transform: translate(-50%, -50%) scale(.94) rotate(var(--tile-rotation));
-      transform-origin: center;
-      transition:
-        opacity 180ms cubic-bezier(.2,0,0,1),
-        transform 360ms cubic-bezier(.2,.8,.2,1);
-      will-change: opacity, transform;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 16px 24px rgba(45, 170, 0, .16));
     }
 
-    .pincon-reveal-tile > img {
-      width: 100% !important;
-      height: 100% !important;
+    .pincon-loader__leaf {
+      width: 88px;
+      height: 112px;
       display: block;
+      background: linear-gradient(155deg, #ffe62b 0%, #8bec32 28%, #49d716 58%, #2daa00 100%);
+      background-size: 180% 180%;
+      -webkit-mask: url("./assets/loader-drop.svg") center / contain no-repeat;
+      mask: url("./assets/loader-drop.svg") center / contain no-repeat;
+      animation: pincon-loader-gradient 1.8s ease-in-out infinite alternate;
+    }
+
+    .pincon-loader__title {
       margin: 0;
-      padding: 0;
-      border: 0 !important;
-      outline: 0 !important;
-      border-radius: 0 !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      object-fit: fill;
-      filter: saturate(.82) brightness(1.02);
-      user-select: none;
-      -webkit-user-drag: none;
+      font: 700 24px/1.2 "Noto Sans KR", system-ui, sans-serif;
+      letter-spacing: -.035em;
     }
 
-    .pincon-reveal-tile.is-visible {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1) rotate(var(--tile-rotation));
-    }
-
-    .pincon-reveal-tile.is-leaving {
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(.88) rotate(calc(var(--tile-rotation) + 6deg));
+    .pincon-loader__message {
+      margin: 8px 0 0;
+      color: var(--md-sys-color-on-surface-variant, #43483e);
+      font: 500 13px/1.5 "Noto Sans KR", system-ui, sans-serif;
+      letter-spacing: -.015em;
     }
 
     .pincon-boot__sr-only {
@@ -100,86 +88,35 @@ if (boot && field) {
       border: 0;
     }
 
+    @keyframes pincon-loader-enter {
+      from { opacity: 0; transform: translateY(8px) scale(.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes pincon-loader-gradient {
+      0% { background-position: 0% 0%; transform: translateY(2px) scale(.98); }
+      100% { background-position: 100% 100%; transform: translateY(-2px) scale(1.02); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .pincon-reveal-tile {
-        transition: opacity 120ms linear !important;
-        transform: translate(-50%, -50%) scale(1) !important;
-      }
+      .pincon-loader__content { animation: none !important; }
+      .pincon-loader__leaf { animation: none !important; background-position: 50% 50%; }
     }
   `;
   document.head.append(style);
 
-  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const tiles = [];
+  field.innerHTML = `
+    <div class="pincon-loader__content">
+      <div class="pincon-loader__mark" aria-hidden="true"><span class="pincon-loader__leaf"></span></div>
+      <p class="pincon-loader__title">PinCon</p>
+      <p class="pincon-loader__message">오늘의 학교 정보를 준비하고 있어요</p>
+    </div>`;
+
   let finishRequested = false;
-  let finishStarted = false;
-  let fillCompleteAt = performance.now();
+  const minimumVisibleUntil = performance.now() + 480;
   const removeBoot = () => boot.parentNode?.removeChild(boot);
 
-  function shuffle(items) {
-    const copy = [...items];
-    for (let i = copy.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
-    }
-    return copy;
-  }
-
-  function seedTiles() {
-    const width = Math.max(window.innerWidth, 280);
-    const height = Math.max(window.innerHeight, 420);
-    const shortSide = Math.min(width, height);
-    const spacing = Math.max(118, Math.min(196, Math.round(shortSide / 3.1)));
-    const tileSize = Math.round(spacing * 1.32);
-    const safeInset = Math.round(tileSize * 0.72);
-    const usableWidth = Math.max(0, width - safeInset * 2);
-    const usableHeight = Math.max(0, height - safeInset * 2);
-    const cols = Math.max(2, Math.floor(usableWidth / spacing) + 1);
-    const rows = Math.max(3, Math.floor(usableHeight / spacing) + 1);
-    const fragment = document.createDocumentFragment();
-
-    for (let row = 0; row < rows; row += 1) {
-      for (let col = 0; col < cols; col += 1) {
-        const tile = document.createElement("span");
-        tile.className = "pincon-reveal-tile";
-        tile.setAttribute("aria-hidden", "true");
-
-        const x = cols === 1 ? width / 2 : safeInset + col * (usableWidth / (cols - 1));
-        const y = rows === 1 ? height / 2 : safeInset + row * (usableHeight / (rows - 1));
-        const jitterX = (Math.random() - 0.5) * spacing * 0.035;
-        const jitterY = (Math.random() - 0.5) * spacing * 0.035;
-        tile.style.left = `${x + jitterX}px`;
-        tile.style.top = `${y + jitterY}px`;
-        tile.style.setProperty("--tile-size", `${tileSize * (0.94 + Math.random() * 0.06)}px`);
-        tile.style.setProperty("--tile-rotation", `${-7 + Math.random() * 14}deg`);
-
-        const image = document.createElement("img");
-        image.src = "./assets/loader-drop.svg";
-        image.alt = "";
-        image.decoding = "async";
-        tile.append(image);
-        tiles.push(tile);
-        fragment.append(tile);
-      }
-    }
-
-    field.replaceChildren(fragment);
-
-    if (reducedMotion) {
-      tiles.forEach((tile) => tile.classList.add("is-visible"));
-      fillCompleteAt = performance.now() + 120;
-      return;
-    }
-
-    const appearanceOrder = shuffle(tiles);
-    const step = Math.max(2, Math.min(10, Math.floor(420 / Math.max(appearanceOrder.length, 1))));
-    appearanceOrder.forEach((tile, index) => {
-      window.setTimeout(() => tile.classList.add("is-visible"), index * step + Math.random() * 28);
-    });
-    fillCompleteAt = performance.now() + appearanceOrder.length * step + 300;
-  }
-
-  function completeReveal() {
+  function complete() {
     document.body.classList.add("pincon-boot-done");
     document.body.classList.remove("pincon-reveal-loader");
     removeBoot();
@@ -187,39 +124,19 @@ if (boot && field) {
     globalThis.PinConRevealLoader = null;
   }
 
-  function beginReveal() {
-    if (finishStarted) return;
-    finishStarted = true;
-    boot.classList.add("pincon-boot__revealing");
-
-    if (reducedMotion) {
-      tiles.forEach((tile) => tile.classList.add("is-leaving"));
-      window.setTimeout(completeReveal, 150);
-      return;
-    }
-
-    const exitOrder = shuffle(tiles);
-    const step = Math.max(3, Math.min(15, Math.floor(680 / Math.max(exitOrder.length, 1))));
-    exitOrder.forEach((tile, index) => {
-      window.setTimeout(() => {
-        tile.classList.remove("is-visible");
-        tile.classList.add("is-leaving");
-      }, index * step + Math.random() * 40);
-    });
-
-    window.setTimeout(completeReveal, exitOrder.length * step + 420);
+  function beginExit() {
+    boot.classList.add("pincon-loader--leaving");
+    document.body.classList.add("pincon-boot-done");
+    window.setTimeout(complete, 240);
   }
 
   function finish() {
     if (finishRequested) return;
     finishRequested = true;
-    const wait = Math.max(0, fillCompleteAt - performance.now());
-    window.setTimeout(beginReveal, wait);
+    window.setTimeout(beginExit, Math.max(0, minimumVisibleUntil - performance.now()));
   }
 
-  seedTiles();
   boot.remove = finish;
   globalThis.PinConRevealLoader = Object.freeze({ finish });
-
   window.setTimeout(finish, 3200);
 }
