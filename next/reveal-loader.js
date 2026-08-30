@@ -79,7 +79,7 @@ if (boot && field) {
 
     .pincon-reveal-tile.is-visible {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.08) rotate(var(--tile-rotation));
+      transform: translate(-50%, -50%) scale(1.16) rotate(var(--tile-rotation));
     }
 
     .pincon-reveal-tile.is-leaving {
@@ -102,7 +102,7 @@ if (boot && field) {
     @media (prefers-reduced-motion: reduce) {
       .pincon-reveal-tile {
         transition: opacity 120ms linear !important;
-        transform: translate(-50%, -50%) scale(1.08) !important;
+        transform: translate(-50%, -50%) scale(1.16) !important;
       }
     }
   `;
@@ -128,23 +128,23 @@ if (boot && field) {
     const width = Math.max(window.innerWidth, 280);
     const height = Math.max(window.innerHeight, 420);
     const shortSide = Math.min(width, height);
-    const spacing = Math.max(92, Math.min(152, Math.round(shortSide / 3.4)));
-    const cols = Math.ceil(width / spacing) + 5;
-    const rows = Math.ceil(height / spacing) + 5;
-    const tileSize = Math.round(spacing * 3.15);
+    const spacing = Math.max(84, Math.min(138, Math.round(shortSide / 3.8)));
+    const cols = Math.ceil(width / spacing) + 7;
+    const rows = Math.ceil(height / spacing) + 7;
+    const tileSize = Math.round(spacing * 4.35);
     const fragment = document.createDocumentFragment();
 
-    for (let row = -2; row < rows - 2; row += 1) {
-      for (let col = -2; col < cols - 2; col += 1) {
+    for (let row = -3; row < rows - 3; row += 1) {
+      for (let col = -3; col < cols - 3; col += 1) {
         const tile = document.createElement("span");
         tile.className = "pincon-reveal-tile";
         tile.setAttribute("aria-hidden", "true");
 
-        const jitterX = (Math.random() - 0.5) * spacing * 0.22;
-        const jitterY = (Math.random() - 0.5) * spacing * 0.22;
+        const jitterX = (Math.random() - 0.5) * spacing * 0.12;
+        const jitterY = (Math.random() - 0.5) * spacing * 0.12;
         tile.style.left = `${col * spacing + spacing / 2 + jitterX}px`;
         tile.style.top = `${row * spacing + spacing / 2 + jitterY}px`;
-        tile.style.setProperty("--tile-size", `${tileSize * (0.94 + Math.random() * 0.2)}px`);
+        tile.style.setProperty("--tile-size", `${tileSize * (0.98 + Math.random() * 0.12)}px`);
         tile.style.setProperty("--tile-rotation", `${-30 + Math.random() * 60}deg`);
 
         const image = document.createElement("img");
@@ -215,5 +215,5 @@ if (boot && field) {
   boot.remove = finish;
   globalThis.PinConRevealLoader = Object.freeze({ finish });
 
-  window.setTimeout(finish, 5200);
+  window.setTimeout(finish, 3200);
 }
