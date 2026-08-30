@@ -55,8 +55,8 @@ test("application modules boot only after the account gate resolves", async () =
   const bootstrap = await source("../app-bootstrap.js");
   const html = await source("../index.html");
   assert.match(bootstrap, /await accountReady/);
-  assert.match(bootstrap, /await import\("\.\/app\.js"\)/);
-  assert.match(html, /src="\.\/app-bootstrap\.js"/);
+  assert.match(bootstrap, /await import\("\.\/app\.js\?v=20260830-interaction1"\)/);
+  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260830-interaction1"/);
   assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
