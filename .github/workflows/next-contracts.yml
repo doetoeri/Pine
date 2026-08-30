@@ -43,19 +43,23 @@ jobs:
           for file in \
             next/app.js \
             next/app-interactions.js \
+            next/app-bootstrap.js \
             next/reveal-loader.js \
             next/write-mode.js \
             next/admin-visibility.js \
             next/problem-bank.js \
+            next/evaluation-plan-preview.js \
             next/admin/admin.js \
             next/admin/bootstrap.js \
             next/admin/brand-settings.js \
             next/admin/content-editor.js \
+            next/admin/evaluation-plan-media.js \
             next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
+            next/core/evaluation-plan-media.js \
             next/core/notification-store.js \
             next/core/recovery-pack.js \
             next/core/today-open-write.js \
@@ -73,6 +77,7 @@ jobs:
           next/tests/today-open-write.test.mjs
           next/tests/problem-bank-contract.test.mjs
           next/tests/recovery-pack.test.mjs
+          next/tests/evaluation-plan-media.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest
