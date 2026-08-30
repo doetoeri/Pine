@@ -1,4 +1,4 @@
-import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
+import { PinconClassOpsRepository, SCHOOL } from "../../pincon-class-ops-data.js";
 
 const PATCH_FLAG = Symbol.for("pincon.evaluation-plan-media-patched");
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -10,7 +10,7 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 function schoolId() {
-  return String(globalThis.PINCON_SCHOOL_CONFIG?.id || "gochon-high");
+  return String(SCHOOL?.id || "gochon-high");
 }
 
 function safeName(value) {
