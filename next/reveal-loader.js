@@ -61,8 +61,8 @@ if (boot && field) {
     }
 
     .pincon-reveal-tile > img {
-      width: 100%;
-      height: 100%;
+      width: 100% !important;
+      height: 100% !important;
       display: block;
       margin: 0;
       padding: 0;
