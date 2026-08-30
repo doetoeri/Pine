@@ -121,7 +121,8 @@ if (boot && field) {
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let finishRequested = false;
   let finishStarted = false;
-  let minimumVisibleUntil = performance.now() + (reducedMotion ? 180 : 560);
+  const minimumVisibleUntil = performance.now() + (reducedMotion ? 180 : 560);
+  const removeBoot = () => boot.parentNode?.removeChild(boot);
 
   function layout() {
     const width = Math.max(window.innerWidth, 280);
@@ -156,7 +157,7 @@ if (boot && field) {
   function completeReveal() {
     document.body.classList.add("pincon-boot-done");
     document.body.classList.remove("pincon-reveal-loader");
-    boot.remove();
+    removeBoot();
     style.remove();
     globalThis.PinConRevealLoader = null;
   }
