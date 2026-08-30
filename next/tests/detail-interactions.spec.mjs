@@ -269,6 +269,14 @@ test("closed overlays immediately release pointer input for every other control"
   await expect(page.locator("#more-title")).toBeVisible();
 });
 
+test("schedule excludes recurring Saturday closures", async ({ page }) => {
+  await seedCache(page);
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("http://127.0.0.1:4173/next/#schedule", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("#schedule-title")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("토요휴업일");
+});
+
 test("loading never reports zero and known empty cache uses an actual empty state", async ({ browser }) => {
   const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const loadingPage = await loadingContext.newPage();
