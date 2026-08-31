@@ -1,0 +1,44 @@
+/*
+ * Keep detail overlays inside the actual visible viewport.
+ * WebKit can size `position: fixed; inset: 0` against a taller layout viewport
+ * while `innerHeight`/visualViewport report the smaller visible area. PinCon
+ * already exposes that visible height as --pincon-visual-height, so make it
+ * the containing block instead of relying on WebKit's fixed-layout bottom.
+ */
+.detail-layer {
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  height: var(--pincon-visual-height, 100vh);
+  max-height: var(--pincon-visual-height, 100vh);
+}
+
+.detail-backdrop {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.detail-surface[data-mode="side"] {
+  top: 12px;
+  bottom: 12px;
+  max-height: calc(var(--pincon-visual-height, 100vh) - 24px);
+}
+
+.detail-surface[data-mode="dialog"] {
+  height: min(780px, calc(var(--pincon-visual-height, 100vh) - 32px));
+  max-height: calc(var(--pincon-visual-height, 100vh) - 32px);
+}
+
+.detail-surface[data-mode="bottom"] {
+  bottom: 0;
+  height: min(68vh, calc(var(--pincon-visual-height, 100vh) - 64px));
+  max-height: var(--pincon-visual-height, 100vh);
+}
+
+.detail-surface[data-mode="bottom"].detail-surface--expanded {
+  height: var(--pincon-visual-height, 100vh);
+  max-height: var(--pincon-visual-height, 100vh);
+}
