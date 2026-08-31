@@ -47,7 +47,7 @@ service firebase.storage {
       allow create: if classOperator(schoolId, classKey)
         && request.resource.size > 0
         && request.resource.size <= 10 * 1024 * 1024
-        && request.resource.contentType == 'application/pdf';
+        && request.resource.contentType.matches('^(application/pdf|image/(jpeg|png|webp))$');
       allow update: if false;
       allow delete: if classOperator(schoolId, classKey);
     }
