@@ -19,6 +19,7 @@ function safeFileName(value) {
 
 function normalizeContentType(file) {
   const direct = clean(file?.type, 100).toLowerCase();
+  if (direct === "image/jpg" || direct === "image/pjpeg") return "image/jpeg";
   if (ALLOWED_TYPES.has(direct)) return direct;
   const name = clean(file?.name, 200).toLowerCase();
   if (name.endsWith(".pdf")) return "application/pdf";
@@ -26,6 +27,12 @@ function normalizeContentType(file) {
   if (name.endsWith(".png")) return "image/png";
   if (name.endsWith(".webp")) return "image/webp";
   return direct;
+}
+
+function previewTypeFor(contentType, mediaKind = "") {
+  if (contentType === "application/pdf" || mediaKind === "pdf") return "pdf";
+  if (String(contentType || "").startsWith("image/") || mediaKind === "image") return "image";
+  return "link";
 }
 
 function safeUrl(value) {
@@ -55,8 +62,9 @@ function assertFile(file) {
   if (!(file instanceof File) || !file.size) throw new Error("평가계획서 파일을 선택해 주세요.");
   if (file.size > MAX_FILE_SIZE) throw new Error("평가계획서는 10MB 이하 파일만 올릴 수 있습니다.");
   const contentType = normalizeContentType(file);
-  if (!ALLOWED_TYPES.has(contentType)) throw new Error("평가계획서는 PDF, JPG, PNG, WEBP 파일만 지원합니다.");
-  return { contentType, mediaKind: ALLOWED_TYPES.get(contentType) };
+  if (!ALLOWED_TYPES.has(contentType)) throw new Error("평가계획서는 PDF, JPG/JPEG, PNG, WEBP 파일만 지원합니다.");
+  const mediaKind = ALLOWED_TYPES.get(contentType);
+  return { contentType, mediaKind, previewType: previewTypeFor(contentType, mediaKind) };
 }
 
 function normalizePlan(values = {}, current = null) {
@@ -71,9 +79,15 @@ function normalizePlan(values = {}, current = null) {
   const semester = Number(values.semester) === 1 ? 1 : 2;
   const sourceUrl = safeUrl(values.sourceUrl || current?.sourceUrl || "");
   const storagePath = clean(values.storagePath ?? current?.storagePath, 700);
+  const contentType = normalizeContentType({
+    type: values.contentType ?? current?.contentType,
+    name: values.fileName ?? current?.fileName,
+  });
+  const mediaKind = clean(values.mediaKind ?? current?.mediaKind ?? ALLOWED_TYPES.get(contentType), 20);
+  const previewType = previewTypeFor(contentType, mediaKind || (sourceUrl ? "link" : ""));
 
   if (published && !storagePath && !sourceUrl) {
-    throw new Error("학생에게 공개하려면 PDF·이미지 파일 또는 학교 원문 링크가 필요합니다.");
+    throw new Error("학생에게 공개하려면 PDF·JPG·PNG·WEBP 파일 또는 학교 원문 링크가 필요합니다.");
   }
 
   return {
@@ -91,8 +105,9 @@ function normalizePlan(values = {}, current = null) {
     recoveryRelevant: values.recoveryRelevant !== false,
     fileName: clean(values.fileName ?? current?.fileName, 180),
     storagePath,
-    contentType: clean(values.contentType ?? current?.contentType, 100),
-    mediaKind: clean(values.mediaKind ?? current?.mediaKind, 20),
+    contentType,
+    mediaKind,
+    previewType,
     fileSize: Math.max(0, Number(values.fileSize ?? current?.fileSize ?? 0)),
     revision: Math.max(1, Number(current?.revision || 0) + 1),
   };
@@ -129,7 +144,7 @@ export class EvaluationPlanService {
     const repository = await this.ready();
     const state = this.snapshot();
     if (!state.canArchiveContent) throw new Error("평가계획서 파일 업로드는 학급 운영자만 가능합니다.");
-    const { contentType, mediaKind } = assertFile(file);
+    const { contentType, mediaKind, previewType } = assertFile(file);
     const fileName = safeFileName(file.name);
     const path = `class-evaluation-plans/${SCHOOL.id}/${state.profile.classKey}/${recordId}/${Date.now()}-${fileName}`;
     const storageRef = repository.api.ref(repository.api.storage, path);
@@ -140,6 +155,7 @@ export class EvaluationPlanService {
         classKey: state.profile.classKey,
         recordId,
         mediaKind,
+        previewType,
       },
     });
     return {
@@ -147,6 +163,7 @@ export class EvaluationPlanService {
       storagePath: result.ref.fullPath,
       contentType,
       mediaKind,
+      previewType,
       fileSize: file.size,
     };
   }
@@ -199,14 +216,16 @@ export class EvaluationPlanService {
     const blob = await repository.api.getBlob(repository.api.ref(repository.api.storage, plan.storagePath));
     const contentType = normalizeContentType({ type: blob.type, name: plan.fileName });
     if (!ALLOWED_TYPES.has(contentType)) throw new Error("이 파일 형식은 바로 보기를 지원하지 않습니다.");
+    const mediaKind = ALLOWED_TYPES.get(contentType);
     const url = URL.createObjectURL(blob);
     return {
       url,
       contentType,
-      mediaKind: ALLOWED_TYPES.get(contentType),
+      mediaKind,
+      previewType: previewTypeFor(contentType, mediaKind),
       revoke: () => URL.revokeObjectURL(url),
     };
   }
 }
 
-export { ALLOWED_TYPES, MAX_FILE_SIZE, assertFile, normalizePlan };
+export { ALLOWED_TYPES, MAX_FILE_SIZE, assertFile, normalizePlan, normalizeContentType, previewTypeFor };
