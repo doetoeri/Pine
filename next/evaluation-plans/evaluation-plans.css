@@ -1,0 +1,335 @@
+.evaluation-plans-v2 {
+  --plan-gap: 12px;
+}
+
+.evaluation-plans-v2__header,
+.evaluation-plan-admin__header,
+.evaluation-plan-viewer__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.evaluation-plans-v2__header h2,
+.evaluation-plan-admin__header h2,
+.evaluation-plan-viewer__header h2 {
+  margin: 0;
+}
+
+.evaluation-plans-v2__intro,
+.evaluation-plan-admin__intro {
+  margin: 5px 0 0;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.evaluation-plans-v2__filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 0 2px;
+  scrollbar-width: none;
+}
+
+.evaluation-plans-v2__filters::-webkit-scrollbar {
+  display: none;
+}
+
+.evaluation-plans-v2__filter {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--md-sys-color-outline-variant, #c4c8bb);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.evaluation-plans-v2__filter[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--md-sys-color-secondary-container, #dfe8d4);
+  color: var(--md-sys-color-on-secondary-container, #171e12);
+  font-weight: 700;
+}
+
+.evaluation-plans-v2__grid,
+.evaluation-plan-admin__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--plan-gap);
+  margin-top: 14px;
+}
+
+.evaluation-plan-card,
+.evaluation-plan-admin__card {
+  min-width: 0;
+  border: 1px solid var(--md-sys-color-outline-variant, #c4c8bb);
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+  color: var(--md-sys-color-on-surface, #191c18);
+  box-sizing: border-box;
+}
+
+.evaluation-plan-card {
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.evaluation-plan-card:hover,
+.evaluation-plan-card:focus-visible {
+  background: var(--md-sys-color-surface-container, #ecefe7);
+}
+
+.evaluation-plan-card__top,
+.evaluation-plan-admin__top,
+.evaluation-plan-card__foot,
+.evaluation-plan-admin__actions,
+.evaluation-plan-admin__metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evaluation-plan-card__top,
+.evaluation-plan-admin__top {
+  justify-content: space-between;
+}
+
+.evaluation-plan-card__subject {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--md-sys-color-primary, #49662e);
+}
+
+.evaluation-plan-card__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--md-sys-color-primary-container, #c9efaa);
+  color: var(--md-sys-color-on-primary-container, #102000);
+}
+
+.evaluation-plan-card h3,
+.evaluation-plan-admin__card h3 {
+  margin: 12px 0 5px;
+  font-size: 16px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-plan-card p,
+.evaluation-plan-admin__card p {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.evaluation-plan-card__foot {
+  justify-content: space-between;
+  margin-top: 14px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 12px;
+}
+
+.evaluation-plan-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--md-sys-color-secondary-container, #dfe8d4);
+  color: var(--md-sys-color-on-secondary-container, #171e12);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.evaluation-plan-status--verified {
+  background: var(--md-sys-color-primary-container, #c9efaa);
+  color: var(--md-sys-color-on-primary-container, #102000);
+}
+
+.evaluation-plan-status--draft {
+  background: var(--md-sys-color-surface-container-high, #e5e8df);
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+}
+
+.evaluation-plan-admin {
+  display: grid;
+  gap: 16px;
+}
+
+.evaluation-plan-admin__metrics {
+  flex-wrap: wrap;
+}
+
+.evaluation-plan-admin__metric {
+  display: grid;
+  gap: 2px;
+  min-width: 110px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container, #ecefe7);
+}
+
+.evaluation-plan-admin__metric strong {
+  font-size: 20px;
+}
+
+.evaluation-plan-admin__metric span {
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  font-size: 12px;
+}
+
+.evaluation-plan-admin__card {
+  padding: 15px;
+}
+
+.evaluation-plan-admin__actions {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.evaluation-plan-editor {
+  width: min(680px, calc(100vw - 40px));
+  display: grid;
+  gap: 12px;
+}
+
+.evaluation-plan-editor__split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.evaluation-plan-editor md-outlined-text-field,
+.evaluation-plan-editor md-outlined-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.evaluation-plan-editor__file,
+.evaluation-plan-editor__confirm {
+  display: grid;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid var(--md-sys-color-outline, #73796d);
+  border-radius: 14px;
+}
+
+.evaluation-plan-editor__file span,
+.evaluation-plan-editor__confirm span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.evaluation-plan-editor__file small,
+.evaluation-plan-editor__confirm small {
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  line-height: 1.4;
+}
+
+.evaluation-plan-editor__confirm {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+}
+
+.evaluation-plan-editor__confirm input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.evaluation-plan-viewer {
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(90dvh, 900px);
+}
+
+.evaluation-plan-viewer__meta,
+.evaluation-plan-viewer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.evaluation-plan-viewer__preview {
+  min-height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--md-sys-color-outline-variant, #c4c8bb);
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-low, #f5f7f0);
+}
+
+.evaluation-plan-viewer__preview iframe {
+  display: block;
+  width: 100%;
+  height: min(64dvh, 720px);
+  border: 0;
+  background: #fff;
+}
+
+.evaluation-plan-viewer__preview img {
+  display: block;
+  width: 100%;
+  max-height: min(70dvh, 820px);
+  object-fit: contain;
+  margin: 0 auto;
+  background: var(--md-sys-color-surface-container-lowest, #fff);
+}
+
+.evaluation-plan-viewer__loading,
+.evaluation-plan-viewer__empty,
+.evaluation-plan-viewer__error {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  text-align: center;
+}
+
+.evaluation-plan-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .evaluation-plans-v2__grid,
+  .evaluation-plan-admin__grid,
+  .evaluation-plan-editor__split {
+    grid-template-columns: 1fr;
+  }
+
+  .evaluation-plans-v2__header,
+  .evaluation-plan-admin__header,
+  .evaluation-plan-viewer__header {
+    flex-direction: column;
+  }
+
+  .evaluation-plan-viewer {
+    width: calc(100vw - 20px);
+    max-height: 92dvh;
+  }
+
+  .evaluation-plan-viewer__preview iframe {
+    height: 58dvh;
+  }
+}
