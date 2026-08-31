@@ -1,8 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
+
+function assertModuleSyntax(source, label) {
+  const result = spawnSync(process.execPath, ["--input-type=module", "--check"], {
+    input: source,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, `${label} syntax error:\n${result.stderr}`);
+}
 
 test("evaluation plan v2 owns upload validation without prototype monkey patches", async () => {
   const [service, compatibility, storage] = await Promise.all([
@@ -11,6 +20,7 @@ test("evaluation plan v2 owns upload validation without prototype monkey patches
     read("../../storage.rules"),
   ]);
 
+  assertModuleSyntax(service, "service.js");
   for (const type of ["application/pdf", "image/jpeg", "image/png", "image/webp"]) {
     assert.match(service, new RegExp(type.replace("/", "\\/")));
   }
@@ -33,6 +43,7 @@ test("administrator workflow replaces the legacy evaluation plan editor", async 
     read("../evaluation-plans/evaluation-plans.css"),
   ]);
 
+  assertModuleSyntax(admin, "admin.js");
   assert.match(admin, /managed-evaluationPlans-title/);
   assert.match(admin, /평가계획서 등록/);
   assert.match(admin, /학생 공개 · 검토 중/);
@@ -54,6 +65,7 @@ test("student library shows subject filters and authenticated inline PDF/image v
     read("../index.html"),
   ]);
 
+  assertModuleSyntax(student, "student.js");
   assert.match(student, /평가계획서 과목 필터/);
   assert.match(student, /data-evaluation-plan-open/);
   assert.match(student, /service\.preview/);
