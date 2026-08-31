@@ -24,6 +24,10 @@ test("evaluation plan v2 owns upload validation without prototype monkey patches
   for (const type of ["application/pdf", "image/jpeg", "image/png", "image/webp"]) {
     assert.match(service, new RegExp(type.replace("/", "\\/")));
   }
+  assert.match(service, /image\/jpg/);
+  assert.match(service, /\.jpe\?g/);
+  assert.match(service, /previewType/);
+  assert.match(service, /PDF, JPG\/JPEG, PNG, WEBP/);
   assert.match(service, /10 \* 1024 \* 1024/);
   assert.match(service, /class-evaluation-plans/);
   assert.match(service, /contentDisposition:\s*`inline/);
@@ -36,7 +40,7 @@ test("evaluation plan v2 owns upload validation without prototype monkey patches
   assert.match(storage, /application\/pdf\|image\/\(jpeg\|png\|webp\)/);
 });
 
-test("administrator workflow removes the legacy editor instead of hiding it", async () => {
+test("administrator workflow exposes JPG in the first-class evaluation plan uploader", async () => {
   const [admin, compatibility, css] = await Promise.all([
     read("../evaluation-plans/admin.js"),
     read("../admin/evaluation-plan-media.js"),
@@ -51,6 +55,8 @@ test("administrator workflow removes the legacy editor instead of hiding it", as
   assert.match(admin, /학생 공개 · 검토 중/);
   assert.match(admin, /원본 확인 완료/);
   assert.match(admin, /application\/pdf,image\/jpeg,image\/png,image\/webp/);
+  assert.match(admin, /\.jpg/);
+  assert.match(admin, /\.jpeg/);
   assert.match(admin, /service\.save/);
   assert.match(admin, /service\.archive/);
   assert.doesNotMatch(admin, /MutationObserver/);
@@ -58,7 +64,7 @@ test("administrator workflow removes the legacy editor instead of hiding it", as
   assert.match(css, /evaluation-plan-admin__grid/);
 });
 
-test("student library owns a full-width surface and never mutates the old surface contents", async () => {
+test("student library previews JPG and PDF inside its full-width surface", async () => {
   const [student, compatibility, css, bootstrap, html] = await Promise.all([
     read("../evaluation-plans/student.js"),
     read("../evaluation-plan-preview.js"),
@@ -74,6 +80,7 @@ test("student library owns a full-width surface and never mutates the old surfac
   assert.doesNotMatch(student, /surface\.innerHTML\s*=\s*libraryMarkup/);
   assert.match(student, /data-evaluation-plan-open/);
   assert.match(student, /service\.preview/);
+  assert.match(student, /jpe\?g/);
   assert.match(student, /<iframe/);
   assert.match(student, /<img/);
   assert.match(student, /전체 화면으로 보기/);
