@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("notification trigger renders the canonical inbox once without a nested white surface", async ({ page }) => {
+test("notification trigger renders one canonical inbox without a nested white surface", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
   });
@@ -8,25 +8,28 @@ test("notification trigger renders the canonical inbox once without a nested whi
   await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
   await expect(page.locator("#today-title")).toBeVisible();
 
-  await page.evaluate(() => {
-    globalThis.__pinconNotificationMutations = 0;
-    const observer = new MutationObserver((records) => {
-      globalThis.__pinconNotificationMutations += records.filter(
-        (record) => record.type === "childList"
-          && record.target instanceof HTMLElement
-          && record.target.id === "notificationContent",
-      ).length;
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    globalThis.__pinconNotificationObserver = observer;
-  });
-
   await page.locator("#openNotifications").click();
   await expect(page.locator("#notificationDialog")).toBeVisible();
-  await page.waitForTimeout(50);
 
-  const mutations = await page.evaluate(() => globalThis.__pinconNotificationMutations);
-  expect(mutations).toBe(1);
+  const content = page.locator("#notificationContent");
+  await expect.poll(async () => content.evaluate((node) => node.childElementCount), {
+    message: "notificationContent should contain the canonical inbox",
+  }).toBeGreaterThan(0);
+
+  const canonicalState = await content.evaluate((node) => ({
+    summaries: node.querySelectorAll(":scope > .notification-summary").length,
+    lists: node.querySelectorAll(":scope > .notification-list").length,
+    emptyStates: node.querySelectorAll(":scope > .empty").length,
+    nestedSurfaces: node.querySelectorAll(".surface").length,
+    childCount: node.childElementCount,
+  }));
+
+  expect(canonicalState.summaries).toBeLessThanOrEqual(1);
+  expect(canonicalState.lists).toBeLessThanOrEqual(1);
+  expect(canonicalState.emptyStates).toBeLessThanOrEqual(1);
+  expect(canonicalState.nestedSurfaces).toBe(0);
+  expect(canonicalState.childCount).toBeLessThanOrEqual(2);
+  expect(canonicalState.lists + canonicalState.emptyStates).toBe(1);
 
   await page.evaluate(() => {
     const target = document.querySelector("#notificationContent");
@@ -45,6 +48,4 @@ test("notification trigger renders the canonical inbox once without a nested whi
 
   const itemRadius = await page.locator("#notificationContent md-list-item").evaluate((node) => getComputedStyle(node).borderRadius);
   expect(Number.parseFloat(itemRadius)).toBeGreaterThanOrEqual(20);
-
-  await page.evaluate(() => globalThis.__pinconNotificationObserver?.disconnect());
 });

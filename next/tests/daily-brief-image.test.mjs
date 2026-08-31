@@ -13,20 +13,33 @@ function assertModuleSyntax(source, label) {
   assert.equal(result.status, 0, `${label} syntax error:\n${result.stderr}`);
 }
 
-test("daily brief image is deterministic canvas export without generative AI", async () => {
-  const source = await read("../admin/daily-brief-image.js");
-  assertModuleSyntax(source, "daily-brief-image.js");
-  assert.match(source, /const WIDTH = 1080/);
-  assert.match(source, /const HEIGHT = 1350/);
-  assert.match(source, /canvas\.toBlob/);
-  assert.match(source, /"image\/jpeg"/);
-  assert.match(source, /neisTimetables/);
-  assert.match(source, /classAssignments/);
-  assert.match(source, /academicSchedules/);
-  assert.match(source, /meals/);
-  assert.match(source, /생성형 AI 미사용/);
-  assert.doesNotMatch(source, /\bfetch\s*\(/);
-  assert.doesNotMatch(source, /openai|gemini|anthropic|image_gen/i);
+test("daily brief v2 separates data, renderer and UI while remaining deterministic", async () => {
+  const [ui, data, renderer] = await Promise.all([
+    read("../admin/daily-brief-image.js"),
+    read("../admin/daily-brief-data.js"),
+    read("../admin/daily-brief-renderer.js"),
+  ]);
+  assertModuleSyntax(ui, "daily-brief-image.js");
+  assertModuleSyntax(data, "daily-brief-data.js");
+  assertModuleSyntax(renderer, "daily-brief-renderer.js");
+
+  assert.match(renderer, /width:\s*1080/);
+  assert.match(renderer, /height:\s*1350/);
+  assert.match(ui, /canvas\.toBlob/);
+  assert.match(ui, /"image\/jpeg"/);
+  assert.match(data, /neisTimetables/);
+  assert.match(data, /classAssignments/);
+  assert.match(data, /academicSchedules/);
+  assert.match(data, /announcements/);
+  assert.match(data, /meals/);
+  assert.match(data, /checklist/);
+  assert.match(data, /tomorrow/);
+  assert.match(renderer, /Material|오늘 필요한 것만/);
+  assert.match(ui, /생성형 AI는 사용하지 않습니다/);
+  for (const source of [ui, data, renderer]) {
+    assert.doesNotMatch(source, /\bfetch\s*\(/);
+    assert.doesNotMatch(source, /openai|gemini|anthropic|image_gen/i);
+  }
 });
 
 test("detail history guard closes stale WebKit detail layer after browser back", async () => {

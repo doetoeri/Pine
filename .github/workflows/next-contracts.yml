@@ -50,10 +50,15 @@ jobs:
             next/admin-visibility.js \
             next/problem-bank.js \
             next/evaluation-plan-preview.js \
+            next/evaluation-plans/service.js \
+            next/evaluation-plans/admin.js \
+            next/evaluation-plans/student.js \
             next/admin/admin.js \
             next/admin/bootstrap.js \
             next/admin/brand-settings.js \
             next/admin/content-editor.js \
+            next/admin/daily-brief-data.js \
+            next/admin/daily-brief-renderer.js \
             next/admin/daily-brief-image.js \
             next/admin/evaluation-plan-media.js \
             next/admin/problem-bank-guide.js \
