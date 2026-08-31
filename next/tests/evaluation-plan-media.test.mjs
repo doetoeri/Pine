@@ -36,7 +36,7 @@ test("evaluation plan v2 owns upload validation without prototype monkey patches
   assert.match(storage, /application\/pdf\|image\/\(jpeg\|png\|webp\)/);
 });
 
-test("administrator workflow replaces the legacy evaluation plan editor", async () => {
+test("administrator workflow removes the legacy editor instead of hiding it", async () => {
   const [admin, compatibility, css] = await Promise.all([
     read("../evaluation-plans/admin.js"),
     read("../admin/evaluation-plan-media.js"),
@@ -45,6 +45,8 @@ test("administrator workflow replaces the legacy evaluation plan editor", async 
 
   assertModuleSyntax(admin, "admin.js");
   assert.match(admin, /managed-evaluationPlans-title/);
+  assert.match(admin, /legacySection\(\)\?\.remove\(\)/);
+  assert.doesNotMatch(admin, /legacy\.hidden\s*=/);
   assert.match(admin, /평가계획서 등록/);
   assert.match(admin, /학생 공개 · 검토 중/);
   assert.match(admin, /원본 확인 완료/);
@@ -56,7 +58,7 @@ test("administrator workflow replaces the legacy evaluation plan editor", async 
   assert.match(css, /evaluation-plan-admin__grid/);
 });
 
-test("student library shows subject filters and authenticated inline PDF/image viewer", async () => {
+test("student library owns a full-width surface and never mutates the old surface contents", async () => {
   const [student, compatibility, css, bootstrap, html] = await Promise.all([
     read("../evaluation-plans/student.js"),
     read("../evaluation-plan-preview.js"),
@@ -67,6 +69,9 @@ test("student library shows subject filters and authenticated inline PDF/image v
 
   assertModuleSyntax(student, "student.js");
   assert.match(student, /평가계획서 과목 필터/);
+  assert.match(student, /data-evaluation-plan-library-host/);
+  assert.match(student, /legacy\.outerHTML\s*=\s*html/);
+  assert.doesNotMatch(student, /surface\.innerHTML\s*=\s*libraryMarkup/);
   assert.match(student, /data-evaluation-plan-open/);
   assert.match(student, /service\.preview/);
   assert.match(student, /<iframe/);
@@ -75,6 +80,8 @@ test("student library shows subject filters and authenticated inline PDF/image v
   assert.match(student, /evaluation-plan:evaluationPlans:/);
   assert.doesNotMatch(student, /MutationObserver/);
   assert.match(compatibility, /evaluation-plans\/student\.js/);
+  assert.match(css, /evaluation-plan-library-surface/);
+  assert.match(css, /grid-column:\s*1 \/ -1/);
   assert.match(css, /evaluation-plan-viewer__preview/);
   assert.match(bootstrap, /evaluation-plan-preview\.js/);
   assert.match(html, /evaluation-plan-preview\.css/);

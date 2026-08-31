@@ -5,7 +5,6 @@ const gateway = new NextDataGateway();
 const service = new EvaluationPlanService(gateway);
 const root = document.querySelector("#adminApp");
 let editingId = "";
-let mounted = false;
 let previewHandle = null;
 
 function escapeHtml(value) {
@@ -122,10 +121,11 @@ function adminMarkup(plans) {
   return `<section class="admin-card admin-card--wide evaluation-plan-admin evaluation-plans-v2" data-evaluation-plan-admin-v2 aria-labelledby="evaluation-plan-admin-title">
     <div class="evaluation-plan-admin__header">
       <div>
+        <span class="evaluation-plan-admin__eyebrow">ASSESSMENT LIBRARY</span>
         <h2 id="evaluation-plan-admin-title">평가계획서</h2>
-        <p class="evaluation-plan-admin__intro">과목별 공식 문서를 등록하고 학생 공개 상태를 관리합니다. 수행평가에서는 같은 문서를 연결해 재사용할 수 있습니다.</p>
+        <p class="evaluation-plan-admin__intro">과목별 공식 문서를 한 곳에서 등록하고 공개 상태를 관리합니다. 수행평가는 이 문서를 참조만 하도록 분리합니다.</p>
       </div>
-      <md-filled-tonal-button id="evaluationPlanCreate"><md-icon slot="icon">add</md-icon>평가계획서 등록</md-filled-tonal-button>
+      <md-filled-tonal-button id="evaluationPlanCreate"><md-icon slot="icon">add</md-icon>새 평가계획서</md-filled-tonal-button>
     </div>
     ${metricsMarkup(plans)}
     ${plans.length ? `<div class="evaluation-plan-admin__grid">${plans.map(planCard).join("")}</div>` : `<div class="evaluation-plan-empty"><md-icon>description</md-icon><strong>등록된 평가계획서가 없습니다</strong><span>PDF나 이미지 파일을 올리면 학생 화면에서 바로 볼 수 있습니다.</span></div>`}
@@ -138,17 +138,23 @@ function legacySection() {
   return root?.querySelector("#managed-evaluationPlans-title")?.closest(".managed-editor-section") || null;
 }
 
+function editorStack() {
+  return root?.querySelector("[data-managed-editor] .managed-editor-stack") || null;
+}
+
 function mount() {
   if (!root || !gateway.snapshot().canManageContent) return;
   const legacy = legacySection();
-  if (!legacy) return;
-  legacy.hidden = true;
-  legacy.setAttribute("aria-hidden", "true");
-  const existing = root.querySelector("[data-evaluation-plan-admin-v2]");
+  const stack = legacy?.parentElement || editorStack();
+  if (!stack) return;
+
   const html = adminMarkup(currentPlans());
+  const existing = root.querySelector("[data-evaluation-plan-admin-v2]");
   if (existing) existing.outerHTML = html;
-  else legacy.insertAdjacentHTML("beforebegin", html);
-  mounted = true;
+  else stack.insertAdjacentHTML("afterbegin", html);
+
+  // 평가계획서는 v2 전용 UI가 소유한다. 구 content-editor 섹션은 숨기지 않고 제거한다.
+  legacySection()?.remove();
 }
 
 function scheduleMount() {

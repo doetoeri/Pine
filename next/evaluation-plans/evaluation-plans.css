@@ -1,5 +1,13 @@
+.evaluation-plan-library-surface {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 22px;
+}
+
 .evaluation-plans-v2 {
   --plan-gap: 12px;
+  min-width: 0;
 }
 
 .evaluation-plans-v2__header,
@@ -14,22 +22,54 @@
 .evaluation-plans-v2__header h2,
 .evaluation-plan-admin__header h2,
 .evaluation-plan-viewer__header h2 {
-  margin: 0;
+  margin: 2px 0 0;
+}
+
+.evaluation-plans-v2__eyebrow,
+.evaluation-plan-admin__eyebrow {
+  display: block;
+  color: var(--md-sys-color-primary, #49662e);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .12em;
 }
 
 .evaluation-plans-v2__intro,
 .evaluation-plan-admin__intro {
+  max-width: 680px;
   margin: 5px 0 0;
   color: var(--md-sys-color-on-surface-variant, #44483f);
   font-size: 13px;
   line-height: 1.55;
 }
 
+.evaluation-plans-v2__summary {
+  flex: 0 0 auto;
+  display: grid;
+  min-width: 86px;
+  padding: 10px 13px;
+  border-radius: 16px;
+  background: var(--md-sys-color-primary-container, #c9efaa);
+  color: var(--md-sys-color-on-primary-container, #102000);
+  text-align: right;
+}
+
+.evaluation-plans-v2__summary strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.evaluation-plans-v2__summary span {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .evaluation-plans-v2__filters {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding: 12px 0 2px;
+  padding: 16px 0 2px;
   scrollbar-width: none;
 }
 
@@ -57,7 +97,13 @@
   font-weight: 700;
 }
 
-.evaluation-plans-v2__grid,
+.evaluation-plans-v2__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: var(--plan-gap);
+  margin-top: 16px;
+}
+
 .evaluation-plan-admin__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -77,15 +123,20 @@
 
 .evaluation-plan-card {
   width: 100%;
+  min-height: 196px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
   padding: 16px;
   text-align: left;
   font: inherit;
   cursor: pointer;
+  transition: transform 120ms ease, background-color 120ms ease;
 }
 
 .evaluation-plan-card:hover,
 .evaluation-plan-card:focus-visible {
   background: var(--md-sys-color-surface-container, #ecefe7);
+  transform: translateY(-1px);
 }
 
 .evaluation-plan-card__top,
@@ -103,25 +154,31 @@
   justify-content: space-between;
 }
 
+.evaluation-plan-card__body {
+  min-width: 0;
+  padding-top: 12px;
+}
+
 .evaluation-plan-card__subject {
+  display: inline-block;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--md-sys-color-primary, #49662e);
 }
 
 .evaluation-plan-card__icon {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
   background: var(--md-sys-color-primary-container, #c9efaa);
   color: var(--md-sys-color-on-primary-container, #102000);
 }
 
 .evaluation-plan-card h3,
 .evaluation-plan-admin__card h3 {
-  margin: 12px 0 5px;
+  margin: 7px 0 5px;
   font-size: 16px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -135,11 +192,24 @@
   line-height: 1.5;
 }
 
+.evaluation-plan-card__description {
+  display: -webkit-box;
+  margin-top: 8px !important;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 .evaluation-plan-card__foot {
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-top: 14px;
   color: var(--md-sys-color-on-surface-variant, #44483f);
   font-size: 12px;
+}
+
+.evaluation-plan-card__foot md-icon {
+  margin-left: auto;
+  font-size: 18px;
 }
 
 .evaluation-plan-status {
@@ -264,6 +334,12 @@
   gap: 8px;
 }
 
+.evaluation-plan-viewer__description {
+  margin: 12px 0;
+  color: var(--md-sys-color-on-surface-variant, #44483f);
+  line-height: 1.6;
+}
+
 .evaluation-plan-viewer__preview {
   min-height: 220px;
   overflow: hidden;
@@ -306,13 +382,16 @@
   display: grid;
   place-items: center;
   gap: 8px;
-  padding: 28px 16px;
+  padding: 36px 16px;
   color: var(--md-sys-color-on-surface-variant, #44483f);
   text-align: center;
 }
 
 @media (max-width: 720px) {
-  .evaluation-plans-v2__grid,
+  .evaluation-plan-library-surface {
+    padding: 18px;
+  }
+
   .evaluation-plan-admin__grid,
   .evaluation-plan-editor__split {
     grid-template-columns: 1fr;
@@ -322,6 +401,14 @@
   .evaluation-plan-admin__header,
   .evaluation-plan-viewer__header {
     flex-direction: column;
+  }
+
+  .evaluation-plans-v2__summary {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    text-align: left;
   }
 
   .evaluation-plan-viewer {
