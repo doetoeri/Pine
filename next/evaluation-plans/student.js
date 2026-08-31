@@ -3,7 +3,6 @@ import { EvaluationPlanService } from "./service.js";
 
 const gateway = new NextDataGateway();
 const service = new EvaluationPlanService(gateway);
-const app = document.querySelector("#app");
 let selectedSubject = "all";
 let activePreview = null;
 let activePlanId = "";
@@ -45,23 +44,28 @@ function cardMarkup(plan) {
       <span class="evaluation-plan-card__icon"><md-icon>${file.icon}</md-icon></span>
       <span class="evaluation-plan-status evaluation-plan-status--${status.tone}">${escapeHtml(status.label)}</span>
     </div>
-    <h3>${escapeHtml(plan.title || "평가계획서")}</h3>
-    <p><strong class="evaluation-plan-card__subject">${escapeHtml(plan.subject || "과목 미정")}</strong> · ${escapeHtml(`${plan.schoolYear || "-"}학년도 ${plan.semester || "-"}학기`)}</p>
-    ${plan.description ? `<p>${escapeHtml(plan.description)}</p>` : ""}
-    <div class="evaluation-plan-card__foot"><span>${escapeHtml(file.label)}</span><span>${escapeHtml(plan.announcedDate || "")}</span></div>
+    <div class="evaluation-plan-card__body">
+      <span class="evaluation-plan-card__subject">${escapeHtml(plan.subject || "과목 미정")}</span>
+      <h3>${escapeHtml(plan.title || "평가계획서")}</h3>
+      <p>${escapeHtml(`${plan.schoolYear || "-"}학년도 ${plan.semester || "-"}학기`)}</p>
+      ${plan.description ? `<p class="evaluation-plan-card__description">${escapeHtml(plan.description)}</p>` : ""}
+    </div>
+    <div class="evaluation-plan-card__foot"><span>${escapeHtml(file.label)}</span><span>${escapeHtml(plan.announcedDate || "")}</span><md-icon>arrow_forward</md-icon></div>
   </button>`;
 }
 
 function libraryMarkup(rows) {
   const subjects = subjectOptions(rows);
+  if (selectedSubject !== "all" && !subjects.includes(selectedSubject)) selectedSubject = "all";
   const visible = selectedSubject === "all" ? rows : rows.filter((item) => item.subject === selectedSubject);
   return `<div class="evaluation-plans-v2" data-evaluation-plan-library-v2>
     <div class="evaluation-plans-v2__header">
       <div>
-        <h2 class="surface__title">평가계획서</h2>
-        <p class="evaluation-plans-v2__intro">과목별 평가 기준과 공식 문서를 앱에서 바로 확인합니다.</p>
+        <span class="evaluation-plans-v2__eyebrow">ASSESSMENT LIBRARY</span>
+        <h2>평가계획서</h2>
+        <p class="evaluation-plans-v2__intro">과목별 평가 기준과 학교 공식 문서를 한 곳에서 바로 확인합니다.</p>
       </div>
-      <span class="surface__meta">${rows.length ? `${rows.length}개` : ""}</span>
+      <div class="evaluation-plans-v2__summary"><strong>${rows.length}</strong><span>공개 문서</span></div>
     </div>
     ${subjects.length > 1 ? `<div class="evaluation-plans-v2__filters" aria-label="평가계획서 과목 필터">
       <button type="button" class="evaluation-plans-v2__filter" data-plan-subject="all" aria-pressed="${selectedSubject === "all"}">전체</button>
@@ -69,6 +73,10 @@ function libraryMarkup(rows) {
     </div>` : ""}
     ${visible.length ? `<div class="evaluation-plans-v2__grid">${visible.map(cardMarkup).join("")}</div>` : `<div class="evaluation-plan-empty"><md-icon>description</md-icon><strong>공개된 평가계획서가 없습니다</strong><span>운영자가 공식 자료를 등록하면 이곳에서 바로 확인할 수 있습니다.</span></div>`}
   </div>`;
+}
+
+function librarySurfaceMarkup(rows) {
+  return `<article class="surface evaluation-plan-library-surface" data-evaluation-plan-library-host aria-label="평가계획서 라이브러리">${libraryMarkup(rows)}</article>`;
 }
 
 function findLegacySurface() {
@@ -83,14 +91,19 @@ function ensureViewer() {
     <div slot="content" class="evaluation-plan-viewer" id="evaluationPlanViewerContent"></div>
     <div slot="actions"><md-text-button id="evaluationPlanViewerClose">닫기</md-text-button></div>
   </md-dialog>`);
-  dialog = document.querySelector("#evaluationPlanViewerDialog");
-  return dialog;
+  return document.querySelector("#evaluationPlanViewerDialog");
 }
 
 function mountLibrary() {
-  const surface = findLegacySurface();
-  if (!surface) return;
-  surface.innerHTML = libraryMarkup(plans());
+  const html = librarySurfaceMarkup(plans());
+  const existing = document.querySelector("[data-evaluation-plan-library-host]");
+  if (existing) {
+    existing.outerHTML = html;
+    return;
+  }
+  const legacy = findLegacySurface();
+  if (!legacy) return;
+  legacy.outerHTML = html;
 }
 
 function scheduleMount() {
@@ -108,8 +121,9 @@ function viewerMeta(plan) {
   const file = fileMeta(plan);
   return `<div class="evaluation-plan-viewer__header">
     <div>
+      <span class="evaluation-plans-v2__eyebrow">${escapeHtml(plan.subject || "과목 미정")}</span>
       <h2>${escapeHtml(plan.title || "평가계획서")}</h2>
-      <p class="evaluation-plans-v2__intro">${escapeHtml(plan.subject || "과목 미정")} · ${escapeHtml(`${plan.schoolYear || "-"}학년도 ${plan.semester || "-"}학기`)}</p>
+      <p class="evaluation-plans-v2__intro">${escapeHtml(`${plan.schoolYear || "-"}학년도 ${plan.semester || "-"}학기`)}</p>
     </div>
     <span class="evaluation-plan-status evaluation-plan-status--${status.tone}">${escapeHtml(status.label)}</span>
   </div>
@@ -132,7 +146,7 @@ async function openPlan(id) {
   if (headline) headline.textContent = plan.subject ? `${plan.subject} 평가계획서` : "평가계획서";
   content.innerHTML = `${viewerMeta(plan)}
     <div class="evaluation-plan-viewer__preview"><div class="evaluation-plan-viewer__loading"><md-icon>hourglass_top</md-icon><span>문서를 불러오는 중</span></div></div>
-    ${plan.description ? `<p>${escapeHtml(plan.description)}</p>` : ""}
+    ${plan.description ? `<p class="evaluation-plan-viewer__description">${escapeHtml(plan.description)}</p>` : ""}
     <div class="evaluation-plan-viewer__actions" id="evaluationPlanViewerActions"></div>`;
   dialog.show?.();
 
