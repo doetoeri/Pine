@@ -461,7 +461,7 @@ function mount() {
   if (!root || !(snapshot().canManageContent || snapshot().canArchiveContent)) return;
   const overview = root.querySelector("#adminOverview");
   if (!overview) return;
-  if (!root.querySelector("#dailyBriefImageCard")) overview.insertAdjacentHTML("beforeend", cardMarkup());
+  if (!root.querySelector("#dailyBriefImageCard")) overview.insertAdjacentHTML("afterend", cardMarkup());
 
   const quickActions = root.querySelector(".admin-quick-actions");
   if (quickActions && !quickActions.querySelector("[data-daily-brief-open]")) {
