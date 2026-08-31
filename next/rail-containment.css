@@ -1,0 +1,32 @@
+/* Keep the desktop brand block physically inside the floating rail in Chromium and WebKit. */
+@media (min-width: 840px) {
+  .rail__brand {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .rail__wordmark {
+    box-sizing: border-box;
+    flex: 1 1 0;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden !important;
+  }
+
+  .rail__tagline {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-self: flex-start;
+    width: max-content;
+    max-width: 100%;
+    min-width: 0;
+    margin-inline: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
