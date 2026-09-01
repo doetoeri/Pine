@@ -30,23 +30,38 @@ export function studentEmail(studentNumber) {
   return `${safeSchool}.${value}@students.pincon.invalid`;
 }
 
+async function readResponse(response) {
+  let data = {};
+  try { data = await response.json(); } catch {}
+  return data;
+}
+
 async function authorizedFetch(path, options = {}) {
   const authApi = await api();
   await authApi.auth.authStateReady?.();
   const user = authApi.auth.currentUser;
   if (!user) throw new Error("로그인이 필요합니다.");
-  const idToken = await user.getIdToken(true);
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${idToken}`,
-      ...(options.headers || {}),
-    },
-    cache: "no-store",
-  });
-  let data = {};
-  try { data = await response.json(); } catch {}
+
+  const request = async (forceRefresh = false) => {
+    const idToken = await user.getIdToken(forceRefresh);
+    return fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${idToken}`,
+        ...(options.headers || {}),
+      },
+      cache: "no-store",
+    });
+  };
+
+  // Firebase already refreshes an expired token when getIdToken(false) is used.
+  // Reusing the valid token is especially important for bulk account creation,
+  // where dozens of sequential API calls used to force dozens of token refreshes.
+  let response = await request(false);
+  if (response.status === 401) response = await request(true);
+
+  const data = await readResponse(response);
   if (!response.ok) {
     const error = new Error(data?.error || "request-failed");
     error.status = response.status;
