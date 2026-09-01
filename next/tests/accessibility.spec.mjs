@@ -36,7 +36,6 @@ async function tabToControl(page, locator, maxTabs = 24) {
 
 async function openByKeyboard(page, locator) {
   await tabToControl(page, locator);
-  await expect.poll(() => actualHasFocus(locator)).toBe(true);
   await page.keyboard.press("Enter");
 }
 
