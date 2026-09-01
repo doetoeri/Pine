@@ -63,12 +63,15 @@ jobs:
             next/admin/evaluation-plan-media.js \
             next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
+            next/admin/bulk-account-create.js \
+            next/admin/class-duty-manager.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
             next/core/evaluation-plan-media.js \
             next/core/notification-store.js \
             next/core/recovery-pack.js \
+            next/core/student-auth.js \
             next/core/today-open-write.js \
             next/core/trust-model.js \
             pincon-class-ops-data.js \
@@ -86,6 +89,8 @@ jobs:
           next/tests/recovery-pack.test.mjs
           next/tests/evaluation-plan-media.test.mjs
           next/tests/daily-brief-image.test.mjs
+          next/tests/student-auth-contract.test.mjs
+          next/tests/class-duty-manager-contract.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest
