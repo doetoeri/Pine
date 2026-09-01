@@ -5,6 +5,7 @@ import {
   ROLE,
   canManageDepartment,
   canManageSubject,
+  corsHeaders,
   normalizeProfile,
   publicProfile,
   studentEmail,
@@ -64,6 +65,27 @@ test("profile normalization ignores credential-like fields", () => {
   const visible = publicProfile(profile);
   assert.equal(Object.hasOwn(visible, "mustChangePin"), true);
   assert.equal(Object.hasOwn(visible, "password"), false);
+});
+
+test("CORS accepts production and real Vercel Pine deployment origins", () => {
+  const origins = [
+    "https://pincon.app",
+    "https://www.pincon.app",
+    "https://pine.vercel.app",
+    "https://pine-8oa-b4lzz-doeyoungkims-projects.vercel.app",
+    "https://pine-git-main-doeyoungkims-projects.vercel.app",
+    "https://pine-git-feat-bulk-accounts-c-21c77c-doeyoungkims-projects.vercel.app",
+  ];
+  for (const origin of origins) {
+    const headers = corsHeaders({ headers: { origin } });
+    assert.equal(headers["access-control-allow-origin"], origin, origin);
+  }
+});
+
+test("CORS does not reflect an unrelated origin", () => {
+  const origin = "https://example.com";
+  const headers = corsHeaders({ headers: { origin } });
+  assert.notEqual(headers["access-control-allow-origin"], origin);
 });
 
 test("cleaning recommendation prioritizes fewer monthly assignments and avoids immediate repeats", () => {
