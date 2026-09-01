@@ -84,6 +84,7 @@ function errorLabel(value) {
     "invalid-class": "학급 정보 오류",
     "class-scope-denied": "관리 범위를 벗어난 학급",
     "account-create-failed": "계정 생성 실패",
+    "account-api-unreachable": "계정 서버에 연결하지 못했습니다",
   };
   return labels[value] || value || "계정 생성 실패";
 }
@@ -138,9 +139,11 @@ async function submitBulk(dialog, button) {
       : "생성된 계정이 없습니다. 실패 사유를 확인해주세요.";
   } catch (error) {
     if (resultBox) resultBox.innerHTML = `<div class="pincon-account-bulk__errors"><span>${escapeHtml(errorLabel(error?.message))}</span></div>`;
-    if (status) status.textContent = error?.status === 401
-      ? "관리자 인증이 만료되었습니다. 자동 갱신 후에도 실패해 다시 로그인해야 합니다."
-      : "일괄 계정 생성 요청을 처리하지 못했습니다.";
+    if (status) {
+      if (error?.status === 401) status.textContent = "관리자 인증이 만료되었습니다. 자동 갱신 후에도 실패해 다시 로그인해야 합니다.";
+      else if (error?.message === "account-api-unreachable") status.textContent = "계정 서버에 연결하지 못했습니다. 연결을 자동 재시도했지만 응답이 없어 잠시 뒤 다시 시도해주세요.";
+      else status.textContent = "일괄 계정 생성 요청을 처리하지 못했습니다.";
+    }
   } finally {
     button.disabled = false;
   }
