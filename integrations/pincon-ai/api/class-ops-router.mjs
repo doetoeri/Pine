@@ -4,6 +4,7 @@ import changePin from "../handlers/accounts/change-pin.mjs";
 import personalNotifications from "../handlers/accounts/personal-notifications.mjs";
 import home from "../handlers/class-ops/home.mjs";
 import cleaning from "../handlers/class-ops/cleaning.mjs";
+import duties from "../handlers/class-ops/duties.mjs";
 import phone from "../handlers/class-ops/phone.mjs";
 import subject from "../handlers/class-ops/subject.mjs";
 import settings from "../handlers/class-ops/settings.mjs";
@@ -18,6 +19,7 @@ const ROUTES = Object.freeze({
   "personal-notifications": personalNotifications,
   home,
   cleaning,
+  duties,
   phone,
   subject,
   settings,
