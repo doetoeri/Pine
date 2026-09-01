@@ -135,6 +135,10 @@ if (root) {
         await customElements.whenDefined("md-dialog");
         const dialog = root.querySelector("#notificationDialog");
         if (!dialog || sequence !== notificationOpenSequence || dialogIsOpen(dialog)) return;
+        const content = root.querySelector("#notificationContent");
+        if (content && content.childElementCount === 0) {
+          content.innerHTML = '<div class="empty"><md-icon>notifications_none</md-icon><strong>알림이 없습니다</strong><span>공지·수행·학급 행사가 생기면 기록이 이곳에 남습니다.</span></div>';
+        }
         if (dialog.updateComplete && typeof dialog.updateComplete.then === "function") {
           await dialog.updateComplete;
         }

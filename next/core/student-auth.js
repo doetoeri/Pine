@@ -1,6 +1,12 @@
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
-const API_BASE = String(globalThis.PINCON_ACCOUNT_API_BASE || "https://pincon-ai-doeyoungkims-projects.vercel.app").replace(/\/$/, "");
+const CONFIGURED_API_BASE = String(globalThis.PINCON_ACCOUNT_API_BASE || "").trim().replace(/\/$/, "");
+const API_BASES = Object.freeze(CONFIGURED_API_BASE
+  ? [CONFIGURED_API_BASE]
+  : [
+      "https://pincon-ai.vercel.app",
+      "https://pincon-ai-doeyoungkims-projects.vercel.app",
+    ]);
 const SDK = "12.16.0";
 let apiPromise;
 
@@ -36,6 +42,8 @@ async function readResponse(response) {
   return data;
 }
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function authorizedFetch(path, options = {}) {
   const authApi = await api();
   await authApi.auth.authStateReady?.();
@@ -44,20 +52,37 @@ async function authorizedFetch(path, options = {}) {
 
   const request = async (forceRefresh = false) => {
     const idToken = await user.getIdToken(forceRefresh);
-    return fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${idToken}`,
-        ...(options.headers || {}),
-      },
-      cache: "no-store",
-    });
+    let lastNetworkError = null;
+
+    // A deployment handover, DNS hiccup, or a CORS rejection can surface in browsers
+    // only as TypeError: Failed to fetch. Try the stable project aliases before failing.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      for (const base of API_BASES) {
+        try {
+          return await fetch(`${base}${path}`, {
+            ...options,
+            headers: {
+              "content-type": "application/json",
+              authorization: `Bearer ${idToken}`,
+              ...(options.headers || {}),
+            },
+            cache: "no-store",
+          });
+        } catch (error) {
+          lastNetworkError = error;
+        }
+      }
+      if (attempt === 0) await wait(350);
+    }
+
+    const error = new Error("account-api-unreachable");
+    error.code = "account-api-unreachable";
+    error.cause = lastNetworkError;
+    throw error;
   };
 
   // Firebase already refreshes an expired token when getIdToken(false) is used.
-  // Reusing the valid token is especially important for bulk account creation,
-  // where dozens of sequential API calls used to force dozens of token refreshes.
+  // Only force-refresh after a real 401 response.
   let response = await request(false);
   if (response.status === 401) response = await request(true);
 

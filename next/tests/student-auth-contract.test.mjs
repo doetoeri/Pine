@@ -24,6 +24,16 @@ test("authorized API requests reuse a valid token and only force-refresh after a
   assert.doesNotMatch(auth, /const idToken = await user\.getIdToken\(true\)/);
 });
 
+test("account API retries network failures across stable production aliases", async () => {
+  const auth = await source("../core/student-auth.js");
+  assert.match(auth, /https:\/\/pincon-ai\.vercel\.app/);
+  assert.match(auth, /https:\/\/pincon-ai-doeyoungkims-projects\.vercel\.app/);
+  assert.match(auth, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
+  assert.match(auth, /for \(const base of API_BASES\)/);
+  assert.match(auth, /await wait\(350\)/);
+  assert.match(auth, /account-api-unreachable/);
+});
+
 test("account entry keeps login failures generic and validates locally", async () => {
   const gate = await source("../account-gate.js");
   assert.match(gate, /학번 또는 PIN이 맞지 않습니다/);

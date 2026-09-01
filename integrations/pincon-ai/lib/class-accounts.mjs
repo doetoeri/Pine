@@ -299,11 +299,26 @@ export async function appendAccountAudit({ actor, action, targetUid, before = nu
   });
 }
 
+function trustedBrowserOrigin(origin, configured) {
+  if (configured.includes(origin)) return true;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (protocol !== "https:") return false;
+    const host = hostname.toLowerCase();
+    if (host === "pincon.app" || host === "www.pincon.app") return true;
+    if (/^pine(?:-[a-z0-9-]+)?\.vercel\.app$/.test(host)) return true;
+    if (/^pine(?:-[a-z0-9-]+)?-doeyoungkims-projects\.vercel\.app$/.test(host)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function corsHeaders(req) {
   const origin = String(req?.headers?.origin || "");
   const configured = String(process.env.PINCON_ALLOWED_ORIGINS || "https://pincon.app,https://www.pincon.app")
     .split(",").map((item) => item.trim()).filter(Boolean);
-  const allowed = configured.includes(origin) || /^https:\/\/pine(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
+  const allowed = trustedBrowserOrigin(origin, configured);
   return {
     "access-control-allow-origin": allowed ? origin : configured[0] || "https://pincon.app",
     "access-control-allow-methods": "GET,POST,OPTIONS",
