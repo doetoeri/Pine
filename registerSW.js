@@ -10,7 +10,7 @@ if ("serviceWorker" in navigator) {
 
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("./sw.js?v=20260821-pwa-buttons3", {
+      const registration = await navigator.serviceWorker.register("./sw.js?v=20260902-account-api2", {
         scope: "./",
         updateViaCache: "none",
       });
