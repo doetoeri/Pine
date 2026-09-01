@@ -25,11 +25,15 @@ on:
       - "next/admin/personal-notifications.js"
       - "next/admin/user-manager.js"
       - "next/admin/user-manager.css"
+      - "next/admin/bulk-account-create.js"
+      - "next/admin/class-duty-manager.js"
+      - "next/admin/class-duty-manager.css"
       - "next/admin/class-ops-settings.js"
       - "next/admin/class-ops-settings-v2.js"
       - "next/admin/class-ops-settings.css"
       - "next/tests/admin-command-center-contract.test.mjs"
       - "next/tests/admin-mobile-nav-performance.test.mjs"
+      - "next/tests/class-duty-manager-contract.test.mjs"
       - "next/tests/personal-notification-security.test.mjs"
       - "next/tests/student-auth-contract.test.mjs"
       - "next/tests/student-rbac-rules.test.mjs"
@@ -71,7 +75,9 @@ jobs:
             next/admin/bootstrap.js \
             next/admin/personal-notifications.js \
             next/admin/user-manager.js \
+            next/admin/bulk-account-create.js \
             next/admin/class-ops-settings-v2.js \
+            next/admin/class-duty-manager.js \
             integrations/pincon-ai/lib/class-accounts.mjs \
             integrations/pincon-ai/lib/class-operations.mjs \
             integrations/pincon-ai/lib/class-ops-store.mjs \
@@ -82,6 +88,7 @@ jobs:
             integrations/pincon-ai/handlers/accounts/personal-notifications.mjs \
             integrations/pincon-ai/handlers/class-ops/home.mjs \
             integrations/pincon-ai/handlers/class-ops/cleaning.mjs \
+            integrations/pincon-ai/handlers/class-ops/duties.mjs \
             integrations/pincon-ai/handlers/class-ops/phone.mjs \
             integrations/pincon-ai/handlers/class-ops/subject.mjs \
             integrations/pincon-ai/handlers/class-ops/settings.mjs \
@@ -96,6 +103,8 @@ jobs:
         run: npm run test:rbac --prefix integrations/pincon-ai
       - name: Run student auth contracts
         run: node --test next/tests/student-auth-contract.test.mjs
+      - name: Run bulk account and class duty contracts
+        run: node --test next/tests/class-duty-manager-contract.test.mjs
       - name: Run personal notification security contracts
         run: node --test next/tests/personal-notification-security.test.mjs
       - name: Run admin command center contracts
