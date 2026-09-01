@@ -19,6 +19,8 @@ import { jsonBody, sendJson } from "../../lib/request.mjs";
 
 const usersCollection = () => firestore().collection(`schools/${SCHOOL_ID}/users`);
 const userDocument = (uid) => firestore().doc(`schools/${SCHOOL_ID}/users/${uid}`);
+const BULK_ACCOUNT_LIMIT = 60;
+const BULK_CREATE_CONCURRENCY = 4;
 
 async function findByStudentNumber(studentNumber) {
   const snapshot = await usersCollection()
@@ -79,6 +81,85 @@ async function createAccount(actor, body) {
   await syncCompatibilityRole(profile, actor.uid);
   await appendAccountAudit({ actor, action: "ACCOUNT_CREATE", targetUid: profile.uid, after: profile });
   return { account: publicProfile(profile), temporaryPin: pin };
+}
+
+function bulkError(error) {
+  const message = String(error?.message || "account-create-failed");
+  if ([
+    "student-number-exists",
+    "invalid-student-number",
+    "invalid-seat-number",
+    "invalid-class",
+    "class-scope-denied",
+  ].includes(message)) return message;
+  return "account-create-failed";
+}
+
+async function bulkCreateAccounts(actor, body) {
+  const input = Array.isArray(body.accounts) ? body.accounts : [];
+  if (!input.length) throw Object.assign(new Error("bulk-accounts-required"), { status: 400 });
+  if (input.length > BULK_ACCOUNT_LIMIT) throw Object.assign(new Error("bulk-account-limit-exceeded"), { status: 400 });
+
+  const rows = input.map((account, index) => ({ index, account, studentNumber: "", name: "", error: "" }));
+  const seen = new Set();
+  for (const row of rows) {
+    try {
+      const normalized = normalizeProfile({ ...(row.account || {}), status: "ACTIVE", mustChangePin: true });
+      assertSameClass(actor, normalized);
+      row.studentNumber = normalized.studentNumber;
+      row.name = normalized.name;
+      if (seen.has(normalized.studentNumber)) row.error = "duplicate-student-number-in-request";
+      else seen.add(normalized.studentNumber);
+    } catch (error) {
+      row.error = bulkError(error);
+      row.studentNumber = String(row.account?.studentNumber || "").trim();
+      row.name = String(row.account?.name || "").trim();
+    }
+  }
+
+  const output = new Array(rows.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (true) {
+      const position = cursor;
+      cursor += 1;
+      if (position >= rows.length) return;
+      const row = rows[position];
+      if (row.error) {
+        output[position] = { ok: false, studentNumber: row.studentNumber, name: row.name, error: row.error };
+        continue;
+      }
+      try {
+        const created = await createAccount(actor, row.account || {});
+        output[position] = { ok: true, ...created };
+      } catch (error) {
+        output[position] = {
+          ok: false,
+          studentNumber: row.studentNumber,
+          name: row.name,
+          error: bulkError(error),
+        };
+      }
+    }
+  };
+
+  const workerCount = Math.min(BULK_CREATE_CONCURRENCY, rows.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+  const created = output.filter((item) => item?.ok).map(({ ok, ...item }) => item);
+  const failed = output.filter((item) => item && !item.ok).map(({ ok, ...item }) => item);
+  await appendAccountAudit({
+    actor,
+    action: "ACCOUNT_BULK_CREATE",
+    targetUid: actor.uid,
+    metadata: {
+      requested: String(rows.length),
+      created: String(created.length),
+      failed: String(failed.length),
+      secretsStored: "false",
+    },
+  });
+  return { requested: rows.length, created, failed };
 }
 
 async function updateAccount(actor, body) {
@@ -165,6 +246,7 @@ export default async function manageAccounts(req, res) {
     const action = String(body.action || "").toUpperCase();
     let result;
     if (action === "CREATE") result = await createAccount(actor, body.account || {});
+    else if (action === "BULK_CREATE") result = await bulkCreateAccounts(actor, body);
     else if (action === "UPDATE") result = await updateAccount(actor, body);
     else if (action === "DISABLE") result = await disableAccount(actor, body);
     else if (action === "RESET_PIN") result = await resetPin(actor, body);

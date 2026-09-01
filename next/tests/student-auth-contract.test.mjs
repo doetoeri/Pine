@@ -15,6 +15,15 @@ test("student auth uses Firebase email/password without storing PIN locally", as
   assert.doesNotMatch(auth, /localStorage\.(?:setItem|getItem)\([^\n]*(?:pin|password|secret)/i);
 });
 
+test("authorized API requests reuse a valid token and only force-refresh after a 401", async () => {
+  const auth = await source("../core/student-auth.js");
+  assert.match(auth, /const request = async \(forceRefresh = false\)/);
+  assert.match(auth, /user\.getIdToken\(forceRefresh\)/);
+  assert.match(auth, /let response = await request\(false\)/);
+  assert.match(auth, /if \(response\.status === 401\) response = await request\(true\)/);
+  assert.doesNotMatch(auth, /const idToken = await user\.getIdToken\(true\)/);
+});
+
 test("account entry keeps login failures generic and validates locally", async () => {
   const gate = await source("../account-gate.js");
   assert.match(gate, /학번 또는 PIN이 맞지 않습니다/);

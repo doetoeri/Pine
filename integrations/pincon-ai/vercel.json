@@ -51,6 +51,10 @@
       "destination": "/api/class-ops-router?route=cleaning"
     },
     {
+      "source": "/api/class-ops/duties",
+      "destination": "/api/class-ops-router?route=duties"
+    },
+    {
       "source": "/api/class-ops/phone",
       "destination": "/api/class-ops-router?route=phone"
     },
