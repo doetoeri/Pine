@@ -23,4 +23,5 @@ if (!snapshot.canArchiveContent) {
   await import("./user-manager.js");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
+  await import("./class-duty-manager.js?v=20260901-duty1");
 }
