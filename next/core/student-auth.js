@@ -3,10 +3,7 @@ const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "í•
 const CONFIGURED_API_BASE = String(globalThis.PINCON_ACCOUNT_API_BASE || "").trim().replace(/\/$/, "");
 const API_BASES = Object.freeze(CONFIGURED_API_BASE
   ? [CONFIGURED_API_BASE]
-  : [
-      "https://pincon-ai.vercel.app",
-      "https://pincon-ai-doeyoungkims-projects.vercel.app",
-    ]);
+  : ["https://pincon-ai.vercel.app"]);
 const SDK = "12.16.0";
 let apiPromise;
 
@@ -54,8 +51,9 @@ async function authorizedFetch(path, options = {}) {
     const idToken = await user.getIdToken(forceRefresh);
     let lastNetworkError = null;
 
-    // A deployment handover, DNS hiccup, or a CORS rejection can surface in browsers
-    // only as TypeError: Failed to fetch. Try the stable project aliases before failing.
+    // The public project alias is the only default account endpoint. Team aliases may
+    // be protected by Vercel Authentication and can turn a valid API call into a
+    // cross-origin SSO redirect, which browsers surface as TypeError: Failed to fetch.
     for (let attempt = 0; attempt < 2; attempt += 1) {
       for (const base of API_BASES) {
         try {
