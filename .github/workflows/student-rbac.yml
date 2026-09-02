@@ -87,6 +87,7 @@ jobs:
             integrations/pincon-ai/lib/class-ops-store.mjs \
             integrations/pincon-ai/api/class-ops-router.mjs \
             integrations/pincon-ai/handlers/accounts/session.mjs \
+            integrations/pincon-ai/handlers/accounts/create.mjs \
             integrations/pincon-ai/handlers/accounts/manage.mjs \
             integrations/pincon-ai/handlers/accounts/change-pin.mjs \
             integrations/pincon-ai/handlers/accounts/personal-notifications.mjs \
