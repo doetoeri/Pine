@@ -7,8 +7,8 @@ export function studentNumberFromParts(grade, classNumber, number) {
   const c = Number(classNumber);
   const n = Number(number);
   if (!Number.isInteger(g) || g < 1 || g > 3) return "";
-  if (!Number.isInteger(c) || c < 1 || c > 99) return "";
-  if (!Number.isInteger(n) || n < 1 || n > 99) return "";
+  if (!Number.isInteger(c) || c < 1 || c > 10) return "";
+  if (!Number.isInteger(n) || n < 1 || n > 60) return "";
   return `${g}${String(c).padStart(2, "0")}${String(n).padStart(2, "0")}`;
 }
 
@@ -18,7 +18,7 @@ export function partsFromStudentNumber(value) {
   const grade = Number(studentNumber.slice(0, 1));
   const classNumber = Number(studentNumber.slice(1, 3));
   const number = Number(studentNumber.slice(3, 5));
-  if (grade < 1 || grade > 3 || classNumber < 1 || classNumber > 99 || number < 1 || number > 99) return null;
+  if (grade < 1 || grade > 3 || classNumber < 1 || classNumber > 10 || number < 1 || number > 60) return null;
   return { studentNumber, grade, classNumber, number };
 }
 
@@ -52,8 +52,8 @@ export function validateStudentAccount(account) {
   if (!account?.name) return "이름을 입력해주세요.";
   if (!/^\d{5}$/.test(String(account.studentNumber || ""))) return "학번을 만들 수 없습니다.";
   if (!Number.isInteger(account.grade) || account.grade < 1 || account.grade > 3) return "학년을 확인해주세요.";
-  if (!Number.isInteger(account.classNumber) || account.classNumber < 1 || account.classNumber > 99) return "반을 확인해주세요.";
-  if (!Number.isInteger(account.number) || account.number < 1 || account.number > 99) return "번호를 확인해주세요.";
+  if (!Number.isInteger(account.classNumber) || account.classNumber < 1 || account.classNumber > 10) return "반을 확인해주세요.";
+  if (!Number.isInteger(account.number) || account.number < 1 || account.number > 60) return "번호를 확인해주세요.";
   const expected = studentNumberFromParts(account.grade, account.classNumber, account.number);
   if (expected !== account.studentNumber) return "학번과 학년·반·번호가 일치하지 않습니다.";
   return "";
