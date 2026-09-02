@@ -42,6 +42,12 @@ async function readResponse(response) {
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function authorizedFetch(path, options = {}) {
+  const {
+    pinconNetworkRetries = 1,
+    ...fetchOptions
+  } = options;
+  const networkRetries = Math.max(0, Math.min(2, Number(pinconNetworkRetries) || 0));
+
   const authApi = await api();
   await authApi.auth.authStateReady?.();
   const user = authApi.auth.currentUser;
@@ -54,15 +60,15 @@ async function authorizedFetch(path, options = {}) {
     // The public project alias is the only default account endpoint. Team aliases may
     // be protected by Vercel Authentication and can turn a valid API call into a
     // cross-origin SSO redirect, which browsers surface as TypeError: Failed to fetch.
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt <= networkRetries; attempt += 1) {
       for (const base of API_BASES) {
         try {
           return await fetch(`${base}${path}`, {
-            ...options,
+            ...fetchOptions,
             headers: {
               "content-type": "application/json",
               authorization: `Bearer ${idToken}`,
-              ...(options.headers || {}),
+              ...(fetchOptions.headers || {}),
             },
             cache: "no-store",
           });
@@ -70,7 +76,7 @@ async function authorizedFetch(path, options = {}) {
           lastNetworkError = error;
         }
       }
-      if (attempt === 0) await wait(350);
+      if (attempt < networkRetries) await wait(350);
     }
 
     const error = new Error("account-api-unreachable");
@@ -148,10 +154,11 @@ export async function signOutStudent() {
   await authApi.signOut(authApi.auth);
 }
 
-export async function accountRequest(path, { method = "GET", body = undefined } = {}) {
+export async function accountRequest(path, { method = "GET", body = undefined, networkRetries = 1 } = {}) {
   return authorizedFetch(path, {
     method,
     body: body === undefined ? undefined : JSON.stringify(body),
+    pinconNetworkRetries: networkRetries,
   });
 }
 
