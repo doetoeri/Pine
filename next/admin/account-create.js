@@ -45,7 +45,7 @@ function dialogMarkup(mode) {
       <span class="pincon-account-create__headline-icon"><md-icon>person_add</md-icon></span>
       <span><strong>계정 추가</strong><small>학생 신원에서 학번을 자동 구성합니다.</small></span>
     </div>
-    <div class="pincon-account-create" data-mode="${mode}">
+    <div slot="content" class="pincon-account-create" data-mode="${mode}">
       <div class="pincon-account-create__mode" role="tablist" aria-label="계정 추가 방식">
         <button type="button" role="tab" data-create-mode="single" aria-selected="${mode === "single"}"><md-icon>person_add</md-icon><span><strong>한 명 추가</strong><small>이름과 번호만 입력</small></span></button>
         <button type="button" role="tab" data-create-mode="bulk" aria-selected="${mode === "bulk"}"><md-icon>group_add</md-icon><span><strong>명단 추가</strong><small>번호+이름 붙여넣기</small></span></button>
