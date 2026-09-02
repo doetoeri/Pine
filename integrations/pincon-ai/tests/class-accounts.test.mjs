@@ -6,6 +6,7 @@ import {
   canManageDepartment,
   canManageSubject,
   corsHeaders,
+  isAccountAdmin,
   normalizeProfile,
   publicProfile,
   studentEmail,
@@ -55,6 +56,8 @@ test("class president can operate the class without being hard-coded to a studen
   const president = student({ studentNumber: "10819", uid: "president", roles: [ROLE.STUDENT, ROLE.CLASS_PRESIDENT] });
   assert.equal(canManageDepartment(president, "any-department"), true);
   assert.equal(canManageSubject(president, "통합과학"), true);
+  assert.equal(isAccountAdmin(president), true);
+  assert.equal(isAccountAdmin(student()), false);
 });
 
 test("profile normalization ignores credential-like fields", () => {
