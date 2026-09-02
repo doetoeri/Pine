@@ -6,14 +6,16 @@ async function source(path) {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-test("rebuilt account creator owns single and roster creation end to end", async () => {
-  const [ui, service, bootstrap, html, auth, server] = await Promise.all([
+test("rebuilt account creator owns UI, parsing, and a dedicated creation API", async () => {
+  const [ui, service, bootstrap, html, auth, server, router, vercel] = await Promise.all([
     source("../admin/account-create.js"),
     source("../admin/account-create-service.js"),
     source("../admin/bootstrap.js"),
     source("../admin/index.html"),
     source("../core/student-auth.js"),
-    source("../../integrations/pincon-ai/handlers/accounts/manage.mjs"),
+    source("../../integrations/pincon-ai/handlers/accounts/create.mjs"),
+    source("../../integrations/pincon-ai/api/class-ops-router.mjs"),
+    source("../../integrations/pincon-ai/vercel.json"),
   ]);
 
   assert.match(ui, /pinconAccountCreateDialog/);
@@ -26,8 +28,9 @@ test("rebuilt account creator owns single and roster creation end to end", async
   assert.match(service, /studentNumberFromParts/);
   assert.match(service, /partsFromStudentNumber/);
   assert.match(service, /parseRoster/);
-  assert.match(service, /action:\s*"CREATE"/);
-  assert.match(service, /action:\s*"BULK_CREATE"/);
+  assert.match(service, /ACCOUNT_CREATE_ENDPOINT\s*=\s*"\/api\/accounts\/create"/);
+  assert.match(service, /mode:\s*"single"/);
+  assert.match(service, /mode:\s*"bulk"/);
   assert.match(service, /networkRetries:\s*0/);
   assert.match(service, /ACCOUNT_CREATE_LIMIT\s*=\s*60/);
   assert.match(bootstrap, /account-create\.js/);
@@ -35,11 +38,19 @@ test("rebuilt account creator owns single and roster creation end to end", async
   assert.match(html, /account-create\.css/);
   assert.match(auth, /networkRetries\s*=\s*1/);
   assert.match(auth, /pinconNetworkRetries/);
-  assert.match(server, /BULK_ACCOUNT_LIMIT\s*=\s*60/);
-  assert.match(server, /BULK_CREATE_CONCURRENCY\s*=\s*4/);
-  assert.match(server, /action === "BULK_CREATE"/);
+
+  assert.match(server, /ACCOUNT_LIMIT\s*=\s*60/);
+  assert.match(server, /BULK_CONCURRENCY\s*=\s*4/);
+  assert.match(server, /createStudent\(actor/);
+  assert.match(server, /createRoster\(actor/);
   assert.match(server, /duplicate-student-number-in-request/);
-  assert.match(server, /ACCOUNT_BULK_CREATE/);
+  assert.match(server, /ACCOUNT_CREATE_V2/);
+  assert.match(server, /ACCOUNT_BULK_CREATE_V2/);
+  assert.match(server, /firebaseAuth\(\)\.deleteUser/);
+  assert.match(router, /import accountCreate from "\.\.\/handlers\/accounts\/create\.mjs"/);
+  assert.match(router, /"account-create": accountCreate/);
+  assert.match(vercel, /"source": "\/api\/accounts\/create"/);
+  assert.match(vercel, /route=account-create/);
 });
 
 test("class duty console connects role assignment, department membership, and cleaning operations", async () => {
