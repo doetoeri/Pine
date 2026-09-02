@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { firebaseAuth, firestore } from "../../lib/firebase.mjs";
 import {
   SCHOOL_ID,
@@ -33,11 +34,7 @@ async function findByStudentNumber(studentNumber) {
 }
 
 function temporaryPin() {
-  const bytes = new Uint32Array(2);
-  globalThis.crypto?.getRandomValues?.(bytes);
-  const source = bytes[0] || Math.floor(Math.random() * 1_000_000_000);
-  const value = 100000 + (source % 900000);
-  return String(value);
+  return String(randomInt(100000, 1000000));
 }
 
 function normalizeCandidate(actor, input) {
