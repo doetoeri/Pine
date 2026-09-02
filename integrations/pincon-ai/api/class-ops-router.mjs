@@ -1,5 +1,6 @@
 import accountSession from "../handlers/accounts/session.mjs";
 import accountManage from "../handlers/accounts/manage.mjs";
+import accountCreate from "../handlers/accounts/create.mjs";
 import changePin from "../handlers/accounts/change-pin.mjs";
 import personalNotifications from "../handlers/accounts/personal-notifications.mjs";
 import home from "../handlers/class-ops/home.mjs";
@@ -15,6 +16,7 @@ import { sendJson } from "../lib/request.mjs";
 const ROUTES = Object.freeze({
   "account-session": accountSession,
   "account-manage": accountManage,
+  "account-create": accountCreate,
   "account-change-pin": changePin,
   "personal-notifications": personalNotifications,
   home,
