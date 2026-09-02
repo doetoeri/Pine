@@ -21,7 +21,7 @@ if (!snapshot.canArchiveContent) {
   await import("./personal-notifications.js?v=20260830-personal1");
   await import("./problem-bank-guide.js");
   await import("./user-manager.js");
-  await import("./bulk-account-create.js?v=20260901-bulk1");
+  await import("./account-create.js?v=20260902-account3");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
   await import("./class-duty-manager.js?v=20260901-duty1");
