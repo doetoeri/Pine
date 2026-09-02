@@ -19,6 +19,7 @@ test("rebuilt account creator owns UI, parsing, and a dedicated creation API", a
   ]);
 
   assert.match(ui, /pinconAccountCreateDialog/);
+  assert.match(ui, /slot="content" class="pincon-account-create"/);
   assert.match(ui, /pinconAddUser/);
   assert.match(ui, /pinconBulkUsers/);
   assert.match(ui, /stopImmediatePropagation\(\)/);
