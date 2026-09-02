@@ -63,7 +63,8 @@ jobs:
             next/admin/evaluation-plan-media.js \
             next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
-            next/admin/bulk-account-create.js \
+            next/admin/account-create-service.js \
+            next/admin/account-create.js \
             next/admin/class-duty-manager.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
@@ -90,6 +91,7 @@ jobs:
           next/tests/evaluation-plan-media.test.mjs
           next/tests/daily-brief-image.test.mjs
           next/tests/student-auth-contract.test.mjs
+          next/tests/account-create-service.test.mjs
           next/tests/class-duty-manager-contract.test.mjs
 
   firestore-rules:

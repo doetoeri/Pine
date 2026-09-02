@@ -24,14 +24,28 @@ test("authorized API requests reuse a valid token and only force-refresh after a
   assert.doesNotMatch(auth, /const idToken = await user\.getIdToken\(true\)/);
 });
 
-test("account API retries network failures across stable production aliases", async () => {
+test("account API uses only the public production alias and supports explicit retry control", async () => {
   const auth = await source("../core/student-auth.js");
   assert.match(auth, /https:\/\/pincon-ai\.vercel\.app/);
-  assert.match(auth, /https:\/\/pincon-ai-doeyoungkims-projects\.vercel\.app/);
-  assert.match(auth, /for \(let attempt = 0; attempt < 2; attempt \+= 1\)/);
+  assert.doesNotMatch(auth, /https:\/\/pincon-ai-doeyoungkims-projects\.vercel\.app/);
+  assert.match(auth, /pinconNetworkRetries = 1/);
+  assert.match(auth, /attempt <= networkRetries/);
+  assert.match(auth, /attempt < networkRetries/);
   assert.match(auth, /for \(const base of API_BASES\)/);
   assert.match(auth, /await wait\(350\)/);
+  assert.match(auth, /networkRetries = 1/);
   assert.match(auth, /account-api-unreachable/);
+});
+
+test("PinCon PWA revalidates code assets after a deployment", async () => {
+  const worker = await source("../../sw.js");
+  const registration = await source("../../registerSW.js");
+  assert.match(worker, /PINCON_SW_VERSION = "20260902-account-api2"/);
+  assert.match(worker, /new Request\(request, \{ cache: "reload" \}\)/);
+  assert.match(worker, /mustRevalidate = \/\\\.\(\?:js\|css\|html\|webmanifest\|json\)\$\/i/);
+  assert.match(worker, /networkFirst\(request, "\.\/index\.html", \{ forceReload: true \}\)/);
+  assert.match(registration, /\.\/sw\.js\?v=20260902-account-api2/);
+  assert.match(registration, /updateViaCache: "none"/);
 });
 
 test("account entry keeps login failures generic and validates locally", async () => {

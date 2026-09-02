@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260825-dialog-device3";
+const PINCON_SW_VERSION = "20260902-account-api2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -88,10 +88,14 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
-async function networkFirst(request, fallbackKey = null) {
+async function networkFirst(request, fallbackKey = null, { forceReload = false } = {}) {
   const cache = await caches.open(PINCON_SHELL_CACHE);
   try {
-    const response = await fetch(request);
+    // GitHub Pages and the browser HTTP cache can briefly keep an older JS module
+    // under the same URL after a deploy. Code/config assets must be revalidated so
+    // an old API endpoint cannot survive after the service worker itself updates.
+    const networkRequest = forceReload ? new Request(request, { cache: "reload" }) : request;
+    const response = await fetch(networkRequest);
     if (response && response.ok) {
       await cache.put(request, response.clone());
       if (fallbackKey) await cache.put(fallbackKey, response.clone());
@@ -115,7 +119,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, "./index.html"));
+    event.respondWith(networkFirst(request, "./index.html", { forceReload: true }));
     return;
   }
 
@@ -124,5 +128,6 @@ self.addEventListener("fetch", (event) => {
   const isStatic = /\.(?:js|css|html|webmanifest|json|svg|png|jpg|jpeg|webp|ico|woff2?)$/i.test(url.pathname);
   if (!isStatic) return;
 
-  event.respondWith(networkFirst(request));
+  const mustRevalidate = /\.(?:js|css|html|webmanifest|json)$/i.test(url.pathname);
+  event.respondWith(networkFirst(request, null, { forceReload: mustRevalidate }));
 });

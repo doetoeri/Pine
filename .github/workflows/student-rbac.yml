@@ -25,12 +25,15 @@ on:
       - "next/admin/personal-notifications.js"
       - "next/admin/user-manager.js"
       - "next/admin/user-manager.css"
-      - "next/admin/bulk-account-create.js"
+      - "next/admin/account-create.js"
+      - "next/admin/account-create-service.js"
+      - "next/admin/account-create.css"
       - "next/admin/class-duty-manager.js"
       - "next/admin/class-duty-manager.css"
       - "next/admin/class-ops-settings.js"
       - "next/admin/class-ops-settings-v2.js"
       - "next/admin/class-ops-settings.css"
+      - "next/tests/account-create-service.test.mjs"
       - "next/tests/admin-command-center-contract.test.mjs"
       - "next/tests/admin-mobile-nav-performance.test.mjs"
       - "next/tests/class-duty-manager-contract.test.mjs"
@@ -75,7 +78,8 @@ jobs:
             next/admin/bootstrap.js \
             next/admin/personal-notifications.js \
             next/admin/user-manager.js \
-            next/admin/bulk-account-create.js \
+            next/admin/account-create-service.js \
+            next/admin/account-create.js \
             next/admin/class-ops-settings-v2.js \
             next/admin/class-duty-manager.js \
             integrations/pincon-ai/lib/class-accounts.mjs \
@@ -83,6 +87,7 @@ jobs:
             integrations/pincon-ai/lib/class-ops-store.mjs \
             integrations/pincon-ai/api/class-ops-router.mjs \
             integrations/pincon-ai/handlers/accounts/session.mjs \
+            integrations/pincon-ai/handlers/accounts/create.mjs \
             integrations/pincon-ai/handlers/accounts/manage.mjs \
             integrations/pincon-ai/handlers/accounts/change-pin.mjs \
             integrations/pincon-ai/handlers/accounts/personal-notifications.mjs \
@@ -103,7 +108,9 @@ jobs:
         run: npm run test:rbac --prefix integrations/pincon-ai
       - name: Run student auth contracts
         run: node --test next/tests/student-auth-contract.test.mjs
-      - name: Run bulk account and class duty contracts
+      - name: Run account creator parser tests
+        run: node --test next/tests/account-create-service.test.mjs
+      - name: Run account creator and class duty contracts
         run: node --test next/tests/class-duty-manager-contract.test.mjs
       - name: Run personal notification security contracts
         run: node --test next/tests/personal-notification-security.test.mjs

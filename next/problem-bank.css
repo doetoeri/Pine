@@ -106,11 +106,11 @@
    can force an intrinsic minimum width and overlap the neighboring field. */
 @media (max-width: 1040px) {
   .problem-bank-toolbar {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   #problemBankSearch {
-    grid-column: 1 / -1;
+    grid-column: auto;
   }
 }
 

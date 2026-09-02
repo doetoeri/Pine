@@ -323,6 +323,11 @@ function enhanceNotificationButton() {
     button.parentNode?.insertBefore(wrapper, button);
     wrapper.append(button);
   }
+
+  // WebKit can leave a moved Shadow DOM custom element out of sequential Tab order.
+  // Re-declaring the host as focusable after reparenting keeps keyboard access stable.
+  button.setAttribute("tabindex", "0");
+
   let badge = wrapper.querySelector(".notification-badge");
   if (!badge) {
     badge = document.createElement("span");
