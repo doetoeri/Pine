@@ -7,13 +7,14 @@ async function source(path) {
 }
 
 test("rebuilt account creator owns UI, parsing, and a dedicated creation API", async () => {
-  const [ui, service, bootstrap, html, auth, server, router, vercel] = await Promise.all([
+  const [ui, service, bootstrap, html, auth, server, manage, router, vercel] = await Promise.all([
     source("../admin/account-create.js"),
     source("../admin/account-create-service.js"),
     source("../admin/bootstrap.js"),
     source("../admin/index.html"),
     source("../core/student-auth.js"),
     source("../../integrations/pincon-ai/handlers/accounts/create.mjs"),
+    source("../../integrations/pincon-ai/handlers/accounts/manage.mjs"),
     source("../../integrations/pincon-ai/api/class-ops-router.mjs"),
     source("../../integrations/pincon-ai/vercel.json"),
   ]);
@@ -48,6 +49,9 @@ test("rebuilt account creator owns UI, parsing, and a dedicated creation API", a
   assert.match(server, /ACCOUNT_CREATE_V2/);
   assert.match(server, /ACCOUNT_BULK_CREATE_V2/);
   assert.match(server, /firebaseAuth\(\)\.deleteUser/);
+  const legacyAccountOperators = /legacyLevels:\s*\["school",\s*"president",\s*"class",\s*"grade"\]/;
+  assert.match(server, legacyAccountOperators);
+  assert.match(manage, legacyAccountOperators);
   assert.match(router, /import accountCreate from "\.\.\/handlers\/accounts\/create\.mjs"/);
   assert.match(router, /"account-create": accountCreate/);
   assert.match(vercel, /"source": "\/api\/accounts\/create"/);

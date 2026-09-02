@@ -236,7 +236,9 @@ export default async function manageAccounts(req, res) {
   if (req.method === "OPTIONS") return sendJson(res, 204, {}, headers);
 
   try {
-    const { profile: actor } = await requireProfileOrLegacy(req, { legacyLevels: ["school"] });
+    const { profile: actor } = await requireProfileOrLegacy(req, {
+      legacyLevels: ["school", "president", "class", "grade"],
+    });
     assertAdmin(actor);
 
     if (req.method === "GET") return sendJson(res, 200, { accounts: await listAccounts(actor) }, headers);

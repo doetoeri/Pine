@@ -178,7 +178,9 @@ export default async function createAccounts(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { error: "method-not-allowed" }, headers);
 
   try {
-    const { profile: actor } = await requireProfileOrLegacy(req, { legacyLevels: ["school"] });
+    const { profile: actor } = await requireProfileOrLegacy(req, {
+      legacyLevels: ["school", "president", "class", "grade"],
+    });
     assertCreator(actor);
     const body = await jsonBody(req);
     const mode = String(body.mode || "single").toLowerCase();
