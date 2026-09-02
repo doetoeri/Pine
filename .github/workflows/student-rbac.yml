@@ -33,6 +33,7 @@ on:
       - "next/admin/class-ops-settings.js"
       - "next/admin/class-ops-settings-v2.js"
       - "next/admin/class-ops-settings.css"
+      - "next/tests/account-create-service.test.mjs"
       - "next/tests/admin-command-center-contract.test.mjs"
       - "next/tests/admin-mobile-nav-performance.test.mjs"
       - "next/tests/class-duty-manager-contract.test.mjs"
@@ -106,6 +107,8 @@ jobs:
         run: npm run test:rbac --prefix integrations/pincon-ai
       - name: Run student auth contracts
         run: node --test next/tests/student-auth-contract.test.mjs
+      - name: Run account creator parser tests
+        run: node --test next/tests/account-create-service.test.mjs
       - name: Run account creator and class duty contracts
         run: node --test next/tests/class-duty-manager-contract.test.mjs
       - name: Run personal notification security contracts
