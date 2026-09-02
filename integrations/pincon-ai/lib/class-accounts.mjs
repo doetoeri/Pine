@@ -215,7 +215,7 @@ export function isClassOperator(profile) {
 }
 
 export function isAccountAdmin(profile) {
-  return [ROLE.TEACHER, ROLE.ADMIN].some((role) => hasRole(profile, role));
+  return [ROLE.CLASS_PRESIDENT, ROLE.TEACHER, ROLE.ADMIN].some((role) => hasRole(profile, role));
 }
 
 export function canManageDepartment(profile, departmentId) {
