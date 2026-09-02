@@ -3,7 +3,7 @@ const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "í•
 const CONFIGURED_API_BASE = String(globalThis.PINCON_ACCOUNT_API_BASE || "").trim().replace(/\/$/, "");
 const API_BASES = Object.freeze(CONFIGURED_API_BASE
   ? [CONFIGURED_API_BASE]
-  : ["https://pincon-ai.vercel.app"]);
+  : ["https://pincon-ai-git-main-doeyoungkims-projects.vercel.app"]);
 const SDK = "12.16.0";
 let apiPromise;
 

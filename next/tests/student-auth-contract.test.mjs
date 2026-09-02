@@ -26,7 +26,8 @@ test("authorized API requests reuse a valid token and only force-refresh after a
 
 test("account API uses only the public production alias and supports explicit retry control", async () => {
   const auth = await source("../core/student-auth.js");
-  assert.match(auth, /https:\/\/pincon-ai\.vercel\.app/);
+  assert.match(auth, /https:\/\/pincon-ai-git-main-doeyoungkims-projects\.vercel\.app/);
+  assert.doesNotMatch(auth, /https:\/\/pincon-ai\.vercel\.app/);
   assert.doesNotMatch(auth, /https:\/\/pincon-ai-doeyoungkims-projects\.vercel\.app/);
   assert.match(auth, /pinconNetworkRetries = 1/);
   assert.match(auth, /attempt <= networkRetries/);
