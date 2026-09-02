@@ -6,19 +6,38 @@ async function source(path) {
   return readFile(new URL(path, import.meta.url), "utf8");
 }
 
-test("bulk account UI submits the whole roster through one BULK_CREATE request", async () => {
-  const bulk = await source("../admin/bulk-account-create.js");
-  const bootstrap = await source("../admin/bootstrap.js");
-  const server = await source("../../integrations/pincon-ai/handlers/accounts/manage.mjs");
+test("rebuilt account creator owns single and roster creation end to end", async () => {
+  const [ui, service, bootstrap, html, auth, server] = await Promise.all([
+    source("../admin/account-create.js"),
+    source("../admin/account-create-service.js"),
+    source("../admin/bootstrap.js"),
+    source("../admin/index.html"),
+    source("../core/student-auth.js"),
+    source("../../integrations/pincon-ai/handlers/accounts/manage.mjs"),
+  ]);
 
-  assert.match(bulk, /action:\s*"BULK_CREATE"/);
-  assert.match(bulk, /accounts:\s*parsed\.rows/);
-  assert.match(bulk, /stopImmediatePropagation\(\)/);
-  assert.match(bootstrap, /bulk-account-create\.js/);
+  assert.match(ui, /pinconAccountCreateDialog/);
+  assert.match(ui, /pinconAddUser/);
+  assert.match(ui, /pinconBulkUsers/);
+  assert.match(ui, /stopImmediatePropagation\(\)/);
+  assert.match(ui, /createOneAccount/);
+  assert.match(ui, /createRosterAccounts/);
+  assert.match(ui, /임시 PIN CSV 저장/);
+  assert.match(service, /studentNumberFromParts/);
+  assert.match(service, /partsFromStudentNumber/);
+  assert.match(service, /parseRoster/);
+  assert.match(service, /action:\s*"CREATE"/);
+  assert.match(service, /action:\s*"BULK_CREATE"/);
+  assert.match(service, /networkRetries:\s*0/);
+  assert.match(service, /ACCOUNT_CREATE_LIMIT\s*=\s*60/);
+  assert.match(bootstrap, /account-create\.js/);
+  assert.doesNotMatch(bootstrap, /bulk-account-create\.js/);
+  assert.match(html, /account-create\.css/);
+  assert.match(auth, /networkRetries\s*=\s*1/);
+  assert.match(auth, /pinconNetworkRetries/);
   assert.match(server, /BULK_ACCOUNT_LIMIT\s*=\s*60/);
   assert.match(server, /BULK_CREATE_CONCURRENCY\s*=\s*4/);
   assert.match(server, /action === "BULK_CREATE"/);
-  assert.match(server, /bulkCreateAccounts\(actor, body\)/);
   assert.match(server, /duplicate-student-number-in-request/);
   assert.match(server, /ACCOUNT_BULK_CREATE/);
 });
