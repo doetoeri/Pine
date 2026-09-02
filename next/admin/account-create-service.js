@@ -1,6 +1,7 @@
 import { accountRequest } from "../core/student-auth.js";
 
 export const ACCOUNT_CREATE_LIMIT = 60;
+const ACCOUNT_CREATE_ENDPOINT = "/api/accounts/create";
 
 export function studentNumberFromParts(grade, classNumber, number) {
   const g = Number(grade);
@@ -72,7 +73,6 @@ function looksLikeHeader(columns) {
 function rowFromColumns(columns, defaults) {
   if (!columns.length) return { account: null, error: "빈 행입니다." };
 
-  // Legacy 5-column format: 학번, 이름, 학년, 반, 번호.
   if (columns.length >= 5 && /^\d{5}$/.test(columns[0]) && /^\d+$/.test(columns[2]) && /^\d+$/.test(columns[3]) && /^\d+$/.test(columns[4])) {
     const [studentNumber, name, grade, classNumber, number] = columns;
     const account = buildStudentAccount({ studentNumber, name, grade, classNumber, number });
@@ -82,7 +82,6 @@ function rowFromColumns(columns, defaults) {
     return { account, error: mismatch || validateStudentAccount(account) };
   }
 
-  // Preferred full-number format: 10804 김도영.
   if (/^\d{5}$/.test(columns[0])) {
     const parsed = partsFromStudentNumber(columns[0]);
     const name = cleanName(columns.slice(1).join(" "));
@@ -91,7 +90,6 @@ function rowFromColumns(columns, defaults) {
     return { account, error: validateStudentAccount(account) };
   }
 
-  // Preferred class-roster format: 4 김도영.
   if (/^\d{1,2}$/.test(columns[0])) {
     const number = Number(columns[0]);
     const name = cleanName(columns.slice(1).join(" "));
@@ -99,7 +97,6 @@ function rowFromColumns(columns, defaults) {
     return { account, error: validateStudentAccount(account) };
   }
 
-  // Also accept 김도영 4.
   if (columns.length >= 2 && /^\d{1,2}$/.test(columns.at(-1))) {
     const number = Number(columns.at(-1));
     const name = cleanName(columns.slice(0, -1).join(" "));
@@ -149,9 +146,9 @@ export function parseRoster(value, { grade, classNumber } = {}) {
 export async function createOneAccount(account) {
   const error = validateStudentAccount(account);
   if (error) throw new Error(error);
-  return accountRequest("/api/accounts/manage", {
+  return accountRequest(ACCOUNT_CREATE_ENDPOINT, {
     method: "POST",
-    body: { action: "CREATE", account },
+    body: { mode: "single", account },
     networkRetries: 0,
   });
 }
@@ -159,9 +156,9 @@ export async function createOneAccount(account) {
 export async function createRosterAccounts(accounts) {
   if (!Array.isArray(accounts) || !accounts.length) throw new Error("추가할 학생이 없습니다.");
   if (accounts.length > ACCOUNT_CREATE_LIMIT) throw new Error(`한 번에 최대 ${ACCOUNT_CREATE_LIMIT}명까지 추가할 수 있습니다.`);
-  return accountRequest("/api/accounts/manage", {
+  return accountRequest(ACCOUNT_CREATE_ENDPOINT, {
     method: "POST",
-    body: { action: "BULK_CREATE", accounts },
+    body: { mode: "bulk", accounts },
     networkRetries: 0,
   });
 }
