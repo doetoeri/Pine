@@ -91,6 +91,7 @@ jobs:
           next/tests/evaluation-plan-media.test.mjs
           next/tests/daily-brief-image.test.mjs
           next/tests/student-auth-contract.test.mjs
+          next/tests/account-create-service.test.mjs
           next/tests/class-duty-manager-contract.test.mjs
 
   firestore-rules:
