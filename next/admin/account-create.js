@@ -6,7 +6,7 @@ import {
   parseRoster,
   studentNumberFromParts,
   validateStudentAccount,
-} from "./account-create-service.js";
+} from "./account-create-service.js?v=20260902-account5";
 
 let changed = false;
 let activeDialog = null;
