@@ -63,7 +63,8 @@ jobs:
             next/admin/evaluation-plan-media.js \
             next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
-            next/admin/bulk-account-create.js \
+            next/admin/account-create-service.js \
+            next/admin/account-create.js \
             next/admin/class-duty-manager.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
