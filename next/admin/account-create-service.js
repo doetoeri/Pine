@@ -72,6 +72,17 @@ function looksLikeHeader(columns) {
 function rowFromColumns(columns, defaults) {
   if (!columns.length) return { account: null, error: "빈 행입니다." };
 
+  // Legacy 5-column format: 학번, 이름, 학년, 반, 번호.
+  if (columns.length >= 5 && /^\d{5}$/.test(columns[0]) && /^\d+$/.test(columns[2]) && /^\d+$/.test(columns[3]) && /^\d+$/.test(columns[4])) {
+    const [studentNumber, name, grade, classNumber, number] = columns;
+    const account = buildStudentAccount({ studentNumber, name, grade, classNumber, number });
+    const mismatch = studentNumberFromParts(Number(grade), Number(classNumber), Number(number)) !== studentNumber
+      ? "학번과 학년·반·번호가 일치하지 않습니다."
+      : "";
+    return { account, error: mismatch || validateStudentAccount(account) };
+  }
+
+  // Preferred full-number format: 10804 김도영.
   if (/^\d{5}$/.test(columns[0])) {
     const parsed = partsFromStudentNumber(columns[0]);
     const name = cleanName(columns.slice(1).join(" "));
@@ -80,6 +91,7 @@ function rowFromColumns(columns, defaults) {
     return { account, error: validateStudentAccount(account) };
   }
 
+  // Preferred class-roster format: 4 김도영.
   if (/^\d{1,2}$/.test(columns[0])) {
     const number = Number(columns[0]);
     const name = cleanName(columns.slice(1).join(" "));
@@ -87,16 +99,11 @@ function rowFromColumns(columns, defaults) {
     return { account, error: validateStudentAccount(account) };
   }
 
+  // Also accept 김도영 4.
   if (columns.length >= 2 && /^\d{1,2}$/.test(columns.at(-1))) {
     const number = Number(columns.at(-1));
     const name = cleanName(columns.slice(0, -1).join(" "));
     const account = buildStudentAccount({ ...defaults, number, name });
-    return { account, error: validateStudentAccount(account) };
-  }
-
-  if (columns.length >= 5 && /^\d{5}$/.test(columns[0])) {
-    const [studentNumber, name, grade, classNumber, number] = columns;
-    const account = buildStudentAccount({ studentNumber, name, grade, classNumber, number });
     return { account, error: validateStudentAccount(account) };
   }
 
