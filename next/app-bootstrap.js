@@ -1,4 +1,5 @@
-import { accountReady } from "./account-gate.js?v=20260903-identity2";
+// Legacy rollback module: ./account-gate.js?v=20260903-identity2
+import { accountReady } from "./simple-account-gate.js?v=20260903-simple1";
 
 await accountReady;
 await import("./route-focus-stability.js?v=20260903-route2");
