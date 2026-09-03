@@ -75,17 +75,24 @@ test("first login forces a PIN change without an old PIN lookup path", async () 
   assert.doesNotMatch(`${gate}\n${auth}`, /기존 PIN 확인|currentPin|oldPin/i);
 });
 
-test("first login can claim a backed-up roster identity without a temporary PIN", async () => {
+test("first login claims a staged identity with a one-time activation code", async () => {
   const gate = await source("../account-gate.js");
   const auth = await source("../core/student-auth.js");
-  assert.match(gate, /첫 로그인 · PIN 없이 시작/);
+  const claim = await source("../../integrations/pincon-ai/handlers/accounts/claim.mjs");
+  const create = await source("../../integrations/pincon-ai/handlers/accounts/create.mjs");
+  assert.match(gate, /첫 로그인 · 활성화 코드 사용/);
   assert.match(gate, /pinconClaimStudentNumber/);
-  assert.match(gate, /pinconClaimName/);
+  assert.match(gate, /pinconClaimActivationCode/);
   assert.match(gate, /claimStudentAccount/);
   assert.match(auth, /\/api\/accounts\/claim/);
+  assert.match(auth, /activationCode/);
   assert.match(auth, /signInWithCustomToken/);
   assert.match(auth, /mustChangePin !== true/);
-  assert.doesNotMatch(auth, /localStorage[^\n]*(?:customToken|pin|password)/i);
+  assert.match(create, /activationDigest/);
+  assert.doesNotMatch(create, /temporaryPin/);
+  assert.match(claim, /verifyActivationCode/);
+  assert.match(claim, /activationDigest: ""/);
+  assert.doesNotMatch(auth, /localStorage[^\n]*(?:customToken|pin|password|activationCode)/i);
 });
 
 test("legacy Google administrators retain a migration login path", async () => {
@@ -111,8 +118,8 @@ test("application modules boot only after the account gate resolves", async () =
   const html = await source("../index.html");
   assert.match(bootstrap, /await accountReady/);
   assert.match(bootstrap, /await import\("\.\/app\.js\?v=20260830-interaction1"\)/);
-  assert.match(bootstrap, /account-gate\.js\?v=20260903-pinless1/);
-  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-pinless1"/);
+  assert.match(bootstrap, /account-gate\.js\?v=20260903-identity2/);
+  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-identity2"/);
   assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
