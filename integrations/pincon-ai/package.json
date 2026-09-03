@@ -9,7 +9,7 @@
   "scripts": {
     "test:compat": "node scripts/compat-smoke.mjs",
     "test:gemini": "node scripts/gemini-remote-mcp.mjs",
-    "test:rbac": "node --test tests/class-accounts.test.mjs",
+    "test:rbac": "node --test tests/class-accounts.test.mjs tests/account-activation.test.mjs",
     "migrate:accounts": "node scripts/migrate-class-accounts.mjs"
   },
   "dependencies": {
