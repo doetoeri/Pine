@@ -8,7 +8,7 @@ import {
   signInStudent,
   signOutStudent,
   studentSession,
-} from "./core/student-auth.js?v=20260903-pinreauth1";
+} from "./core/server-pin-auth.js?v=20260903-serverpin1";
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
@@ -234,8 +234,8 @@ function loginScreen(message = "") {
       syncClass(result.account);
       if (result.account.mustChangePin) pinSetupScreen(result);
       else complete({ mode: "student", ...result });
-    } catch {
-      setError(root, "학번과 PIN 또는 활성화 코드를 다시 확인해주세요.");
+    } catch (error) {
+      setError(root, error?.message || "학번과 PIN 또는 활성화 코드를 다시 확인해주세요.");
       credentialField.value = "";
       credentialField.focus?.();
       form.dataset.busy = "0";
