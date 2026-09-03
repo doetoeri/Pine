@@ -19,8 +19,13 @@ import { jsonBody, sendJson } from "../../lib/request.mjs";
 
 const usersCollection = () => firestore().collection(`schools/${SCHOOL_ID}/users`);
 const userDocument = (uid) => firestore().doc(`schools/${SCHOOL_ID}/users/${uid}`);
+const registrationDocument = (studentNumber) => firestore().doc(`schools/${SCHOOL_ID}/accountRegistrationRoster/${studentNumber}`);
+const backupDocument = (backupId) => firestore().doc(`schools/${SCHOOL_ID}/accountDeletionBackups/${backupId}`);
 const BULK_ACCOUNT_LIMIT = 60;
 const BULK_CREATE_CONCURRENCY = 4;
+const DELETE_CONFIRMATION = "DELETE_NON_ADMIN_ACCOUNTS";
+const PRIVILEGED_ROLES = new Set([ROLE.ADMIN, ROLE.TEACHER, ROLE.CLASS_PRESIDENT]);
+const PRIVILEGED_LEGACY_LEVELS = new Set(["school", "president", "class", "grade"]);
 
 async function findByStudentNumber(studentNumber) {
   const snapshot = await usersCollection()
@@ -218,6 +223,165 @@ async function resetPin(actor, body) {
   return { account: publicProfile(after), temporaryPin };
 }
 
+function isPrivilegedAccount(profile) {
+  return Array.isArray(profile?.roles) && profile.roles.some((role) => PRIVILEGED_ROLES.has(role));
+}
+
+function isPrivilegedLegacyRole(role) {
+  return role?.enabled === true && PRIVILEGED_LEGACY_LEVELS.has(String(role.level || "").toLowerCase());
+}
+
+async function scopedProfiles(actor) {
+  const query = hasRole(actor, ROLE.ADMIN)
+    ? usersCollection().limit(1500)
+    : usersCollection().where("classKey", "==", actor.classKey).limit(80);
+  const snapshot = await query.get();
+  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+}
+
+async function backupAndDeleteNonAdmins(actor, body) {
+  if (body.confirmation !== DELETE_CONFIRMATION) {
+    throw Object.assign(new Error("account-delete-confirmation-required"), { status: 400 });
+  }
+
+  const candidates = (await scopedProfiles(actor))
+    .filter((profile) => profile.uid && profile.uid !== actor.uid && profile.studentNumber && !isPrivilegedAccount(profile));
+  const backupId = `${Date.now()}-${actor.classKey || "school"}`.replace(/[^a-zA-Z0-9-]/g, "-");
+  const manifestRef = backupDocument(backupId);
+  const createdAtMs = Date.now();
+
+  await manifestRef.set({
+    schemaVersion: 1,
+    schoolId: SCHOOL_ID,
+    classKey: hasRole(actor, ROLE.ADMIN) ? "" : actor.classKey,
+    scope: hasRole(actor, ROLE.ADMIN) ? "SCHOOL" : "CLASS",
+    status: "IN_PROGRESS",
+    requestedCount: candidates.length,
+    actorUid: actor.uid,
+    actorName: actor.name || "",
+    createdAtMs,
+    updatedAtMs: createdAtMs,
+  });
+
+  for (const profile of candidates) {
+    const safeProfile = publicProfile(profile);
+    const batch = firestore().batch();
+    batch.set(manifestRef.collection("users").doc(profile.uid), {
+      profile: safeProfile,
+      sourceUid: profile.uid,
+      deletionStatus: "BACKED_UP",
+      createdAtMs,
+    });
+    batch.set(registrationDocument(profile.studentNumber), {
+      schemaVersion: 1,
+      schoolId: SCHOOL_ID,
+      studentNumber: profile.studentNumber,
+      normalizedName: String(profile.name || "").normalize("NFKC").replace(/\s+/g, "").toLocaleLowerCase("ko"),
+      profile: { ...safeProfile, uid: "" },
+      claimStatus: "PENDING_DELETE",
+      sourceBackupId: backupId,
+      sourceUid: profile.uid,
+      createdAtMs,
+      updatedAtMs: createdAtMs,
+    });
+    await batch.commit();
+  }
+
+  const deleted = [];
+  const failed = [];
+  const preserved = [];
+  let cursor = 0;
+  const worker = async () => {
+    while (true) {
+      const index = cursor;
+      cursor += 1;
+      if (index >= candidates.length) return;
+      const profile = candidates[index];
+      const backupUserRef = manifestRef.collection("users").doc(profile.uid);
+      try {
+        const roleRef = firestore().doc(`schools/${SCHOOL_ID}/roles/${profile.uid}`);
+        const roleSnapshot = await roleRef.get();
+        if (roleSnapshot.exists && isPrivilegedLegacyRole(roleSnapshot.data())) {
+          preserved.push(profile.uid);
+          await Promise.all([
+            backupUserRef.set({ deletionStatus: "PRESERVED_PRIVILEGED_ROLE", updatedAtMs: Date.now() }, { merge: true }),
+            registrationDocument(profile.studentNumber).delete(),
+          ]);
+          continue;
+        }
+
+        let authUser = null;
+        try {
+          authUser = await firebaseAuth().getUser(profile.uid);
+        } catch (error) {
+          if (error?.code !== "auth/user-not-found") throw error;
+        }
+        if (authUser?.email && !/@students\.pincon\.invalid$/i.test(authUser.email)) {
+          preserved.push(profile.uid);
+          await Promise.all([
+            backupUserRef.set({ deletionStatus: "PRESERVED_NON_STUDENT_AUTH", updatedAtMs: Date.now() }, { merge: true }),
+            registrationDocument(profile.studentNumber).delete(),
+          ]);
+          continue;
+        }
+        if (authUser) await firebaseAuth().deleteUser(profile.uid);
+
+        const batch = firestore().batch();
+        batch.delete(userDocument(profile.uid));
+        if (roleSnapshot.exists && roleSnapshot.data()?.managedByAccountSystem === true) batch.delete(roleRef);
+        batch.set(registrationDocument(profile.studentNumber), {
+          claimStatus: "READY",
+          deletedAtMs: Date.now(),
+          updatedAtMs: Date.now(),
+        }, { merge: true });
+        batch.set(backupUserRef, {
+          deletionStatus: "DELETED",
+          deletedAtMs: Date.now(),
+        }, { merge: true });
+        await batch.commit();
+        deleted.push(profile.uid);
+      } catch (error) {
+        failed.push({ uid: profile.uid, error: String(error?.code || error?.message || "account-delete-failed") });
+        await Promise.all([
+          backupUserRef.set({ deletionStatus: "FAILED", error: String(error?.code || error?.message || "account-delete-failed"), updatedAtMs: Date.now() }, { merge: true }),
+          registrationDocument(profile.studentNumber).set({ claimStatus: "DELETE_FAILED", updatedAtMs: Date.now() }, { merge: true }),
+        ]).catch(() => {});
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(4, Math.max(1, candidates.length)) }, () => worker()));
+
+  const completedAtMs = Date.now();
+  await manifestRef.set({
+    status: failed.length ? "PARTIAL" : "COMPLETED",
+    deletedCount: deleted.length,
+    failedCount: failed.length,
+    preservedCount: preserved.length,
+    updatedAtMs: completedAtMs,
+    completedAtMs,
+  }, { merge: true });
+  await appendAccountAudit({
+    actor,
+    action: "NON_ADMIN_ACCOUNTS_DELETE",
+    targetUid: actor.uid,
+    metadata: {
+      backupId,
+      requested: String(candidates.length),
+      deleted: String(deleted.length),
+      failed: String(failed.length),
+      preserved: String(preserved.length),
+    },
+  });
+  return {
+    backupId,
+    scope: hasRole(actor, ROLE.ADMIN) ? "SCHOOL" : actor.classKey,
+    requested: candidates.length,
+    deleted: deleted.length,
+    failed,
+    preserved: preserved.length,
+  };
+}
+
 async function listAccounts(actor) {
   // School admins may manage every class, so cover the full 3-grade × 10-class population.
   // Class-scoped teachers only read their class to avoid paying for a school-wide scan.
@@ -252,6 +416,7 @@ export default async function manageAccounts(req, res) {
     else if (action === "UPDATE") result = await updateAccount(actor, body);
     else if (action === "DISABLE") result = await disableAccount(actor, body);
     else if (action === "RESET_PIN") result = await resetPin(actor, body);
+    else if (action === "DELETE_NON_ADMINS") result = await backupAndDeleteNonAdmins(actor, body);
     else throw Object.assign(new Error("unsupported-action"), { status: 400 });
 
     return sendJson(res, 200, result, headers);

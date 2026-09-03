@@ -1,12 +1,13 @@
 import { saveClassProfile } from "./core/data-gateway.js";
 import {
   changeStudentPin,
+  claimStudentAccount,
   currentFirebaseUser,
   isStudentFirebaseUser,
   signInStudent,
   signOutStudent,
   studentSession,
-} from "./core/student-auth.js";
+} from "./core/student-auth.js?v=20260903-pinless1";
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
@@ -118,6 +119,66 @@ async function signInLegacyAdmin(root) {
   }
 }
 
+function claimScreen() {
+  const root = ensureGate();
+  root.innerHTML = shell(`<section class="pincon-account-panel" aria-labelledby="pincon-claim-title">
+    <div class="pincon-account-panel__heading"><span>첫 로그인</span><h2 id="pincon-claim-title">PIN 없이 처음 시작해요.</h2><p>관리자가 등록한 명단과 학번·이름을 확인한 뒤 내 PIN을 직접 정합니다.</p></div>
+    <form class="pincon-account-form" id="pinconStudentClaim" novalidate>
+      <md-outlined-text-field id="pinconClaimStudentNumber" label="학번" inputmode="numeric" autocomplete="username" maxlength="5" supporting-text="예: 10804" required></md-outlined-text-field>
+      <md-outlined-text-field id="pinconClaimName" label="이름" autocomplete="name" maxlength="30" required></md-outlined-text-field>
+      <label class="pincon-account-remember"><md-checkbox id="pinconClaimRemember"></md-checkbox><span><strong>이 기기에서 로그인 유지</strong><small>개인 기기에서만 선택하세요.</small></span></label>
+      <div class="pincon-account-error" data-account-error role="alert" aria-live="polite" hidden></div>
+      <md-linear-progress id="pinconAccountProgress" indeterminate hidden></md-linear-progress>
+      <span id="pinconAccountBusyText" class="pincon-account-sr" aria-live="polite"></span>
+      <md-filled-button id="pinconClaimButton" type="submit" disabled aria-disabled="true"><md-icon slot="icon">person_check</md-icon>명단 확인하고 시작</md-filled-button>
+    </form>
+    <div class="pincon-account-help"><button type="button" id="pinconBackToLogin"><md-icon>arrow_back</md-icon><span><strong>이미 PIN을 만들었나요?</strong><small>학번과 PIN으로 로그인하세요.</small></span><md-icon aria-hidden="true">chevron_right</md-icon></button></div>
+  </section>`, { step: "signin" });
+
+  const form = root.querySelector("#pinconStudentClaim");
+  const numberField = root.querySelector("#pinconClaimStudentNumber");
+  const nameField = root.querySelector("#pinconClaimName");
+  const claimButton = root.querySelector("#pinconClaimButton");
+  const syncButton = () => {
+    const ready = /^\d{5}$/.test(fieldValue(root, "#pinconClaimStudentNumber"))
+      && Boolean(fieldValue(root, "#pinconClaimName"));
+    claimButton.disabled = !ready;
+    claimButton.setAttribute("aria-disabled", String(!ready));
+  };
+  form.addEventListener("input", () => { setError(root, ""); syncButton(); });
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (form.dataset.busy === "1") return;
+    const studentNumber = fieldValue(root, "#pinconClaimStudentNumber");
+    const name = fieldValue(root, "#pinconClaimName");
+    if (!/^\d{5}$/.test(studentNumber) || !name) {
+      setError(root, "학번 5자리와 이름을 입력해주세요.");
+      (!/^\d{5}$/.test(studentNumber) ? numberField : nameField).focus?.();
+      return;
+    }
+    form.dataset.busy = "1";
+    setBusy(root, true, "등록 명단을 확인하는 중");
+    setError(root, "");
+    try {
+      const result = await claimStudentAccount({
+        studentNumber,
+        name,
+        remember: root.querySelector("#pinconClaimRemember")?.checked !== false,
+      });
+      syncClass(result.account);
+      firstLoginScreen(result);
+    } catch {
+      setError(root, "등록 대기 명단에서 학번과 이름을 확인하지 못했습니다. 관리자에게 명단 등록 여부를 확인해주세요.");
+      form.dataset.busy = "0";
+      setBusy(root, false);
+    }
+  });
+  root.querySelector("#pinconBackToLogin")?.addEventListener("click", () => loginScreen());
+  requestAnimationFrame(() => numberField?.focus?.());
+  syncButton();
+  releaseLoaderWhenGateIsReady();
+}
+
 function loginScreen(message = "") {
   const root = ensureGate();
   root.innerHTML = shell(`<section class="pincon-account-panel" aria-labelledby="pincon-login-title">
@@ -132,6 +193,7 @@ function loginScreen(message = "") {
       <md-filled-button id="pinconLoginButton" type="submit" disabled aria-disabled="true"><md-icon slot="icon">login</md-icon>내 PinCon 열기</md-filled-button>
     </form>
     <div class="pincon-account-help">
+      <button type="button" id="pinconFirstClaim"><md-icon>person_add</md-icon><span><strong>첫 로그인 · PIN 없이 시작</strong><small>학번과 이름으로 명단을 확인하고 내 PIN을 정하세요.</small></span><md-icon aria-hidden="true">chevron_right</md-icon></button>
       <button type="button" id="pinconForgotPin"><md-icon>help</md-icon><span><strong>PIN 재발급 안내 보기</strong><small>담임 선생님 또는 관리자에게 임시 PIN 재발급을 요청하세요.</small></span><md-icon aria-hidden="true">chevron_right</md-icon></button>
     </div>
     <div class="pincon-account-divider"><span>관리자</span></div>
@@ -195,6 +257,7 @@ function loginScreen(message = "") {
   root.querySelector("#pinconForgotPin")?.addEventListener("click", () => {
     setError(root, "PIN은 관리자만 재발급할 수 있습니다. 담임 선생님 또는 PinCon 관리자에게 학번을 알려주세요.");
   });
+  root.querySelector("#pinconFirstClaim")?.addEventListener("click", claimScreen);
   root.querySelector("#pinconAdminLogin")?.addEventListener("click", () => signInLegacyAdmin(root));
   requestAnimationFrame(() => numberField?.focus?.());
   syncLoginButton();
@@ -205,7 +268,7 @@ function firstLoginScreen(session) {
   const account = session.account;
   const root = ensureGate();
   root.innerHTML = shell(`<section class="pincon-account-panel" aria-labelledby="pincon-start-title">
-    <div class="pincon-account-panel__heading"><span>보안 설정</span><h2 id="pincon-start-title">이제 내 PIN을 정하세요.</h2><p>임시 PIN은 여기서 끝입니다. 앞으로 사용할 숫자 PIN을 새로 만듭니다.</p></div>
+    <div class="pincon-account-panel__heading"><span>보안 설정</span><h2 id="pincon-start-title">이제 내 PIN을 정하세요.</h2><p>명단 확인을 마쳤습니다. 앞으로 사용할 숫자 PIN을 새로 만듭니다.</p></div>
     <div class="pincon-account-person">
       <span class="pincon-account-person__avatar">${escapeHtml(String(account.name || "학").slice(0, 1))}</span>
       <div><strong>${escapeHtml(account.name || "학생")}</strong><span>${account.grade}학년 ${account.classNumber}반 ${account.number}번</span><small>학번 ${escapeHtml(account.studentNumber)}</small></div>
@@ -224,7 +287,7 @@ function firstLoginScreen(session) {
   </section>`, {
     step: "setup",
     title: "내 계정을 완성하는 마지막 단계.",
-    support: "임시 PIN을 버리고, 나만 아는 PIN으로 바꾸면 개인화된 PinCon이 열립니다.",
+    support: "첫 로그인에서는 PIN이 필요하지 않습니다. 지금 나만 아는 PIN을 만들면 개인화된 PinCon이 열립니다.",
   });
 
   const form = root.querySelector("#pinconFirstLoginForm");

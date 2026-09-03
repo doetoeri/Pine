@@ -33,8 +33,38 @@ test("account directory supports search, filters, provisioning, security actions
     "status: \"ACTIVE\"",
     "parseBulkRows",
     "temporaryPin",
+    "pinconDeleteNonAdmins",
+    "DELETE_NON_ADMINS",
+    "DELETE_NON_ADMIN_ACCOUNTS",
+    "pincon-account-backup-",
   ]) assert.ok(source.includes(contract), `missing account-directory contract: ${contract}`);
   assert.equal(/localStorage[^\n]*(pin|password|temporary)/i.test(source), false, "PIN/password material must not be stored in localStorage");
+});
+
+test("non-admin account deletion is scoped, backed up, and feeds PIN-less registration", async () => {
+  const [manager, claim, router, vercel] = await Promise.all([
+    read("integrations/pincon-ai/handlers/accounts/manage.mjs"),
+    read("integrations/pincon-ai/handlers/accounts/claim.mjs"),
+    read("integrations/pincon-ai/api/class-ops-router.mjs"),
+    read("integrations/pincon-ai/vercel.json"),
+  ]);
+  assert.match(manager, /accountDeletionBackups/);
+  assert.match(manager, /accountRegistrationRoster/);
+  assert.match(manager, /PRIVILEGED_ROLES/);
+  assert.match(manager, /ROLE\.ADMIN, ROLE\.TEACHER, ROLE\.CLASS_PRESIDENT/);
+  assert.match(manager, /profile\.uid !== actor\.uid/);
+  assert.match(manager, /PRESERVED_PRIVILEGED_ROLE/);
+  assert.match(manager, /"school", "president", "class", "grade"/);
+  assert.match(manager, /where\("classKey", "==", actor\.classKey\)/);
+  assert.match(manager, /body\.confirmation !== DELETE_CONFIRMATION/);
+  assert.match(manager, /claimStatus: "READY"/);
+  assert.match(claim, /registration\.normalizedName !== normalizeClaimName\(name\)/);
+  assert.match(claim, /claimStatus: "CLAIMED"/);
+  assert.match(claim, /createCustomToken/);
+  assert.match(claim, /mustChangePin: true/);
+  assert.match(router, /"account-claim": accountClaim/);
+  assert.match(vercel, /\/api\/accounts\/claim/);
+  assert.doesNotMatch(claim, /requireProfile|temporaryPin/);
 });
 
 test("user and access management are one canonical RBAC surface", async () => {

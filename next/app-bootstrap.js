@@ -1,4 +1,4 @@
-import { accountReady } from "./account-gate.js?v=20260830-interaction1";
+import { accountReady } from "./account-gate.js?v=20260903-pinless1";
 
 await accountReady;
 await import("./core/evaluation-plan-media.js?v=20260831-media2");
