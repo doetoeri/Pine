@@ -39,6 +39,10 @@
       "destination": "/api/class-ops-router?route=account-claim"
     },
     {
+      "source": "/api/accounts/reset",
+      "destination": "/api/class-ops-router?route=account-reset"
+    },
+    {
       "source": "/api/accounts/manage",
       "destination": "/api/class-ops-router?route=account-manage"
     },
