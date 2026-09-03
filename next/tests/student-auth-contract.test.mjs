@@ -116,10 +116,15 @@ test("student account center owns profile security and logout", async () => {
 test("application modules boot only after the account gate resolves", async () => {
   const bootstrap = await source("../app-bootstrap.js");
   const html = await source("../index.html");
-  assert.match(bootstrap, /await accountReady/);
-  assert.match(bootstrap, /await import\("\.\/app\.js\?v=20260830-interaction1"\)/);
+  const accountReadyIndex = bootstrap.indexOf("await accountReady");
+  const routeRecoveryIndex = bootstrap.indexOf('await import("./route-focus-stability.js?v=20260903-route2")');
+  const appIndex = bootstrap.indexOf('await import("./app.js?v=20260830-interaction1")');
+
+  assert.ok(accountReadyIndex >= 0);
+  assert.ok(routeRecoveryIndex > accountReadyIndex, "route recovery must arm after authentication resolves");
+  assert.ok(appIndex > routeRecoveryIndex, "route recovery must arm before the app can render clickable navigation");
   assert.match(bootstrap, /account-gate\.js\?v=20260903-identity2/);
-  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-identity2"/);
+  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-route2"/);
   assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
