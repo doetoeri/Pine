@@ -46,6 +46,7 @@ jobs:
             next/app-bootstrap.js \
             next/detail-history-stability.js \
             next/dialog-focus-stability.js \
+            next/route-focus-stability.js \
             next/reveal-loader.js \
             next/write-mode.js \
             next/admin-visibility.js \
