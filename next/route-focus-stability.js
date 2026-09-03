@@ -61,7 +61,7 @@ function stabilizeRouteFocus(route) {
   if (appRoot) {
     observer = new MutationObserver(() => queueMicrotask(apply));
     observer.observe(appRoot, { childList: true, subtree: true });
-    window.setTimeout(() => observer?.disconnect(), 400);
+    window.setTimeout(() => observer?.disconnect(), 600);
   }
 }
 
@@ -85,11 +85,11 @@ function scheduleRouteRecovery(intent) {
     if (intent.token !== routeIntentSequence) return;
     recoverRoute(intent.route);
   };
-  // app.js owns the normal activation. These delayed checks only repair the
-  // WebKit case where a background rerender replaces the Material button while
-  // the press is in flight and the browser therefore drops the click event.
-  window.setTimeout(apply, 0);
-  window.setTimeout(apply, 80);
+  // app.js owns the normal activation. These delayed checks repair the WebKit
+  // case where a background render replaces a Material route control while a
+  // pointer press is in flight. The wider window also covers slower tablet
+  // layouts without overriding a newer route intent because the token changes.
+  [0, 80, 220, 500].forEach((delay) => window.setTimeout(apply, delay));
 }
 
 document.addEventListener("pointerdown", (event) => {
