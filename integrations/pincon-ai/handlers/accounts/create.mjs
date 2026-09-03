@@ -1,5 +1,4 @@
-import { randomInt } from "node:crypto";
-import { firebaseAuth, firestore } from "../../lib/firebase.mjs";
+import { firestore } from "../../lib/firebase.mjs";
 import {
   SCHOOL_ID,
   appendAccountAudit,
@@ -9,15 +8,14 @@ import {
   normalizeProfile,
   publicProfile,
   requireProfileOrLegacy,
-  studentEmail,
-  syncCompatibilityRole,
 } from "../../lib/class-accounts.mjs";
+import { generateActivationCode, hashActivationCode } from "../../lib/account-activation.mjs";
 import { jsonBody, sendJson } from "../../lib/request.mjs";
 
 const ACCOUNT_LIMIT = 60;
 const BULK_CONCURRENCY = 4;
 const usersCollection = () => firestore().collection(`schools/${SCHOOL_ID}/users`);
-const userDocument = (uid) => firestore().doc(`schools/${SCHOOL_ID}/users/${uid}`);
+const registrationDocument = (studentNumber) => firestore().doc(`schools/${SCHOOL_ID}/accountRegistrationRoster/${studentNumber}`);
 
 function assertCreator(actor) {
   if (!isAccountAdmin(actor)) throw Object.assign(new Error("account-admin-required"), { status: 403 });
@@ -33,10 +31,6 @@ async function findByStudentNumber(studentNumber) {
   return { id: doc.id, ...doc.data() };
 }
 
-function temporaryPin() {
-  return String(randomInt(100000, 1000000));
-}
-
 function normalizeCandidate(actor, input) {
   const candidate = normalizeProfile({
     ...(input || {}),
@@ -49,53 +43,48 @@ function normalizeCandidate(actor, input) {
   return candidate;
 }
 
-async function createStudent(actor, input) {
+async function stageStudent(actor, input) {
   const candidate = normalizeCandidate(actor, input);
-  const duplicate = await findByStudentNumber(candidate.studentNumber);
-  if (duplicate) throw Object.assign(new Error("student-number-exists"), { status: 409 });
+  const existingUser = await findByStudentNumber(candidate.studentNumber);
+  if (existingUser) throw Object.assign(new Error("student-number-exists"), { status: 409 });
 
-  const pin = temporaryPin();
-  let authUser = null;
-  try {
-    authUser = await firebaseAuth().createUser({
-      email: studentEmail(candidate.studentNumber),
-      password: pin,
-      displayName: candidate.name || candidate.studentNumber,
-      disabled: false,
-      emailVerified: false,
-    });
-  } catch (error) {
-    if (error?.code === "auth/email-already-exists") {
-      throw Object.assign(new Error("student-number-exists"), { status: 409 });
-    }
-    throw error;
+  const ref = registrationDocument(candidate.studentNumber);
+  const current = await ref.get();
+  if (current.exists && current.data()?.claimStatus === "CLAIMED") {
+    throw Object.assign(new Error("student-number-exists"), { status: 409 });
   }
 
-  const account = normalizeProfile(candidate, { uid: authUser.uid });
+  const activationCode = generateActivationCode();
+  const activation = hashActivationCode(activationCode);
   const now = Date.now();
-  try {
-    await userDocument(authUser.uid).create({
-      ...account,
-      createdAtMs: now,
-      updatedAtMs: now,
-      createdByUid: actor.uid,
-      updatedByUid: actor.uid,
-    });
-  } catch (error) {
-    await firebaseAuth().deleteUser(authUser.uid).catch(() => {});
-    throw error;
-  }
+  await ref.set({
+    schemaVersion: 2,
+    schoolId: SCHOOL_ID,
+    studentNumber: candidate.studentNumber,
+    normalizedName: String(candidate.name || "").normalize("NFKC").trim().replace(/\s+/g, "").toLocaleLowerCase("ko"),
+    profile: candidate,
+    claimStatus: "READY",
+    activationSalt: activation.salt,
+    activationDigest: activation.digest,
+    activationVersion: 1,
+    claimNonce: "",
+    claimLeaseUntilMs: 0,
+    existingUid: "",
+    createdAtMs: current.exists ? Number(current.data()?.createdAtMs || now) : now,
+    createdByUid: current.exists ? String(current.data()?.createdByUid || actor.uid) : actor.uid,
+    updatedAtMs: now,
+    updatedByUid: actor.uid,
+  }, { merge: false });
 
-  await syncCompatibilityRole(account, actor.uid);
   await appendAccountAudit({
     actor,
-    action: "ACCOUNT_CREATE_V2",
-    targetUid: account.uid,
-    after: account,
-    metadata: { secretStored: "false", endpoint: "account-create" },
+    action: current.exists ? "ACCOUNT_ACTIVATION_REISSUE_V2" : "ACCOUNT_REGISTRATION_CREATE_V2",
+    targetUid: candidate.studentNumber,
+    after: candidate,
+    metadata: { secretStored: "hashed", endpoint: "account-create", state: "READY" },
   });
 
-  return { account: publicProfile(account), temporaryPin: pin };
+  return { account: publicProfile(candidate), activationCode };
 }
 
 function publicBulkError(error) {
@@ -110,7 +99,7 @@ function publicBulkError(error) {
   return "account-create-failed";
 }
 
-async function createRoster(actor, input) {
+async function stageRoster(actor, input) {
   if (!Array.isArray(input) || !input.length) {
     throw Object.assign(new Error("bulk-accounts-required"), { status: 400 });
   }
@@ -144,7 +133,7 @@ async function createRoster(actor, input) {
         continue;
       }
       try {
-        const created = await createStudent(actor, row.candidate);
+        const created = await stageStudent(actor, row.candidate);
         output[position] = { ok: true, ...created };
       } catch (error) {
         output[position] = { ok: false, studentNumber, name, error: publicBulkError(error) };
@@ -158,13 +147,13 @@ async function createRoster(actor, input) {
 
   await appendAccountAudit({
     actor,
-    action: "ACCOUNT_BULK_CREATE_V2",
+    action: "ACCOUNT_BULK_REGISTRATION_V2",
     targetUid: actor.uid,
     metadata: {
       requested: String(prepared.length),
       created: String(created.length),
       failed: String(failed.length),
-      secretsStored: "false",
+      secretsStored: "hashed",
       endpoint: "account-create",
     },
   });
@@ -186,10 +175,10 @@ export default async function createAccounts(req, res) {
     const mode = String(body.mode || "single").toLowerCase();
 
     if (mode === "single") {
-      return sendJson(res, 200, await createStudent(actor, body.account || {}), headers);
+      return sendJson(res, 200, await stageStudent(actor, body.account || {}), headers);
     }
     if (mode === "bulk") {
-      return sendJson(res, 200, await createRoster(actor, body.accounts || []), headers);
+      return sendJson(res, 200, await stageRoster(actor, body.accounts || []), headers);
     }
     return sendJson(res, 400, { error: "unsupported-create-mode" }, headers);
   } catch (error) {
