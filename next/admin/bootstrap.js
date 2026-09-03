@@ -22,6 +22,7 @@ if (!snapshot.canArchiveContent) {
   await import("./problem-bank-guide.js");
   await import("./user-manager.js?v=20260903-pinless1");
   await import("./account-create-v2.js?v=20260903-identity2");
+  await import("./account-security-v2.js?v=20260903-identity2");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
   await import("./class-duty-manager.js?v=20260901-duty1");
