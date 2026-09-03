@@ -26,6 +26,14 @@ export function validStudentNumber(value) {
   return /^\d{5}$/.test(String(value || "").trim());
 }
 
+export function normalizeActivationCode(value) {
+  return String(value || "")
+    .normalize("NFKC")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 8);
+}
+
 export function studentEmail(studentNumber) {
   const value = String(studentNumber || "").trim();
   if (!validStudentNumber(value)) throw new Error("학번을 다시 확인해주세요.");
@@ -95,8 +103,6 @@ async function authorizedFetch(path, options = {}) {
     });
   };
 
-  // Firebase already refreshes an expired token when getIdToken(false) is used.
-  // Only force-refresh after a real 401 response.
   let response = await request(false);
   if (response.status === 401) response = await request(true);
 
@@ -147,18 +153,19 @@ export async function signInStudent({ studentNumber, pin, remember = true } = {}
   }
 }
 
-export async function claimStudentAccount({ studentNumber, name, remember = true } = {}) {
+export async function claimStudentAccount({ studentNumber, activationCode, remember = true } = {}) {
   const number = String(studentNumber || "").trim();
-  const studentName = String(name || "").normalize("NFKC").trim();
-  if (!validStudentNumber(number) || !studentName) {
-    throw new Error("학번과 이름을 다시 확인해주세요.");
+  const code = normalizeActivationCode(activationCode);
+  if (!validStudentNumber(number) || !/^[A-Z0-9]{8}$/.test(code)) {
+    throw new Error("학번과 활성화 코드를 다시 확인해주세요.");
   }
   const authApi = await api();
   await authApi.setPersistence(authApi.auth, remember ? authApi.browserLocalPersistence : authApi.browserSessionPersistence);
   try {
     const response = await accountFetch("/api/accounts/claim", {
       method: "POST",
-      body: JSON.stringify({ studentNumber: number, name: studentName }),
+      body: JSON.stringify({ studentNumber: number, activationCode: code }),
+      pinconNetworkRetries: 0,
     });
     const data = await readResponse(response);
     if (!response.ok || !data?.customToken) throw Object.assign(new Error(data?.error || "account-claim-failed"), { status: response.status });
@@ -170,7 +177,7 @@ export async function claimStudentAccount({ studentNumber, name, remember = true
     return { user: credential.user, account: result.account };
   } catch (error) {
     await authApi.signOut(authApi.auth).catch(() => {});
-    const wrapped = new Error("등록 대기 명단에서 학번과 이름을 확인하지 못했습니다.");
+    const wrapped = new Error("학번 또는 활성화 코드를 확인하지 못했습니다.");
     wrapped.code = error?.code || error?.message || "student-claim-failed";
     throw wrapped;
   }
@@ -203,6 +210,7 @@ export async function accountRequest(path, { method = "GET", body = undefined, n
 
 export const STUDENT_AUTH = Object.freeze({
   validStudentNumber,
+  normalizeActivationCode,
   studentEmail,
   currentFirebaseUser,
   isStudentFirebaseUser,
