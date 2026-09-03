@@ -82,6 +82,21 @@ test("first login forces a PIN change without an old PIN lookup path", async () 
   assert.doesNotMatch(`${gate}\n${auth}`, /기존 PIN 확인|currentPin|oldPin/i);
 });
 
+test("PIN change reauthenticates after Firebase invalidates the previous credential", async () => {
+  const auth = await source("../core/student-auth.js");
+  const changeStart = auth.indexOf("export async function changeStudentPin");
+  const changeEnd = auth.indexOf("export async function signOutStudent", changeStart);
+  const changePin = auth.slice(changeStart, changeEnd);
+
+  assert.match(changePin, /await authorizedFetch\("\/api\/accounts\/change-pin"/);
+  assert.match(changePin, /pinSaved = true/);
+  assert.match(changePin, /await authApi\.signOut\(authApi\.auth\)/);
+  assert.match(changePin, /signInWithEmailAndPassword\(authApi\.auth, email, pin\)/);
+  assert.match(changePin, /await authorizedFetch\("\/api\/accounts\/session", \{ method: "GET" \}\)/);
+  assert.match(changePin, /PIN은 저장됐지만 로그인 갱신에 실패했습니다/);
+  assert.doesNotMatch(changePin, /return studentSession\(\)/);
+});
+
 test("first login claims a staged identity with a one-time activation code", async () => {
   const gate = await source("../account-gate.js");
   const auth = await source("../core/student-auth.js");
