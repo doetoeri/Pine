@@ -1,4 +1,4 @@
-import { accountRequest } from "../core/student-auth.js?v=20260902-account5";
+import { accountRequest } from "../core/student-auth.js?v=20260903-identity2";
 
 export const ACCOUNT_CREATE_LIMIT = 60;
 const ACCOUNT_CREATE_ENDPOINT = "/api/accounts/create";
