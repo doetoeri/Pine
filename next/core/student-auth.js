@@ -1,9 +1,15 @@
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
-const CONFIGURED_API_BASE = String(globalThis.PINCON_ACCOUNT_API_BASE || "").trim().replace(/\/$/, "");
-const API_BASES = Object.freeze(CONFIGURED_API_BASE
-  ? [CONFIGURED_API_BASE]
-  : ["https://pincon-ai-git-main-doeyoungkims-projects.vercel.app"]);
+const normalizeApiBase = (value) => String(value || "").trim().replace(/\/$/, "");
+const CONFIGURED_API_BASE = normalizeApiBase(globalThis.PINCON_ACCOUNT_API_BASE);
+const CONFIGURED_API_FALLBACKS = Array.isArray(globalThis.PINCON_ACCOUNT_API_FALLBACKS)
+  ? globalThis.PINCON_ACCOUNT_API_FALLBACKS.map(normalizeApiBase).filter(Boolean)
+  : [];
+const DEFAULT_API_BASE = "https://pincon-ai-git-main-doeyoungkims-projects.vercel.app";
+const API_BASES = Object.freeze([...new Set([
+  CONFIGURED_API_BASE || DEFAULT_API_BASE,
+  ...CONFIGURED_API_FALLBACKS,
+])]);
 const SDK = "12.16.0";
 let apiPromise;
 
@@ -56,10 +62,12 @@ async function accountFetch(path, options = {}) {
   } = options;
   const networkRetries = Math.max(0, Math.min(2, Number(pinconNetworkRetries) || 0));
   let lastNetworkError = null;
+  let lastMissingRouteResponse = null;
   for (let attempt = 0; attempt <= networkRetries; attempt += 1) {
-    for (const base of API_BASES) {
+    for (let index = 0; index < API_BASES.length; index += 1) {
+      const base = API_BASES[index];
       try {
-        return await fetch(`${base}${path}`, {
+        const response = await fetch(`${base}${path}`, {
           ...fetchOptions,
           headers: {
             "content-type": "application/json",
@@ -67,12 +75,21 @@ async function accountFetch(path, options = {}) {
           },
           cache: "no-store",
         });
+        const hasFallback = index < API_BASES.length - 1;
+        // A Vercel 404 here means the deployment alias exists but this server route does not.
+        // Falling through only on 404 avoids replaying successful/ambiguous mutations on 5xx responses.
+        if (response.status === 404 && hasFallback) {
+          lastMissingRouteResponse = response;
+          continue;
+        }
+        return response;
       } catch (error) {
         lastNetworkError = error;
       }
     }
     if (attempt < networkRetries) await wait(350);
   }
+  if (lastMissingRouteResponse) return lastMissingRouteResponse;
   const error = new Error("account-api-unreachable");
   error.code = "account-api-unreachable";
   error.cause = lastNetworkError;
