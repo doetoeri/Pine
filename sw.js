@@ -44,7 +44,7 @@ const PINCON_APP_SHELL = [
   "./pincon-material-collab.js",
   "./pincon-material-workspace.js",
   "./pincon-analytics.js",
-  "./firebase-config.js?v=20260903-account-api",
+  "./firebase-config.js",
   "./assets/index-Sg4pPAB0.js",
   "./assets/index-C7Rqpf69.css",
   "./assets/firebase-IW9tbrMW.js",
