@@ -1,4 +1,4 @@
-import { accountRequest } from "../core/student-auth.js";
+import { accountRequest } from "../core/student-auth.js?v=20260903-pinless1";
 
 const root = document.querySelector("#adminApp");
 let accounts = [];
@@ -124,6 +124,7 @@ function sectionMarkup() {
       <div><span class="pincon-account-directory__eyebrow">ACCOUNT DIRECTORY</span><h2 id="pincon-users-title">계정</h2><p>학생 신원, 로그인 상태, 역할을 한곳에서 관리합니다. PIN 원문은 생성 직후 외에는 표시하지 않습니다.</p></div>
       <div class="pincon-account-directory__hero-actions">
         <md-outlined-button id="pinconExportUsers"><md-icon slot="icon">download</md-icon>CSV</md-outlined-button>
+        <md-outlined-button id="pinconDeleteNonAdmins"><md-icon slot="icon">delete_sweep</md-icon>학생 계정 초기화</md-outlined-button>
         <md-filled-tonal-button id="pinconBulkUsers"><md-icon slot="icon">group_add</md-icon>일괄 등록</md-filled-tonal-button>
         <md-filled-button id="pinconAddUser"><md-icon slot="icon">person_add</md-icon>새 계정</md-filled-button>
       </div>
@@ -165,6 +166,7 @@ function bindSection() {
   section.querySelector("#pinconAddUser")?.addEventListener("click", () => openAccountDialog(null));
   section.querySelector("#pinconBulkUsers")?.addEventListener("click", openBulkDialog);
   section.querySelector("#pinconExportUsers")?.addEventListener("click", exportUsers);
+  section.querySelector("#pinconDeleteNonAdmins")?.addEventListener("click", openDeleteAccountsDialog);
   section.querySelector("#pinconUserSearch")?.addEventListener("input", (event) => { filters.query = String(event.target.value || ""); rerenderList(section); });
   section.querySelector("#pinconUserStatusFilter")?.addEventListener("change", (event) => { filters.status = event.target.value || "ALL"; rerenderList(section); });
   section.querySelector("#pinconUserRoleFilter")?.addEventListener("change", (event) => { filters.role = event.target.value || "ALL"; filters.privileged = false; rerenderList(section); });
@@ -351,6 +353,61 @@ function exportUsers() {
     ["학번", "이름", "학년", "반", "번호", "상태", "첫 로그인 대기", "역할", "부서", "과목 관리자", "1인1역"],
     ...accounts.map((item) => [item.studentNumber, item.name, item.grade, item.classNumber, item.number, item.status, item.mustChangePin ? "Y" : "N", accountRoles(item).join("|"), item.departmentId || "", (item.subjectRoles || []).map((role) => role.subject).join("|"), item.onePersonRoleId || ""]),
   ]);
+}
+
+function deletableAccounts() {
+  const preservedRoles = new Set(["ADMIN", "TEACHER", "CLASS_PRESIDENT"]);
+  return accounts.filter((item) => !accountRoles(item).some((role) => preservedRoles.has(role)));
+}
+
+function openDeleteAccountsDialog() {
+  document.querySelector("#pinconDeleteAccountsDialog")?.remove();
+  const targets = deletableAccounts();
+  const dialog = document.createElement("md-dialog");
+  dialog.id = "pinconDeleteAccountsDialog";
+  dialog.innerHTML = `<div slot="headline">학생 계정을 초기화할까요?</div>
+    <div slot="content" class="pincon-account-editor__body">
+      <p><strong>${targets.length}개 학생 계정</strong>을 서버 백업과 재등록 대기 명단으로 옮긴 뒤 삭제합니다. 관리자·교사·학급회장 계정과 공지·일정 등 학급 콘텐츠는 유지됩니다.</p>
+      <p>삭제된 학생은 첫 로그인에서 임시 PIN 없이 학번과 이름을 확인하고 새 PIN을 직접 정합니다.</p>
+      <md-outlined-text-field id="pinconDeleteConfirmation" label="확인을 위해 ‘학생 계정 삭제’ 입력" autocomplete="off"></md-outlined-text-field>
+      <div id="pinconDeleteAccountStatus" class="pincon-account-editor__status" role="status" aria-live="polite"></div>
+    </div>
+    <div slot="actions"><md-text-button id="pinconDeleteCancel">취소</md-text-button><md-filled-button id="pinconDeleteConfirm" disabled><md-icon slot="icon">delete_sweep</md-icon>백업 후 삭제</md-filled-button></div>`;
+  document.body.appendChild(dialog);
+  const input = dialog.querySelector("#pinconDeleteConfirmation");
+  const confirm = dialog.querySelector("#pinconDeleteConfirm");
+  const status = dialog.querySelector("#pinconDeleteAccountStatus");
+  input?.addEventListener("input", () => { confirm.disabled = String(input.value || "").trim() !== "학생 계정 삭제"; });
+  confirm?.addEventListener("click", async () => {
+    if (String(input?.value || "").trim() !== "학생 계정 삭제") return;
+    confirm.disabled = true;
+    input.disabled = true;
+    status.textContent = "계정 목록을 백업한 뒤 삭제하는 중…";
+    if (targets.length) {
+      downloadCsv(`pincon-account-backup-${new Date().toISOString().slice(0, 10)}.csv`, [
+        ["학번", "이름", "학년", "반", "번호", "상태", "역할", "부서", "과목 관리자", "1인1역"],
+        ...targets.map((item) => [item.studentNumber, item.name, item.grade, item.classNumber, item.number, item.status, accountRoles(item).join("|"), item.departmentId || "", (item.subjectRoles || []).map((role) => role.subject).join("|"), item.onePersonRoleId || ""]),
+      ]);
+    }
+    try {
+      const response = await accountRequest("/api/accounts/manage", {
+        method: "POST",
+        networkRetries: 0,
+        body: { action: "DELETE_NON_ADMINS", confirmation: "DELETE_NON_ADMIN_ACCOUNTS" },
+      });
+      status.textContent = `${response.deleted}개 삭제 완료 · 서버 백업 ${response.backupId}${response.failed?.length ? ` · ${response.failed.length}개 실패` : ""}`;
+      await loadAccounts(true);
+      setTimeout(() => dialog.close?.(), 1400);
+    } catch (error) {
+      status.textContent = `삭제하지 못했습니다: ${error?.message || "요청 실패"}`;
+      status.dataset.error = "true";
+      confirm.disabled = false;
+      input.disabled = false;
+    }
+  });
+  dialog.querySelector("#pinconDeleteCancel")?.addEventListener("click", () => dialog.close?.());
+  dialog.addEventListener("close", () => dialog.remove(), { once: true });
+  dialog.show?.();
 }
 
 function parseBulkRows(value) {

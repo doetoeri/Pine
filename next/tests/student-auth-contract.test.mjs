@@ -75,6 +75,19 @@ test("first login forces a PIN change without an old PIN lookup path", async () 
   assert.doesNotMatch(`${gate}\n${auth}`, /기존 PIN 확인|currentPin|oldPin/i);
 });
 
+test("first login can claim a backed-up roster identity without a temporary PIN", async () => {
+  const gate = await source("../account-gate.js");
+  const auth = await source("../core/student-auth.js");
+  assert.match(gate, /첫 로그인 · PIN 없이 시작/);
+  assert.match(gate, /pinconClaimStudentNumber/);
+  assert.match(gate, /pinconClaimName/);
+  assert.match(gate, /claimStudentAccount/);
+  assert.match(auth, /\/api\/accounts\/claim/);
+  assert.match(auth, /signInWithCustomToken/);
+  assert.match(auth, /mustChangePin !== true/);
+  assert.doesNotMatch(auth, /localStorage[^\n]*(?:customToken|pin|password)/i);
+});
+
 test("legacy Google administrators retain a migration login path", async () => {
   const gate = await source("../account-gate.js");
   assert.match(gate, /관리자 Google 계정으로 계속/);
@@ -98,7 +111,8 @@ test("application modules boot only after the account gate resolves", async () =
   const html = await source("../index.html");
   assert.match(bootstrap, /await accountReady/);
   assert.match(bootstrap, /await import\("\.\/app\.js\?v=20260830-interaction1"\)/);
-  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260830-interaction1"/);
+  assert.match(bootstrap, /account-gate\.js\?v=20260903-pinless1/);
+  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-pinless1"/);
   assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });

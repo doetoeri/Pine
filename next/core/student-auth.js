@@ -41,6 +41,36 @@ async function readResponse(response) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function accountFetch(path, options = {}) {
+  const {
+    pinconNetworkRetries = 1,
+    ...fetchOptions
+  } = options;
+  const networkRetries = Math.max(0, Math.min(2, Number(pinconNetworkRetries) || 0));
+  let lastNetworkError = null;
+  for (let attempt = 0; attempt <= networkRetries; attempt += 1) {
+    for (const base of API_BASES) {
+      try {
+        return await fetch(`${base}${path}`, {
+          ...fetchOptions,
+          headers: {
+            "content-type": "application/json",
+            ...(fetchOptions.headers || {}),
+          },
+          cache: "no-store",
+        });
+      } catch (error) {
+        lastNetworkError = error;
+      }
+    }
+    if (attempt < networkRetries) await wait(350);
+  }
+  const error = new Error("account-api-unreachable");
+  error.code = "account-api-unreachable";
+  error.cause = lastNetworkError;
+  throw error;
+}
+
 async function authorizedFetch(path, options = {}) {
   const {
     pinconNetworkRetries = 1,
@@ -55,34 +85,14 @@ async function authorizedFetch(path, options = {}) {
 
   const request = async (forceRefresh = false) => {
     const idToken = await user.getIdToken(forceRefresh);
-    let lastNetworkError = null;
-
-    // The public project alias is the only default account endpoint. Team aliases may
-    // be protected by Vercel Authentication and can turn a valid API call into a
-    // cross-origin SSO redirect, which browsers surface as TypeError: Failed to fetch.
-    for (let attempt = 0; attempt <= networkRetries; attempt += 1) {
-      for (const base of API_BASES) {
-        try {
-          return await fetch(`${base}${path}`, {
-            ...fetchOptions,
-            headers: {
-              "content-type": "application/json",
-              authorization: `Bearer ${idToken}`,
-              ...(fetchOptions.headers || {}),
-            },
-            cache: "no-store",
-          });
-        } catch (error) {
-          lastNetworkError = error;
-        }
-      }
-      if (attempt < networkRetries) await wait(350);
-    }
-
-    const error = new Error("account-api-unreachable");
-    error.code = "account-api-unreachable";
-    error.cause = lastNetworkError;
-    throw error;
+    return accountFetch(path, {
+      ...fetchOptions,
+      pinconNetworkRetries: networkRetries,
+      headers: {
+        authorization: `Bearer ${idToken}`,
+        ...(fetchOptions.headers || {}),
+      },
+    });
   };
 
   // Firebase already refreshes an expired token when getIdToken(false) is used.
@@ -137,6 +147,35 @@ export async function signInStudent({ studentNumber, pin, remember = true } = {}
   }
 }
 
+export async function claimStudentAccount({ studentNumber, name, remember = true } = {}) {
+  const number = String(studentNumber || "").trim();
+  const studentName = String(name || "").normalize("NFKC").trim();
+  if (!validStudentNumber(number) || !studentName) {
+    throw new Error("학번과 이름을 다시 확인해주세요.");
+  }
+  const authApi = await api();
+  await authApi.setPersistence(authApi.auth, remember ? authApi.browserLocalPersistence : authApi.browserSessionPersistence);
+  try {
+    const response = await accountFetch("/api/accounts/claim", {
+      method: "POST",
+      body: JSON.stringify({ studentNumber: number, name: studentName }),
+    });
+    const data = await readResponse(response);
+    if (!response.ok || !data?.customToken) throw Object.assign(new Error(data?.error || "account-claim-failed"), { status: response.status });
+    const credential = await authApi.signInWithCustomToken(authApi.auth, data.customToken);
+    const result = await authorizedFetch("/api/accounts/session", { method: "GET" });
+    if (!result?.account || result.account.status !== "ACTIVE" || result.account.mustChangePin !== true) {
+      throw new Error("invalid-account");
+    }
+    return { user: credential.user, account: result.account };
+  } catch (error) {
+    await authApi.signOut(authApi.auth).catch(() => {});
+    const wrapped = new Error("등록 대기 명단에서 학번과 이름을 확인하지 못했습니다.");
+    wrapped.code = error?.code || error?.message || "student-claim-failed";
+    throw wrapped;
+  }
+}
+
 export async function changeStudentPin(newPin) {
   const pin = String(newPin || "");
   if (!/^\d{6,12}$/.test(pin) || /^(\d)\1+$/.test(pin)) {
@@ -169,6 +208,7 @@ export const STUDENT_AUTH = Object.freeze({
   isStudentFirebaseUser,
   studentSession,
   signInStudent,
+  claimStudentAccount,
   changeStudentPin,
   signOutStudent,
   accountRequest,

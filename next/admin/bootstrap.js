@@ -20,7 +20,7 @@ if (!snapshot.canArchiveContent) {
   await import("./daily-brief-image.js?v=20260831-daily2");
   await import("./personal-notifications.js?v=20260830-personal1");
   await import("./problem-bank-guide.js");
-  await import("./user-manager.js");
+  await import("./user-manager.js?v=20260903-pinless1");
   await import("./account-create.js?v=20260902-account5");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
