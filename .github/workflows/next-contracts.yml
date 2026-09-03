@@ -45,10 +45,10 @@ jobs:
             next/app-interactions.js \
             next/app-bootstrap.js \
             next/detail-history-stability.js \
+            next/dialog-focus-stability.js \
             next/reveal-loader.js \
             next/write-mode.js \
             next/admin-visibility.js \
-            next/problem-bank.js \
             next/evaluation-plan-preview.js \
             next/evaluation-plans/service.js \
             next/evaluation-plans/admin.js \
@@ -61,7 +61,6 @@ jobs:
             next/admin/daily-brief-renderer.js \
             next/admin/daily-brief-image.js \
             next/admin/evaluation-plan-media.js \
-            next/admin/problem-bank-guide.js \
             next/admin/today-open-write-ui.js \
             next/admin/account-create-service.js \
             next/admin/account-create.js \
@@ -86,7 +85,7 @@ jobs:
           next/tests/contracts.test.mjs
           next/tests/admin-policy.test.mjs
           next/tests/today-open-write.test.mjs
-          next/tests/problem-bank-contract.test.mjs
+          next/tests/removed-feature-contract.test.mjs
           next/tests/recovery-pack.test.mjs
           next/tests/evaluation-plan-media.test.mjs
           next/tests/daily-brief-image.test.mjs
@@ -154,10 +153,6 @@ jobs:
         run: npx playwright test next/tests/admin-boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Admin boot · WebKit
         run: npx playwright test next/tests/admin-boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
-      - name: Problem bank · Chromium
-        run: npx playwright test next/tests/problem-bank.spec.mjs --browser=chromium --reporter=line --max-failures=1
-      - name: Problem bank · WebKit
-        run: npx playwright test next/tests/problem-bank.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Detail interactions · Chromium
         run: npx playwright test next/tests/detail-interactions.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Detail interactions · WebKit
