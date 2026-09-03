@@ -18,4 +18,4 @@ globalThis.PINCON_SCHOOL_CONFIG = Object.freeze({
 
 // 학생 PIN, 계정 생성·재발급, 학급 운영 권한 처리는 Firebase Admin SDK를 사용하는 별도 서버에서 수행합니다.
 // PIN/비밀번호는 localStorage나 Firestore에 저장하지 않습니다.
-globalThis.PINCON_ACCOUNT_API_BASE = "https://pincon-ai-doeyoungkims-projects.vercel.app";
+globalThis.PINCON_ACCOUNT_API_BASE = "https://pincon-ai-git-main-doeyoungkims-projects.vercel.app";
