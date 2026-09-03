@@ -20,24 +20,7 @@
         const target = new URL("./next/", location.href);
         target.search = location.search;
         target.hash = location.hash || "#today";
-        let moved = false;
-        const go = () => {
-          if (moved) return;
-          moved = true;
-          location.replace(target.href);
-        };
-
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.getRegistrations()
-            .then((registrations) => Promise.all(registrations
-              .filter((registration) => registration.scope === new URL("./", location.href).href)
-              .map((registration) => registration.unregister())))
-            .catch(() => {})
-            .finally(go);
-          window.setTimeout(go, 900);
-        } else {
-          go();
-        }
+        location.replace(target.href);
       })();
     </script>
   </head>

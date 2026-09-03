@@ -1,5 +1,8 @@
 if ("serviceWorker" in navigator) {
   const hadController = Boolean(navigator.serviceWorker.controller);
+  const scriptBase = document.currentScript?.src || new URL("./registerSW.js", location.origin).href;
+  const serviceWorkerUrl = new URL("./sw.js?v=20260902-account-api2", scriptBase).href;
+  const serviceWorkerScope = new URL("./", scriptBase).href;
   let reloading = false;
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
@@ -10,8 +13,8 @@ if ("serviceWorker" in navigator) {
 
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("./sw.js?v=20260902-account-api2", {
-        scope: "./",
+      const registration = await navigator.serviceWorker.register(serviceWorkerUrl, {
+        scope: serviceWorkerScope,
         updateViaCache: "none",
       });
       await registration.update().catch(() => {});
