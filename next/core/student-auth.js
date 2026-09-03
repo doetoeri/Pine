@@ -205,11 +205,36 @@ export async function changeStudentPin(newPin) {
   if (!/^\d{6,12}$/.test(pin) || /^(\d)\1+$/.test(pin)) {
     throw new Error("PIN은 같은 숫자 반복을 제외한 6~12자리 숫자로 설정해주세요.");
   }
-  await authorizedFetch("/api/accounts/change-pin", {
-    method: "POST",
-    body: JSON.stringify({ newPin: pin }),
-  });
-  return studentSession();
+
+  const authApi = await api();
+  await authApi.auth.authStateReady?.();
+  const currentUser = authApi.auth.currentUser;
+  const email = String(currentUser?.email || "");
+  if (!isStudentFirebaseUser(currentUser) || !email) throw new Error("학생 로그인이 필요합니다.");
+
+  let pinSaved = false;
+  try {
+    await authorizedFetch("/api/accounts/change-pin", {
+      method: "POST",
+      body: JSON.stringify({ newPin: pin }),
+    });
+    pinSaved = true;
+
+    // Firebase invalidates the existing credential after an Admin SDK password change.
+    // Reauthenticate immediately with the new PIN before requesting the refreshed profile.
+    await authApi.signOut(authApi.auth).catch(() => {});
+    const credential = await authApi.signInWithEmailAndPassword(authApi.auth, email, pin);
+    const result = await authorizedFetch("/api/accounts/session", { method: "GET" });
+    if (!result?.account || result.account.status !== "ACTIVE") throw new Error("invalid-account");
+    return { user: credential.user, account: result.account };
+  } catch (error) {
+    if (pinSaved) {
+      const wrapped = new Error("PIN은 저장됐지만 로그인 갱신에 실패했습니다. 새 PIN으로 다시 로그인해주세요.");
+      wrapped.code = error?.code || error?.message || "pin-reauth-failed";
+      throw wrapped;
+    }
+    throw error;
+  }
 }
 
 export async function signOutStudent() {
