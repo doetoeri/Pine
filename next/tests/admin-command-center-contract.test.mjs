@@ -19,51 +19,68 @@ test("admin command center exposes operations navigation, inbox, search and heal
   ]) assert.ok(source.includes(contract), `missing admin contract: ${contract}`);
 });
 
-test("account directory supports search, filters, provisioning, security actions and export", async () => {
-  const source = await read("next/admin/user-manager.js");
+test("account directory supports identity v2 provisioning, security reset and export", async () => {
+  const [directory, creator, security] = await Promise.all([
+    read("next/admin/user-manager.js"),
+    read("next/admin/account-create-v2.js"),
+    read("next/admin/account-security-v2.js"),
+  ]);
   for (const contract of [
     "pinconUserStatusFilter",
     "pinconUserRoleFilter",
     "pinconAttentionFilter",
-    "pinconBulkUsers",
     "pinconExportUsers",
     "openAccountDialog",
-    "RESET_PIN",
     "DISABLE",
     "status: \"ACTIVE\"",
-    "parseBulkRows",
-    "temporaryPin",
+  ]) assert.ok(directory.includes(contract), `missing account-directory contract: ${contract}`);
+  for (const contract of [
+    "pinconAddUser",
+    "pinconBulkUsers",
+    "activationCode",
+    "활성화 코드 CSV 저장",
+  ]) assert.ok(creator.includes(contract), `missing identity-v2 creator contract: ${contract}`);
+  for (const contract of [
+    "accountResetPin",
     "pinconDeleteNonAdmins",
-    "DELETE_NON_ADMINS",
-    "DELETE_NON_ADMIN_ACCOUNTS",
-    "pincon-account-backup-",
-  ]) assert.ok(source.includes(contract), `missing account-directory contract: ${contract}`);
-  assert.equal(/localStorage[^\n]*(pin|password|temporary)/i.test(source), false, "PIN/password material must not be stored in localStorage");
+    "/api/accounts/reset",
+    "RESET_NON_ADMIN_ACCOUNTS",
+    "활성화 코드 재발급",
+    "학생 로그인 초기화",
+  ]) assert.ok(security.includes(contract), `missing identity-v2 security contract: ${contract}`);
+  assert.equal(/localStorage[^\n]*(pin|password|temporary|activation)/i.test(`${directory}\n${creator}\n${security}`), false, "credential material must not be stored in localStorage");
 });
 
-test("non-admin account deletion is scoped, backed up, and feeds PIN-less registration", async () => {
-  const [manager, claim, router, vercel] = await Promise.all([
-    read("integrations/pincon-ai/handlers/accounts/manage.mjs"),
+test("identity v2 reset preserves student data and requires one-time reactivation", async () => {
+  const [reset, claim, activation, security, router, vercel] = await Promise.all([
+    read("integrations/pincon-ai/handlers/accounts/reset.mjs"),
     read("integrations/pincon-ai/handlers/accounts/claim.mjs"),
+    read("integrations/pincon-ai/lib/account-activation.mjs"),
+    read("next/admin/account-security-v2.js"),
     read("integrations/pincon-ai/api/class-ops-router.mjs"),
     read("integrations/pincon-ai/vercel.json"),
   ]);
-  assert.match(manager, /accountDeletionBackups/);
-  assert.match(manager, /accountRegistrationRoster/);
-  assert.match(manager, /PRIVILEGED_ROLES/);
-  assert.match(manager, /ROLE\.ADMIN, ROLE\.TEACHER, ROLE\.CLASS_PRESIDENT/);
-  assert.match(manager, /profile\.uid !== actor\.uid/);
-  assert.match(manager, /PRESERVED_PRIVILEGED_ROLE/);
-  assert.match(manager, /"school", "president", "class", "grade"/);
-  assert.match(manager, /where\("classKey", "==", actor\.classKey\)/);
-  assert.match(manager, /body\.confirmation !== DELETE_CONFIRMATION/);
-  assert.match(manager, /claimStatus: "READY"/);
-  assert.match(claim, /registration\.normalizedName !== normalizeClaimName\(name\)/);
+  assert.match(reset, /PRIVILEGED_ROLES/);
+  assert.match(reset, /ROLE\.ADMIN, ROLE\.TEACHER, ROLE\.CLASS_PRESIDENT/);
+  assert.match(reset, /profile\.uid !== actor\.uid/);
+  assert.match(reset, /where\("classKey", "==", actor\.classKey\)/);
+  assert.match(reset, /body\.confirmation !== RESET_CONFIRMATION/);
+  assert.match(reset, /firebaseAuth\(\)\.updateUser\(before\.uid, \{ disabled: true \}\)/);
+  assert.match(reset, /revokeRefreshTokens\(before\.uid\)/);
+  assert.match(reset, /existingUid: before\.uid/);
+  assert.match(reset, /activationDigest: activation\.digest/);
+  assert.match(reset, /claimStatus: "READY"/);
+  assert.doesNotMatch(reset, /deleteUser|temporaryPin|generateTemporaryPin/);
+  assert.match(activation, /scryptSync/);
+  assert.match(activation, /timingSafeEqual/);
+  assert.match(claim, /verifyActivationCode/);
   assert.match(claim, /claimStatus: "CLAIMED"/);
+  assert.match(claim, /activationDigest: ""/);
   assert.match(claim, /createCustomToken/);
   assert.match(claim, /mustChangePin: true/);
-  assert.match(router, /"account-claim": accountClaim/);
-  assert.match(vercel, /\/api\/accounts\/claim/);
+  assert.match(security, /학생 데이터는 유지됐고 기존 로그인 정보만 무효화되었습니다/);
+  assert.match(router, /"account-reset": accountReset/);
+  assert.match(vercel, /\/api\/accounts\/reset/);
   assert.doesNotMatch(claim, /requireProfile|temporaryPin/);
 });
 
@@ -76,6 +93,8 @@ test("user and access management are one canonical RBAC surface", async () => {
   ]);
   assert.doesNotMatch(bootstrap, /import\("\.\/role-manager\.js"\)/, "legacy UID role manager must not boot");
   assert.match(bootstrap, /admin-user-access-v2\.js/);
+  assert.match(bootstrap, /account-create-v2\.js/);
+  assert.match(bootstrap, /account-security-v2\.js/);
   assert.doesNotMatch(index, /role-manager\.css/, "legacy role-manager stylesheet must not load");
   assert.match(navFix, /data-admin-target=\"access\"/);
   assert.match(navFix, /사용자·권한/);
