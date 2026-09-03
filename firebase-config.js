@@ -18,4 +18,9 @@ globalThis.PINCON_SCHOOL_CONFIG = Object.freeze({
 
 // 학생 PIN, 계정 생성·재발급, 학급 운영 권한 처리는 Firebase Admin SDK를 사용하는 별도 서버에서 수행합니다.
 // PIN/비밀번호는 localStorage나 Firestore에 저장하지 않습니다.
-globalThis.PINCON_ACCOUNT_API_BASE = "https://pincon-ai-git-main-doeyoungkims-projects.vercel.app";
+// main 별칭이 Hobby build-rate-limit 때문에 Identity v2 라우트를 아직 받지 못해,
+// 현재는 이미 READY 상태로 검증된 Identity v2 브랜치 별칭을 우선 사용합니다.
+globalThis.PINCON_ACCOUNT_API_BASE = "https://pincon-ai-git-feat-pincon-identity-v2-doeyoungkims-projects.vercel.app";
+globalThis.PINCON_ACCOUNT_API_FALLBACKS = Object.freeze([
+  "https://pincon-ai-git-main-doeyoungkims-projects.vercel.app",
+]);

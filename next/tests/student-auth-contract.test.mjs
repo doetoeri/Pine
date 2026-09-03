@@ -24,23 +24,30 @@ test("authorized API requests reuse a valid token and only force-refresh after a
   assert.doesNotMatch(auth, /const idToken = await user\.getIdToken\(true\)/);
 });
 
-test("account API uses only the public production alias and supports explicit retry control", async () => {
+test("account API can use the verified Identity v2 alias while main is missing routes", async () => {
   const auth = await source("../core/student-auth.js");
   const config = await source("../../firebase-config.js");
   const studentEntry = await source("../index.html");
   const adminEntry = await source("../admin/index.html");
-  const publicAlias = /https:\/\/pincon-ai-git-main-doeyoungkims-projects\.vercel\.app/;
-  assert.match(auth, /https:\/\/pincon-ai-git-main-doeyoungkims-projects\.vercel\.app/);
-  assert.match(config, publicAlias);
-  assert.match(studentEntry, /firebase-config\.js\?v=20260903-account-api/);
-  assert.match(adminEntry, /firebase-config\.js\?v=20260903-account-api/);
+  const identityV2Alias = /https:\/\/pincon-ai-git-feat-pincon-identity-v2-doeyoungkims-projects\.vercel\.app/;
+  const mainAlias = /https:\/\/pincon-ai-git-main-doeyoungkims-projects\.vercel\.app/;
+
+  assert.match(config, identityV2Alias);
+  assert.match(config, mainAlias);
+  assert.match(config, /PINCON_ACCOUNT_API_FALLBACKS/);
+  assert.match(auth, /PINCON_ACCOUNT_API_FALLBACKS/);
+  assert.match(auth, /DEFAULT_API_BASE = "https:\/\/pincon-ai-git-main-doeyoungkims-projects\.vercel\.app"/);
+  assert.match(auth, /response\.status === 404 && hasFallback/);
+  assert.match(auth, /index < API_BASES\.length - 1/);
+  assert.doesNotMatch(auth, /response\.status === 5\d\d && hasFallback/);
+  assert.match(studentEntry, /firebase-config\.js\?v=20260903-account-fallback1/);
+  assert.match(adminEntry, /firebase-config\.js\?v=20260903-account-fallback1/);
   assert.doesNotMatch(auth, /https:\/\/pincon-ai\.vercel\.app/);
   assert.doesNotMatch(auth, /https:\/\/pincon-ai-doeyoungkims-projects\.vercel\.app/);
   assert.doesNotMatch(config, /https:\/\/pincon-ai-doeyoungkims-projects\.vercel\.app/);
   assert.match(auth, /pinconNetworkRetries = 1/);
   assert.match(auth, /attempt <= networkRetries/);
   assert.match(auth, /attempt < networkRetries/);
-  assert.match(auth, /for \(const base of API_BASES\)/);
   assert.match(auth, /await wait\(350\)/);
   assert.match(auth, /networkRetries = 1/);
   assert.match(auth, /account-api-unreachable/);
