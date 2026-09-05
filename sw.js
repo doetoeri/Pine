@@ -2,6 +2,47 @@ const PINCON_SW_VERSION = "20260902-account-api2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
+const PINCON_NEXT_SHELL = [
+  "./next/index.html",
+  "./next/app.css",
+  "./next/ui-polish.css",
+  "./next/rail-containment.css",
+  "./next/mobile-clearance.css",
+  "./next/dialog-polish.css",
+  "./next/interaction-system.css",
+  "./next/detail-viewport-stability.css",
+  "./next/evaluation-plan-preview.css",
+  "./next/student-account.css",
+  "./next/account-center.css",
+  "./next/student-ops.css",
+  "./next/first-login-onboarding.css",
+  "./next/reveal-loader.js",
+  "./next/first-login-onboarding.js",
+  "./next/app-bootstrap.js",
+  "./next/simple-account-gate.js",
+  "./next/route-focus-stability.js",
+  "./next/personal-notification-filter.js",
+  "./next/app.js",
+  "./next/app-interactions.js",
+  "./next/detail-history-stability.js",
+  "./next/evaluation-plan-preview.js",
+  "./next/write-mode.js",
+  "./next/admin-visibility.js",
+  "./next/account-center.js",
+  "./next/student-ops.js",
+  "./next/dialog-focus-stability.js",
+  "./next/ui-regression-fixes.js",
+  "./next/core/data-gateway.js",
+  "./next/core/evaluation-plan-media.js",
+  "./next/core/notification-store.js",
+  "./next/core/recovery-pack.js",
+  "./next/core/brand-settings.js",
+  "./next/core/trust-model.js",
+  "./next/core/today-open-write.js",
+  "./next/core/student-auth.js",
+  "./next/assets/pincon-icon.svg"
+];
+
 const PINCON_APP_SHELL = [
   "./index.html",
   "./registerSW.js",
@@ -52,7 +93,8 @@ const PINCON_APP_SHELL = [
   "./icons/icon-512.png",
   "./icons/icon-512-maskable.png",
   "./icons/apple-touch-icon.png",
-  "./icons/app-icon.svg"
+  "./icons/app-icon.svg",
+  ...PINCON_NEXT_SHELL
 ];
 
 try {
@@ -119,7 +161,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.mode === "navigate") {
-    event.respondWith(networkFirst(request, "./index.html", { forceReload: true }));
+    const nextNavigation = url.origin === self.location.origin
+      && (url.pathname === "/next" || url.pathname.startsWith("/next/"));
+    if (nextNavigation) {
+      event.respondWith(networkFirst(request, "./next/index.html", { forceReload: true }));
+    } else {
+      event.respondWith(networkFirst(request, "./index.html", { forceReload: true }));
+    }
     return;
   }
 
