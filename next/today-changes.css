@@ -1,0 +1,199 @@
+.pincon-today-changes {
+  overflow: hidden;
+}
+
+.pincon-today-changes__header {
+  align-items: center;
+  gap: 16px;
+}
+
+.pincon-today-changes__header .page-eyebrow {
+  margin: 0 0 4px;
+}
+
+.pincon-today-changes__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pincon-today-changes__count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pincon-today-changes__list {
+  display: grid;
+  gap: 8px;
+}
+
+.pincon-today-change {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pincon-today-change:hover,
+.pincon-today-change:focus-visible {
+  background: var(--md-sys-color-surface-container);
+}
+
+.pincon-today-change:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 35%, transparent);
+  outline-offset: 2px;
+}
+
+.pincon-today-change__icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+.pincon-today-change__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pincon-today-change__copy > strong,
+.pincon-today-change__copy > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pincon-today-change__copy > strong {
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.pincon-today-change__copy > small {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.pincon-today-change__meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.74rem;
+}
+
+.pincon-today-change__meta b {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+  font-size: 0.7rem;
+}
+
+.pincon-today-change__meta b[data-change-type="changed"] {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.pincon-today-change__meta span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pincon-today-change__chevron {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.pincon-today-changes__state {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.pincon-today-changes__state md-icon,
+.pincon-today-changes__state md-circular-progress {
+  flex: 0 0 auto;
+}
+
+.pincon-today-changes__state > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.pincon-today-changes__state strong {
+  font-size: 0.95rem;
+}
+
+.pincon-today-changes__state span {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .pincon-today-changes__header {
+    align-items: flex-start;
+  }
+
+  .pincon-today-changes__actions {
+    margin-top: -4px;
+  }
+
+  .pincon-today-changes__count {
+    display: none;
+  }
+
+  .pincon-today-change {
+    grid-template-columns: 40px minmax(0, 1fr) 20px;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .pincon-today-change__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pincon-today-change {
+    transition: background-color 140ms ease, transform 140ms ease;
+  }
+
+  .pincon-today-change:active {
+    transform: scale(0.992);
+  }
+}
