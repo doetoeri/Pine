@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   buildTodayChanges,
@@ -8,6 +9,10 @@ import {
 } from "../core/today-changes.js";
 
 const NOW = Date.parse("2026-09-05T12:00:00+09:00");
+
+async function source(path) {
+  return readFile(new URL(path, import.meta.url), "utf8");
+}
 
 test("today changes includes recent public information and excludes stale or hidden rows", () => {
   const rows = buildTodayChanges({
@@ -63,4 +68,20 @@ test("share text is compact, class-scoped, and distinguishes new versus changed"
   assert.match(text, /\[변경\] 시간표 변경/);
   assert.match(text, /\[새로 등록\] 수학 숙제/);
   assert.match(text, /PinCon에서 최신 정보 확인/);
+});
+
+test("Next entry wires the digest and the UI distinguishes loading, error, empty, and share states", async () => {
+  const [html, ui] = await Promise.all([
+    source("../index.html"),
+    source("../today-changes.js"),
+  ]);
+
+  assert.match(html, /today-changes\.css\?v=20260905-digest1/);
+  assert.match(html, /today-changes\.js\?v=20260905-digest1/);
+  assert.match(ui, /변경사항 확인 중/);
+  assert.match(ui, /변경사항을 확인하지 못했습니다/);
+  assert.match(ui, /새로 바뀐 정보 없음/);
+  assert.match(ui, /반톡 공유/);
+  assert.match(ui, /buildTodayChangesShareText/);
+  assert.match(ui, /snapshot\.usingCache \|\| !snapshot\.online/);
 });
