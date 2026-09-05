@@ -62,7 +62,7 @@ function cardMarkup(snapshot, rows) {
     </div>`;
   } else {
     body = `<div class="pincon-today-changes__list">
-      ${rows.map((row) => `<button type="button" class="pincon-today-change" data-today-change-route="${escapeHtml(row.route)}" aria-label="${escapeHtml(row.title)} 관련 화면 열기">
+      ${rows.map((row) => `<button type="button" class="pincon-today-change" data-route="${escapeHtml(row.route)}" aria-label="${escapeHtml(row.title)} 관련 화면 열기">
         <span class="pincon-today-change__icon"><md-icon>${escapeHtml(row.icon)}</md-icon></span>
         <span class="pincon-today-change__copy">
           <span class="pincon-today-change__meta"><b data-change-type="${escapeHtml(row.changeType)}">${row.changeType === "changed" ? "변경" : "새로 등록"}</b><span>${escapeHtml(row.kind)} · ${escapeHtml(relativeTime(row.occurredAtMs))}</span></span>
@@ -170,14 +170,7 @@ async function shareCurrent(button) {
 
 document.addEventListener("click", (event) => {
   const share = event.target.closest?.("[data-today-changes-share]");
-  if (share) {
-    shareCurrent(share);
-    return;
-  }
-  const row = event.target.closest?.("[data-today-change-route]");
-  if (!row) return;
-  const route = row.getAttribute("data-today-change-route") || "today";
-  location.hash = `#${route}`;
+  if (share) shareCurrent(share);
 });
 
 gateway.addEventListener("change", queueRender);
