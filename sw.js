@@ -20,6 +20,7 @@ const PINCON_NEXT_SHELL = [
   "./next/first-login-onboarding.js",
   "./next/app-bootstrap.js",
   "./next/simple-account-gate.js",
+  "./next/readonly-notice.js",
   "./next/route-focus-stability.js",
   "./next/personal-notification-filter.js",
   "./next/app.js",
@@ -33,6 +34,7 @@ const PINCON_NEXT_SHELL = [
   "./next/dialog-focus-stability.js",
   "./next/ui-regression-fixes.js",
   "./next/core/data-gateway.js",
+  "./next/core/degraded-readonly.js",
   "./next/core/evaluation-plan-media.js",
   "./next/core/notification-store.js",
   "./next/core/recovery-pack.js",
@@ -146,6 +148,11 @@ async function networkFirst(request, fallbackKey = null, { forceReload = false }
   } catch (error) {
     const direct = await cache.match(request, { ignoreSearch: false });
     if (direct) return direct;
+    // Install-time precache keys intentionally omit cache-busting query strings,
+    // while production HTML loads modules as app.js?v=... . Match the same path
+    // ignoring only the query so those precached modules actually work offline.
+    const versionless = await cache.match(request, { ignoreSearch: true });
+    if (versionless) return versionless;
     if (fallbackKey) {
       const fallback = await cache.match(fallbackKey, { ignoreSearch: true });
       if (fallback) return fallback;
