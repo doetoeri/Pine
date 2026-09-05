@@ -1,9 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import {
+  canEnterDegradedReadonly,
+  hasMatchingPublicCache,
+  isTransientAuthFailure,
+} from "../core/degraded-readonly.js";
+import { NEXT_ROLE, PERMISSION, canAccess, resolveNextAccess } from "../core/trust-model.js";
+import { validateBrandTagline } from "../core/brand-settings.js";
 
 async function source(path) {
   return readFile(new URL(path, import.meta.url), "utf8");
+}
+
+function memoryStorage(values = {}) {
+  const data = new Map(Object.entries(values));
+  return {
+    getItem(key) { return data.has(key) ? data.get(key) : null; },
+    setItem(key, value) { data.set(key, String(value)); },
+    removeItem(key) { data.delete(key); },
+  };
 }
 
 test("student auth uses Firebase email/password without storing PIN locally", async () => {
@@ -140,12 +156,14 @@ test("application modules boot only after the account gate resolves", async () =
   const html = await source("../index.html");
   const accountReadyIndex = bootstrap.indexOf("await accountReady");
   const routeRecoveryIndex = bootstrap.indexOf('await import("./route-focus-stability.js?v=20260903-route2")');
-  const appIndex = bootstrap.indexOf('await import("./app.js?v=20260830-interaction1")');
+  const appIndex = bootstrap.indexOf('await import("./app.js?v=20260905-readonly1")');
 
   assert.ok(accountReadyIndex >= 0);
   assert.ok(routeRecoveryIndex > accountReadyIndex, "route recovery must arm after authentication resolves");
   assert.ok(appIndex > routeRecoveryIndex, "route recovery must arm before the app can render clickable navigation");
   assert.match(bootstrap, /account-gate\.js\?v=20260903-identity2/);
+  assert.match(bootstrap, /simple-account-gate\.js\?v=20260905-readonly1/);
+  assert.match(bootstrap, /readonly-notice\.js\?v=20260905-readonly1/);
   assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-route2"/);
   assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
@@ -155,4 +173,64 @@ test("test-only authentication bypass is restricted to localhost", async () => {
   const gate = await source("../account-gate.js");
   assert.match(gate, /\["127\.0\.0\.1", "localhost"\]\.includes\(location\.hostname\)/);
   assert.match(gate, /get\("auth"\) !== "1"/);
+});
+
+test("degraded mode requires matching public cache and only transient auth failures", () => {
+  const storage = memoryStorage({
+    "pincon-profile-v2": JSON.stringify({ grade: 1, classNumber: 8 }),
+    "pincon-class-ops-cache-v1": JSON.stringify({
+      classKey: "1-8",
+      savedAtMs: 1_780_000_000_000,
+      data: { announcements: [], classAssignments: [] },
+    }),
+  });
+
+  assert.equal(hasMatchingPublicCache({ grade: 1, classNumber: 8 }, storage), true);
+  assert.equal(canEnterDegradedReadonly(Object.assign(new Error("server-error"), { status: 503 }), storage), true);
+  assert.equal(canEnterDegradedReadonly(Object.assign(new Error("unauthorized"), { status: 401 }), storage), false);
+  assert.equal(canEnterDegradedReadonly(Object.assign(new Error("forbidden"), { status: 403 }), storage), false);
+  assert.equal(isTransientAuthFailure(Object.assign(new Error("busy"), { status: 429 })), true);
+  assert.equal(isTransientAuthFailure(Object.assign(new Error("missing"), { status: 404 })), false);
+
+  const wrongClass = memoryStorage({
+    "pincon-profile-v2": JSON.stringify({ grade: 1, classNumber: 8 }),
+    "pincon-class-ops-cache-v1": JSON.stringify({ classKey: "1-7", savedAtMs: 123, data: { announcements: [] } }),
+  });
+  assert.equal(canEnterDegradedReadonly(new Error("account-api-unreachable"), wrongClass), false);
+});
+
+test("forced read-only downgrades manager access and blocks brand writes", () => {
+  globalThis.PINCON_FORCE_READONLY = true;
+  try {
+    const access = resolveNextAccess({
+      user: { uid: "manager", displayName: "회장" },
+      legacyRole: { enabled: true, level: "president", classKeys: ["1-8"] },
+      classKey: "1-8",
+    });
+    assert.equal(access.role, NEXT_ROLE.VIEWER);
+    assert.equal(access.canRead, true);
+    assert.equal(access.canWrite, false);
+    assert.equal(access.writeGateEnabled, false);
+    assert.equal(canAccess(access, PERMISSION.UPDATE), false);
+    assert.throws(() => validateBrandTagline("우리 반"), /읽기 전용/);
+  } finally {
+    delete globalThis.PINCON_FORCE_READONLY;
+    delete globalThis.PINCON_READONLY_MODE;
+  }
+});
+
+test("simple account gate keeps invalid sessions gated but degrades on transient infrastructure failures", async () => {
+  const gate = await source("../simple-account-gate.js");
+  const bootstrap = await source("../app-bootstrap.js");
+  const notice = await source("../readonly-notice.js");
+
+  assert.match(gate, /canEnterDegradedReadonly\(error\)/);
+  assert.match(gate, /mode: "degraded-readonly"/);
+  assert.match(gate, /if \(enterDegradedReadonly\(error\)\) return;\n\s*await signOutStudent/);
+  assert.match(gate, /loginScreen\(\);/);
+  assert.doesNotMatch(gate, /if \s*\(!user\)\s*enterDegradedReadonly/);
+  assert.match(bootstrap, /!navigator\.onLine && Boolean\(savedClassProfile\(\)\)/);
+  assert.match(bootstrap, /enableForcedReadonly\(detail\.mode\)/);
+  assert.match(notice, /로그인 확인 지연 · 읽기 전용/);
+  assert.match(notice, /data-readonly-reload/);
 });
