@@ -70,7 +70,7 @@ test("share text is compact, class-scoped, and distinguishes new versus changed"
   assert.match(text, /PinCon에서 최신 정보 확인/);
 });
 
-test("Next entry wires the digest and the UI distinguishes loading, error, empty, and share states", async () => {
+test("Next entry wires the digest and the UI distinguishes loading, error, empty, share, and router states", async () => {
   const [html, ui] = await Promise.all([
     source("../index.html"),
     source("../today-changes.js"),
@@ -84,4 +84,6 @@ test("Next entry wires the digest and the UI distinguishes loading, error, empty
   assert.match(ui, /반톡 공유/);
   assert.match(ui, /buildTodayChangesShareText/);
   assert.match(ui, /snapshot\.usingCache \|\| !snapshot\.online/);
+  assert.match(ui, /data-route=/);
+  assert.doesNotMatch(ui, /location\.hash\s*=/);
 });
