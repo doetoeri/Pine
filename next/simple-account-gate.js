@@ -1,5 +1,9 @@
 import { saveClassProfile } from "./core/data-gateway.js";
 import {
+  canEnterDegradedReadonly,
+  enableForcedReadonly,
+} from "./core/degraded-readonly.js?v=20260905-readonly1";
+import {
   changeStudentPin,
   claimStudentAccount,
   currentFirebaseUser,
@@ -39,6 +43,14 @@ function complete(detail) {
   globalThis.PINCON_ACCOUNT = detail;
   window.dispatchEvent(new CustomEvent("pincon-account-ready", { detail }));
   resolveReady(detail);
+}
+
+function enterDegradedReadonly(error) {
+  if (!canEnterDegradedReadonly(error)) return false;
+  const detail = { mode: "degraded-readonly", user: null, account: null };
+  enableForcedReadonly(detail.mode);
+  complete(detail);
+  return true;
 }
 
 function syncClass(account) {
@@ -263,7 +275,13 @@ async function boot() {
       return;
     }
 
-    let user = await currentFirebaseUser();
+    let user;
+    try {
+      user = await currentFirebaseUser();
+    } catch (error) {
+      if (enterDegradedReadonly(error)) return;
+      throw error;
+    }
     if (user?.isAnonymous) {
       await signOutStudent();
       user = null;
@@ -281,12 +299,14 @@ async function boot() {
           else complete({ mode: "student", ...session });
           return;
         }
-      } catch {
+      } catch (error) {
+        if (enterDegradedReadonly(error)) return;
         await signOutStudent().catch(() => {});
       }
     }
     loginScreen();
-  } catch {
+  } catch (error) {
+    if (enterDegradedReadonly(error)) return;
     loginScreen("로그인 상태를 확인하지 못했습니다. 다시 입력해주세요.");
   }
 }

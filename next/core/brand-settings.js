@@ -25,6 +25,9 @@ export function isLegacyProductTagline(value) {
 }
 
 export function validateBrandTagline(value) {
+  if (globalThis.PINCON_FORCE_READONLY === true) {
+    throw new Error("현재 PinCon은 읽기 전용입니다. 연결 상태를 확인한 뒤 다시 시도해 주세요.");
+  }
   const normalized = normalizeBrandTagline(value);
   if (textLength(normalized) > BRAND_TAGLINE_MAX_LENGTH) {
     throw new Error(`작은 문구는 ${BRAND_TAGLINE_MAX_LENGTH}자 이하로 입력해 주세요.`);
