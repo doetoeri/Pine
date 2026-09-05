@@ -16,6 +16,7 @@ const PINCON_NEXT_SHELL = [
   "./next/account-center.css",
   "./next/student-ops.css",
   "./next/first-login-onboarding.css",
+  "./next/today-changes.css",
   "./next/reveal-loader.js",
   "./next/first-login-onboarding.js",
   "./next/app-bootstrap.js",
@@ -27,6 +28,7 @@ const PINCON_NEXT_SHELL = [
   "./next/app-interactions.js",
   "./next/detail-history-stability.js",
   "./next/evaluation-plan-preview.js",
+  "./next/today-changes.js",
   "./next/write-mode.js",
   "./next/admin-visibility.js",
   "./next/account-center.js",
@@ -40,6 +42,7 @@ const PINCON_NEXT_SHELL = [
   "./next/core/recovery-pack.js",
   "./next/core/brand-settings.js",
   "./next/core/trust-model.js",
+  "./next/core/today-changes.js",
   "./next/core/today-open-write.js",
   "./next/core/student-auth.js",
   "./next/assets/pincon-icon.svg"
