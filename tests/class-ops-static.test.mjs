@@ -30,7 +30,7 @@ test("HTML, 매니페스트, 서비스 워커가 통합 PinCon 셸을 포함한�
   assert.match(serviceWorker, /importScripts\("\.\/next\/precache-manifest\.js"\)/);
   const precache = await read("next/precache-manifest.js");
   for (const asset of ["/next/index.html", "/next/app.js", "/next/app.css", "/pincon-class-ops-core.js", "/pincon-class-ops-data.js"]) {
-    assert.ok(precache.includes(`"${asset}"`), `${asset} must be precached`);
+    assert.ok([...precache.matchAll(/"([^"\n]+)"/g)].some((match) => new URL(match[1], "https://pincon.app").pathname === asset), `${asset} must be precached`);
   }
   assert.ok(manifest.shortcuts.some((item) => String(item.url).includes("class-tab=today")));
 });
