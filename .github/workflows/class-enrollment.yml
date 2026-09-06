@@ -4,9 +4,13 @@ on:
   pull_request:
     paths:
       - "next/join/**"
+      - "next/app-bootstrap.js"
+      - "next/pin-reset-request-ui.js"
       - "next/admin/class-enrollment.js"
+      - "next/admin/pin-reset-requests.js"
       - "next/admin/bootstrap.js"
       - "integrations/pincon-ai/handlers/accounts/enrollment.mjs"
+      - "integrations/pincon-ai/handlers/accounts/pin-reset-requests.mjs"
       - "integrations/pincon-ai/tests/enrollment-concurrency.test.mjs"
       - "integrations/pincon-ai/api/class-ops-router.mjs"
       - "integrations/pincon-ai/vercel.json"
@@ -29,7 +33,10 @@ jobs:
       - name: Check browser module syntax
         run: |
           node --check next/join/join.js
+          node --check next/app-bootstrap.js
+          node --check next/pin-reset-request-ui.js
           node --check next/admin/class-enrollment.js
+          node --check next/admin/pin-reset-requests.js
           node --check next/admin/bootstrap.js
       - name: Install account gateway dependencies
         working-directory: integrations/pincon-ai
@@ -38,28 +45,38 @@ jobs:
         working-directory: integrations/pincon-ai
         run: |
           node --check handlers/accounts/enrollment.mjs
+          node --check handlers/accounts/pin-reset-requests.mjs
           node --check api/class-ops-router.mjs
-          node -e "import('./handlers/accounts/enrollment.mjs').then(()=>console.log('enrollment import ok'))"
+          node -e "Promise.all([import('./handlers/accounts/enrollment.mjs'), import('./handlers/accounts/pin-reset-requests.mjs')]).then(()=>console.log('account handlers import ok'))"
       - name: Validate Vercel routing JSON
-        run: node -e "const fs=require('fs'); const v=JSON.parse(fs.readFileSync('integrations/pincon-ai/vercel.json')); if(!v.rewrites.some(x=>x.source==='/api/accounts/enrollment')) process.exit(1); console.log('enrollment rewrite ok')"
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const v=JSON.parse(fs.readFileSync('integrations/pincon-ai/vercel.json'));
+          for (const route of ['/api/accounts/enrollment','/api/accounts/pin-reset-requests']) {
+            if (!v.rewrites.some(x=>x.source===route)) throw new Error(`missing rewrite: ${route}`);
+          }
+          console.log('account rewrites ok');
+          NODE
       - name: Enrollment security contract
         run: |
           node - <<'NODE'
           const fs = require('fs');
           const server = fs.readFileSync('integrations/pincon-ai/handlers/accounts/enrollment.mjs','utf8');
+          const reset = fs.readFileSync('integrations/pincon-ai/handlers/accounts/pin-reset-requests.mjs','utf8');
           const join = fs.readFileSync('next/join/join.js','utf8');
-          const required = [
-            'runTransaction',
-            'claimLeaseUntilMs',
-            'already-activated',
-            'privileged-account-protected',
-            'createCustomToken',
-            'rateLimitPublic',
-          ];
-          for (const token of required) if (!server.includes(token)) throw new Error(`missing server contract: ${token}`);
+          const resetUi = fs.readFileSync('next/pin-reset-request-ui.js','utf8');
+          for (const token of ['runTransaction','claimLeaseUntilMs','already-activated','privileged-account-protected','createCustomToken','rateLimitPublic']) {
+            if (!server.includes(token)) throw new Error(`missing server contract: ${token}`);
+          }
+          for (const token of ['PIN_RESET_REQUEST_APPROVED','privileged-account-protected','revokeRefreshTokens','allowedStudentNumber','status: "PENDING"']) {
+            if (!reset.includes(token)) throw new Error(`missing reset contract: ${token}`);
+          }
+          if (!reset.includes('존재 여부를 노출하지 않는다')) throw new Error('reset request enumeration protection missing');
+          if (!resetUi.includes('stopImmediatePropagation')) throw new Error('legacy forgot-PIN handler is not safely replaced');
           if (join.includes('Notification.requestPermission')) throw new Error('join page must not request notification permission directly');
           if (!join.includes('signInWithCustomToken')) throw new Error('join page must establish Firebase session');
-          console.log('enrollment contracts ok');
+          console.log('account security contracts ok');
           NODE
 
   enrollment-concurrency:
