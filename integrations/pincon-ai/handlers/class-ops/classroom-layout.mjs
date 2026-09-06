@@ -12,12 +12,21 @@ import { safeText } from "../../lib/class-operations.mjs";
 import { appendOpsAudit, classUsers, document } from "../../lib/class-ops-store.mjs";
 import { jsonBody, sendJson } from "../../lib/request.mjs";
 
-function deny(message = "classroom-layout-access-denied") {
-  throw Object.assign(new Error(message), { status: 403 });
-}
+const SCENES = Object.freeze(["morning", "assessment", "seat-change", "history-group", "special"]);
+const TARGET_MODES = Object.freeze(["message", "general", "groups", "assessment"]);
+const DEFAULT_SCENES = Object.freeze({
+  morning: { label: "아침시간", message: "좋은 아침입니다. 오늘 일정과 준비물을 확인해주세요.", targetMode: "general", showMovement: false, leadMinutes: 0 },
+  assessment: { label: "수행평가 전", message: "수행평가가 곧 시작됩니다. 안내에 따라 조용히 이동해주세요.", targetMode: "assessment", showMovement: true, leadMinutes: 5 },
+  "seat-change": { label: "자리 바꾸는 시간", message: "자리 이동을 시작합니다. 화면의 순서대로 이동해주세요.", targetMode: "general", showMovement: true, leadMinutes: 0 },
+  "history-group": { label: "한국사 모둠 시작 전", message: "한국사 모둠 활동이 곧 시작됩니다. 모둠 자리로 이동해주세요.", targetMode: "groups", showMovement: true, leadMinutes: 5 },
+  special: { label: "특별 상황", message: "안내 사항을 확인해주세요.", targetMode: "message", showMovement: false, leadMinutes: 0 },
+});
+
+function deny(message = "classroom-layout-access-denied") { throw Object.assign(new Error(message), { status: 403 }); }
 function assertViewer(profile) { if (!canViewClassroomLayout(profile)) deny(); }
 function assertReporter(profile) { if (!canReportClassroomLayout(profile)) deny("classroom-report-access-denied"); }
 function assertOperator(profile) { if (!isClassOperator(profile)) deny("class-operator-required"); }
+function assertDisplayController(profile) { if (!canViewClassroomLayout(profile)) deny("classroom-display-control-required"); }
 
 function validClassKey(value) {
   const match = /^([1-3])-(10|[1-9])$/.exec(String(value || ""));
@@ -45,7 +54,8 @@ function uidList(value, known, limit = 80) {
   for (const raw of value.slice(0, limit)) {
     const clean = uid(raw);
     if (!clean || (known.size && !known.has(clean)) || seen.has(clean)) continue;
-    seen.add(clean); out.push(clean);
+    seen.add(clean);
+    out.push(clean);
   }
   return out;
 }
@@ -55,7 +65,8 @@ function seatList(value, known, limit = 100) {
   return value.slice(0, limit).map((raw) => {
     const clean = uid(raw);
     if (!clean || (known.size && !known.has(clean)) || seen.has(clean)) return "";
-    seen.add(clean); return clean;
+    seen.add(clean);
+    return clean;
   });
 }
 function dateKey() {
@@ -90,11 +101,31 @@ function nominations(value, known) {
     };
   }).filter(Boolean);
 }
-function displaySettings(value = {}) {
+function localDateTime(value) {
+  const raw = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(raw) ? raw : "";
+}
+function sceneSettings(key, value = {}) {
+  const base = DEFAULT_SCENES[key];
   return {
-    message: safeText(value?.message || "면학 분위기를 위해 조용히 이동해주세요.", 180),
+    label: base.label,
+    message: safeText(value?.message || base.message, 180),
+    targetMode: TARGET_MODES.includes(value?.targetMode) ? value.targetMode : base.targetMode,
+    showMovement: value?.showMovement === undefined ? base.showMovement : value.showMovement === true,
+    startAt: localDateTime(value?.startAt),
+    leadMinutes: integer(value?.leadMinutes, 0, 180, base.leadMinutes),
+  };
+}
+function displaySettings(value = {}) {
+  const activeScene = SCENES.includes(value?.activeScene) ? value.activeScene : "morning";
+  const scenes = Object.fromEntries(SCENES.map((key) => [key, sceneSettings(key, value?.scenes?.[key])]));
+  return {
+    activeScene,
+    message: scenes[activeScene].message,
     idleSeconds: integer(value?.idleSeconds, 3, 120, 12),
     stepSeconds: integer(value?.stepSeconds, 2, 20, 5),
+    finalSeconds: integer(value?.finalSeconds, 3, 60, 8),
+    scenes,
   };
 }
 function normalizeLayout(value, rosterUids = []) {
@@ -109,23 +140,28 @@ function normalizeLayout(value, rosterUids = []) {
   const separationPairs = Array.isArray(general.separationPairs)
     ? general.separationPairs.slice(0, 100).map((pair) => {
         if (!Array.isArray(pair) || pair.length < 2) return null;
-        const a = uid(pair[0]), b = uid(pair[1]);
+        const a = uid(pair[0]);
+        const b = uid(pair[1]);
         return a && b && a !== b && (!known.size || (known.has(a) && known.has(b))) ? [a, b] : null;
-      }).filter(Boolean) : [];
+      }).filter(Boolean)
+    : [];
   const desks = Array.isArray(groups.desks) ? groups.desks.slice(0, 60).map((desk, index) => ({
     index: integer(desk?.index, 0, 99, index),
     group: integer(desk?.group, 1, groupCount, 1),
     rotation: [0, 90, 180, 270].includes(Number(desk?.rotation)) ? Number(desk.rotation) : 0,
   })) : [];
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     mode: ["general", "groups", "assessment"].includes(input.mode) ? input.mode : "general",
     display: displaySettings(input.display),
     general: {
-      rows: integer(general.rows, 3, 10, 6), cols: integer(general.cols, 3, 10, 6),
+      rows: integer(general.rows, 3, 10, 6),
+      cols: integer(general.cols, 3, 10, 6),
       seats: seatList(general.seats, known),
+      previousSeats: seatList(general.previousSeats, known),
       blocked: Array.isArray(general.blocked) ? [...new Set(general.blocked.map((item) => integer(item, 0, 99, -1)).filter((item) => item >= 0))].slice(0, 30) : [],
-      focusStudentIds: uidList(general.focusStudentIds, known, 60), separationPairs,
+      focusStudentIds: uidList(general.focusStudentIds, known, 60),
+      separationPairs,
       nominations: nominations(general.nominations, known),
     },
     groups: { groupCount, sizes, members, deskRows: integer(groups.deskRows, 3, 10, 6), deskCols: integer(groups.deskCols, 3, 10, 6), desks },
@@ -156,14 +192,22 @@ async function view(actor, requestedClassKey) {
   assertViewer(actor);
   const { classKey, roster, saved, layout } = await context(actor, requestedClassKey);
   return {
-    classKey, roster, classroomLayout: publicLayout(layout, actor),
-    permissions: { canEdit: isClassOperator(actor), canReport: canReportClassroomLayout(actor), canSeeReporter: canSeeClassroomReporter(actor) },
-    updatedAtMs: Number(saved.updatedAtMs || 0), updatedByName: safeText(saved.updatedByName, 40),
+    classKey,
+    roster,
+    classroomLayout: publicLayout(layout, actor),
+    permissions: {
+      canEdit: isClassOperator(actor),
+      canReport: canReportClassroomLayout(actor),
+      canSeeReporter: canSeeClassroomReporter(actor),
+      canControlDisplay: canViewClassroomLayout(actor),
+    },
+    updatedAtMs: Number(saved.updatedAtMs || 0),
+    updatedByName: safeText(saved.updatedByName, 40),
   };
 }
 async function persist(actor, classKey, roster, beforeRaw, layout, action) {
   const ref = document("classroomLayouts", classKey);
-  const after = { schemaVersion: 2, classKey, classroomLayout: normalizeLayout(layout, roster.map((student) => student.uid)), updatedAtMs: Date.now(), updatedByUid: actor.uid, updatedByName: safeText(actor.name, 40) };
+  const after = { schemaVersion: 3, classKey, classroomLayout: normalizeLayout(layout, roster.map((student) => student.uid)), updatedAtMs: Date.now(), updatedByUid: actor.uid, updatedByName: safeText(actor.name, 40) };
   await ref.set(after, { merge: false });
   await appendOpsAudit({ actor: { ...actor, classKey }, action, collectionName: "classroomLayouts", recordId: classKey, before: beforeRaw ? { ...beforeRaw, classroomLayout: auditLayout(beforeRaw.classroomLayout) } : null, after: { ...after, classroomLayout: auditLayout(after.classroomLayout) } });
   return after;
@@ -173,6 +217,9 @@ async function save(actor, body) {
   const { classKey, roster, saved, layout: previousLayout } = await context(actor, body.classKey);
   const incoming = normalizeLayout(body.classroomLayout, roster.map((student) => student.uid));
   incoming.general.nominations = previousLayout.general.nominations;
+  const incomingSeats = JSON.stringify(incoming.general.seats || []);
+  const currentSeats = JSON.stringify(previousLayout.general.seats || []);
+  incoming.general.previousSeats = incomingSeats !== currentSeats ? previousLayout.general.seats : previousLayout.general.previousSeats;
   if (!body?.classroomLayout?.display) incoming.display = previousLayout.display;
   const after = await persist(actor, classKey, roster, saved, incoming, "CLASSROOM_LAYOUT_UPDATE");
   return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor), updatedAtMs: after.updatedAtMs };
@@ -181,13 +228,20 @@ async function addNomination(actor, body) {
   assertReporter(actor);
   const { classKey, roster, saved, layout } = await context(actor, body.classKey);
   const known = new Set(roster.map((student) => student.uid));
-  const studentUid = uid(body.studentUid), partnerUid = uid(body.partnerUid);
+  const studentUid = uid(body.studentUid);
+  const partnerUid = uid(body.partnerUid);
   if (!studentUid || !known.has(studentUid)) throw Object.assign(new Error("student-required"), { status: 400 });
   if (partnerUid && (partnerUid === studentUid || !known.has(partnerUid))) throw Object.assign(new Error("invalid-partner"), { status: 400 });
   layout.general.nominations.push({
     id: `nom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    studentUid, partnerUid: partnerUid || "", reason: safeText(body.reason || "기타", 100), note: safeText(body.note, 180), date: dateKey(),
-    proposerUid: actor.uid, proposerName: safeText(actor.name, 40), proposerRole: roleLabel(actor),
+    studentUid,
+    partnerUid: partnerUid || "",
+    reason: safeText(body.reason || "기타", 100),
+    note: safeText(body.note, 180),
+    date: dateKey(),
+    proposerUid: actor.uid,
+    proposerName: safeText(actor.name, 40),
+    proposerRole: roleLabel(actor),
   });
   const after = await persist(actor, classKey, roster, saved, layout, "CLASSROOM_NOMINATION_ADD");
   return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor) };
@@ -201,11 +255,11 @@ async function removeNomination(actor, body) {
   return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor) };
 }
 async function setDisplay(actor, body) {
-  assertOperator(actor);
+  assertDisplayController(actor);
   const { classKey, roster, saved, layout } = await context(actor, body.classKey);
   layout.display = displaySettings(body.display);
   const after = await persist(actor, classKey, roster, saved, layout, "CLASSROOM_DISPLAY_UPDATE");
-  return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor) };
+  return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor), updatedAtMs: after.updatedAtMs };
 }
 
 export default async function classroomLayout(req, res) {
