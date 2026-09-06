@@ -23,6 +23,7 @@ if (!snapshot.canArchiveContent) {
   await import("./account-create-v2.js?v=20260903-identity2");
   await import("./account-security-v2.js?v=20260903-identity2");
   await import("./class-enrollment.js?v=20260906-enroll1");
+  await import("./pin-reset-requests.js?v=20260906-reset1");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
   await import("./class-duty-manager.js?v=20260901-duty1");
