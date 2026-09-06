@@ -22,6 +22,7 @@ if (!snapshot.canArchiveContent) {
   await import("./user-manager.js?v=20260903-pinless1");
   await import("./account-create-v2.js?v=20260903-identity2");
   await import("./account-security-v2.js?v=20260903-identity2");
+  await import("./general-account-delete.js?v=20260906-delete1");
   await import("./class-enrollment.js?v=20260906-enroll1");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
