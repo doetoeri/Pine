@@ -2,85 +2,26 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
   "rewrites": [
-    {
-      "source": "/.well-known/oauth-protected-resource",
-      "destination": "/api/oauth-router?route=protected-resource"
-    },
-    {
-      "source": "/.well-known/oauth-authorization-server",
-      "destination": "/api/oauth-router?route=authorization-server"
-    },
-    {
-      "source": "/oauth/authorize",
-      "destination": "/api/oauth/authorize"
-    },
-    {
-      "source": "/oauth/authorize/complete",
-      "destination": "/api/oauth-router?route=authorize-complete"
-    },
-    {
-      "source": "/oauth/token",
-      "destination": "/api/oauth-router?route=token"
-    },
-    {
-      "source": "/oauth/register",
-      "destination": "/api/oauth-router?route=register"
-    },
-    {
-      "source": "/api/accounts/session",
-      "destination": "/api/class-ops-router?route=account-session"
-    },
-    {
-      "source": "/api/accounts/create",
-      "destination": "/api/class-ops-router?route=account-create"
-    },
-    {
-      "source": "/api/accounts/claim",
-      "destination": "/api/class-ops-router?route=account-claim"
-    },
-    {
-      "source": "/api/accounts/reset",
-      "destination": "/api/class-ops-router?route=account-reset"
-    },
-    {
-      "source": "/api/accounts/manage",
-      "destination": "/api/class-ops-router?route=account-manage"
-    },
-    {
-      "source": "/api/accounts/change-pin",
-      "destination": "/api/class-ops-router?route=account-change-pin"
-    },
-    {
-      "source": "/api/accounts/personal-notifications",
-      "destination": "/api/class-ops-router?route=personal-notifications"
-    },
-    {
-      "source": "/api/class-ops/home",
-      "destination": "/api/class-ops-router?route=home"
-    },
-    {
-      "source": "/api/class-ops/cleaning",
-      "destination": "/api/class-ops-router?route=cleaning"
-    },
-    {
-      "source": "/api/class-ops/duties",
-      "destination": "/api/class-ops-router?route=duties"
-    },
-    {
-      "source": "/api/class-ops/phone",
-      "destination": "/api/class-ops-router?route=phone"
-    },
-    {
-      "source": "/api/class-ops/subject",
-      "destination": "/api/class-ops-router?route=subject"
-    },
-    {
-      "source": "/api/class-ops/settings",
-      "destination": "/api/class-ops-router?route=settings"
-    },
-    {
-      "source": "/api/class-ops/admin-overview",
-      "destination": "/api/class-ops-router?route=admin-overview"
-    }
+    { "source": "/.well-known/oauth-protected-resource", "destination": "/api/oauth-router?route=protected-resource" },
+    { "source": "/.well-known/oauth-authorization-server", "destination": "/api/oauth-router?route=authorization-server" },
+    { "source": "/oauth/authorize", "destination": "/api/oauth/authorize" },
+    { "source": "/oauth/authorize/complete", "destination": "/api/oauth-router?route=authorize-complete" },
+    { "source": "/oauth/token", "destination": "/api/oauth-router?route=token" },
+    { "source": "/oauth/register", "destination": "/api/oauth-router?route=register" },
+    { "source": "/api/accounts/session", "destination": "/api/class-ops-router?route=account-session" },
+    { "source": "/api/accounts/create", "destination": "/api/class-ops-router?route=account-create" },
+    { "source": "/api/accounts/claim", "destination": "/api/class-ops-router?route=account-claim" },
+    { "source": "/api/accounts/reset", "destination": "/api/class-ops-router?route=account-reset" },
+    { "source": "/api/accounts/manage", "destination": "/api/class-ops-router?route=account-manage" },
+    { "source": "/api/accounts/enrollment", "destination": "/api/class-ops-router?route=account-enrollment" },
+    { "source": "/api/accounts/change-pin", "destination": "/api/class-ops-router?route=account-change-pin" },
+    { "source": "/api/accounts/personal-notifications", "destination": "/api/class-ops-router?route=personal-notifications" },
+    { "source": "/api/class-ops/home", "destination": "/api/class-ops-router?route=home" },
+    { "source": "/api/class-ops/cleaning", "destination": "/api/class-ops-router?route=cleaning" },
+    { "source": "/api/class-ops/duties", "destination": "/api/class-ops-router?route=duties" },
+    { "source": "/api/class-ops/phone", "destination": "/api/class-ops-router?route=phone" },
+    { "source": "/api/class-ops/subject", "destination": "/api/class-ops-router?route=subject" },
+    { "source": "/api/class-ops/settings", "destination": "/api/class-ops-router?route=settings" },
+    { "source": "/api/class-ops/admin-overview", "destination": "/api/class-ops-router?route=admin-overview" }
   ]
 }
