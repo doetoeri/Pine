@@ -70,8 +70,20 @@ test("TV mode cycles situation message, countdown, movement arrows, desk rotatio
   assert.match(tv,/showFinal/);
   assert.match(tv,/rotation/);
   assert.match(css,/tv-countdown/);
-  assert.match(css,/@keyframes pulse/);
+  assert.match(css,/@keyframes arrowFloat/);
   assert.match(css,/@keyframes tvbar/);
+});
+
+test("TV presentation is bright, softly animated and respects reduced-motion preferences",async()=>{
+  const [html,tv,css]=await Promise.all([read("next/classroom/tv.html"),read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
+  assert.match(html,/theme-color" content="#f3f6f0"/);
+  assert.match(tv,/function setScreen/);
+  assert.match(tv,/tv-transition-ghost/);
+  assert.match(tv,/sameScreen/);
+  assert.match(css,/tv-screen-enter/);
+  assert.match(css,/@keyframes tvScreenIn/);
+  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(css,/--tv-bg:#f3f6f0/);
 });
 
 test("main PinCon loads the officer classroom entry",async()=>{
