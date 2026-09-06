@@ -14,6 +14,7 @@
     { "source": "/api/accounts/reset", "destination": "/api/class-ops-router?route=account-reset" },
     { "source": "/api/accounts/manage", "destination": "/api/class-ops-router?route=account-manage" },
     { "source": "/api/accounts/enrollment", "destination": "/api/class-ops-router?route=account-enrollment" },
+    { "source": "/api/accounts/pin-reset-requests", "destination": "/api/class-ops-router?route=account-pin-reset-requests" },
     { "source": "/api/accounts/change-pin", "destination": "/api/class-ops-router?route=account-change-pin" },
     { "source": "/api/accounts/personal-notifications", "destination": "/api/class-ops-router?route=personal-notifications" },
     { "source": "/api/class-ops/home", "destination": "/api/class-ops-router?route=home" },
