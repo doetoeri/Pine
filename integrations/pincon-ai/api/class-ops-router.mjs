@@ -12,6 +12,7 @@ import duties from "../handlers/class-ops/duties.mjs";
 import phone from "../handlers/class-ops/phone.mjs";
 import subject from "../handlers/class-ops/subject.mjs";
 import settings from "../handlers/class-ops/settings.mjs";
+import classroomLayout from "../handlers/class-ops/classroom-layout.mjs";
 import adminOverview from "../handlers/class-ops/admin-overview.mjs";
 import { sendJson } from "../lib/request.mjs";
 
@@ -31,6 +32,7 @@ const ROUTES = Object.freeze({
   phone,
   subject,
   settings,
+  "classroom-layout": classroomLayout,
   "admin-overview": adminOverview,
 });
 
