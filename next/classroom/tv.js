@@ -2,13 +2,9 @@ import { accountRequest } from "../core/student-auth.js";
 
 const root = document.querySelector("#tvApp");
 const forcedScene = new URL(location.href).searchParams.get("scene") || "";
-let view = null;
-let timer = null;
-let moveIndex = 0;
-let lastSceneKey = "";
-let screenKey = "";
-let transitionToken = 0;
+const motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
 
+const SCREEN_STATES = Object.freeze(["waiting", "intro", "movement", "final", "messageOnly", "error"]);
 const SCENE_LABELS = Object.freeze({
   morning: "아침시간",
   assessment: "수행평가 전",
@@ -16,246 +12,428 @@ const SCENE_LABELS = Object.freeze({
   "history-group": "한국사 모둠 시작 전",
   special: "특별 상황",
 });
-const DEFAULT_TIMING = Object.freeze({ intro: 2.4, move: 1.5, final: 4.5, message: 7 });
-const esc = (v) => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-const student = (uid) => view?.roster?.find((x) => x.uid === uid) || null;
-const label = (uid) => {
-  const s = student(uid);
-  return s ? `${Number(s.number) || "-"}번 ${s.name || "이름 없음"}` : "빈자리";
-};
-const rot = (r) => ({ 0: "↑", 90: "→", 180: "↓", 270: "←" })[Number(r)] || "↑";
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const DEFAULT_TIMING = Object.freeze({ intro: 2.4, move: 1.5, final: 4.5 });
+const FADE_OUT_MS = 180;
+const FADE_IN_MS = 200;
+const POLL_INTERVAL_MS = 15000;
 
-function sceneKey() {
-  return forcedScene || view?.classroomLayout?.display?.activeScene || "morning";
+let view = null;
+let screenState = "waiting";
+let screenKey = "";
+let timer = null;
+let movementIndex = 0;
+let transitionToken = 0;
+let flowToken = 0;
+let lastFlowSignature = "";
+
+const esc = (value) => String(value ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#039;");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const reducedMotion = () => motionQuery?.matches === true;
+
+function clearTimer() {
+  if (timer) clearTimeout(timer);
+  timer = null;
 }
-function scene() {
-  const d = view.classroomLayout.display;
-  return d.scenes?.[sceneKey()] || d.scenes?.morning || { message: d.message || "", targetMode: "general", showMovement: false, startAt: "", leadMinutes: 0 };
+
+function activeSceneKey(source = view) {
+  return forcedScene || source?.classroomLayout?.display?.activeScene || "morning";
 }
-function targetMode() { return scene().targetMode || "general"; }
-function durations() {
-  const d = view?.classroomLayout?.display || {};
-  const legacyIdle = Number(d.idleSeconds) === 12;
-  const legacyMove = Number(d.stepSeconds) === 5;
-  const legacyFinal = Number(d.finalSeconds) === 8;
-  return {
-    intro: legacyIdle ? DEFAULT_TIMING.intro : Math.max(2, Math.min(4, Number(d.idleSeconds) || DEFAULT_TIMING.intro)),
-    move: legacyMove ? DEFAULT_TIMING.move : Math.max(1.2, Math.min(2.5, Number(d.stepSeconds) || DEFAULT_TIMING.move)),
-    final: legacyFinal ? DEFAULT_TIMING.final : Math.max(3.5, Math.min(7, Number(d.finalSeconds) || DEFAULT_TIMING.final)),
-    message: DEFAULT_TIMING.message,
+
+function activeScene(source = view) {
+  const display = source?.classroomLayout?.display || {};
+  const key = activeSceneKey(source);
+  return display.scenes?.[key] || display.scenes?.morning || {
+    message: display.message || "",
+    targetMode: "general",
+    showMovement: false,
+    startAt: "",
+    leadMinutes: 0,
   };
 }
-async function setScreen(html, key, { instant = false } = {}) {
-  if (screenKey === key) {
-    root.innerHTML = html;
-    return;
+
+function targetMode(source = view) {
+  return activeScene(source).targetMode || "general";
+}
+
+function durations(source = view) {
+  const display = source?.classroomLayout?.display || {};
+  const idle = Number(display.idleSeconds);
+  const move = Number(display.stepSeconds);
+  const final = Number(display.finalSeconds);
+  const legacyDefaults = idle === 12 && move === 5 && final === 8;
+
+  if (legacyDefaults) return { ...DEFAULT_TIMING };
+
+  return {
+    intro: Math.max(2, Math.min(4, idle || DEFAULT_TIMING.intro)),
+    move: Math.max(1.2, Math.min(2.5, move || DEFAULT_TIMING.move)),
+    final: Math.max(3.5, Math.min(7, final || DEFAULT_TIMING.final)),
+  };
+}
+
+function student(uid) {
+  return view?.roster?.find((item) => item.uid === uid) || null;
+}
+
+function studentLabel(uid) {
+  const item = student(uid);
+  return item ? `${Number(item.number) || "-"}번 ${item.name || "이름 없음"}` : "빈자리";
+}
+
+function rotationArrow(rotation) {
+  return ({ 0: "↑", 90: "→", 180: "↓", 270: "←" })[Number(rotation)] || "↑";
+}
+
+async function transitionTo(nextState, html, key, { instant = false } = {}) {
+  if (!SCREEN_STATES.includes(nextState)) throw new Error(`unknown-tv-state:${nextState}`);
+  const transitionId = ++transitionToken;
+  const skipMotion = instant || reducedMotion();
+  const current = root.firstElementChild;
+
+  if (!skipMotion && current && screenKey !== key) {
+    current.classList.add("is-fading-out");
+    await sleep(FADE_OUT_MS);
+    if (transitionId !== transitionToken) return false;
   }
-  const token = ++transitionToken;
-  if (!instant && root.firstElementChild) {
-    root.firstElementChild.classList.add("is-fading-out");
-    await sleep(180);
-    if (token !== transitionToken) return;
-  }
+
   root.innerHTML = html;
+  screenState = nextState;
   screenKey = key;
+
   const next = root.firstElementChild;
-  if (!instant && next) {
+  if (!skipMotion && next) {
     next.classList.add("is-fading-in");
     requestAnimationFrame(() => requestAnimationFrame(() => next.classList.add("is-visible")));
+    await sleep(FADE_IN_MS);
+    if (transitionId !== transitionToken) return false;
+    next.classList.remove("is-fading-in", "is-visible");
   }
+
+  return true;
 }
-function generalPos(usePrevious = false) {
-  const out = new Map();
-  const g = view.classroomLayout.general;
-  const seats = usePrevious && Array.isArray(g.previousSeats) && g.previousSeats.some(Boolean) ? g.previousSeats : g.seats || [];
-  seats.forEach((uid, i) => {
-    if (uid) out.set(uid, { index: i, label: `${i + 1}번 자리`, rotation: 0 });
+
+function generalPositions(usePrevious = false) {
+  const positions = new Map();
+  const general = view.classroomLayout.general;
+  const hasPrevious = Array.isArray(general.previousSeats) && general.previousSeats.some(Boolean);
+  const seats = usePrevious && hasPrevious ? general.previousSeats : general.seats || [];
+
+  seats.forEach((uid, index) => {
+    if (uid) positions.set(uid, { index, label: `${index + 1}번 자리`, rotation: 0 });
   });
-  return out;
+  return positions;
 }
-function targetPos() {
+
+function targetPositions() {
   const layout = view.classroomLayout;
   const mode = targetMode();
+
   if (mode === "assessment") {
-    const out = new Map();
-    (layout.assessment.seats || []).forEach((uid, i) => {
-      if (uid) out.set(uid, { index: i, label: `${i + 1}번 자리`, rotation: 0 });
+    const positions = new Map();
+    (layout.assessment.seats || []).forEach((uid, index) => {
+      if (uid) positions.set(uid, { index, label: `${index + 1}번 자리`, rotation: 0 });
     });
-    return out;
+    return positions;
   }
+
   if (mode === "groups") {
-    const out = new Map();
-    const g = layout.groups;
-    for (let group = 1; group <= g.groupCount; group += 1) {
-      const members = g.members?.[group - 1] || [];
-      const desks = (g.desks || []).filter((d) => d.group === group).sort((a, b) => a.index - b.index);
-      members.forEach((uid, i) => {
-        const d = desks[i];
-        if (uid && d) out.set(uid, { index: d.index, label: `${group}모둠 · ${d.index + 1}번`, rotation: d.rotation });
+    const positions = new Map();
+    const groups = layout.groups;
+    for (let group = 1; group <= groups.groupCount; group += 1) {
+      const members = groups.members?.[group - 1] || [];
+      const desks = (groups.desks || [])
+        .filter((desk) => desk.group === group)
+        .sort((a, b) => a.index - b.index);
+      members.forEach((uid, index) => {
+        const desk = desks[index];
+        if (uid && desk) {
+          positions.set(uid, {
+            index: desk.index,
+            label: `${group}모둠 · ${desk.index + 1}번 책상`,
+            rotation: desk.rotation,
+          });
+        }
       });
     }
-    return out;
+    return positions;
   }
-  return generalPos(false);
+
+  return generalPositions(false);
 }
-function movements() {
-  const s = scene();
-  if (!s.showMovement || targetMode() === "message") return [];
-  const start = sceneKey() === "seat-change" ? generalPos(true) : generalPos(false);
-  const target = targetPos();
+
+function movementItems() {
+  const currentScene = activeScene();
+  const mode = targetMode();
+  if (!currentScene.showMovement || mode === "message") return [];
+
+  const start = activeSceneKey() === "seat-change" ? generalPositions(true) : generalPositions(false);
+  const target = targetPositions();
+  const groupMode = mode === "groups";
+
   return view.roster.map((item) => {
     const to = target.get(item.uid);
     if (!to) return null;
     const from = start.get(item.uid);
+    const moved = groupMode || !from || from.index !== to.index || Number(to.rotation) !== 0;
+    if (!moved) return null;
     return {
       uid: item.uid,
-      name: label(item.uid),
-      from: from?.label || "현재 위치",
+      name: studentLabel(item.uid),
+      from: from?.label || "출발 자리 미정",
       to: to.label,
       rotation: to.rotation || 0,
-      moved: !from || from.index !== to.index || Number(to.rotation) !== 0,
     };
-  }).filter((item) => item?.moved);
+  }).filter(Boolean);
 }
+
 function scheduleState() {
-  const s = scene();
-  if (!s.startAt) return null;
-  const start = new Date(s.startAt);
+  const currentScene = activeScene();
+  if (!currentScene.startAt) return null;
+  const start = new Date(currentScene.startAt);
   if (!Number.isFinite(start.getTime())) return null;
-  const guideAt = new Date(start.getTime() - Number(s.leadMinutes || 0) * 60000);
-  return { start, guideAt, now: new Date() };
+  const guideAt = new Date(start.getTime() - Number(currentScene.leadMinutes || 0) * 60000);
+  return { start, guideAt };
 }
-function countdownText(ms) {
-  const total = Math.max(0, Math.ceil(ms / 1000));
+
+function countdownText(milliseconds) {
+  const total = Math.max(0, Math.ceil(milliseconds / 1000));
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
   if (minutes >= 60) return `${Math.floor(minutes / 60)}시간 ${minutes % 60}분`;
   return minutes ? `${minutes}분 ${String(seconds).padStart(2, "0")}초` : `${seconds}초`;
 }
-function progress(seconds) {
-  return `<div class="tv-progress" aria-hidden="true"><span style="animation-duration:${seconds}s"></span></div>`;
+
+function introMarkup() {
+  const key = activeSceneKey();
+  const currentScene = activeScene();
+  return `<section class="tv-screen tv-intro"><p class="tv-kicker">${esc(SCENE_LABELS[key] || "PINCON")}</p><h1>${esc(currentScene.message)}</h1></section>`;
 }
-async function idle() {
-  clearTimeout(timer);
-  const s = scene();
-  const schedule = scheduleState();
-  const waiting = schedule && schedule.now < schedule.guideAt;
-  const timing = durations();
-  const kicker = SCENE_LABELS[sceneKey()] || "교실 안내";
-  const detail = waiting
-    ? `안내 시작까지 ${countdownText(schedule.guideAt - schedule.now)}`
-    : schedule && schedule.now < schedule.start
-      ? `시작까지 ${countdownText(schedule.start - schedule.now)}`
-      : view.classKey;
-  const html = `<section class="tv-screen tv-intro"><div class="tv-badge">${esc(kicker)}</div><h1>${esc(s.message)}</h1><p>${esc(detail)}</p>${waiting ? `<strong class="tv-countdown">${esc(countdownText(schedule.guideAt - schedule.now))}</strong>` : targetMode() === "message" ? "" : progress(timing.intro)}</section>`;
-  await setScreen(html, `intro:${sceneKey()}`);
-  if (waiting) {
-    timer = setTimeout(idle, 1000);
-    return;
-  }
-  if (targetMode() === "message") {
-    timer = setTimeout(idle, timing.message * 1000);
-    return;
-  }
-  timer = setTimeout(() => {
-    moveIndex = 0;
-    showMove();
-  }, timing.intro * 1000);
+
+function messageMarkup() {
+  const key = activeSceneKey();
+  const currentScene = activeScene();
+  return `<section class="tv-screen tv-message"><p class="tv-kicker">${esc(SCENE_LABELS[key] || "PINCON")}</p><h1>${esc(currentScene.message)}</h1></section>`;
 }
-async function showMove() {
-  clearTimeout(timer);
-  const moves = movements();
-  if (!moves.length) {
-    showFinal();
-    return;
-  }
-  const timing = durations();
-  const item = moves[moveIndex % moves.length];
+
+async function renderWaiting(milliseconds) {
+  const key = activeSceneKey();
+  const currentScene = activeScene();
+  const html = `<section class="tv-screen tv-waiting"><p class="tv-kicker">${esc(SCENE_LABELS[key] || "PINCON")}</p><h1>${esc(currentScene.message)}</h1><strong class="tv-countdown" data-countdown>${esc(countdownText(milliseconds))}</strong></section>`;
+  return transitionTo("waiting", html, `waiting:${key}`);
+}
+
+async function renderIntro() {
+  return transitionTo("intro", introMarkup(), `intro:${activeSceneKey()}`);
+}
+
+async function renderMessage() {
+  return transitionTo("messageOnly", messageMarkup(), `message:${activeSceneKey()}`);
+}
+
+async function renderMovement(item, index) {
   const groupMode = targetMode() === "groups";
-  const html = `<section class="tv-screen tv-move"><div class="tv-badge">${moveIndex + 1} / ${moves.length}</div><h2>${esc(item.name)}</h2><div class="tv-route"><span>${esc(item.from)}</span><b>→</b><span>${esc(item.to)}</span></div>${groupMode ? `<p class="tv-rotation">책상 방향 <strong>${rot(item.rotation)}</strong></p>` : ""}${progress(timing.move)}</section>`;
-  await setScreen(html, `move:${sceneKey()}:${item.uid}:${moveIndex}`);
-  timer = setTimeout(() => {
-    moveIndex += 1;
-    if (moveIndex >= moves.length) showFinal();
-    else showMove();
-  }, timing.move * 1000);
+  const html = `<section class="tv-screen tv-movement"><h1>${esc(item.name)}</h1><div class="tv-route"><span>${esc(item.from)}</span><b aria-hidden="true">→</b><span>${esc(item.to)}</span></div>${groupMode ? `<p class="tv-rotation">책상 방향 <strong>${rotationArrow(item.rotation)}</strong></p>` : ""}</section>`;
+  return transitionTo("movement", html, `movement:${activeSceneKey()}:${item.uid}:${index}`);
 }
+
 function finalCells() {
   const layout = view.classroomLayout;
   const mode = targetMode();
+
   if (mode === "groups") {
-    const g = layout.groups;
-    const map = targetPos();
-    const byIndex = new Map();
-    for (const [uid, pos] of map) byIndex.set(pos.index, uid);
-    const desks = new Map((g.desks || []).map((desk) => [desk.index, desk]));
-    const total = g.deskRows * g.deskCols;
+    const groups = layout.groups;
+    const positions = targetPositions();
+    const uidByIndex = new Map();
+    for (const [uid, position] of positions) uidByIndex.set(position.index, uid);
+    const deskByIndex = new Map((groups.desks || []).map((desk) => [desk.index, desk]));
+    const total = groups.deskRows * groups.deskCols;
     return {
-      cols: g.deskCols,
-      cells: Array.from({ length: total }, (_, i) => {
-        const desk = desks.get(i);
-        const uid = byIndex.get(i) || "";
-        if (!desk) return `<div class="tv-seat is-empty"></div>`;
-        return `<div class="tv-seat ${uid ? "" : "is-empty"}"><small>${desk.group}모둠 · ${rot(desk.rotation)}</small><strong>${esc(label(uid))}</strong></div>`;
+      cols: groups.deskCols,
+      cells: Array.from({ length: total }, (_, index) => {
+        const desk = deskByIndex.get(index);
+        const uid = uidByIndex.get(index) || "";
+        if (!desk) return `<div class="tv-seat is-empty" aria-hidden="true"></div>`;
+        return `<div class="tv-seat ${uid ? "" : "is-empty"}"><small>${desk.group}모둠 · ${rotationArrow(desk.rotation)}</small><strong>${esc(studentLabel(uid))}</strong></div>`;
       }),
     };
   }
+
   if (mode === "assessment") {
-    const a = layout.assessment;
-    const cols = a.lines;
-    const rows = Math.ceil(Math.max(view.roster.length, a.seats?.length || 0) / cols);
+    const assessment = layout.assessment;
+    const cols = assessment.lines;
+    const rows = Math.ceil(Math.max(view.roster.length, assessment.seats?.length || 0) / cols);
     return {
       cols,
-      cells: Array.from({ length: rows * cols }, (_, i) => {
-        const uid = a.seats?.[i] || "";
-        return `<div class="tv-seat ${uid ? "" : "is-empty"}"><small>${i + 1}</small><strong>${esc(label(uid))}</strong></div>`;
+      cells: Array.from({ length: rows * cols }, (_, index) => {
+        const uid = assessment.seats?.[index] || "";
+        return `<div class="tv-seat ${uid ? "" : "is-empty"}"><strong>${esc(studentLabel(uid))}</strong></div>`;
       }),
     };
   }
-  const g = layout.general;
+
+  const general = layout.general;
   return {
-    cols: g.cols,
-    cells: Array.from({ length: g.rows * g.cols }, (_, i) => {
-      const uid = g.seats?.[i] || "";
-      return `<div class="tv-seat ${uid ? "" : "is-empty"}"><small>${i + 1}</small><strong>${esc(label(uid))}</strong></div>`;
+    cols: general.cols,
+    cells: Array.from({ length: general.rows * general.cols }, (_, index) => {
+      const uid = general.seats?.[index] || "";
+      return `<div class="tv-seat ${uid ? "" : "is-empty"}"><strong>${esc(studentLabel(uid))}</strong></div>`;
     }),
   };
 }
-async function showFinal() {
-  clearTimeout(timer);
+
+function finalTitle() {
+  const mode = targetMode();
+  if (mode === "groups") return "모둠 최종 자리";
+  if (mode === "assessment") return "수행평가 최종 자리";
+  return "최종 자리";
+}
+
+async function renderFinal() {
+  const data = finalCells();
+  const html = `<section class="tv-screen tv-final"><header class="tv-final-head"><div><p class="tv-kicker">${esc(SCENE_LABELS[activeSceneKey()] || "PINCON")}</p><h1>${esc(finalTitle())}</h1></div><div class="tv-teacher">교탁</div></header><div class="tv-room" style="grid-template-columns:repeat(${data.cols},minmax(0,1fr))">${data.cells.join("")}</div></section>`;
+  return transitionTo("final", html, `final:${activeSceneKey()}:${targetMode()}`);
+}
+
+async function renderError() {
+  return transitionTo(
+    "error",
+    `<section class="tv-screen tv-error"><p class="tv-kicker">PINCON</p><h1>교실 화면을 불러오지 못했습니다.</h1><p>로그인과 권한을 확인해주세요.</p></section>`,
+    "error",
+    { instant: true },
+  );
+}
+
+function waitForGuide(flowId) {
+  clearTimer();
+  const schedule = scheduleState();
+  if (!schedule) return false;
+  const remaining = schedule.guideAt.getTime() - Date.now();
+  if (remaining <= 0) return false;
+
+  renderWaiting(remaining).then(() => {
+    if (flowId !== flowToken) return;
+    const tick = () => {
+      if (flowId !== flowToken) return;
+      const nextSchedule = scheduleState();
+      const nextRemaining = nextSchedule ? nextSchedule.guideAt.getTime() - Date.now() : 0;
+      if (nextRemaining <= 0) {
+        runSceneFlow(flowId);
+        return;
+      }
+      const countdown = root.querySelector("[data-countdown]");
+      if (countdown) countdown.textContent = countdownText(nextRemaining);
+      timer = setTimeout(tick, 1000);
+    };
+    timer = setTimeout(tick, 1000);
+  });
+  return true;
+}
+
+async function runSceneFlow(existingFlowId = null) {
+  clearTimer();
+  const flowId = existingFlowId ?? ++flowToken;
+  if (existingFlowId === null && waitForGuide(flowId)) return;
+  if (flowId !== flowToken) return;
+
+  const timing = durations();
+  await renderIntro();
+  if (flowId !== flowToken) return;
+
   const mode = targetMode();
   if (mode === "message") {
-    idle();
+    await renderMessage();
     return;
   }
-  const timing = durations();
-  const data = finalCells();
-  const title = mode === "groups" ? "모둠 배치" : mode === "assessment" ? `${view.classroomLayout.assessment.lines}줄 수행평가` : "새 자리";
-  const html = `<section class="tv-screen tv-final"><div class="tv-final-head"><div><div class="tv-badge">${esc(SCENE_LABELS[sceneKey()] || "교실 안내")}</div><h2>${title}</h2></div><div class="tv-teacher">교탁</div></div><div class="tv-room" style="grid-template-columns:repeat(${data.cols},minmax(0,1fr))">${data.cells.join("")}</div>${progress(timing.final)}</section>`;
-  await setScreen(html, `final:${sceneKey()}:${mode}`);
-  timer = setTimeout(idle, timing.final * 1000);
+
+  timer = setTimeout(async () => {
+    if (flowId !== flowToken) return;
+    const moves = movementItems();
+    movementIndex = 0;
+
+    while (movementIndex < moves.length && flowId === flowToken) {
+      await renderMovement(moves[movementIndex], movementIndex);
+      if (flowId !== flowToken) return;
+      await sleep(timing.move * 1000);
+      movementIndex += 1;
+    }
+
+    if (flowId !== flowToken) return;
+    await renderFinal();
+    if (flowId !== flowToken) return;
+    await sleep(timing.final * 1000);
+    if (flowId !== flowToken) return;
+    await renderMessage();
+  }, timing.intro * 1000);
 }
-async function refresh() {
+
+function tvSignature(source) {
+  const layout = source?.classroomLayout || {};
+  const display = layout.display || {};
+  const key = activeSceneKey(source);
+  const currentScene = activeScene(source);
+  const mode = currentScene.targetMode || "general";
+  const signature = {
+    key,
+    scene: currentScene,
+    timing: {
+      idleSeconds: display.idleSeconds,
+      stepSeconds: display.stepSeconds,
+      finalSeconds: display.finalSeconds,
+    },
+    roster: (source?.roster || []).map(({ uid, number, name }) => ({ uid, number, name })),
+  };
+
+  if (mode === "general") {
+    signature.general = {
+      rows: layout.general?.rows,
+      cols: layout.general?.cols,
+      seats: layout.general?.seats || [],
+      previousSeats: key === "seat-change" ? layout.general?.previousSeats || [] : [],
+    };
+  } else if (mode === "assessment") {
+    signature.assessment = {
+      lines: layout.assessment?.lines,
+      seats: layout.assessment?.seats || [],
+    };
+    signature.general = { seats: layout.general?.seats || [] };
+  } else if (mode === "groups") {
+    signature.groups = {
+      groupCount: layout.groups?.groupCount,
+      members: layout.groups?.members || [],
+      deskRows: layout.groups?.deskRows,
+      deskCols: layout.groups?.deskCols,
+      desks: layout.groups?.desks || [],
+    };
+    signature.general = { seats: layout.general?.seats || [] };
+  }
+
+  return JSON.stringify(signature);
+}
+
+async function refreshInitial() {
   try {
     view = await accountRequest("/api/class-ops/classroom-layout");
-    lastSceneKey = sceneKey();
-    await idle();
+    lastFlowSignature = tvSignature(view);
+    await runSceneFlow();
   } catch {
-    await setScreen(`<section class="tv-screen tv-error"><h2>교실 화면을 불러오지 못했습니다.</h2><p>로그인과 권한을 확인해주세요.</p></section>`, "error", { instant: true });
+    await renderError();
   }
 }
 
-refresh();
+refreshInitial();
 setInterval(async () => {
   try {
     const next = await accountRequest("/api/class-ops/classroom-layout");
-    const changed = next.updatedAtMs !== view?.updatedAtMs;
+    const nextSignature = tvSignature(next);
     view = next;
-    const nextScene = sceneKey();
-    if (changed || nextScene !== lastSceneKey) {
-      lastSceneKey = nextScene;
-      await idle();
+    if (nextSignature !== lastFlowSignature) {
+      lastFlowSignature = nextSignature;
+      await runSceneFlow();
     }
   } catch {}
-}, 10000);
+}, POLL_INTERVAL_MS);
