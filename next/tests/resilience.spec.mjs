@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { disconnectableOrigin } from './helpers/disconnectable-origin.mjs';
 const base='http://127.0.0.1:4173';
 const sizes=[[280,700],[320,700],[360,800],[390,844],[768,1024],[1024,768],[1366,768]];
 async function prepare(page) {
@@ -34,16 +35,32 @@ for(const [width,height] of sizes) test(`read-only navigation and dialogs ${widt
  await page.locator('[data-route="schedule"]:visible').click();await expect(page.locator('#schedule-title')).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true); expect(errors).toEqual([]);
 });
-test('Next offline reload and navigation preserve public school cache',async({page,context})=>{
- await prepare(page); await page.goto(`${base}/next/?auth=1#today`);
- await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
- await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller))).toBe(true);
- await context.setOffline(true);await page.reload({waitUntil:'domcontentloaded'});
- await expect(page.locator('#nextClassCard')).toBeVisible();
- await expect(page.getByText(/오프라인 상태 · 마지막 동기화 데이터 표시 중/)).toBeVisible();
- for(const route of ['timetable','schedule','classroom','more','today']) {await page.locator(`[data-route="${route}"]:visible`).click();await expect(page.locator(`#${route}-title`)).toBeVisible();}
- await expect(page.getByText('회귀 테스트 식단',{exact:true})).toBeVisible();
- await context.setOffline(false);await expect(page.getByText(/오프라인 상태 · 마지막 동기화 데이터 표시 중/)).not.toBeVisible();
+test('Next offline reload and navigation preserve public school cache',async({page,context,browserName})=>{
+ const origin=await disconnectableOrigin();
+ try {
+  await prepare(page); await page.goto(`${origin.url}/next/?auth=1#today`);
+  await page.evaluate(async()=>{await navigator.serviceWorker.ready;});
+  await expect.poll(()=>page.evaluate(()=>Boolean(navigator.serviceWorker.controller))).toBe(true);
+  // Verify actual browser offline/online events and the banner on both engines.
+  await context.setOffline(true);
+  await expect(page.getByText(/오프라인 상태 · 마지막 동기화 데이터 표시 중/)).toBeVisible();
+  await context.setOffline(false);
+  await expect(page.getByText(/오프라인 상태 · 마지막 동기화 데이터 표시 중/)).not.toBeVisible();
+  origin.disconnect();
+  // Uncached network access must really fail, including the worker's origin.
+  expect(await page.evaluate(async()=>{try{await fetch('/outage-probe',{cache:'no-store'});return false;}catch{return true;}})).toBe(true);
+  expect(origin.rejected).toBeGreaterThan(0);
+  // WebKit's offline emulation fails navigation before SW fallback (#34402).
+  // Keep Chromium's emulation too; WebKit uses the real disconnected origin.
+  if(browserName==='chromium') await context.setOffline(true);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await expect(page.locator('#nextClassCard')).toBeVisible();
+  for(const route of ['timetable','schedule','classroom','more','today']) {await page.locator(`[data-route="${route}"]:visible`).click();await expect(page.locator(`#${route}-title`)).toBeVisible();}
+  await expect(page.getByText('회귀 테스트 식단',{exact:true})).toBeVisible();
+  origin.reconnect();await context.setOffline(false);
+  await expect(page.getByText(/오프라인 상태 · 마지막 동기화 데이터 표시 중/)).not.toBeVisible();
+  expect(await page.evaluate(async()=>{const r=await fetch('/manifest.webmanifest',{cache:'reload'});return r.ok;})).toBe(true);
+ } finally {await context.setOffline(false);await origin.close();}
 });
 test('personal checks require authentication and stay isolated per uid',async({page})=>{
  await prepare(page);await page.goto(`${base}/next/#today`);await expect(page.locator('#today-title')).toBeVisible();
