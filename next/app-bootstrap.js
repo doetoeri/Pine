@@ -12,6 +12,7 @@ if (hasOfflineClassProfile()) {
   globalThis.PINCON_ACCOUNT = detail;
   window.dispatchEvent(new CustomEvent("pincon-account-ready", { detail }));
 } else {
+  await import("./pin-reset-request-ui.js?v=20260906-reset1");
   ({ accountReady } = await import("./simple-account-gate.js?v=20260905-readonly1"));
 }
 
