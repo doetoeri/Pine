@@ -341,14 +341,14 @@ async function runSceneFlow(existingFlowId = null) {
   if (flowId !== flowToken) return;
 
   const timing = durations();
-  await renderIntro();
-  if (flowId !== flowToken) return;
-
   const mode = targetMode();
   if (mode === "message") {
     await renderMessage();
     return;
   }
+
+  await renderIntro();
+  if (flowId !== flowToken) return;
 
   timer = setTimeout(async () => {
     if (flowId !== flowToken) return;
