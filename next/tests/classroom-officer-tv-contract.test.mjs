@@ -60,7 +60,7 @@ test("officer classroom page provides printing, TV presets and three layout mode
   assert.match(css,/@media print/);
 });
 
-test("TV mode cycles situation message, countdown, movement arrows, desk rotation and final layout",async()=>{
+test("TV mode keeps countdown, movement, desk rotation and final layout",async()=>{
   const [tv,css]=await Promise.all([read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
   assert.match(tv,/activeScene/);
   assert.match(tv,/countdownText/);
@@ -70,20 +70,22 @@ test("TV mode cycles situation message, countdown, movement arrows, desk rotatio
   assert.match(tv,/showFinal/);
   assert.match(tv,/rotation/);
   assert.match(css,/tv-countdown/);
-  assert.match(css,/@keyframes arrowFloat/);
-  assert.match(css,/@keyframes tvbar/);
+  assert.match(css,/@keyframes progress/);
 });
 
-test("TV presentation is bright, softly animated and respects reduced-motion preferences",async()=>{
+test("TV is rebuilt as a minimal bright display with fast fade-only transitions",async()=>{
   const [html,tv,css]=await Promise.all([read("next/classroom/tv.html"),read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
-  assert.match(html,/theme-color" content="#f3f6f0"/);
-  assert.match(tv,/function setScreen/);
-  assert.match(tv,/tv-transition-ghost/);
-  assert.match(tv,/sameScreen/);
-  assert.match(css,/tv-screen-enter/);
-  assert.match(css,/@keyframes tvScreenIn/);
+  assert.match(html,/theme-color" content="#f5f5f7"/);
+  assert.match(tv,/DEFAULT_TIMING/);
+  assert.match(tv,/intro:\s*2\.4/);
+  assert.match(tv,/move:\s*1\.5/);
+  assert.match(tv,/final:\s*4\.5/);
+  assert.match(tv,/is-fading-out/);
+  assert.match(tv,/is-fading-in/);
+  assert.doesNotMatch(css,/translateY|scale\(|blur\(/);
+  assert.match(css,/transition:opacity \.18s ease/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(css,/--tv-bg:#f3f6f0/);
+  assert.match(css,/--bg:#f5f5f7/);
 });
 
 test("main PinCon loads the officer classroom entry",async()=>{
