@@ -8,7 +8,7 @@ const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,"../..");
 const read=(p)=>readFile(path.resolve(root,p),"utf8");
 
-test("classroom layout supports vice president and officer viewing without making them editors",async()=>{
+test("classroom layout supports vice president and officer viewing without making them seat editors",async()=>{
   const accounts=await read("integrations/pincon-ai/lib/class-accounts.mjs");
   assert.match(accounts,/CLASS_VICE_PRESIDENT/);
   assert.match(accounts,/canViewClassroomLayout/);
@@ -27,25 +27,49 @@ test("reporter identity is recorded server-side and redacted for non-admin viewe
   assert.match(api,/auditLayout/);
 });
 
-test("officer classroom page provides printing, TV display settings and three layout modes",async()=>{
+test("TV display control is separated from seat editing permission",async()=>{
+  const api=await read("integrations/pincon-ai/handlers/class-ops/classroom-layout.mjs");
+  assert.match(api,/assertDisplayController/);
+  assert.match(api,/canControlDisplay:\s*canViewClassroomLayout/);
+  assert.match(api,/SET_DISPLAY/);
+  assert.match(api,/assertDisplayController\(actor\)/);
+  assert.match(api,/assertOperator\(actor\)[\s\S]*CLASSROOM_LAYOUT_UPDATE/);
+});
+
+test("TV supports five classroom situations and keeps the previous general seating for move guidance",async()=>{
+  const api=await read("integrations/pincon-ai/handlers/class-ops/classroom-layout.mjs");
+  for(const key of ["morning","assessment","seat-change","history-group","special"]) assert.match(api,new RegExp(key.replace("-","\\-")));
+  assert.match(api,/previousSeats/);
+  assert.match(api,/leadMinutes/);
+  assert.match(api,/startAt/);
+  assert.match(api,/finalSeconds/);
+});
+
+test("officer classroom page provides printing, TV presets and three layout modes",async()=>{
   const [html,js,css]=await Promise.all([read("next/classroom/index.html"),read("next/classroom/classroom.js"),read("next/classroom/classroom.css")]);
   assert.match(html,/classroom\.js/);
   assert.match(js,/window\.print/);
-  assert.match(js,/tv\.html\?mode=/);
+  assert.match(js,/window\.open\("\.\/tv\.html"/);
   assert.match(js,/SET_DISPLAY/);
-  assert.match(js,/general/);
-  assert.match(js,/groups/);
-  assert.match(js,/assessment/);
+  assert.match(js,/아침시간/);
+  assert.match(js,/수행평가 전/);
+  assert.match(js,/자리 바꾸는 시간/);
+  assert.match(js,/한국사 모둠 시작 전/);
+  assert.match(js,/특별 상황/);
+  assert.match(js,/canControlDisplay/);
   assert.match(css,/@media print/);
 });
 
-test("TV mode cycles custom message, movement arrows, desk rotation and final layout",async()=>{
+test("TV mode cycles situation message, countdown, movement arrows, desk rotation and final layout",async()=>{
   const [tv,css]=await Promise.all([read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
-  assert.match(tv,/classroomLayout\.display/);
+  assert.match(tv,/activeScene/);
+  assert.match(tv,/countdownText/);
+  assert.match(tv,/guideAt/);
+  assert.match(tv,/previousSeats/);
   assert.match(tv,/showMove/);
   assert.match(tv,/showFinal/);
   assert.match(tv,/rotation/);
-  assert.match(tv,/일반.*자리|모둠|수행평가/);
+  assert.match(css,/tv-countdown/);
   assert.match(css,/@keyframes pulse/);
   assert.match(css,/@keyframes tvbar/);
 });
