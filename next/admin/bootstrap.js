@@ -20,6 +20,7 @@ if (!snapshot.canArchiveContent) {
   await import("./daily-brief-image.js?v=20260831-daily2");
   await import("./personal-notifications.js?v=20260830-personal1");
   await import("./user-manager.js?v=20260903-pinless1");
+  await import("./classroom-role-augment.js?v=20260906-officer1");
   await import("./account-create-v2.js?v=20260903-identity2");
   await import("./account-security-v2.js?v=20260903-identity2");
   await import("./general-account-delete.js?v=20260906-delete2");
@@ -27,6 +28,6 @@ if (!snapshot.canArchiveContent) {
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
   await import("./classroom-layout-v2.js?v=20260906-layout4");
-  await import("./classroom-nominations-v2.js?v=20260906-layout4");
+  await import("./classroom-nominations-v2.js?v=20260906-officer1");
   await import("./class-duty-manager.js?v=20260901-duty1");
 }
