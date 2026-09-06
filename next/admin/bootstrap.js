@@ -26,5 +26,6 @@ if (!snapshot.canArchiveContent) {
   await import("./class-enrollment.js?v=20260906-enroll1");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
+  await import("./classroom-layout.js?v=20260906-layout1");
   await import("./class-duty-manager.js?v=20260901-duty1");
 }
