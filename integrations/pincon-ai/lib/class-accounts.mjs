@@ -9,6 +9,7 @@ export const ROLE = Object.freeze({
   DEPARTMENT_HEAD: "DEPARTMENT_HEAD",
   SUBJECT_MANAGER: "SUBJECT_MANAGER",
   CLASS_PRESIDENT: "CLASS_PRESIDENT",
+  CLASS_VICE_PRESIDENT: "CLASS_VICE_PRESIDENT",
   TEACHER: "TEACHER",
   ADMIN: "ADMIN",
 });
@@ -212,6 +213,19 @@ export function hasRole(profile, role) {
 
 export function isClassOperator(profile) {
   return [ROLE.CLASS_PRESIDENT, ROLE.TEACHER, ROLE.ADMIN].some((role) => hasRole(profile, role));
+}
+
+export function canViewClassroomLayout(profile) {
+  return [ROLE.CLASS_PRESIDENT, ROLE.CLASS_VICE_PRESIDENT, ROLE.DEPARTMENT_HEAD, ROLE.TEACHER, ROLE.ADMIN]
+    .some((role) => hasRole(profile, role));
+}
+
+export function canReportClassroomLayout(profile) {
+  return canViewClassroomLayout(profile);
+}
+
+export function canSeeClassroomReporter(profile) {
+  return hasRole(profile, ROLE.ADMIN);
 }
 
 export function isAccountAdmin(profile) {

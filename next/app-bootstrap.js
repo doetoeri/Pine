@@ -28,4 +28,5 @@ await import("./write-mode.js");
 await import("./admin-visibility.js");
 await import("./account-center.js");
 await import("./student-ops.js");
+await import("./classroom-entry.js?v=20260906-officer1");
 await import("./dialog-focus-stability.js?v=20260903-focus1");
