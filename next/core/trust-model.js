@@ -34,6 +34,10 @@ export const NEXT_WRITE_GATE = Object.freeze({
   reason: "인증된 학급 운영 계정만 서버 규칙이 허용하는 범위에서 편집할 수 있습니다.",
 });
 
+function forcedReadonly() {
+  return globalThis.PINCON_FORCE_READONLY === true;
+}
+
 function classScopeIncludes(role, classKey) {
   if (!role?.enabled) return false;
   if (["school", "admin", "system", "school-admin"].includes(role.level)) return true;
@@ -49,7 +53,7 @@ export function mapLegacyRole(role, classKey = "") {
 }
 
 export function resolveNextAccess({ user = null, legacyRole = null, classKey = "" } = {}) {
-  const role = mapLegacyRole(legacyRole, classKey);
+  const role = forcedReadonly() ? NEXT_ROLE.VIEWER : mapLegacyRole(legacyRole, classKey);
   const configured = ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS[NEXT_ROLE.VIEWER];
   const signedIn = Boolean(user?.uid);
   return Object.freeze({
@@ -57,15 +61,18 @@ export function resolveNextAccess({ user = null, legacyRole = null, classKey = "
     role,
     displayName: user?.displayName || user?.email || "",
     configuredPermissions: [...configured],
-    writeGateEnabled: NEXT_WRITE_GATE.enabled,
+    writeGateEnabled: NEXT_WRITE_GATE.enabled && !forcedReadonly(),
     canRead: configured.has(PERMISSION.READ),
-    canWrite: signedIn && NEXT_WRITE_GATE.enabled && [...configured].some((permission) => permission !== PERMISSION.READ),
-    reason: NEXT_WRITE_GATE.reason,
+    canWrite: signedIn && NEXT_WRITE_GATE.enabled && !forcedReadonly() && [...configured].some((permission) => permission !== PERMISSION.READ),
+    reason: forcedReadonly()
+      ? "로그인 또는 네트워크 상태가 완전히 확인될 때까지 읽기 전용으로 보호합니다."
+      : NEXT_WRITE_GATE.reason,
   });
 }
 
 export function canAccess(access, permission) {
   if (permission === PERMISSION.READ) return Boolean(access?.canRead);
+  if (forcedReadonly()) return false;
   if (!access?.signedIn || !NEXT_WRITE_GATE.enabled) return false;
   return Boolean(access?.configuredPermissions?.includes(permission));
 }
