@@ -3,7 +3,7 @@ const root = document.querySelector("#adminApp");
 const TARGETS = Object.freeze({
   overview: "#adminOverview",
   users: "#pinconUserManager",
-  operations: "#pinconClassOpsSettings",
+  operations: "#pinconClassroomLayout",
   content: "[data-managed-editor]",
   access: "#adminRoleManager",
   audit: "#adminAuditExplorer",
