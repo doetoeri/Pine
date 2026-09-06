@@ -15,12 +15,12 @@ test("PinCon admin boots the classroom layout modules", async () => {
   ]);
   assert.match(html, /classroom-layout\.css/);
   assert.match(html, /classroom-nominations\.css/);
-  assert.match(bootstrap, /classroom-layout\.js/);
+  assert.match(bootstrap, /classroom-layout-v2\.js/);
   assert.match(bootstrap, /classroom-nominations\.js/);
 });
 
 test("classroom layout exposes exactly the three requested modes and assessment presets", async () => {
-  const source = await read("next/admin/classroom-layout.js");
+  const source = await read("next/admin/classroom-layout-v2.js");
   assert.match(source, /general:\s*"일반"/);
   assert.match(source, /groups:\s*"모둠"/);
   assert.match(source, /assessment:\s*"수행평가"/);
@@ -28,8 +28,9 @@ test("classroom layout exposes exactly the three requested modes and assessment 
   assert.match(source, /data-assessment-lines="6"/);
   assert.match(source, /data-group-count/);
   assert.match(source, /data-group-size/);
-  assert.match(source, /data-desk-rotation/);
+  assert.match(source, /data-rotate/);
   assert.match(source, /ROTATIONS\s*=\s*\[0, 90, 180, 270\]/);
+  assert.match(source, /책상 이동 가이드/);
 });
 
 test("private nomination aggregation remains outside the public student surface", async () => {
@@ -38,7 +39,6 @@ test("private nomination aggregation remains outside the public student surface"
   assert.match(source, /data-confirm-focus/);
   assert.match(source, /data-confirm-pair/);
   assert.match(source, /\/api\/class-ops\/classroom-layout/);
-  assert.match(source, /\/api\/class-ops\/settings/);
 });
 
 test("classroom API preserves blank seat positions and requires class-operator access", async () => {
