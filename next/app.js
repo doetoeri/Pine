@@ -1,3 +1,6 @@
+import { NOTIFICATION_CATEGORIES } from "./core/domain/notification-policy.js";
+import { changesSince, nextClass, todayTasks, informationConflicts, sourceInfo, schoolDate } from "./core/domain/daily-priority.js";
+import { PersonalState } from "./core/data/personal-state.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "./core/data-gateway.js";
 import { buildNotificationFeed } from "./core/notification-store.js";
 import { buildRecoveryPack, recoveryProgress, setRecoveryItemCompleted } from "./core/recovery-pack.js";
@@ -49,10 +52,10 @@ let lastDetailTriggerKey = "";
 let detailPointer = null;
 let renderTimer = 0;
 let dataRenderDeferred = false;
+let interactionHeld = false;
 
 function appDialogBusy() {
-  return ["#searchDialog", "#notificationDialog"].some((selector) => {
-    const dialog = app.querySelector(selector);
+  return [...document.querySelectorAll("md-dialog, dialog")].some((dialog) => {
     return Boolean(
       dialog?.open
       || dialog?.hasAttribute?.("open")
@@ -64,7 +67,7 @@ function appDialogBusy() {
 function scheduleDataRender() {
   window.clearTimeout(renderTimer);
   renderTimer = window.setTimeout(() => {
-    if (appDialogBusy()) {
+    if (appDialogBusy() || interactionHeld) {
       dataRenderDeferred = true;
       return;
     }
@@ -81,7 +84,7 @@ function resumeDeferredDataRender() {
 function showMaterialDialog(dialog) {
   if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
   dialog.setAttribute("data-pincon-opening", "true");
-  Promise.resolve(dialog.show?.())
+  Promise.resolve(dialog.updateComplete).then(() => dialog.isConnected && dialog.show?.())
     .catch((error) => console.error(error))
     .finally(() => {
       dialog.removeAttribute("data-pincon-opening");
@@ -231,24 +234,19 @@ function assignmentCategory(item = {}) {
 }
 
 function statusInfo(item = {}) {
-  const raw = String(item.verificationStatus || item.confirmationStatus || item.status || "").toLowerCase();
+  const raw = String(item.verificationStatus || item.confirmationStatus || "").toLowerCase();
   if (item.changed === true || ["changed", "updated", "modified"].includes(raw)) {
     return { label: "변경됨", icon: "update", tone: "changed" };
   }
-  if (item.confirmed === true || ["confirmed", "verified", "approved", "published", "open", "active"].includes(raw)) {
+  if (item.confirmed === true || ["confirmed", "verified"].includes(raw)) {
     return { label: "확정", icon: "check_circle", tone: "confirmed" };
   }
-  return { label: "확인 중", icon: "help", tone: "checking" };
+  return { label: "", icon: "", tone: "" };
 }
 
 function originInfo(item = {}, context = {}) {
-  const raw = String(item.source || item.sourceType || context.source || "").toUpperCase();
-  const official = item.official === true || ["NEIS", "COMCIGAN", "SCHOOL", "OFFICIAL"].includes(raw)
-    || ["academicSchedules", "neisTimetables", "meals"].includes(context.collection)
-    || Boolean(item.planUrl || item.evaluationPlanUrl || item.originalUrl);
-  return official
-    ? { label: "학교 공식 자료", icon: "verified", tone: "official" }
-    : { label: "반에서 정리", icon: "groups", tone: "class" };
+  const source = sourceInfo(item, context.collection);
+  return { label: source.label, icon: "info", tone: "class" };
 }
 
 function collectionStatus(name) {
@@ -374,7 +372,7 @@ function allNotices() {
     .filter((item) => item.kind === "notice")
     .map((item) => ({ ...item, __collection: "content" }));
   return [...announcementRows, ...contentRows]
-    .filter((item) => !item.deleted)
+    .filter((item) => !item.deleted && item.published !== false && item.status !== "draft")
     .sort((a, b) => firstTimestamp(b, ["updatedAtMs", "createdAtMs", "clientCreatedAt"])
       - firstTimestamp(a, ["updatedAtMs", "createdAtMs", "clientCreatedAt"]));
 }
@@ -449,6 +447,7 @@ function upcomingSchedule(limit = 6, filter = "all") {
 
 function statusChipMarkup(item) {
   const status = statusInfo(item);
+  if (!status.label) return "";
   return `<span class="status-chip status-chip--${status.tone}"><md-icon>${status.icon}</md-icon>${status.label}</span>`;
 }
 
@@ -516,8 +515,8 @@ function scheduleRows(items, { loadingNames = ["classAssignments", "events", "ac
       title: item.title,
       supporting: [item.category, item.subject].filter(Boolean).join(" · "),
       leading: `<strong>${escapeHtml(timeDistance(item.date))}</strong>`,
-      date: item.date ? dateLabel(item.date, { weekday: false }) : "날짜 미정",
-      status: statusChipMarkup(item.source),
+      date: informationConflicts(priorityData()).some(c => c.values.some(v=>v.id === item.source.id)) ? "날짜 확인 필요" : item.date ? dateLabel(item.date, { weekday: false }) : "날짜 미정",
+      status: informationConflicts(priorityData()).some(c => c.values.some(v=>v.id === item.source.id)) ? "" : statusChipMarkup(item.source),
       route: item.filter === "event" ? "classroom" : "schedule",
       ariaLabel: `${item.title}, ${item.date ? dateLabel(item.date) : "날짜 미정"}, ${statusInfo(item.source).label}, 자세히`,
     })).join("")}
@@ -525,6 +524,7 @@ function scheduleRows(items, { loadingNames = ["classAssignments", "events", "ac
 }
 
 function syncMarkup() {
+  if (!state.data.online) return `<div class="sync-line sync-line--stale" role="status">오프라인 상태 · 마지막 동기화 데이터 표시 중${state.data.cacheSavedAtMs ? ` · ${escapeHtml(formatDateTime(state.data.cacheSavedAtMs))}` : " · 저장된 정보 없음"}</div>`;
   if (state.data.syncing && !state.data.ready) {
     return `<div class="sync-line" role="status" aria-live="polite">
       <md-linear-progress indeterminate></md-linear-progress>
@@ -631,8 +631,45 @@ function seasonDashboardMarkup() {
   </section>`;
 }
 
+let personalHome = null;
+let personalStore = null;
+let changesDisplayedAt = 0;
+function personalState() {
+  const account = globalThis.PINCON_ACCOUNT;
+  const uid = ["student", "legacy"].includes(account?.mode) ? account.user?.uid : "";
+  const classKey = state.data.profile?.classKey;
+  const key = uid && classKey ? `pincon-personal-v1:${uid}:${classKey}` : "";
+  if (!personalStore || personalStore.key !== key) personalStore = new PersonalState(localStorage, uid, classKey);
+  return personalStore;
+}
+function priorityData() { return { ...collections(), subjectEntries: personalHome?.today?.subjectEntries || [] }; }
+function nextClassMarkup() {
+  const settings = (collections().classSettings || []).find(r => r.classKey === state.data.profile?.classKey) || {};
+  const info = nextClass(priorityData(), { subjectEntries: personalHome?.today?.subjectEntries || [], bellSchedule: settings.bellSchedule || [], homeroom: settings.homeroom || "" });
+  return `<article class="surface" id="nextClassCard" aria-live="polite"><div class="surface__header"><h2 class="surface__title">다음 교시</h2></div><strong>${escapeHtml(info.label)}</strong>${info.lesson ? `<p>${escapeHtml(fullSubjectName(info.lesson.subject))}${info.room ? ` · ${escapeHtml(info.room)}` : ""}</p>${info.movement ? "<span class=meta-pill>이동수업</span>" : ""}${info.changed ? "<span class=meta-pill>오늘 교실 변경됨</span>" : ""}${info.materials ? `<p>준비물 · ${escapeHtml(info.materials)}</p>` : ""}` : ""}${info.state === "untimed" ? "<p>오늘 시간표에서 수업 순서를 확인해주세요.</p>" : ""}</article>`;
+}
+function changesMarkup() {
+  const personal = personalState();
+  if (!personal.key) return `<article class="surface"><h2 class="surface__title">지난 방문 이후 변경사항</h2><p>로그인하면 마지막으로 확인한 시점부터 보여드립니다.</p></article>`;
+  changesDisplayedAt = Date.now();
+  const rows = changesSince(priorityData(), personal.lastSeenAt, changesDisplayedAt);
+  const body = rows.map(r => `<li>${escapeHtml(r.title)}</li>`).join("");
+  return `<article class="surface"><h2 class="surface__title">지난 방문 이후 ${rows.length}개 변경</h2>${personal.lastSeenAt ? `<details id="changesList"><summary>변경 목록 보기</summary><ul>${body || "<li>새 변경사항이 없습니다.</li>"}</ul><md-text-button data-action="read-changes">여기까지 확인했어요</md-text-button></details>` : `<p>처음 방문했습니다. 확인한 지금부터 변경사항을 모아드립니다.</p><md-text-button data-action="read-changes">지금부터 변경사항 모으기</md-text-button>`}</article>`;
+}
+function todoMarkup() {
+  const personal = personalState();
+  const date = schoolDate();
+  const rows = todayTasks(priorityData(), { date, home: personalHome });
+  return `<article class="surface" id="todayTodo"><h2 class="surface__title">오늘 끝내기</h2>${!personal.key ? "<p>로그인하면 나만 보는 완료 체크를 사용할 수 있습니다.</p>" : "<p>완료 체크는 이 기기에만 저장되며 다른 학생·관리자에게 공유되지 않습니다.</p>"}<div class="today-todos">${rows.map(r => `<label class="today-todo"><md-checkbox data-todo-key="${escapeHtml(r.key)}" aria-label="${escapeHtml(r.title)} 완료" ${!personal.key ? "disabled" : ""} ${personal.completed(date,r.key) ? "checked" : ""}></md-checkbox><span>${escapeHtml(r.title)}</span></label>`).join("") || "<p>오늘 등록된 할 일이 없습니다.</p>"}</div><p id="todoStatus" role="status"></p></article>`;
+}
+function conflictsMarkup() {
+  const conflicts = informationConflicts(priorityData());
+  if (!conflicts.length) return "";
+  return `<article class="surface surface--error"><h2 class="surface__title">정보가 서로 다릅니다</h2>${conflicts.map(c => `<p><strong>${escapeHtml(c.title)}</strong></p><ul>${c.values.map(v=>`<li>${escapeHtml(v.source)} · ${escapeHtml(v.value)}</li>`).join("")}</ul>`).join("")}<p>관리자 확인 필요 · 확인 전에는 확정된 일정으로 보지 마세요.</p></article>`;
+}
+
 function todayPage() {
-  const today = localIsoDate(new Date());
+  const today = schoolDate();
   const document = timetableDocument(today);
   const periods = periodsFor(today);
   const meal = mealFor(today);
@@ -657,7 +694,11 @@ function todayPage() {
     </div>
     ${syncMarkup()}
     ${state.data.error ? `<div class="surface surface--error notice-banner" role="alert"><md-icon>error</md-icon><p>${escapeHtml(state.data.error)}</p><md-text-button data-action="retry-data">다시 시도</md-text-button></div>` : ""}
-    ${seasonDashboardMarkup()}
+    ${nextClassMarkup()}
+    ${changesMarkup()}
+    ${todoMarkup()}
+    ${conflictsMarkup()}
+    <details><summary>오늘 수행평가·준비물과 전체 일정</summary>${seasonDashboardMarkup()}</details>
     <div class="grid grid--2 dashboard-grid">
       <article class="surface">
         <div class="surface__header"><h2 class="surface__title">오늘 시간표</h2><span class="surface__meta">컴시간</span></div>
@@ -695,6 +736,7 @@ function todayPage() {
           : emptyMarkup("notifications_none", "새 공지가 없습니다", "새 공지가 등록되면 알림함에도 남습니다.")}
       </article>
     </div>
+    <div id="personalOperations"></div>
   </section>`;
 }
 
@@ -793,7 +835,7 @@ function lostItemRows(items) {
       title: itemTitle(item),
       supporting: [item.location, item.description].filter(Boolean).map(cleanText).join(" · "),
       leading: "<md-icon>inventory_2</md-icon>",
-      status: `<span class="status-chip status-chip--checking"><md-icon>info</md-icon>${escapeHtml(item.status || "보관 중")}</span>`,
+      status: `<span class="status-chip status-chip--stored"><md-icon>info</md-icon>${escapeHtml(item.status || "보관 중")}</span>`,
       route: "classroom",
     })).join("")}
   </md-list>`;
@@ -877,6 +919,12 @@ function classroomPage() {
   </section>`;
 }
 
+function notificationSettingsMarkup() {
+  if (!personalState().key) return `<article class="surface"><h2 class="surface__title">알림 설정</h2><p>로그인하면 알림 종류를 선택할 수 있습니다.</p></article>`;
+  const preferences=gateway.repository?.notificationPreferences() || {};
+  return `<article class="surface"><h2 class="surface__title">알림 설정</h2><p>매일 아침 오늘 브리핑 하나로 알려드립니다. 긴급 공지와 당일 변경만 바로 알려드립니다.</p>${Object.entries(NOTIFICATION_CATEGORIES).map(([key,label])=>`<label class="today-todo"><md-checkbox data-notification-category="${key}" aria-label="${label} 알림" ${preferences[key] !== false ? "checked" : ""}></md-checkbox><span>${label}</span></label>`).join("")}<md-filled-tonal-button data-action="enable-push">이 기기에서 알림 받기</md-filled-tonal-button><p id="notificationSettingsStatus" role="status"></p></article>`;
+}
+
 function morePage() {
   const profile = state.data.profile || readClassProfile();
   const roleLabel = state.data.isManager ? "학급 관리자" : "학생 · 읽기 전용";
@@ -886,7 +934,7 @@ function morePage() {
       <h1 class="page-title" id="more-title">더보기</h1>
       <p class="page-subtitle">내 학급과 정보 출처, 개인정보 보호 원칙을 확인합니다.</p>
     </div></div>
-    <div class="grid grid--2">
+    <div class="grid grid--2">${notificationSettingsMarkup()}
       <article class="surface">
         <div class="surface__header"><h2 class="surface__title">내 학급</h2><span class="surface__meta">${escapeHtml(roleLabel)}</span></div>
         <div class="list">
@@ -944,10 +992,17 @@ function detailLayerMarkup() {
   </div>`;
 }
 
+function accountBanner() {
+  const account = globalThis.PINCON_ACCOUNT;
+  if (account?.mode !== "readonly") return "";
+  const failure = ["network", "firebase", "server", "timeout"].includes(account.reason);
+  return `<aside class="surface notice-banner" role="status"><md-icon aria-hidden="true">cloud_off</md-icon><div><strong>${failure ? "계정 서비스에 연결할 수 없습니다." : "학교 정보 열람 모드"}</strong><p>시간표·급식·학교 공지는 임시로 확인할 수 있습니다.</p></div><md-text-button data-action="login">로그인</md-text-button></aside>`;
+}
+
 function renderProfileSetup() {
   clearModalInert();
   app.innerHTML = `<main class="splash" id="mainContent" tabindex="-1">
-    <section class="splash__surface" aria-labelledby="profile-title">
+    <section class="splash__surface" aria-labelledby="profile-title">${accountBanner()}
       <div class="splash__mark"><md-icon>hub</md-icon></div>
       <span class="beta-badge">PinCon Beta</span>
       <h1 id="profile-title">내 학급을 선택하세요.</h1>
@@ -973,7 +1028,7 @@ function render({ preserveView = false } = {}) {
     renderProfileSetup();
     return;
   }
-  if (!state.detailKey) clearModalInert();
+  if (!state.detailKey) hideDetailSurface({ restoreFocus: false });
   const scrollY = preserveView ? window.scrollY : 0;
   const active = preserveView ? document.activeElement : null;
   const activeSelector = active?.id
@@ -982,7 +1037,7 @@ function render({ preserveView = false } = {}) {
       .map((name) => active?.getAttribute?.(name) ? `[${name}="${CSS.escape(active.getAttribute(name))}"]` : "")
       .find(Boolean) || "";
   prepareDetailRegistry();
-  app.innerHTML = `<div class="shell">
+  const shellMarkup = `<div class="shell">
     <aside class="rail" aria-label="PinCon 내비게이션">
       <div class="rail__brand" aria-hidden="true"><md-icon>hub</md-icon></div>
       ${navMarkup("rail__nav")}
@@ -999,24 +1054,36 @@ function render({ preserveView = false } = {}) {
         </div>
         <div class="topbar__actions">
           <md-icon-button id="openSearch" aria-label="통합 검색"><md-icon>search</md-icon></md-icon-button>
-          <md-icon-button id="openNotifications" aria-label="알림함"><md-icon>notifications</md-icon></md-icon-button>
+          <span class="notification-trigger-wrap"><md-icon-button id="openNotifications" aria-label="알림함"><md-icon>notifications</md-icon></md-icon-button><span class="notification-badge" aria-hidden="true" hidden></span></span>
         </div>
       </header>
-      <main class="content-wrap" id="mainContent" tabindex="-1">${pageMarkup()}</main>
+      <main class="content-wrap" id="mainContent" tabindex="-1">${accountBanner()}${pageMarkup()}</main>
       ${navMarkup("bottom-nav")}
     </div>
     ${dialogsMarkup()}
     ${detailLayerMarkup()}
   </div>`;
+  if (app.querySelector(".shell")) {
+    const template = document.createElement("template");
+    template.innerHTML = shellMarkup;
+    app.querySelector("#mainContent").replaceChildren(...template.content.querySelector("#mainContent").childNodes);
+    app.querySelectorAll(".rail [data-route], .bottom-nav [data-route]").forEach((node) => {
+      const current = node.dataset.route === state.route;
+      node.setAttribute("aria-current", current ? "page" : "false");
+      node.setAttribute("data-aria-current", current ? "page" : "false");
+      node.classList.toggle("is-active", current);
+    });
+  } else app.innerHTML = shellMarkup;
+  window.dispatchEvent(new CustomEvent("pincon-render", { detail: { route: state.route } }));
   requestAnimationFrame(() => {
     if (preserveView) window.scrollTo({ top: scrollY, behavior: "auto" });
     if (state.detailKey) {
       renderDetailSurface({ focus: !preserveView });
       if (preserveView && activeSelector) {
-        requestAnimationFrame(() => actualFocusable(app.querySelector(activeSelector))?.focus?.({ preventScroll: true }));
+        requestAnimationFrame(() => actualFocusable([...app.querySelectorAll(activeSelector)].find(node => node.getClientRects().length))?.focus?.({ preventScroll: true }));
       }
     } else if (preserveView && activeSelector) {
-      actualFocusable(app.querySelector(activeSelector))?.focus?.({ preventScroll: true });
+      actualFocusable([...app.querySelectorAll(activeSelector)].find(node => node.getClientRects().length))?.focus?.({ preventScroll: true });
     }
   });
 }
@@ -1106,11 +1173,13 @@ function assignmentDetail(record) {
   const category = assignmentCategory(item);
   const date = itemDate(item);
   const plan = evaluationPlanFor(item);
-  const lastChecked = firstTimestamp(item, ["lastVerifiedAtMs", "lastCheckedAtMs", "verifiedAtMs", "updatedAtMs", "createdAtMs"]);
+  const lastChecked = firstTimestamp(item, ["lastVerifiedAtMs", "lastCheckedAtMs", "verifiedAtMs", "lastVerifiedAt"]);
+  const conflicts = informationConflicts(priorityData()).filter(c => c.values.some(v => v.collection === context.collection && v.id === item.id));
+  const conflictingDate = conflicts.some(c => c.field === "dueDate");
   const fields = [
     ["과목", fullSubjectName(item.subject), "menu_book"],
-    ["날짜", date ? `${dateLabel(date)} · ${timeDistance(date)}` : "아직 등록되지 않음", "event"],
-    ["평가 범위", fieldValue(item, ["evaluationRange", "examRange", "range", "scope"], "확인 중"), "fact_check"],
+    ["날짜", conflictingDate ? "정보가 서로 다릅니다 · 관리자 확인 필요" : date ? `${dateLabel(date)} · ${timeDistance(date)}` : "아직 등록되지 않음", "event"],
+    ["평가 범위", fieldValue(item, ["evaluationRange", "examRange", "range", "scope"], "아직 등록되지 않음"), "fact_check"],
     ["평가 방식", fieldValue(item, ["evaluationMethod", "method", "format"], "아직 등록되지 않음"), "assignment"],
     ["준비물·제출물", fieldValue(item, ["materials", "preparation", "supplies", "submission", "deliverables"]), "inventory_2"],
     ["배점·반영 비율", fieldValue(item, ["points", "score", "weight", "ratio", "percentage"]), "percent"],
@@ -1120,9 +1189,9 @@ function assignmentDetail(record) {
   return {
     eyebrow: category,
     title: itemTitle(item),
-    summary: `${date ? `${dateLabel(date)} · ${timeDistance(date)}` : "날짜 미정"}${item.subject ? ` · ${fullSubjectName(item.subject)}` : ""}`,
-    badges: `${statusChipMarkup(item)}${originChipMarkup(item, context)}`,
-    body: `${notificationContextMarkup()}
+    summary: `${conflictingDate ? "날짜 확인 필요" : date ? `${dateLabel(date)} · ${timeDistance(date)}` : "날짜 미정"}${item.subject ? ` · ${fullSubjectName(item.subject)}` : ""}`,
+    badges: `${conflicts.length ? "" : statusChipMarkup(item)}${originChipMarkup(item, context)}`,
+    body: `${conflicts.length ? conflictsMarkup() : ""}${notificationContextMarkup()}
       ${detailSection("핵심 정보", detailFieldsMarkup(fields))}
       ${detailSection(category === "시험 범위" ? "평가계획서 원본" : "원본 평가계획서", plan
         ? `${item.pageReferences ? `<p class="detail-muted">관련 페이지 · ${escapeHtml(item.pageReferences)}</p>` : ""}${linkedMaterialsMarkup(plan)}`
@@ -1145,7 +1214,7 @@ function evaluationPlanDetail(record) {
     eyebrow: "평가계획서",
     title: itemTitle(item),
     summary: `${fullSubjectName(item.subject)} · ${item.schoolYear || "-"}학년도 ${item.semester || "-"}학기`,
-    badges: `${statusChipMarkup(item)}${originChipMarkup({ ...item, sourceType: "OFFICIAL" }, record.context)}`,
+    badges: `${statusChipMarkup(item)}${originChipMarkup(item, record.context)}`,
     body: `${detailSection("문서 정보", detailFieldsMarkup(fields))}${detailSection("원본 문서", linkedMaterialsMarkup(item))}${detailSection("변경 기록", changeHistoryMarkup(record))}`,
   };
 }
@@ -1405,6 +1474,7 @@ function renderDetailSurface({ focus = false, swap = false } = {}) {
   layer.dataset.mode = mode;
   layer.hidden = false;
   layer.setAttribute("aria-hidden", "false");
+  if (mode !== "side" && !surface.contains(document.activeElement)) surface.focus({ preventScroll: true });
   setModalInert(mode);
   app.querySelectorAll("[data-detail-key]").forEach((item) => {
     const selected = item.getAttribute("data-detail-key") === state.detailKey;
@@ -1445,19 +1515,19 @@ function hideDetailSurface({ restoreFocus = true } = {}) {
     if (restoreFocus) restoreDetailFocus();
     return;
   }
-  layer.classList.remove("is-open");
-  layer.setAttribute("aria-hidden", "true");
   clearModalInert();
-  const finish = () => {
-    if (!layer.classList.contains("is-open")) layer.hidden = true;
-    app.querySelectorAll("[data-detail-key]").forEach((item) => {
-      item.removeAttribute("data-highlight");
-      item.setAttribute("aria-pressed", "false");
-    });
-    if (restoreFocus) restoreDetailFocus();
-  };
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
-  else window.setTimeout(finish, 240);
+  // Move focus before hiding its ancestor. Closing is synchronous; no stale timer
+  // may hide a subsequently opened detail or leave a pointer-blocking backdrop.
+  if (layer.contains(document.activeElement)) document.activeElement.blur?.();
+  layer.classList.remove("is-open");
+  layer.hidden = true;
+  layer.setAttribute("aria-hidden", "true");
+  app.querySelectorAll("[data-detail-key]").forEach((item) => {
+    item.removeAttribute("data-highlight");
+    item.setAttribute("aria-pressed", "false");
+  });
+  if (restoreFocus) restoreDetailFocus();
+  resumeDeferredDataRender();
 }
 
 function actualFocusable(control) {
@@ -1473,9 +1543,9 @@ function deepActiveElement() {
 function restoreDetailFocus() {
   requestAnimationFrame(() => {
     const byKey = lastDetailTriggerKey
-      ? app.querySelector(`[data-detail-key="${CSS.escape(lastDetailTriggerKey)}"]`)
+      ? [...app.querySelectorAll(`[data-detail-key="${CSS.escape(lastDetailTriggerKey)}"]`)].find(node => node.getClientRects().length && !node.closest("[hidden]"))
       : null;
-    const target = byKey || (lastDetailTrigger?.isConnected ? lastDetailTrigger : null)
+    const target = (lastDetailTrigger?.isConnected && lastDetailTrigger.getClientRects().length ? lastDetailTrigger : null) || byKey
       || app.querySelector(`[data-route="${state.route}"]`);
     actualFocusable(target)?.focus?.({ preventScroll: true });
   });
@@ -1533,7 +1603,7 @@ function navigate(route, { push = true } = {}) {
   state.route = route;
   state.detailKey = "";
   state.detailNotificationId = "";
-  clearModalInert();
+  hideDetailSurface({ restoreFocus: false });
   if (push) history.pushState({ route, detailKey: "" }, "", routeHash(route));
   else history.replaceState({ route, detailKey: "" }, "", routeHash(route));
   render();
@@ -1643,8 +1713,10 @@ app.addEventListener("click", async (event) => {
   if (detailItem) {
     const key = detailItem.getAttribute("data-detail-key");
     const route = detailItem.getAttribute("data-detail-route") || state.route;
-    app.querySelector("#searchDialog")?.close?.();
-    if (route !== state.route) navigateToDetail(route, key, detailItem);
+    const searchDialog = app.querySelector("#searchDialog");
+    const fromSearch = searchDialog?.contains(detailItem);
+    if (searchDialog?.open) await searchDialog.close();
+    if (fromSearch && route !== state.route) navigateToDetail(route, key, detailItem);
     else openDetail(key, detailItem);
     return;
   }
@@ -1693,12 +1765,6 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
-  const closeSearch = eventHost(event, (node) => node.id === "closeSearch");
-  if (closeSearch) {
-    app.querySelector("#searchDialog")?.close?.();
-    requestAnimationFrame(() => actualFocusable(app.querySelector("#openSearch"))?.focus?.());
-    return;
-  }
 
   const saveProfile = eventHost(event, (node) => node.id === "saveProfile");
   if (saveProfile) {
@@ -1863,7 +1929,7 @@ window.visualViewport?.addEventListener("resize", updateVisualViewport);
 
 gateway.addEventListener("change", (event) => {
   state.data = event.detail;
-  if (appDialogBusy()) {
+  if (appDialogBusy() || interactionHeld) {
     dataRenderDeferred = true;
     return;
   }
@@ -1909,4 +1975,65 @@ if (!location.hash) {
 
 updateVisualViewport();
 render();
-await gateway.start();
+void gateway.start();
+
+// A snapshot cannot replace a control between press and activation.
+for (const type of ["pointerdown", "keydown"]) document.addEventListener(type, (event) => {
+  if (type === "keydown" && !["Enter", " "].includes(event.key)) return;
+  if (event.composedPath().includes(app)) interactionHeld = true;
+}, true);
+for (const type of ["pointerup", "pointercancel", "keyup"]) document.addEventListener(type, () => {
+  setTimeout(() => { interactionHeld = false; resumeDeferredDataRender(); }, 0);
+}, true);
+window.addEventListener("blur", () => { interactionHeld = false; resumeDeferredDataRender(); });
+
+window.addEventListener("pincon-account-ready", () => {
+  personalHome = null;
+  state.data = gateway.snapshot();
+  scheduleDataRender();
+});
+window.addEventListener("pincon-personal-home", (event) => { personalHome = event.detail; scheduleDataRender(); });
+document.addEventListener("click", (event) => {
+  const action = eventHost(event, node => node.hasAttribute("data-action"))?.dataset.action;
+  if (action === "login") window.dispatchEvent(new Event("pincon-login-request"));
+  if (action === "read-changes" && document.visibilityState === "visible") {
+    const personal = personalState();
+    const list = document.querySelector("#changesList");
+    if (personal.key && (!personal.lastSeenAt || list?.open)) {
+      try { personal.markSeen(changesDisplayedAt); scheduleDataRender(); } catch { showPersonalError("읽음 상태를 저장하지 못했습니다."); }
+    }
+  }
+});
+function showPersonalError(message) { const node = document.querySelector("#todoStatus"); if(node) node.textContent=message; }
+document.addEventListener("change", (event) => {
+  const checkbox = eventHost(event, node => node.hasAttribute("data-todo-key"));
+  if (!checkbox) return;
+  const personal = personalState();
+  if (!personal.key) { checkbox.checked=false; return; }
+  try { personal.complete(schoolDate(), checkbox.dataset.todoKey, checkbox.checked); }
+  catch { checkbox.checked=!checkbox.checked; showPersonalError("완료 상태를 저장하지 못했습니다."); }
+});
+function tickNextClass() {
+  const node = document.querySelector("#nextClassCard");
+  if (node && !document.hidden && !interactionHeld) {
+    const template=document.createElement("template"); template.innerHTML=nextClassMarkup();
+    if(node.innerHTML !== template.content.firstElementChild.innerHTML) node.replaceChildren(...template.content.firstElementChild.childNodes);
+  }
+}
+setInterval(tickNextClass, 15000);
+document.addEventListener("visibilitychange", tickNextClass);
+
+document.addEventListener("change", async (event) => {
+  const checkbox=eventHost(event,node=>node.hasAttribute("data-notification-category"));
+  if(!checkbox || !personalState().key) return;
+  const status=document.querySelector("#notificationSettingsStatus");
+  try { await gateway.repository.updateNotificationPreferences({...gateway.repository.notificationPreferences(),[checkbox.dataset.notificationCategory]:checkbox.checked}); if(status) status.textContent="알림 설정을 저장했습니다."; }
+  catch { checkbox.checked=!checkbox.checked; if(status) status.textContent="설정을 저장하지 못했습니다. 다시 시도해주세요."; }
+});
+document.addEventListener("click", async(event)=>{
+  if(eventHost(event,node=>node.dataset?.action === "enable-push") && personalState().key) {
+    const status=document.querySelector("#notificationSettingsStatus");
+    try { await gateway.repository.enableNotifications(); if(status) status.textContent="알림을 켰습니다."; }
+    catch { if(status) status.textContent="알림 권한과 인터넷 연결을 확인해주세요."; }
+  }
+});

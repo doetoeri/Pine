@@ -388,6 +388,23 @@ service cloud.firestore {
     }
 
     // PinCon 학급 운영: 공지, 수행평가·준비물, 행사와 설정은 회장만 변경한다.
+    // OCR results stay private until an authorized operator explicitly publishes.
+    match /schools/{schoolId}/noticeDrafts/{draftId} {
+      allow read, delete: if classOperator(schoolId, resource.data.classKey);
+      function validDraft() {
+        return classOperator(schoolId, request.resource.data.classKey)
+          && validClassOpsBase(request.resource.data.classKey)
+          && request.resource.data.published == false
+          && validTitle(request.resource.data.title, 100)
+          && request.resource.data.body is string
+          && request.resource.data.body.size() <= 1800;
+      }
+      allow create: if validDraft();
+      allow update: if validDraft()
+        && request.resource.data.classKey == resource.data.classKey
+        && classOperator(schoolId, resource.data.classKey);
+    }
+
     match /schools/{schoolId}/announcements/{announcementId} {
       allow read: if true;
       allow create, update: if classOperator(schoolId, request.resource.data.classKey)

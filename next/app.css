@@ -1,3 +1,12 @@
+@import url("../voca/fonts/noto-sans-kr.css");
+@font-face {
+  font-family: "Material Symbols Rounded";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("./assets/material-symbols-rounded.woff") format("woff");
+}
+
 * {
   box-sizing: border-box;
 }
@@ -72,6 +81,10 @@ md-icon {
   display: inline-block;
   white-space: nowrap;
   word-wrap: normal;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
   direction: ltr;
   -webkit-font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
@@ -797,3 +810,13 @@ md-icon {
     box-sizing: border-box;
   }
 }
+
+.item-leading, .item-end, .status-chip, .origin-chip, .meta-pill, .topbar__actions, .notification-row-end { align-items: center; }
+.item-leading md-icon, .item-end md-icon, .status-chip md-icon, .origin-chip md-icon, .meta-pill md-icon, .topbar__actions md-icon, .notification-row-end md-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; line-height: 1; vertical-align: middle; }
+md-icon-button, md-text-button, md-filled-button, md-filled-tonal-button, md-outlined-button, md-list-item[type="button"] { touch-action: manipulation; }
+
+.today-todos { display: grid; gap: 8px; }
+.today-todo { display:flex; align-items:center; gap:12px; min-height:48px; overflow-wrap:anywhere; }
+details > summary { padding:16px 0; min-height:44px; cursor:pointer; }
+.notice-banner { flex-wrap:wrap; }
+[aria-current="page"][data-route] { background:var(--md-sys-color-secondary-container); border-radius:28px; }

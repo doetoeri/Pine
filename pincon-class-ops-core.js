@@ -185,6 +185,17 @@ export function normalizedRecord(record = {}) {
 }
 
 export function academicSchedulesForGrade(rows = [], grade) {
+  rows = rows.flatMap((item) => {
+    const keep = (name) => !/토요\s*휴업일/.test(String(name || ""));
+    const next = { ...item };
+    if (Array.isArray(item.events)) next.events = item.events.filter(keep);
+    if (item.eventsByGrade) next.eventsByGrade = Object.fromEntries(Object.entries(item.eventsByGrade).map(([grade, names]) => [grade, names.filter(keep)]));
+    if (Array.isArray(next.events)) {
+      if (!next.events.length) return [];
+      next.title = next.events.join(" · ");
+    } else if (!keep(item.title || item.name)) return [];
+    return [next];
+  });
   const gradeNumber = Number(grade);
   if (!Number.isInteger(gradeNumber) || gradeNumber < 1 || gradeNumber > 3) return rows;
   return rows.flatMap((item) => {

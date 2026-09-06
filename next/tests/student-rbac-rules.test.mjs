@@ -103,3 +103,23 @@ test("legacy role documents remain self-readable while role mutation stays schoo
   await assertFails(updateDoc(doc(presidentDb, rolePath("student")), { enabled: true }));
   await assertSucceeds(updateDoc(doc(adminDb, rolePath("student")), { enabled: true }));
 });
+
+
+test("photo drafts remain private and cannot be moved across class boundaries", async () => {
+  const path = `schools/${SCHOOL_ID}/noticeDrafts/photo-1`;
+  const draft = { classKey: CLASS_KEY, title: "사진 초안", body: "검토 전", published: false, deleted: false, createdAtMs: 1, updatedAtMs: 1 };
+  const president = env.authenticatedContext("president").firestore();
+  await assertSucceeds(setDoc(doc(president, path), draft));
+  for (const db of [env.unauthenticatedContext().firestore(), env.authenticatedContext("student").firestore()]) {
+    await assertFails(getDoc(doc(db, path)));
+    await assertFails(setDoc(doc(db, path), draft));
+  }
+  await env.withSecurityRulesDisabled(async ctx => {
+    await setDoc(doc(ctx.firestore(), rolePath("other-president")), { enabled: true, level: "president", classKeys: ["1-9"] });
+  });
+  const outsider = env.authenticatedContext("other-president").firestore();
+  await assertFails(getDoc(doc(outsider, path)));
+  await assertFails(updateDoc(doc(outsider, path), { classKey: "1-9" }));
+  await assertFails(updateDoc(doc(president, path), { published: true }));
+  await assertSucceeds(updateDoc(doc(president, path), { title: "검토한 초안", updatedAtMs: 2 }));
+});

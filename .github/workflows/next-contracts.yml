@@ -2,12 +2,19 @@ name: PinCon Next contracts
 
 on:
   push:
-    branches: [rebuild]
+    branches: [main, rebuild]
     paths:
       - "next/**"
+      - "sw.js"
+      - "registerSW.js"
+      - "automation/build-next-precache.mjs"
+      - "automation/class-ops-notifications.mjs"
+      - "automation/neis-sync.mjs"
+      - "voca/fonts/**"
       - "index.html"
       - "manifest.webmanifest"
       - "pincon-class-ops-data.js"
+      - "pincon-class-ops-core.js"
       - "firestore.rules"
       - "storage.rules"
       - "automation/deploy-firestore-rules.mjs"
@@ -15,9 +22,16 @@ on:
   pull_request:
     paths:
       - "next/**"
+      - "sw.js"
+      - "registerSW.js"
+      - "automation/build-next-precache.mjs"
+      - "automation/class-ops-notifications.mjs"
+      - "automation/neis-sync.mjs"
+      - "voca/fonts/**"
       - "index.html"
       - "manifest.webmanifest"
       - "pincon-class-ops-data.js"
+      - "pincon-class-ops-core.js"
       - "REBUILD.md"
       - "automation/deploy-firestore-rules.mjs"
       - "firestore.rules"
@@ -44,9 +58,6 @@ jobs:
             next/app.js \
             next/app-interactions.js \
             next/app-bootstrap.js \
-            next/detail-history-stability.js \
-            next/dialog-focus-stability.js \
-            next/route-focus-stability.js \
             next/reveal-loader.js \
             next/write-mode.js \
             next/admin-visibility.js \
@@ -82,9 +93,12 @@ jobs:
           do
             node --input-type=module --check < "$file"
           done
+      - name: Check offline asset graph
+        run: node automation/build-next-precache.mjs && git diff --exit-code -- next/precache-manifest.js
       - name: Run Next contract tests
         run: >-
           node --test
+          next/tests/daily-priority.test.mjs
           next/tests/contracts.test.mjs
           next/tests/admin-policy.test.mjs
           next/tests/today-open-write.test.mjs
@@ -120,7 +134,7 @@ jobs:
           --only firestore
           --project pincon-next-rules-test
           --config next/firebase-test.json
-          "node --test next/tests/firestore-rules.test.mjs"
+          "node --test --test-concurrency=1 next/tests/firestore-rules.test.mjs next/tests/student-rbac-rules.test.mjs"
 
   responsive-smoke:
     runs-on: ubuntu-latest
@@ -141,6 +155,10 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/pincon-next-http.log 2>&1 &
           echo $! > /tmp/pincon-next-http.pid
           sleep 1
+      - name: Resilience · Chromium
+        run: npx playwright test next/tests/resilience.spec.mjs --browser=chromium --reporter=line
+      - name: Resilience · WebKit
+        run: npx playwright test next/tests/resilience.spec.mjs --browser=webkit --reporter=line
       - name: Boot preflight · Chromium
         run: npx playwright test next/tests/boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Boot preflight · WebKit

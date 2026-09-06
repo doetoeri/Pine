@@ -1,181 +1,65 @@
-const PINCON_SW_VERSION = "20260902-account-api2";
+const PINCON_SW_VERSION = "20260905-resilience2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
-const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
-
-const PINCON_NEXT_SHELL = [
-  "./next/index.html",
-  "./next/app.css",
-  "./next/ui-polish.css",
-  "./next/rail-containment.css",
-  "./next/mobile-clearance.css",
-  "./next/dialog-polish.css",
-  "./next/interaction-system.css",
-  "./next/detail-viewport-stability.css",
-  "./next/evaluation-plan-preview.css",
-  "./next/student-account.css",
-  "./next/account-center.css",
-  "./next/student-ops.css",
-  "./next/first-login-onboarding.css",
-  "./next/reveal-loader.js",
-  "./next/first-login-onboarding.js",
-  "./next/app-bootstrap.js",
-  "./next/simple-account-gate.js",
-  "./next/route-focus-stability.js",
-  "./next/personal-notification-filter.js",
-  "./next/app.js",
-  "./next/app-interactions.js",
-  "./next/detail-history-stability.js",
-  "./next/evaluation-plan-preview.js",
-  "./next/write-mode.js",
-  "./next/admin-visibility.js",
-  "./next/account-center.js",
-  "./next/student-ops.js",
-  "./next/dialog-focus-stability.js",
-  "./next/ui-regression-fixes.js",
-  "./next/core/data-gateway.js",
-  "./next/core/evaluation-plan-media.js",
-  "./next/core/notification-store.js",
-  "./next/core/recovery-pack.js",
-  "./next/core/brand-settings.js",
-  "./next/core/trust-model.js",
-  "./next/core/today-open-write.js",
-  "./next/core/student-auth.js",
-  "./next/assets/pincon-icon.svg"
-];
-
-const PINCON_APP_SHELL = [
-  "./index.html",
-  "./registerSW.js",
-  "./manifest.webmanifest",
-  "./theme-green.css",
-  "./material-official-layout.css",
-  "./pincon-design-systems.css",
-  "./pincon-adoption-core.css",
-  "./pincon-adoption-flow-v2.css",
-  "./pincon-quick-add-ocr-entry.css",
-  "./pincon-live-prep.css",
-  "./pincon-class-ops.css",
-  "./pincon-print-center.css",
-  "./pincon-expressive-all.css",
-  "./pincon-controls.css",
-  "./pincon-unified-shell.css",
-  "./pincon-ui-stability.css",
-  "./pincon-classic-return.css",
-  "./pincon-interaction-polish.css",
-  "./material-official-loader.js",
-  "./material-web.bundle.js",
-  "./pincon-material-audit.js",
-  "./pincon-material-button-fallback.js",
-  "./pincon-adoption-core.js",
-  "./pincon-adoption-flow-v2.js",
-  "./pincon-ocr-capture.js",
-  "./pincon-quick-add-ocr-entry.js",
-  "./pincon-live-prep.js",
-  "./pincon-class-ops-core.js",
-  "./pincon-class-ops-data.js",
-  "./pincon-class-ops.js",
-  "./pincon-ui-stability.js",
-  "./pincon-classic-return.js",
-  "./pincon-print-center.js",
-  "./pincon-guest-auth.js",
-  "./pincon-google-auth-bridge.js",
-  "./pincon-auth-diagnostics.js",
-  "./touch-stability.js",
-  "./timetable-source-hotfix.js",
-  "./pincon-material-collab.js",
-  "./pincon-material-workspace.js",
-  "./pincon-analytics.js",
-  "./firebase-config.js",
-  "./assets/index-Sg4pPAB0.js",
-  "./assets/index-C7Rqpf69.css",
-  "./assets/firebase-IW9tbrMW.js",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/icon-512-maskable.png",
-  "./icons/apple-touch-icon.png",
-  "./icons/app-icon.svg",
-  ...PINCON_NEXT_SHELL
-];
-
-try {
-  importScripts("./firebase-messaging-sw.js?v=20260825-android-notify2");
-} catch (error) {
-  console.warn("[PinCon SW] Firebase messaging worker could not be loaded", error);
-}
-
-async function cacheFresh(cache, url) {
-  try {
-    const response = await fetch(new Request(url, { cache: "reload" }));
-    if (response && response.ok) await cache.put(url, response.clone());
-  } catch {}
-}
+importScripts("./next/precache-manifest.js");
+try { importScripts("./firebase-messaging-sw.js?v=20260825-android-notify2"); } catch {}
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting();
-  event.waitUntil((async () => {
-    const cache = await caches.open(PINCON_SHELL_CACHE);
-    await Promise.allSettled(PINCON_APP_SHELL.map((url) => cacheFresh(cache, url)));
-  })());
+  // Atomic install: never activate a partially downloaded shell.
+  event.waitUntil(caches.open(PINCON_SHELL_CACHE).then((cache) => cache.addAll(PINCON_APP_SHELL)));
 });
-
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "ACTIVATE_UPDATE") self.skipWaiting();
+});
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-    const names = await caches.keys();
-    await Promise.all(names.map((name) => {
-      const staleWorkbox = name.startsWith("workbox-precache");
-      const stalePinconShell = name.startsWith("pincon-shell-") && name !== PINCON_SHELL_CACHE;
-      return staleWorkbox || stalePinconShell ? caches.delete(name) : Promise.resolve(false);
-    }));
+    for (const name of await caches.keys()) {
+      if ((name.startsWith("pincon-shell-") || name.startsWith("workbox-precache")) && name !== PINCON_SHELL_CACHE) await caches.delete(name);
+    }
     await self.clients.claim();
   })());
 });
-
-async function networkFirst(request, fallbackKey = null, { forceReload = false } = {}) {
+async function networkFirst(request, fallback = "") {
   const cache = await caches.open(PINCON_SHELL_CACHE);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
   try {
-    // GitHub Pages and the browser HTTP cache can briefly keep an older JS module
-    // under the same URL after a deploy. Code/config assets must be revalidated so
-    // an old API endpoint cannot survive after the service worker itself updates.
-    const networkRequest = forceReload ? new Request(request, { cache: "reload" }) : request;
-    const response = await fetch(networkRequest);
-    if (response && response.ok) {
-      await cache.put(request, response.clone());
-      if (fallbackKey) await cache.put(fallbackKey, response.clone());
-    }
+    const response = await fetch(new Request(request, { cache: "no-cache", signal: controller.signal }));
+    if (!response.ok) throw new Error("network response unavailable");
+    await cache.put(request, response.clone());
     return response;
   } catch (error) {
-    const direct = await cache.match(request, { ignoreSearch: false });
-    if (direct) return direct;
-    if (fallbackKey) {
-      const fallback = await cache.match(fallbackKey, { ignoreSearch: true });
-      if (fallback) return fallback;
-    }
+    const hit = await cache.match(request) || (fallback && await cache.match(fallback));
+    if (hit) return hit;
     throw error;
-  }
+  } finally { clearTimeout(timer); }
 }
-
+async function cacheFirst(request) {
+  const cache = await caches.open(PINCON_SHELL_CACHE);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  const response = await fetch(request);
+  if (response.ok) await cache.put(request, response.clone());
+  return response;
+}
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET") return;
-
   const url = new URL(request.url);
-
+  // Never cache account API, authenticated data, Firestore or cross-origin traffic.
+  if (request.method !== "GET" || url.origin !== self.location.origin || request.headers.has("authorization")) return;
   if (request.mode === "navigate") {
-    const nextNavigation = url.origin === self.location.origin
-      && (url.pathname === "/next" || url.pathname.startsWith("/next/"));
-    if (nextNavigation) {
-      event.respondWith(networkFirst(request, "./next/index.html", { forceReload: true }));
-    } else {
-      event.respondWith(networkFirst(request, "./index.html", { forceReload: true }));
-    }
+    const next = url.pathname === "/next/" || url.pathname === "/next/index.html";
+    if (next) event.respondWith(networkFirst(request, "/next/index.html"));
+    else if (url.pathname === "/" || url.pathname === "/index.html") event.respondWith(networkFirst(request, "/index.html"));
     return;
   }
-
-  if (url.origin !== self.location.origin) return;
-
-  const isStatic = /\.(?:js|css|html|webmanifest|json|svg|png|jpg|jpeg|webp|ico|woff2?)$/i.test(url.pathname);
-  if (!isStatic) return;
-
-  const mustRevalidate = /\.(?:js|css|html|webmanifest|json)$/i.test(url.pathname);
-  event.respondWith(networkFirst(request, null, { forceReload: mustRevalidate }));
+  if (/config\.js$|\.webmanifest$|\.json$/.test(url.pathname)) {
+    event.respondWith(networkFirst(request)); return;
+  }
+  const staticAsset = /\.(js|css|svg|png|jpg|webp|ico|woff2?)$/.test(url.pathname);
+  if (!staticAsset) return;
+  // Shell dependencies are versioned by the service worker's atomic cache. Hashed
+  // assets and explicit version URLs remain cache-first; mutable assets revalidate.
+  const shellAsset = PINCON_APP_SHELL.some((path) => new URL(path, self.location.origin).href === url.href);
+  if (shellAsset || url.searchParams.has("v") || /[-.][a-f0-9]{8,}\./i.test(url.pathname) || /\.(svg|png|jpg|webp|ico|woff2?)$/.test(url.pathname)) event.respondWith(cacheFirst(request));
+  else event.respondWith(networkFirst(request));
 });

@@ -1,3 +1,5 @@
+import { withTimeout } from "./next/core/auth/errors.js";
+import { PUBLIC_SCHOOL_COLLECTIONS, fetchPublicSchool, publicRows } from "./next/core/data/public-school.js";
 import {
   CLASS_OPS_VERSION,
   NOTIFICATION_DEFAULTS,
@@ -99,8 +101,8 @@ function rowsFromSnapshot(snapshot) {
 
 function publicCacheCopy(state) {
   const data = {};
-  for (const name of PUBLIC_COLLECTIONS) {
-    let rows = (state.data[name] || []).filter((item) => !item.__private);
+  for (const name of PUBLIC_SCHOOL_COLLECTIONS) {
+    let rows = publicRows(name, state.data[name] || [], state.profile);
     if (name === "resources") rows = rows.filter((item) => item.moderationStatus === "approved");
     if (name === "events") rows = rows.filter((item) => item.status !== "draft");
     data[name] = rows.slice(0, 250).map((item) => {
@@ -111,7 +113,7 @@ function publicCacheCopy(state) {
       return copy;
     });
   }
-  return { version: CLASS_OPS_VERSION, classKey: state.classKey, savedAtMs: Date.now(), data };
+  return { version: CLASS_OPS_VERSION, classKey: state.classKey, savedAtMs: state.cacheSavedAtMs || Date.now(), data };
 }
 
 function auditSnapshot(value = {}) {
@@ -174,7 +176,7 @@ function queryFor(api, name, classKey, president) {
   if (name === "resources" && !president) return api.query(collectionRef, api.where("classKey", "==", classKey), api.where("moderationStatus", "==", "approved"), api.limit(250));
   if (name === "meals") return api.query(collectionRef, api.where("date", ">=", new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)), api.limit(40));
   if (name === "academicSchedules") return api.query(collectionRef, api.where("date", ">=", new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)), api.limit(120));
-  if (name === "patchNoteDrafts" || name === "changeLogs" || name === "supplyReports") {
+  if (name === "patchNoteDrafts" || name === "changeLogs" || name === "supplyReports" || name === "noticeDrafts") {
     if (!president) return null;
   }
   return api.query(collectionRef, api.where("classKey", "==", classKey), api.limit(250));
@@ -208,6 +210,10 @@ export class PinconClassOpsRepository extends EventTarget {
     this.privateUnsubscribers = [];
     this.cachedCollections = new Set();
     this.api = null;
+    this.disposed = false;
+    this.liveCollections = new Set();
+    this.publicRequest = null;
+    this.fallbackTimer = null;
     this.authUnsubscribe = null;
     this.handleOnline = () => this.setOnline(true);
     this.handleOffline = () => this.setOnline(false);
@@ -258,21 +264,61 @@ export class PinconClassOpsRepository extends EventTarget {
   setOnline(online) {
     this.state.online = online;
     this.emit();
+    if (online) {
+      if (this.api) { this.api.enableNetwork(this.api.db).catch(() => {}); this.listenPublic(); }
+      else void this.refreshPublicFallback();
+    }
+  }
+
+  async refreshPublicFallback() {
+    if (this.disposed || this.publicRequest || !navigator.onLine) return;
+    const controller = new AbortController();
+    this.publicRequest = controller;
+    const timer = setTimeout(() => controller.abort(), 6000);
+    await Promise.allSettled(PUBLIC_SCHOOL_COLLECTIONS.map(async (name) => {
+      try {
+        if (this.liveCollections.has(name)) return;
+        const rows = await fetchPublicSchool(name, this.state.profile, { signal: controller.signal });
+        if (this.disposed || this.liveCollections.has(name)) return;
+        this.state.data[name] = rows;
+        this.state.collectionStatus[name] = "success";
+        this.cachedCollections.delete(name);
+        this.state.cacheSavedAtMs = Date.now();
+        this.state.usingCache = this.cachedCollections.size > 0;
+        this.state.ready = true;
+        this.state.syncing = false;
+        this.saveCache(); this.emit();
+      } catch {
+        if (this.disposed) return;
+        this.state.collectionStatus[name] = this.cachedCollections.has(name) ? "cached-error" : "error";
+        this.state.syncing = false; this.emit();
+      }
+    }));
+    clearTimeout(timer); this.publicRequest = null;
+    if (!this.disposed) {
+      this.state.syncing = false;
+      this.state.ready = true;
+      if (!PUBLIC_SCHOOL_COLLECTIONS.some(name => this.state.collectionStatus[name] === "success")) {
+        this.state.lastError = "학교 정보에 연결하지 못했습니다. 저장된 정보가 있으면 표시합니다.";
+      }
+      this.emit();
+    }
   }
 
   loadCache() {
     const cached = safeJsonParse(localStorage.getItem(CACHE_KEY) || "null", null);
     if (!cached || cached.classKey !== this.state.classKey || !cached.data) return;
     let restored = false;
-    for (const name of PUBLIC_COLLECTIONS) {
+    for (const name of PUBLIC_SCHOOL_COLLECTIONS) {
       if (!Array.isArray(cached.data[name])) continue;
-      this.state.data[name] = rowsForProfile(name, cached.data[name].map(normalizedRecord), this.state.profile);
+      this.state.data[name] = rowsForProfile(name, publicRows(name, cached.data[name].map(normalizedRecord), this.state.profile), this.state.profile);
       this.state.collectionStatus[name] = "cached";
       this.cachedCollections.add(name);
       restored = true;
     }
     this.state.cacheSavedAtMs = Number(cached.savedAtMs || 0);
     this.state.usingCache = restored;
+    this.saveCache();
   }
 
   saveCache() {
@@ -288,8 +334,17 @@ export class PinconClassOpsRepository extends EventTarget {
     }
     this.state.syncing = true;
     this.emit();
-    this.api = await firebaseApi();
-    await this.api.auth.authStateReady?.();
+    this.fallbackTimer = setTimeout(() => void this.refreshPublicFallback(), 2500);
+    try { this.api = await firebaseApi(); } catch (error) {
+      clearTimeout(this.fallbackTimer);
+      await this.refreshPublicFallback();
+      this.state.syncing = false; this.emit(); return this.snapshot();
+    }
+    if (this.disposed) return this.snapshot();
+    // Public listeners do not depend on authStateReady or a role fetch.
+    this.listenPublic();
+    await withTimeout(this.api.auth.authStateReady?.() || Promise.resolve()).catch(() => {});
+    if (this.disposed) return this.snapshot();
     this.state.user = this.api.auth.currentUser;
     this.authUnsubscribe = this.api.onAuthStateChanged(this.api.auth, (user) => {
       const changed = this.state.user?.uid !== user?.uid;
@@ -297,8 +352,7 @@ export class PinconClassOpsRepository extends EventTarget {
       if (changed) this.listenRole().catch((error) => this.recordError(error));
       this.emit();
     });
-    await this.listenRole();
-    this.listenPublic();
+    await withTimeout(this.listenRole()).catch((error) => this.recordError(error));
     this.state.ready = true;
     this.state.syncing = false;
     this.emit();
@@ -321,15 +375,18 @@ export class PinconClassOpsRepository extends EventTarget {
 
   async listenRole() {
     this.privateUnsubscribers.splice(0).forEach((stop) => stop());
-    for (const name of ["patchNoteDrafts", "changeLogs", "supplyReports"]) this.state.data[name] = [];
+    for (const name of ["patchNoteDrafts", "changeLogs", "supplyReports", "noticeDrafts"]) this.state.data[name] = [];
     this.state.role = null;
     this.state.isPresident = false;
+    if (!this.state.user) for (const name of PUBLIC_COLLECTIONS) if (!PUBLIC_SCHOOL_COLLECTIONS.includes(name)) this.state.data[name] = [];
     if (!this.api || !this.state.user) {
       if (this.state.ready) this.listenPublic();
       return;
     }
     const roleRef = this.api.doc(this.api.db, "schools", SCHOOL.id, "roles", this.state.user.uid);
+    const roleUid = this.state.user.uid;
     const roleSnapshot = await this.api.getDoc(roleRef).catch(() => null);
+    if (this.disposed || roleUid !== this.state.user?.uid) return;
     const role = docData(roleSnapshot);
     this.state.role = role;
     this.state.isPresident = isPresidentRole(role, this.state.classKey);
@@ -339,7 +396,9 @@ export class PinconClassOpsRepository extends EventTarget {
 
   listenPublic() {
     this.unsubscribers.splice(0).forEach((stop) => stop());
+    this.liveCollections.clear();
     for (const name of PUBLIC_COLLECTIONS) {
+      if (!this.state.user && !PUBLIC_SCHOOL_COLLECTIONS.includes(name)) { this.state.data[name] = []; this.state.collectionStatus[name] = "restricted"; continue; }
       const queryRef = queryFor(this.api, name, this.state.classKey, this.state.isPresident);
       if (!queryRef) continue;
       const unsubscribe = listenQuery(this.api, queryRef, (snapshot) => {
@@ -349,6 +408,7 @@ export class PinconClassOpsRepository extends EventTarget {
           this.cachedCollections.add(name);
           this.state.usingCache = true;
         } else {
+          this.liveCollections.add(name);
           this.cachedCollections.delete(name);
           this.state.usingCache = this.cachedCollections.size > 0;
           this.state.cacheSavedAtMs = Date.now();
@@ -367,7 +427,7 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   listenPrivate() {
-    for (const name of ["patchNoteDrafts", "changeLogs", "supplyReports"]) {
+    for (const name of ["patchNoteDrafts", "changeLogs", "supplyReports", "noticeDrafts"]) {
       const queryRef = queryFor(this.api, name, this.state.classKey, true);
       const unsubscribe = listenQuery(this.api, queryRef, (snapshot) => {
         this.state.data[name] = rowsFromSnapshot(snapshot).map((item) => ({ ...item, __private: true }));
@@ -378,6 +438,9 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   dispose() {
+    this.disposed = true;
+    clearTimeout(this.fallbackTimer);
+    this.publicRequest?.abort();
     this.unsubscribers.splice(0).forEach((stop) => stop());
     this.privateUnsubscribers.splice(0).forEach((stop) => stop());
     this.authUnsubscribe?.();
@@ -387,6 +450,7 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   async ensureUser() {
+    if (globalThis.PINCON_ACCOUNT?.mode === "readonly") throw new Error("로그인 후 사용할 수 있습니다.");
     if (!this.api) await this.start();
     await this.api.auth.authStateReady?.();
     if (this.api.auth.currentUser) return this.api.auth.currentUser;
@@ -740,7 +804,8 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   async updateNotificationPreferences(preferences) {
-    const next = this.setNotificationPreferences(preferences);
+    await this.ensureUser();
+    const next = { ...NOTIFICATION_DEFAULTS, ...preferences };
     const token = localStorage.getItem(PUSH_TOKEN_KEY) || "";
     if (token && this.api && this.state.user) {
       await this.api.setDoc(this.documentRef("pushSubscriptions", token), {
@@ -750,7 +815,7 @@ export class PinconClassOpsRepository extends EventTarget {
         updatedAtMs: Date.now(),
       }, { merge: true });
     }
-    return next;
+    return this.setNotificationPreferences(next);
   }
 
   async enableNotifications(preferences = this.notificationPreferences()) {

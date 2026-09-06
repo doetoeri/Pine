@@ -1,3 +1,5 @@
+import { noticePhotoText } from "../core/data/notice-ocr.js";
+import { draftFromText } from "../core/domain/notice-draft.js";
 import { NextDataGateway } from "../core/data-gateway.js";
 import { ContentServiceV2 } from "./content-service-v2.js";
 
@@ -66,6 +68,7 @@ function allRows() {
       rows.push({ collection, item });
     }
   }
+  for (const item of snapshot.data?.noticeDrafts || []) rows.push({ collection:"announcements", item:{...item,__draft:true} });
   return rows.sort((a, b) => Number(b.item.updatedAtMs || b.item.createdAtMs || 0) - Number(a.item.updatedAtMs || a.item.createdAtMs || 0));
 }
 
@@ -114,6 +117,13 @@ function formFields(collection, item = {}) {
   if (collection === "announcements") {
     return `${field("공지 제목", "title", item.title, { required: true, max: 100 })}
       ${textarea("내용", "body", item.body, 1800)}
+      <details><summary>과목·날짜·준비물</summary>
+      ${field("과목", "subject", item.subject, { max: 40 })}
+      ${field("날짜", "date", item.date, { type: "date", max: 0 })}
+      ${field("제출일", "dueDate", item.dueDate, { type: "date", max: 0 })}
+      ${field("범위", "range", item.range, { max: 600 })}
+      ${field("준비물", "materials", item.materials, { max: 500 })}
+      ${field("장소", "location", item.location, { max: 120 })}</details>
       ${selectField("중요도", "priority", [["normal","일반"],["important","중요"],["urgent","긴급"]], item.priority || "normal")}
       ${checkField("학생 화면에 공개", "published", item.published !== false)}`;
   }
@@ -171,7 +181,7 @@ function rowMarkup({ collection, item }) {
   const archived = item.deleted === true;
   return `<article class="ops-v2-row" data-v2-row data-collection="${collection}" data-id="${escapeHtml(item.id)}">
     <div class="ops-v2-row-icon"><md-icon>${type.icon}</md-icon></div>
-    <div class="ops-v2-row-copy"><span>${type.label}${archived ? " · 보관됨" : ""}</span><strong>${escapeHtml(titleOf(item))}</strong><small>${escapeHtml(supportOf(collection, item) || "추가 정보 없음")}</small></div>
+    <div class="ops-v2-row-copy"><span>${type.label}${item.published === false ? " · 초안" : ""}${archived ? " · 보관됨" : ""}</span><strong>${escapeHtml(titleOf(item))}</strong><small>${escapeHtml(supportOf(collection, item) || "추가 정보 없음")}</small></div>
     <div class="ops-v2-row-actions">
       ${archived
         ? `<button type="button" class="ops-v2-secondary" data-v2-restore><md-icon>restore</md-icon><span>복원</span></button>`
@@ -196,6 +206,7 @@ function mainMarkup() {
       <select id="opsV2TypeFilter" aria-label="콘텐츠 종류"><option value="all" ${activeType === "all" ? "selected" : ""}>전체 종류</option>${Object.entries(TYPES).map(([key, value]) => `<option value="${key}" ${activeType === key ? "selected" : ""}>${value.label}</option>`).join("")}</select>
       <button type="button" class="ops-v2-secondary ${showArchive ? "is-active" : ""}" data-v2-toggle-archive><md-icon>inventory_2</md-icon><span>${showArchive ? "운영 콘텐츠" : "보관함"}</span></button>
     </div>
+    <label class="ops-v2-secondary">사진에서 공지 만들기<input type="file" id="noticePhoto" accept="image/jpeg,image/png,image/webp" capture="environment"></label><p>사진은 기존 OCR 서비스로 전송됩니다. 인식 결과는 초안으로만 저장됩니다.</p>
     <div class="ops-v2-create-strip">${Object.entries(TYPES).map(([key, value]) => `<button type="button" data-v2-create="${key}"><md-icon>${value.icon}</md-icon><span>새 ${value.noun}</span></button>`).join("")}</div>
     <p class="ops-v2-inline-status" id="opsV2Status" role="status"></p>
     <div class="ops-v2-list">${rows.length ? rows.map(rowMarkup).join("") : `<div class="ops-v2-empty"><md-icon>${showArchive ? "inventory_2" : "inbox"}</md-icon><strong>${showArchive ? "보관된 콘텐츠가 없습니다" : "조건에 맞는 콘텐츠가 없습니다"}</strong><span>${showArchive ? "보관한 항목은 여기에서 다시 복원할 수 있습니다." : "새 콘텐츠를 만들거나 검색 조건을 바꿔보세요."}</span></div>`}</div>
@@ -222,6 +233,7 @@ function openEditor(collection, id = "", duplicate = false) {
   const item = id ? service.find(collection, id) : null;
   if (id && !item) return setStatus("콘텐츠를 찾지 못했습니다.", "error");
   const effectiveId = duplicate ? "" : id;
+  dialog.dataset.photoDraft = "false";
   dialog.dataset.collection = collection;
   dialog.dataset.recordId = effectiveId;
   dialog.dataset.sourceId = duplicate ? id : "";
@@ -242,7 +254,7 @@ function valuesFromForm(collection, form) {
   const data = new FormData(form);
   const value = (name) => String(data.get(name) ?? "");
   const checked = (name) => form.elements.namedItem(name)?.checked === true;
-  if (collection === "announcements") return { title: value("title"), body: value("body"), priority: value("priority"), published: checked("published") };
+  if (collection === "announcements") return { title: value("title"), body: value("body"), priority: value("priority"), published: checked("published"), subject: value("subject"), date: value("date"), dueDate: value("dueDate"), range: value("range"), materials: value("materials"), location: value("location") };
   if (collection === "classAssignments") return {
     title: value("title"), subject: value("subject"), type: value("type"), dateType: value("dateType"), dueDate: value("dueDate"),
     evaluationRange: value("evaluationRange"), evaluationMethod: value("evaluationMethod"), materials: value("materials"), points: value("points"),
@@ -276,7 +288,9 @@ async function submitEditor(event) {
   if (status) { status.textContent = "Firestore에 저장한 뒤 서버에서 다시 확인하고 있습니다…"; status.dataset.kind = ""; }
   try {
     const file = collection === "evaluationPlans" ? form.elements.namedItem("planFile")?.files?.[0] || null : null;
-    const result = await service.save(collection, valuesFromForm(collection, form), {
+    const values = valuesFromForm(collection, form);
+    if (dialog.dataset.photoDraft === "true") { values.published = false; values.status = "draft"; }
+    const result = await service.save(collection, values, {
       id: dialog.dataset.recordId || "",
       file,
       fileConfirmed: form.elements.namedItem("fileConfirmed")?.checked === true,
@@ -335,6 +349,25 @@ function handleClick(event) {
 
 function bindCard() {
   root?.querySelector("#opsV2Form")?.addEventListener("submit", submitEditor);
+  root?.querySelector("#noticePhoto")?.addEventListener("change", async (event) => {
+    const input=event.target; const file=input.files?.[0]; if(!file) return;
+    input.disabled=true; setStatus("사진의 글자를 읽는 중…");
+    try {
+      const text=await noticePhotoText(file); const draft=draftFromText(text);
+      openEditor("announcements");
+      const dialog=root.querySelector("#opsV2Dialog"); dialog.dataset.photoDraft="true";
+      const form=root.querySelector("#opsV2Form");
+      form.elements.namedItem("title").value=draft.title;
+      form.elements.namedItem("body").value=draft.body;
+      for (const name of ["subject", "date", "dueDate", "range", "materials", "location"]) form.elements.namedItem(name).value=draft[name];
+      form.elements.namedItem("published").checked=false;
+      form.elements.namedItem("published").disabled=true;
+      root.querySelector("#opsV2DialogTitle").textContent="사진 공지 초안 검토";
+      const fields=root.querySelector("#opsV2Fields");
+      fields.insertAdjacentHTML("beforeend", `<div><strong>인식한 항목 · 원문과 비교해주세요</strong><p>${escapeHtml([draft.subject,draft.date,draft.dueDate,draft.range,draft.materials,draft.location].filter(Boolean).join(" · "))}</p><p>이번 저장은 초안입니다. 저장한 뒤 다시 열어 내용을 검토하고 게시할 수 있습니다.</p></div>`);
+    } catch(error) { setStatus(error.message || "사진 인식에 실패했습니다.","error"); }
+    finally { input.disabled=false; input.value=""; }
+  });
   root?.querySelector("#opsV2Search")?.addEventListener("input", (event) => {
     query = event.target.value;
     const list = root?.querySelector(".ops-v2-list");

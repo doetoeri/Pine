@@ -40,7 +40,7 @@ function relativeTime(time) {
   return new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(time));
 }
 
-function cardMarkup(snapshot, rows) {
+export function cardMarkup(snapshot, rows) {
   const { loading, failed } = relevantStatus(snapshot);
   const cacheLabel = snapshot.usingCache || !snapshot.online ? "저장된 정보 기준" : "최근 36시간";
   let body = "";
@@ -175,6 +175,5 @@ document.addEventListener("click", (event) => {
 
 gateway.addEventListener("change", queueRender);
 window.addEventListener("hashchange", queueRender);
-const app = document.querySelector("#app");
-if (app) new MutationObserver(queueRender).observe(app, { childList: true, subtree: true });
+window.addEventListener("pincon-render", queueRender);
 queueRender();

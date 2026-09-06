@@ -118,9 +118,9 @@ for (const viewport of VIEWPORTS) {
     await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
     await expect(page.locator("#pinconBoot")).toHaveCount(0, { timeout: 7_000 });
 
-    const trigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
+    const trigger = page.locator('[data-detail-key^="assignment:classAssignments:"]:visible').first();
     await expect(trigger).toBeVisible({ timeout: 8_000 });
-    await page.evaluate(() => window.scrollTo(0, 180));
+    await trigger.scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => window.scrollY);
     const overflowBefore = await page.evaluate(() => ({
       innerWidth,
@@ -245,7 +245,7 @@ test("closed overlays immediately release pointer input for every other control"
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
 
-  const detailTrigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
+  const detailTrigger = page.locator('[data-detail-key^="assignment:classAssignments:"]:visible').first();
   await expect(detailTrigger).toBeVisible();
   await detailTrigger.click();
   await expect(page.locator("#detailLayer")).toBeVisible();
@@ -291,7 +291,7 @@ test("loading never reports zero and known empty cache uses an actual empty stat
   await seedCache(emptyPage, { empty: true });
   await emptyPage.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
   await expect(emptyPage.locator("#today-title")).toBeVisible();
-  await expect(emptyPage.getByText("등록된 수업이 없습니다")).toBeVisible();
+  await expect(emptyPage.locator(".dashboard-grid").getByText("등록된 수업이 없습니다")).toBeVisible();
   await expect(emptyPage.getByText("급식 정보가 없습니다")).toBeVisible();
   await emptyContext.close();
 });

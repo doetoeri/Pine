@@ -1,7 +1,7 @@
 import { NextDataGateway } from "./core/data-gateway.js";
 import { accountRequest, changeStudentPin, signOutStudent } from "./core/student-auth.js";
 
-const accountContext = globalThis.PINCON_ACCOUNT;
+let accountContext = globalThis.PINCON_ACCOUNT;
 if (accountContext?.mode === "student" && accountContext.account) {
   const gateway = new NextDataGateway();
   let home = null;
@@ -72,63 +72,6 @@ if (accountContext?.mode === "student" && accountContext.account) {
     return { document, periods: Array.isArray(document?.periods) ? document.periods : [] };
   }
 
-  function nextLessonInfo() {
-    const { periods } = currentTimetable();
-    if (!periods.length) return null;
-    const now = minutesNow();
-    const timed = periods.filter((item) => timeMinutes(item.startTime) !== null);
-    let lesson = timed.find((item) => timeMinutes(item.startTime) >= now) || null;
-    let timing = "";
-    if (lesson) {
-      const diff = timeMinutes(lesson.startTime) - now;
-      timing = diff === 0 ? "곧 시작" : `${diff}분 뒤 시작`;
-    } else if (timed.length) {
-      const ongoing = [...timed].reverse().find((item) => {
-        const start = timeMinutes(item.startTime);
-        const end = timeMinutes(item.endTime);
-        return start !== null && end !== null && start <= now && now <= end;
-      });
-      if (ongoing) {
-        const index = periods.indexOf(ongoing);
-        lesson = periods[index + 1] || ongoing;
-        timing = lesson === ongoing ? "현재 수업" : "다음 수업";
-      }
-    }
-    if (!lesson) {
-      lesson = periods[0];
-      timing = "오늘 시간표";
-    }
-
-    const subject = normalizeSubject(lesson.subject);
-    const entries = home?.today?.subjectEntries || [];
-    const related = entries.filter((entry) => normalizeSubject(entry.subject) === subject);
-    const classroomChange = related.find((entry) => entry.type === "CLASSROOM_CHANGE" && (!entry.dueDate || entry.dueDate === dateKey()));
-    const materialEntry = related.find((entry) => entry.type === "MATERIAL" && (!entry.dueDate || entry.dueDate === dateKey()));
-    const classroom = classroomChange?.classroom || lesson.room || lesson.classroom || lesson.location || "";
-    const materials = materialEntry?.materials || materialEntry?.body || lesson.materials || lesson.preparation || lesson.supplies || "";
-    const movement = Boolean(classroomChange || classroom);
-    return {
-      ...lesson,
-      subject: lesson.subject || "수업",
-      classroom,
-      materials,
-      movement,
-      timing,
-      minutesUntil: lesson.startTime ? Math.max(0, timeMinutes(lesson.startTime) - now) : null,
-    };
-  }
-
-  function upcomingTasks() {
-    const items = gateway.snapshot().data?.classAssignments || [];
-    const today = dateKey();
-    return items
-      .filter((item) => !item.deleted && item.published !== false)
-      .map((item) => ({ ...item, date: String(item.dueDate || "").slice(0, 10) }))
-      .filter((item) => item.date && item.date >= today)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(0, 3);
-  }
-
   function roleTimingLabel(role) {
     const timing = role?.timing || "";
     return ({ MORNING: "아침", LUNCH: "점심", CLEANING_TIME: "청소 시간", BEFORE_LEAVING: "종례 전후", WEEKLY: "주 1회" })[timing] || "상시";
@@ -149,24 +92,6 @@ if (accountContext?.mode === "student" && accountContext.account) {
     const label = PHONE_LABELS[state.status] || "확인 필요";
     const time = state.submittedAtMs ? new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit" }).format(new Date(state.submittedAtMs)) : "";
     return `<div class="pincon-phone-state"><md-icon>${state.status === "SUBMITTED" ? "check_circle" : "smartphone"}</md-icon><div><strong>${escapeHtml(label)}</strong><span>${state.status === "SUBMITTED" ? `${escapeHtml(time)} 확인${state.returned ? " · 반환 완료" : ""}` : "담당자 확인 기준"}</span></div></div>`;
-  }
-
-  function lessonMarkup() {
-    const lesson = nextLessonInfo();
-    if (!lesson) return `<div class="pincon-next-lesson"><div><strong>오늘 수업 없음</strong><span>시간표에 등록된 수업이 없습니다.</span></div><md-icon>event_available</md-icon></div>`;
-    const moveText = lesson.movement
-      ? `${lesson.classroom ? `${lesson.classroom} · ` : ""}${lesson.minutesUntil !== null ? `이동수업까지 ${lesson.minutesUntil}분` : lesson.timing}`
-      : lesson.timing;
-    const phonePolicy = home?.settings?.phoneMovementPolicy;
-    const prep = [];
-    if (lesson.movement) prep.push({ icon: "edit", text: "필통" });
-    if (lesson.materials) prep.push({ icon: "inventory_2", text: lesson.materials });
-    if (lesson.movement) prep.push({
-      icon: "smartphone",
-      text: phonePolicy === "TAKE" ? "휴대폰 지참" : "휴대폰은 교실 보관",
-    });
-    return `<div class="pincon-next-lesson"><div><strong>${escapeHtml(lesson.subject)}${lesson.classroom ? ` · ${escapeHtml(lesson.classroom)}` : ""}</strong><span>${escapeHtml(moveText)}</span></div><md-icon>${lesson.movement ? "directions_walk" : "menu_book"}</md-icon></div>
-      ${prep.length ? `<div class="pincon-prep-list">${prep.map((item) => `<div class="pincon-prep-item"><md-icon>${item.icon}</md-icon><span>${escapeHtml(item.text)}</span></div>`).join("")}</div>` : ""}`;
   }
 
   function rolesMarkup() {
@@ -191,12 +116,6 @@ if (accountContext?.mode === "student" && accountContext.account) {
     }
     if (["ASSIGNED", "ACCEPTED"].includes(cleaning.status)) actions.push(`<md-text-button data-personal-action="cleaning-complete">완료 표시</md-text-button>`);
     return actions.length ? `<div class="pincon-personal-actions">${actions.join("")}</div>` : "";
-  }
-
-  function tasksMarkup() {
-    const tasks = upcomingTasks();
-    if (!tasks.length) return `<p class="pincon-personal-card__meta">가까운 수행평가·숙제가 없습니다.</p>`;
-    return `<div class="pincon-personal-tasks">${tasks.map((item) => `<div class="pincon-personal-task"><md-icon>assignment</md-icon><div><strong>${escapeHtml(item.title || item.subject || "할 일")}</strong><span>${escapeHtml(item.subject || "")} · ${escapeHtml(item.date)}</span></div></div>`).join("")}</div>`;
   }
 
   function managementMarkup() {
@@ -229,13 +148,8 @@ if (accountContext?.mode === "student" && accountContext.account) {
     if (!home) return `<section class="pincon-personal-home" id="pinconPersonalHome"><article class="pincon-personal-card pincon-personal-card--wide"><div class="pincon-personal-card__head"><h2>내 정보를 불러오는 중</h2></div><md-linear-progress indeterminate></md-linear-progress></article></section>`;
     return `<section class="pincon-personal-home" id="pinconPersonalHome" aria-label="개인화된 학급 운영 정보">
       <div class="pincon-personal-grid">
-        <article class="pincon-personal-card pincon-personal-card--wide">
-          <div class="pincon-personal-card__head"><h2>다음 수업</h2><md-icon-button class="pincon-profile-trigger" data-personal-action="profile" aria-label="프로필 열기"><md-icon>account_circle</md-icon></md-icon-button></div>
-          ${lessonMarkup()}
-        </article>
         <article class="pincon-personal-card"><div class="pincon-personal-card__head"><h2>오늘의 역할</h2><span class="pincon-personal-card__meta">${escapeHtml(koDate())}</span></div>${rolesMarkup()}${cleaningActions()}</article>
         <article class="pincon-personal-card"><div class="pincon-personal-card__head"><h2>스마트폰</h2></div>${phoneMarkup()}</article>
-        <article class="pincon-personal-card pincon-personal-card--wide"><div class="pincon-personal-card__head"><h2>오늘 할 일</h2><span class="pincon-personal-card__meta">가까운 일정 우선</span></div>${tasksMarkup()}</article>
         ${managementMarkup()}
       </div>
     </section>`;
@@ -247,17 +161,11 @@ if (accountContext?.mode === "student" && accountContext.account) {
   }
 
   function renderPersonal() {
+    if (globalThis.PINCON_ACCOUNT?.mode !== "student" || globalThis.PINCON_ACCOUNT?.user?.uid !== accountContext?.user?.uid) return;
     renderQueued = false;
     if (!routeIsToday()) return;
-    const main = document.querySelector("#mainContent");
-    const hero = main?.querySelector(".surface--hero");
-    if (!main || !hero) return;
-    const title = hero.querySelector(".hero-title");
-    if (title && home?.account?.name) title.textContent = `안녕하세요, ${home.account.name}님.`;
-    const kicker = hero.querySelector(".hero-kicker");
-    if (kicker) kicker.textContent = koDate();
-    main.querySelector("#pinconPersonalHome")?.remove();
-    hero.insertAdjacentHTML("afterend", personalMarkup());
+    const target = document.querySelector("#personalOperations");
+    if (target) target.innerHTML = personalMarkup();
   }
 
   function queueRender() {
@@ -268,10 +176,11 @@ if (accountContext?.mode === "student" && accountContext.account) {
 
   async function refreshHome() {
     if (refreshPromise) return refreshPromise;
+    const requestedUid = accountContext?.user?.uid;
     refreshPromise = accountRequest("/api/class-ops/home")
-      .then((data) => { home = data; homeError = ""; })
-      .catch(() => { homeError = "내 학급 운영 정보를 불러오지 못했습니다."; })
-      .finally(() => { refreshPromise = null; queueRender(); });
+      .then((data) => { if (globalThis.PINCON_ACCOUNT?.mode !== "student" || requestedUid !== globalThis.PINCON_ACCOUNT?.user?.uid) return; home = data; homeError = ""; window.dispatchEvent(new CustomEvent("pincon-personal-home", { detail: home })); })
+      .catch(() => { if (requestedUid === globalThis.PINCON_ACCOUNT?.user?.uid) homeError = "내 학급 운영 정보를 불러오지 못했습니다."; })
+      .finally(() => { refreshPromise = null; queueRender(); if (globalThis.PINCON_ACCOUNT?.mode === "student" && requestedUid !== globalThis.PINCON_ACCOUNT?.user?.uid) void refreshHome(); });
     return refreshPromise;
   }
 
@@ -283,7 +192,7 @@ if (accountContext?.mode === "student" && accountContext.account) {
     dialog.innerHTML = `<div slot="headline">${escapeHtml(title)}</div><div slot="content" class="pincon-dialog-body">${body}</div><div slot="actions">${actions}<md-text-button data-dialog-close>닫기</md-text-button></div>`;
     document.body.appendChild(dialog);
     dialog.querySelector("[data-dialog-close]")?.addEventListener("click", () => dialog.close?.());
-    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    dialog.addEventListener("closed", () => dialog.remove(), { once: true });
     dialog.show?.();
     return dialog;
   }
@@ -452,9 +361,15 @@ if (accountContext?.mode === "student" && accountContext.account) {
     else if (action === "open-admin") location.assign("./admin/");
   });
 
+  window.addEventListener("pincon-account-ready", (event) => {
+    home = null; homeError = "";
+    if (event.detail?.mode === "student") { accountContext = event.detail; void refreshHome(); }
+    queueRender();
+  });
+  window.addEventListener("online", () => { if (globalThis.PINCON_ACCOUNT?.mode === "student") void refreshHome(); });
   gateway.addEventListener("change", queueRender);
   window.addEventListener("hashchange", queueRender);
-  new MutationObserver(queueRender).observe(document.querySelector("#app"), { childList: true, subtree: true });
+  window.addEventListener("pincon-render", queueRender);
   await refreshHome();
   queueRender();
 }

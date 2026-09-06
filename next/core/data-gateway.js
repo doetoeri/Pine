@@ -1,3 +1,4 @@
+import { PUBLIC_SCHOOL_COLLECTIONS, publicRows } from "./data/public-school.js";
 import { PinconClassOpsRepository } from "../../pincon-class-ops-data.js";
 import { classBrandSettings, validateBrandTagline } from "./brand-settings.js";
 import { PERMISSION, canAccess, resolveNextAccess } from "./trust-model.js";
@@ -255,6 +256,10 @@ export class NextDataGateway extends EventTarget {
       readonly: true,
     };
 
+    window.addEventListener("pincon-account-ready", () => {
+      if (this.repository && readClassProfile()?.classKey !== this.state.profile?.classKey) void this.retry();
+      else if (this.repository) this.applyRepositorySnapshot(this.repository.snapshot());
+    });
     globalThis[GATEWAY_SINGLETON_KEY] = this;
   }
 
@@ -273,8 +278,9 @@ export class NextDataGateway extends EventTarget {
 
   applyRepositorySnapshot(snapshot) {
     const profile = snapshot?.profile || readClassProfile();
-    const user = snapshot?.user || null;
-    const role = snapshot?.role || null;
+    const limited = globalThis.PINCON_ACCOUNT?.mode === "readonly";
+    const user = limited ? null : snapshot?.user || null;
+    const role = limited ? null : snapshot?.role || null;
     const serverClassOperator = serverCompatibleClassOperator({ user, role, profile });
     const temporaryOpenWrite = todayOpenWriteEligible({ user, profile });
     const access = accessFor({ user, role, profile });
@@ -291,7 +297,7 @@ export class NextDataGateway extends EventTarget {
       collectionStatus: snapshot?.collectionStatus || Object.create(null),
       cacheSavedAtMs: Number(snapshot?.cacheSavedAtMs || 0),
       usingCache: Boolean(snapshot?.usingCache),
-      data: snapshot?.data || Object.create(null),
+      data: limited ? Object.fromEntries(PUBLIC_SCHOOL_COLLECTIONS.map(name=>[name,publicRows(name,snapshot?.data?.[name] || [],profile)])) : snapshot?.data || Object.create(null),
       user,
       role,
       access,

@@ -42,11 +42,11 @@ test("daily brief v2 separates data, renderer and UI while remaining determinist
   }
 });
 
-test("detail history guard closes stale WebKit detail layer after browser back", async () => {
-  const source = await read("../detail-history-stability.js");
+test("renderer closes its detail layer on browser back", async () => {
+  const source = await read("../app.js");
   assertModuleSyntax(source, "detail-history-stability.js");
   assert.match(source, /popstate/);
-  assert.match(source, /hashchange/);
+  assert.match(source, /hideDetailSurface/);
   assert.match(source, /classList\.remove\("is-open"\)/);
   assert.match(source, /aria-hidden/);
   assert.match(source, /layer\.hidden = true/);

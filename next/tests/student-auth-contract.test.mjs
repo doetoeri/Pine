@@ -53,15 +53,11 @@ test("account API can use the verified Identity v2 alias while main is missing r
   assert.match(auth, /account-api-unreachable/);
 });
 
-test("PinCon PWA revalidates code assets after a deployment", async () => {
+test("PinCon PWA uses Next shell and versioned static caching", async () => {
   const worker = await source("../../sw.js");
-  const registration = await source("../../registerSW.js");
-  assert.match(worker, /PINCON_SW_VERSION = "20260902-account-api2"/);
-  assert.match(worker, /new Request\(request, \{ cache: "reload" \}\)/);
-  assert.match(worker, /mustRevalidate = \/\\\.\(\?:js\|css\|html\|webmanifest\|json\)\$\/i/);
-  assert.match(worker, /networkFirst\(request, "\.\/index\.html", \{ forceReload: true \}\)/);
-  assert.match(registration, /\.\/sw\.js\?v=20260902-account-api2/);
-  assert.match(registration, /updateViaCache: "none"/);
+  assert.match(worker, /networkFirst\(request, "\/next\/index.html"\)/);
+  assert.match(worker, /cacheFirst/);
+  assert.doesNotMatch(worker, /forceReload|cache: "reload"/);
 });
 
 test("account entry keeps login failures generic and validates locally", async () => {
@@ -135,20 +131,11 @@ test("student account center owns profile security and logout", async () => {
   assert.doesNotMatch(center, /localStorage|sessionStorage/);
 });
 
-test("application modules boot only after the account gate resolves", async () => {
+test("public application modules boot independently of account readiness", async () => {
   const bootstrap = await source("../app-bootstrap.js");
-  const html = await source("../index.html");
-  const accountReadyIndex = bootstrap.indexOf("await accountReady");
-  const routeRecoveryIndex = bootstrap.indexOf('await import("./route-focus-stability.js?v=20260903-route2")');
-  const appIndex = bootstrap.indexOf('await import("./app.js?v=20260830-interaction1")');
-
-  assert.ok(accountReadyIndex >= 0);
-  assert.ok(routeRecoveryIndex > accountReadyIndex, "route recovery must arm after authentication resolves");
-  assert.ok(appIndex > routeRecoveryIndex, "route recovery must arm before the app can render clickable navigation");
-  assert.match(bootstrap, /account-gate\.js\?v=20260903-identity2/);
-  assert.match(html, /src="\.\/app-bootstrap\.js\?v=20260903-route2"/);
-  assert.match(html, /account-center\.css/);
-  assert.doesNotMatch(html, /src="\.\/app\.js"/);
+  assert.doesNotMatch(bootstrap, /await accountReady/);
+  assert.match(bootstrap, /void accountReady.then\(loadPersonal\)/);
+  assert.doesNotMatch(bootstrap, /route-focus-stability|dialog-focus-stability|detail-history-stability/);
 });
 
 test("test-only authentication bypass is restricted to localhost", async () => {

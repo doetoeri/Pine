@@ -340,7 +340,7 @@ async function sendClassNotification(db, classKey, title, body) {
     .get();
   if (subscriptions.empty) return 0;
 
-  const documents = subscriptions.docs.filter((item) => item.data().preferences?.timetableChange !== false);
+  const documents = subscriptions.docs.filter((item) => item.data().preferences?.timetableChange !== false && item.data().preferences?.timetable !== false);
   if (!documents.length) return 0;
   let sent = 0;
   for (let index = 0; index < documents.length; index += 500) {
@@ -351,7 +351,7 @@ async function sendClassNotification(db, classKey, title, body) {
         title,
         body,
         tag: `pincon-${classKey}-timetable`,
-        link: "https://pincon.app/?class-ops=1&class-tab=schedule",
+        link: "https://pincon.app/next/#timetable",
       },
       webpush: { headers: { Urgency: "high" } },
     });
@@ -417,7 +417,7 @@ async function syncTimetables(db, start, end) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
-    pushes += await sendClassNotification(db, change.classKey, title, body);
+    if (change.date === new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)) pushes += await sendClassNotification(db, change.classKey, title, body);
   }
 
   return {
@@ -460,6 +460,7 @@ async function syncAcademicSchedules(db, start, end) {
     if (!/^\d{8}$/.test(compact)) continue;
     const date = `${compact.slice(0, 4)}-${compact.slice(4, 6)}-${compact.slice(6, 8)}`;
     const eventName = String(row.EVENT_NM || "").trim();
+    if (/토요\s*휴업일/.test(eventName)) continue;
     if (!eventName) continue;
     const current = grouped.get(date) || {
       date,

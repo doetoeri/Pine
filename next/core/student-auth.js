@@ -1,3 +1,4 @@
+import { withTimeout } from "./auth/errors.js";
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
 const normalizeApiBase = (value) => String(value || "").trim().replace(/\/$/, "");
@@ -25,7 +26,7 @@ async function api() {
       return { app, auth, ...authApi };
     });
   }
-  return apiPromise;
+  return withTimeout(apiPromise);
 }
 
 export function validStudentNumber(value) {
@@ -67,14 +68,17 @@ async function accountFetch(path, options = {}) {
     for (let index = 0; index < API_BASES.length; index += 1) {
       const base = API_BASES[index];
       try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
         const response = await fetch(`${base}${path}`, {
+          signal: controller.signal,
           ...fetchOptions,
           headers: {
             "content-type": "application/json",
             ...(fetchOptions.headers || {}),
           },
           cache: "no-store",
-        });
+        }).finally(() => clearTimeout(timer));
         const hasFallback = index < API_BASES.length - 1;
         // A Vercel 404 here means the deployment alias exists but this server route does not.
         // Falling through only on 404 avoids replaying successful/ambiguous mutations on 5xx responses.
@@ -85,6 +89,7 @@ async function accountFetch(path, options = {}) {
         return response;
       } catch (error) {
         lastNetworkError = error;
+        if (error.name === "AbortError") throw Object.assign(error, { code: "server-timeout" });
       }
     }
     if (attempt < networkRetries) await wait(350);
@@ -127,6 +132,7 @@ async function authorizedFetch(path, options = {}) {
   if (!response.ok) {
     const error = new Error(data?.error || "request-failed");
     error.status = response.status;
+    error.code = data?.error || "account-api-failed";
     throw error;
   }
   return data;
@@ -166,6 +172,7 @@ export async function signInStudent({ studentNumber, pin, remember = true } = {}
     await authApi.signOut(authApi.auth).catch(() => {});
     const wrapped = new Error("학번 또는 PIN을 다시 확인해주세요.");
     wrapped.code = error?.code || error?.message || "student-login-failed";
+    wrapped.status = error?.status;
     throw wrapped;
   }
 }
@@ -196,6 +203,7 @@ export async function claimStudentAccount({ studentNumber, activationCode, remem
     await authApi.signOut(authApi.auth).catch(() => {});
     const wrapped = new Error("학번 또는 활성화 코드를 확인하지 못했습니다.");
     wrapped.code = error?.code || error?.message || "student-claim-failed";
+    wrapped.status = error?.status;
     throw wrapped;
   }
 }

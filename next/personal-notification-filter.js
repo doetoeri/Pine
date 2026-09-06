@@ -6,6 +6,8 @@ const originalSnapshot = gateway.snapshot.bind(gateway);
 let personalRows = [];
 let loaded = false;
 let loading = false;
+let ownerUid = "";
+let generation = 0;
 
 function legacyPublicAnnouncement(item) {
   return !item?.personalNotification && !String(item?.targetStudentNumber || "").trim();
@@ -31,7 +33,9 @@ function decorateSnapshot(snapshot) {
   const publicRows = Array.isArray(snapshot.data.announcements)
     ? snapshot.data.announcements.filter(legacyPublicAnnouncement)
     : [];
-  snapshot.data.announcements = [...personalRows, ...publicRows];
+  const account = globalThis.PINCON_ACCOUNT;
+  const own = account?.mode === "student" && account?.account?.uid === ownerUid ? personalRows : [];
+  snapshot.data.announcements = [...own, ...publicRows];
   return snapshot;
 }
 
@@ -47,22 +51,33 @@ async function loadPersonalNotifications() {
     return;
   }
   loading = true;
+  const requestGeneration = generation;
+  const uid = account.account.uid;
   try {
     const result = await accountRequest("/api/accounts/personal-notifications");
+    if (requestGeneration !== generation) return;
+    ownerUid = uid;
     personalRows = Array.isArray(result?.notifications)
       ? result.notifications.map(privateAnnouncement)
       : [];
   } catch (error) {
     console.warn("PinCon personal notifications unavailable", error);
-    personalRows = [];
+    if (requestGeneration === generation) personalRows = [];
   } finally {
+    if (requestGeneration !== generation) return;
     loading = false;
     loaded = true;
     gateway.emit?.();
   }
 }
 
-await loadPersonalNotifications();
+void loadPersonalNotifications();
+
+window.addEventListener("pincon-account-ready", () => {
+  generation += 1; loaded = false; loading = false; ownerUid = ""; personalRows = [];
+  gateway.emit?.(); void loadPersonalNotifications();
+});
+window.addEventListener("online", () => { loaded = false; void loadPersonalNotifications(); });
 
 globalThis.PinConPersonalNotifications = Object.freeze({
   reload: async () => {

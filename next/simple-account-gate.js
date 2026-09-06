@@ -1,3 +1,4 @@
+import { loginError, withTimeout } from "./core/auth/errors.js";
 import { saveClassProfile } from "./core/data-gateway.js";
 import {
   changeStudentPin,
@@ -10,9 +11,7 @@ import {
   studentSession,
 } from "./core/student-auth.js?v=20260903-pinreauth1";
 
-await import("../material-official-loader.js");
-await globalThis.PINCON_MATERIAL_READY;
-await import("../pincon-guest-auth.js");
+
 
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { name: "고촌고등학교" };
 let resolveReady;
@@ -21,6 +20,13 @@ globalThis.PINCON_ACCOUNT_READY = accountReady;
 
 let resolved = false;
 let gate = null;
+globalThis.PINCON_ACCOUNT = { mode: "readonly", reason: "pending" };
+function readonly(reason = "guest") {
+  complete({ mode: "readonly", reason });
+}
+window.addEventListener("pincon-login-request", () => {
+  void import("../material-official-loader.js").then(() => loginScreen());
+});
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -32,8 +38,8 @@ function escapeHtml(value) {
 }
 
 function complete(detail) {
-  if (resolved) return;
   resolved = true;
+  gate?.close?.();
   gate?.remove();
   gate = null;
   globalThis.PINCON_ACCOUNT = detail;
@@ -47,12 +53,14 @@ function syncClass(account) {
 
 function ensureGate() {
   if (gate) return gate;
-  gate = document.createElement("section");
+  gate = document.createElement("dialog");
   gate.className = "pincon-account-gate";
   gate.setAttribute("role", "dialog");
   gate.setAttribute("aria-modal", "true");
   gate.setAttribute("aria-label", "PinCon 로그인");
   document.body.appendChild(gate);
+  gate.addEventListener("cancel", (event) => { event.preventDefault(); readonly(); });
+  gate.showModal();
   return gate;
 }
 
@@ -66,7 +74,7 @@ function shell(content, { title = "PinCon 로그인", support = "학번과 PIN�
         <p>${escapeHtml(support)}</p>
       </div>
     </aside>
-    <main class="pincon-account-workspace">${content}</main>
+    <main class="pincon-account-workspace">${content}<md-text-button id="pinconReadOnly">학교 정보만 보기</md-text-button></main>
   </div>`;
 }
 
@@ -77,7 +85,7 @@ function value(root, selector) {
 function setBusy(root, busy, text = "") {
   root.dataset.busy = busy ? "true" : "false";
   root.querySelectorAll("md-filled-button, md-filled-tonal-button, md-outlined-text-field, md-text-button")
-    .forEach((element) => { element.disabled = busy; });
+    .forEach((element) => { element.disabled = element.id === "pinconReadOnly" ? false : busy; });
   const progress = root.querySelector("#pinconAccountProgress");
   if (progress) progress.hidden = !busy;
   const status = root.querySelector("#pinconAccountBusyText");
@@ -96,6 +104,7 @@ function releaseLoader() {
 }
 
 async function adminLogin(root) {
+  await import("../pincon-guest-auth.js");
   const auth = globalThis.PINCON_GUEST_AUTH;
   if (!auth?.signInWithGoogleAndSync) {
     setError(root, "관리자 로그인을 준비하지 못했습니다.");
@@ -136,6 +145,7 @@ function pinSetupScreen(session) {
     support: "활성화 코드는 여기서 끝입니다. 이후에는 학번과 PIN만 사용합니다.",
   });
 
+  root.querySelector("#pinconReadOnly").addEventListener("click", () => readonly(globalThis.PINCON_ACCOUNT?.reason || "guest"));
   const form = root.querySelector("#pinconSimplePinSetup");
   form.addEventListener("input", () => setError(root, ""));
   form.addEventListener("submit", async (event) => {
@@ -155,7 +165,7 @@ function pinSetupScreen(session) {
     form.dataset.busy = "1";
     setBusy(root, true, "PIN을 저장하는 중");
     try {
-      const updated = await changeStudentPin(pin);
+      const updated = await withTimeout(changeStudentPin(pin), 15000);
       if (!updated?.account) throw new Error("pin-change-failed");
       syncClass(updated.account);
       complete({ mode: "student", ...updated });
@@ -193,6 +203,7 @@ function loginScreen(message = "") {
     <p class="pincon-account-footnote"><md-icon>lock</md-icon>개인 기기에서는 로그인 상태가 유지됩니다. 공용 기기에서는 사용 후 로그아웃하세요.</p>
   </section>`);
 
+  root.querySelector("#pinconReadOnly").addEventListener("click", () => readonly(globalThis.PINCON_ACCOUNT?.reason || "guest"));
   const form = root.querySelector("#pinconSimpleLogin");
   const numberField = root.querySelector("#pinconSimpleStudentNumber");
   const credentialField = root.querySelector("#pinconSimpleCredential");
@@ -230,12 +241,16 @@ function loginScreen(message = "") {
         return;
       }
 
-      const result = await signInStudent({ studentNumber, pin: credential, remember: true });
+      const result = await withTimeout(signInStudent({ studentNumber, pin: credential, remember: true }), 15000);
+      if (!root.isConnected) return;
       syncClass(result.account);
       if (result.account.mustChangePin) pinSetupScreen(result);
       else complete({ mode: "student", ...result });
-    } catch {
-      setError(root, "학번과 PIN 또는 활성화 코드를 다시 확인해주세요.");
+    } catch (error) {
+      const failure = loginError(error, { activation: isActivation });
+      setError(root, failure.message);
+      globalThis.PINCON_ACCOUNT = { mode: "readonly", reason: failure.kind };
+      window.dispatchEvent(new CustomEvent("pincon-account-ready", { detail: globalThis.PINCON_ACCOUNT }));
       credentialField.value = "";
       credentialField.focus?.();
       form.dataset.busy = "0";
@@ -263,7 +278,7 @@ async function boot() {
       return;
     }
 
-    let user = await currentFirebaseUser();
+    let user = await withTimeout(currentFirebaseUser());
     if (user?.isAnonymous) {
       await signOutStudent();
       user = null;
@@ -274,21 +289,19 @@ async function boot() {
     }
     if (user) {
       try {
-        const session = await studentSession();
+        const session = await withTimeout(studentSession());
         if (session?.account) {
           syncClass(session.account);
-          if (session.account.mustChangePin) pinSetupScreen(session);
+          if (session.account.mustChangePin) readonly("pin-setup");
           else complete({ mode: "student", ...session });
           return;
         }
-      } catch {
-        await signOutStudent().catch(() => {});
-      }
+      } catch (error) { readonly(loginError(error).kind); return; }
     }
-    loginScreen();
-  } catch {
-    loginScreen("로그인 상태를 확인하지 못했습니다. 다시 입력해주세요.");
+    readonly();
+  } catch (error) {
+    readonly(loginError(error).kind);
   }
 }
 
-boot();
+void boot();

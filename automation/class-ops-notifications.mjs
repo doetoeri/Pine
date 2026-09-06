@@ -1,3 +1,4 @@
+import { allowsNotification, notificationDelivery } from "../next/core/domain/notification-policy.js";
 import { createHash } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
@@ -79,7 +80,7 @@ async function sendGrouped({ messaging, subscriptionDocs, items, title, link }) 
   for (const document of subscriptionDocs) {
     const data = document.data();
     const preferences = { ...DEFAULT_PREFERENCES, ...(data.preferences || {}) };
-    const allowed = items.filter((item) => preferences[preferenceFor(item)] !== false);
+    const allowed = items.filter((item) => allowsNotification(preferences, item));
     if (!allowed.length) continue;
     const body = allowed.slice(0, 5).map((item) => item.line).join("\n");
     const key = digest(body);
@@ -117,13 +118,14 @@ async function sendGrouped({ messaging, subscriptionDocs, items, title, link }) 
 async function sendOnce({ root, messaging, classKey, key, title, items, subscriptionDocs }) {
   if (!items.length) return 0;
   const receiptRef = root.collection("notificationReceipts").doc(`${classKey}-${digest(key)}`);
-  if ((await receiptRef.get()).exists) return 0;
+  try { await receiptRef.create({ classKey, key, state: "sending", createdAtMs: Date.now() }); }
+  catch (error) { if (error.code === 6 || error.code === "already-exists") return 0; throw error; }
   const sent = await sendGrouped({
     messaging,
     subscriptionDocs: subscriptionDocs.filter((document) => document.data().classKey === classKey),
     items,
     title,
-    link: "https://pincon.app/?class-ops=1",
+    link: "https://pincon.app/next/#today",
   });
   await receiptRef.set({
     classKey,
@@ -143,51 +145,41 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
   if (!classKeys.length) return { classes: 0, sent: 0, windows: [] };
 
   const clock = kstParts(now);
-  const tomorrow = addDays(clock.date, 1);
   const morning = inWindow(clock.hour, clock.minute, 6, 9);
-  const evening = inWindow(clock.hour, clock.minute, 18, 22);
   let sent = 0;
   const windows = [];
 
   for (const classKey of classKeys) {
-    const [assignments, events, polls, announcements] = await Promise.all([
+    const [assignments, events, announcements, subjectEntries] = await Promise.all([
       queryRows(root.collection("classAssignments"), "classKey", "==", classKey),
       queryRows(root.collection("events"), "classKey", "==", classKey),
-      queryRows(root.collection("polls"), "classKey", "==", classKey),
       queryRows(root.collection("announcements"), "classKey", "==", classKey),
+      queryRows(root.collection("subjectEntries"), "classKey", "==", classKey),
     ]);
 
     if (morning) {
-      const items = assignments.filter((item) => !item.deleted && item.dueDate === clock.date).flatMap((item) => {
-        if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentToday", line: `${item.subject ? `${item.subject} ` : ""}${item.title}`, urgent: true }];
-        if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}`, urgent: true }];
+      const items = assignments.filter((item) => !item.deleted && item.published !== false && item.dueDate === clock.date).flatMap((item) => {
+        if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentToday", line: `${item.subject ? `${item.subject} ` : ""}${item.title}` }];
+        if (item.type === "preparation") return [{ preference: "importantPreparation", line: `준비물: ${item.title}` }];
         return [];
       });
+      items.push(...subjectEntries.filter(item => !item.deleted && item.status === "APPROVED" && item.dueDate === clock.date).map(item => ({ category: item.type === "MATERIAL" ? "preparation" : item.type === "ASSESSMENT" ? "assessment" : item.type === "CLASSROOM_CHANGE" ? "timetable" : "classroom", line: item.title })));
+      items.push(...announcements.filter(item => !item.deleted && item.published !== false && item.priority !== "urgent" && Number(item.updatedAtMs || item.createdAtMs) >= now.getTime() - 24*60*60*1000).map(item=>({category:"classroom",line:item.title})));
       items.push(...events.filter((item) => !item.deleted && item.status === "open" && (item.date || dateFromMs(item.startsAtMs)) === clock.date).map((item) => ({ preference: "eventStart", line: `행사: ${item.title}` })));
-      sent += await sendOnce({ root, messaging, classKey, key: `morning:${clock.date}:${items.map((item) => item.line).join("|")}`, title: "오늘 우리 반", items, subscriptionDocs });
+      sent += await sendOnce({ root, messaging, classKey, key: `morning:${clock.date}`, title: "오늘 브리핑", items, subscriptionDocs });
       if (items.length) windows.push(`${classKey}:morning`);
     }
 
-    if (evening) {
-      const items = assignments.filter((item) => !item.deleted && item.dueDate === tomorrow).flatMap((item) => {
-        if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentTomorrow", line: `${item.subject ? `${item.subject} ` : ""}${item.title}` }];
-        if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}` }];
-        return [];
-      });
-      items.push(...polls.filter((item) => !item.deleted && item.official === true && item.status === "open" && dateFromMs(item.closesAtMs) === tomorrow).map((item) => ({ preference: "pollClosing", line: `투표 마감: ${item.question}` })));
-      sent += await sendOnce({ root, messaging, classKey, key: `evening:${clock.date}:${items.map((item) => item.line).join("|")}`, title: "내일 우리 반", items, subscriptionDocs });
-      if (items.length) windows.push(`${classKey}:evening`);
-    }
-
-    const recentUrgent = announcements.filter((item) => !item.deleted && item.priority === "urgent" && Number(item.createdAtMs || 0) >= now.getTime() - 90 * 60 * 1000);
+    const visibleEntries = subjectEntries.filter(item => !item.deleted && item.status === "APPROVED");
+    const recentUrgent = [...announcements, ...visibleEntries].filter((item) => !item.deleted && item.published !== false && notificationDelivery(item, clock.date) === "immediate" && Number(item.updatedAtMs || item.createdAtMs || 0) >= now.getTime() - 90 * 60 * 1000);
     for (const item of recentUrgent) {
       sent += await sendOnce({
         root,
         messaging,
         classKey,
         key: `urgent:${item.id}:${item.updatedAtMs || item.createdAtMs}`,
-        title: "회장 긴급 공지",
-        items: [{ preference: "urgentAnnouncement", line: item.title, urgent: true }],
+        title: item.priority === "urgent" ? "긴급 공지" : "오늘 수업 변경",
+        items: [{ preference: item.priority === "urgent" ? "urgentAnnouncement" : "timetableChange", line: item.title, urgent: true }],
         subscriptionDocs,
       });
     }

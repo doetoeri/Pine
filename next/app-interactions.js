@@ -102,14 +102,7 @@ function prepareScope(scope = document) {
   scope.querySelectorAll?.(MATERIAL_BUTTON_SELECTOR).forEach(prepareHost);
 }
 
-const keyboardObserver = new MutationObserver((records) => {
-  for (const record of records) {
-    for (const node of record.addedNodes) {
-      if (node instanceof HTMLElement) prepareScope(node);
-    }
-  }
-});
-if (appRoot) keyboardObserver.observe(appRoot, { childList: true, subtree: true });
+window.addEventListener("pincon-render", () => prepareScope());
 prepareScope();
 
 function escapeHtml(value) {
@@ -397,11 +390,7 @@ gateway.addEventListener("change", (event) => {
 });
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const enhancementObserver = new MutationObserver(() => {
-  queueReconcile();
-  queueRouteFocusRestore();
-});
-if (appRoot) enhancementObserver.observe(appRoot, { childList: true, subtree: true });
+window.addEventListener("pincon-render", queueReconcile);
 
 document.addEventListener("focusin", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
@@ -412,7 +401,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) scheduleDialogTriggerFocusRestore();
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) {
     lastFocusedRoute = "";
@@ -428,7 +417,7 @@ document.addEventListener("click", (event) => {
   const dialog = document.querySelector("#notificationDialog");
   if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
   dialog.setAttribute("data-pincon-opening", "true");
-  Promise.resolve(dialog.show?.())
+  Promise.resolve(dialog.updateComplete).then(() => dialog.isConnected && dialog.show?.())
     .catch((error) => console.error(error))
     .finally(() => {
       dialog.removeAttribute("data-pincon-opening");
@@ -436,7 +425,7 @@ document.addEventListener("click", (event) => {
     });
 }, true);
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) focusMainAfterRouteChange();
 
@@ -448,7 +437,10 @@ document.addEventListener("click", (event) => {
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
   if (searchOpenButton) rememberDialogTrigger(searchOpenButton);
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
-  if (closeButton) scheduleDialogTriggerFocusRestore();
+  if (closeButton) {
+    await document.querySelector(closeButton.id === "closeSearch" ? "#searchDialog" : "#notificationDialog")?.close?.();
+    restoreDialogTriggerFocus();
+  }
 
   const markAll = eventHost(event, (node) => node.id === "markAllNotificationsRead");
   if (markAll) {
@@ -468,7 +460,7 @@ document.addEventListener("click", (event) => {
   notificationStore.markRead(id);
   renderInbox();
   enhanceNotificationButton();
-  document.querySelector("#notificationDialog")?.close?.();
+  await document.querySelector("#notificationDialog")?.close?.();
   const detailKey = detailKind && collection && recordId
     ? globalThis.PinConNext?.detailKeyForReference?.(detailKind, collection, recordId)
     : "";
@@ -482,7 +474,7 @@ document.addEventListener("click", (event) => {
 
 prepareReducedMotionLoader();
 queueReconcile();
-await gateway.start();
+void gateway.start();
 
 window.setTimeout(() => {
   if (!bootReleased) {
@@ -490,3 +482,7 @@ window.setTimeout(() => {
     document.body.classList.add("pincon-boot-done");
   }
 }, 4500);
+
+document.addEventListener("closed", (event) => {
+  if (event.target?.matches?.("#searchDialog, #notificationDialog") && !location.hash.includes("detail=")) restoreDialogTriggerFocus();
+}, true);

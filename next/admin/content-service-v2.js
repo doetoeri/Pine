@@ -60,6 +60,12 @@ function normalize(collection, values = {}) {
       priority,
       important: priority !== "normal",
       published: values.published !== false,
+      subject: clean(values.subject, 40),
+      date: validDate(values.date),
+      dueDate: validDate(values.dueDate),
+      range: clean(values.range, 600),
+      materials: clean(values.materials, 500),
+      location: clean(values.location, 120),
     };
   }
 
@@ -166,7 +172,7 @@ export class ContentServiceV2 extends EventTarget {
   }
 
   find(collection, id) {
-    return (this.gateway.snapshot().data?.[collection] || []).find((item) => item?.id === id) || null;
+    return (this.gateway.snapshot().data?.[collection] || []).find((item) => item?.id === id) || (collection === "announcements" ? (this.gateway.snapshot().data?.noticeDrafts || []).map(item=>({...item,__draft:true})).find(item=>item.id === id) : null) || null;
   }
 
   async save(collection, values, { id = "", file = null, fileConfirmed = false } = {}) {
@@ -203,8 +209,10 @@ export class ContentServiceV2 extends EventTarget {
       }
 
       const now = Date.now();
-      const collectionRef = repository.collectionRef(collection);
-      const targetRef = recordId ? repository.documentRef(collection, recordId) : api.doc(collectionRef);
+      const draft = collection === "announcements" && normalized.published === false && (!current || current.__draft === true);
+      const storedCollection = draft ? "noticeDrafts" : collection;
+      const collectionRef = repository.collectionRef(storedCollection);
+      const targetRef = recordId ? repository.documentRef(storedCollection, recordId) : api.doc(collectionRef);
       recordId = targetRef.id;
       const beforeSnapshot = current ? await api.getDoc(targetRef) : null;
       const before = beforeSnapshot?.exists?.() ? beforeSnapshot.data() : null;
@@ -217,6 +225,11 @@ export class ContentServiceV2 extends EventTarget {
         updatedAtMs: now,
         updatedAt: api.serverTimestamp(),
       };
+      if (collection === "announcements") {
+        next.status = draft ? "draft" : "published";
+        next.reviewRequired = draft;
+        if (!draft && current?.__draft) { next.reviewedBy = user.uid; next.reviewedAtMs = now; }
+      }
       delete next.id;
       for (const key of Object.keys(next)) if (key.startsWith("__")) delete next[key];
       if (!before && !current) {
@@ -227,6 +240,7 @@ export class ContentServiceV2 extends EventTarget {
       const changeRef = api.doc(repository.collectionRef("changeLogs"));
       const batch = api.writeBatch(api.db);
       batch.set(targetRef, next, { merge: false });
+      if (collection === "announcements" && !draft && current?.__draft) batch.delete(repository.documentRef("noticeDrafts", recordId));
       batch.set(changeRef, {
         classKey: snapshot.profile.classKey,
         collection,
@@ -265,7 +279,9 @@ export class ContentServiceV2 extends EventTarget {
     if (!EDITABLE_COLLECTIONS.has(collection)) throw new Error("지원하지 않는 콘텐츠 종류입니다.");
     const { snapshot, repository, user } = await this.ready();
     const api = repository.api;
-    const targetRef = repository.documentRef(collection, id);
+    const current = this.find(collection, id);
+    const storedCollection = current?.__draft ? "noticeDrafts" : collection;
+    const targetRef = repository.documentRef(storedCollection, id);
     const beforeSnapshot = await api.getDoc(targetRef);
     if (!beforeSnapshot?.exists?.()) throw new Error("대상 콘텐츠를 찾지 못했습니다.");
     const before = beforeSnapshot.data();
