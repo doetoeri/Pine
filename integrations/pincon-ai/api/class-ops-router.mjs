@@ -4,6 +4,7 @@ import accountCreate from "../handlers/accounts/create.mjs";
 import accountClaim from "../handlers/accounts/claim.mjs";
 import accountReset from "../handlers/accounts/reset.mjs";
 import enrollment from "../handlers/accounts/enrollment.mjs";
+import pinResetRequests from "../handlers/accounts/pin-reset-requests.mjs";
 import changePin from "../handlers/accounts/change-pin.mjs";
 import personalNotifications from "../handlers/accounts/personal-notifications.mjs";
 import home from "../handlers/class-ops/home.mjs";
@@ -23,6 +24,7 @@ const ROUTES = Object.freeze({
   "account-claim": accountClaim,
   "account-reset": accountReset,
   "account-enrollment": enrollment,
+  "account-pin-reset-requests": pinResetRequests,
   "account-change-pin": changePin,
   "personal-notifications": personalNotifications,
   home,
