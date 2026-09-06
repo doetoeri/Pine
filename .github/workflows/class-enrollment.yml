@@ -1,0 +1,62 @@
+name: Class enrollment checks
+
+on:
+  pull_request:
+    paths:
+      - "next/join/**"
+      - "next/admin/class-enrollment.js"
+      - "next/admin/bootstrap.js"
+      - "integrations/pincon-ai/handlers/accounts/enrollment.mjs"
+      - "integrations/pincon-ai/api/class-ops-router.mjs"
+      - "integrations/pincon-ai/vercel.json"
+      - "integrations/pincon-ai/package.json"
+      - ".github/workflows/class-enrollment.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  enrollment-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check browser module syntax
+        run: |
+          node --check next/join/join.js
+          node --check next/admin/class-enrollment.js
+          node --check next/admin/bootstrap.js
+      - name: Install account gateway dependencies
+        working-directory: integrations/pincon-ai
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check server module syntax and imports
+        working-directory: integrations/pincon-ai
+        run: |
+          node --check handlers/accounts/enrollment.mjs
+          node --check api/class-ops-router.mjs
+          node -e "import('./handlers/accounts/enrollment.mjs').then(()=>console.log('enrollment import ok'))"
+      - name: Validate Vercel routing JSON
+        run: node -e "const fs=require('fs'); const v=JSON.parse(fs.readFileSync('integrations/pincon-ai/vercel.json')); if(!v.rewrites.some(x=>x.source==='/api/accounts/enrollment')) process.exit(1); console.log('enrollment rewrite ok')"
+      - name: Enrollment security contract
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const server = fs.readFileSync('integrations/pincon-ai/handlers/accounts/enrollment.mjs','utf8');
+          const join = fs.readFileSync('next/join/join.js','utf8');
+          const required = [
+            'runTransaction',
+            'claimLeaseUntilMs',
+            'already-activated',
+            'privileged-account-protected',
+            'createCustomToken',
+            'rateLimitPublic',
+          ];
+          for (const token of required) if (!server.includes(token)) throw new Error(`missing server contract: ${token}`);
+          if (join.includes('Notification.requestPermission')) throw new Error('join page must not request notification permission directly');
+          if (!join.includes('signInWithCustomToken')) throw new Error('join page must establish Firebase session');
+          console.log('enrollment contracts ok');
+          NODE
