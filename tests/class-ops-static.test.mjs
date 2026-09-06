@@ -27,11 +27,11 @@ test("HTML, 매니페스트, 서비스 워커가 통합 PinCon 셸을 포함한�
   assert.match(html, /pincon-unified-shell\.css/);
   assert.match(html, /pincon-print-center\.css/);
   assert.match(html, /pincon-print-center\.js/);
-  assert.match(serviceWorker, /pincon-class-ops-core\.js/);
-  assert.match(serviceWorker, /pincon-class-ops-data\.js/);
-  assert.match(serviceWorker, /pincon-print-center\.css/);
-  assert.match(serviceWorker, /pincon-print-center\.js/);
-  assert.match(serviceWorker, /pincon-unified-shell\.css/);
+  assert.match(serviceWorker, /importScripts\("\.\/next\/precache-manifest\.js"\)/);
+  const precache = await read("next/precache-manifest.js");
+  for (const asset of ["/next/index.html", "/next/app.js", "/next/app.css", "/pincon-class-ops-core.js", "/pincon-class-ops-data.js"]) {
+    assert.ok(precache.includes(`"${asset}"`), `${asset} must be precached`);
+  }
   assert.ok(manifest.shortcuts.some((item) => String(item.url).includes("class-tab=today")));
 });
 
@@ -112,11 +112,13 @@ test("공식 Material 로더는 이미 등록된 요소를 건너뛰고 나머�
 
 test("서비스 워커의 로컬 앱 셸 파일이 모두 존재한다", async () => {
   const serviceWorker = await read("sw.js");
-  const arrayMatch = serviceWorker.match(/const PINCON_APP_SHELL = \[([\s\S]*?)\];/);
+  const precache = await read("next/precache-manifest.js");
+  assert.match(serviceWorker, /precache-manifest\.js/);
+  const arrayMatch = precache.match(/const PINCON_APP_SHELL = \[([\s\S]*?)\];/);
   assert.ok(arrayMatch, "PINCON_APP_SHELL 배열을 찾지 못했습니다.");
-  const urls = [...arrayMatch[1].matchAll(/"(\.\/[^"\n]+)"/g)].map((match) => match[1]);
+  const urls = [...arrayMatch[1].matchAll(/"(\/[^"\n]+)"/g)].map((match) => match[1]);
   assert.ok(urls.length > 30, `앱 셸 파일 수가 예상보다 적습니다: ${urls.length}`);
-  await Promise.all(urls.map((url) => access(path.join(root, url))));
+  await Promise.all(urls.map((url) => access(path.join(root, new URL(url, "https://pincon.app").pathname))));
 });
 
 test("회장 쓰기 권한과 업로드 제한이 서버 규칙에 있다", async () => {
