@@ -7,6 +7,7 @@ let timer = null;
 let phase = "idle";
 let moveIndex = 0;
 let lastSceneKey = "";
+let screenKey = "";
 
 const SCENE_LABELS = Object.freeze({
   morning: "아침시간",
@@ -23,6 +24,22 @@ const label = (uid) => {
 };
 const rot = (r) => ({ 0: "↑", 90: "→", 180: "↓", 270: "←" })[Number(r)] || "↑";
 
+function setScreen(html, key, { animate = true } = {}) {
+  const sameScreen = screenKey === key;
+  const previous = root.firstElementChild;
+  const ghost = !sameScreen && animate && previous ? previous.cloneNode(true) : null;
+  root.innerHTML = html;
+  screenKey = key;
+  if (sameScreen || !animate) return;
+  const next = root.firstElementChild;
+  next?.classList.add("tv-screen-enter");
+  if (!ghost) return;
+  ghost.querySelectorAll?.(".tv-progress").forEach((node) => node.remove());
+  ghost.classList.add("tv-transition-ghost");
+  root.appendChild(ghost);
+  requestAnimationFrame(() => ghost.classList.add("is-leaving"));
+  setTimeout(() => ghost.remove(), 680);
+}
 function sceneKey() {
   return forcedScene || view?.classroomLayout?.display?.activeScene || "morning";
 }
@@ -115,7 +132,8 @@ function idle() {
     : schedule && schedule.now < schedule.start
       ? `시작까지 ${countdownText(schedule.start - schedule.now)}`
       : "안내 화면";
-  root.innerHTML = `<section class="tv-idle"><div class="brand">PINCON · ${esc(kicker)}</div><h1>${esc(s.message)}</h1><p>${esc(view.classKey)} · ${esc(timing)}</p>${waiting ? `<div class="tv-countdown">${esc(countdownText(schedule.guideAt - schedule.now))}</div>` : targetMode() === "message" ? "" : progress(d.idleSeconds)}</section>`;
+  const html = `<section class="tv-idle"><div class="brand">PINCON · ${esc(kicker)}</div><h1>${esc(s.message)}</h1><p>${esc(view.classKey)} · ${esc(timing)}</p>${waiting ? `<div class="tv-countdown">${esc(countdownText(schedule.guideAt - schedule.now))}</div>` : targetMode() === "message" ? "" : progress(d.idleSeconds)}</section>`;
+  setScreen(html, `idle:${sceneKey()}`);
   if (waiting) {
     timer = setTimeout(idle, 1000);
     return;
@@ -140,7 +158,8 @@ function showMove() {
   phase = "move";
   const item = moves[moveIndex % moves.length];
   const groupMode = targetMode() === "groups";
-  root.innerHTML = `<section class="tv-move"><header><div class="tv-kicker">${esc(SCENE_LABELS[sceneKey()] || "자리 이동")} · ${moveIndex + 1} / ${moves.length}</div><h2>${esc(item.name)}</h2></header><div class="move-stage"><div class="move-box"><span>현재</span><strong>${esc(item.from)}</strong></div><div class="move-arrow">→</div><div class="move-box"><span>이동</span><strong>${esc(item.to)}</strong>${groupMode ? `<em>${rot(item.rotation)}</em>` : ""}</div></div><footer class="tv-step">${groupMode ? `책상 방향 ${rot(item.rotation)} · ` : ""}통로를 막지 않게 순서대로 이동하세요.</footer>${progress(d.stepSeconds)}</section>`;
+  const html = `<section class="tv-move"><header><div class="tv-kicker">${esc(SCENE_LABELS[sceneKey()] || "자리 이동")} · ${moveIndex + 1} / ${moves.length}</div><h2>${esc(item.name)}</h2></header><div class="move-stage"><div class="move-box"><span>현재</span><strong>${esc(item.from)}</strong></div><div class="move-arrow">→</div><div class="move-box"><span>이동</span><strong>${esc(item.to)}</strong>${groupMode ? `<em>${rot(item.rotation)}</em>` : ""}</div></div><footer class="tv-step">${groupMode ? `책상 방향 ${rot(item.rotation)} · ` : ""}통로를 막지 않게 순서대로 이동하세요.</footer>${progress(d.stepSeconds)}</section>`;
+  setScreen(html, `move:${sceneKey()}:${item.uid}:${moveIndex}`);
   timer = setTimeout(() => {
     moveIndex += 1;
     if (moveIndex >= moves.length) showFinal();
@@ -189,7 +208,8 @@ function showFinal() {
   }
   const data = finalCells();
   const title = mode === "groups" ? "모둠 배치 완료" : mode === "assessment" ? `${view.classroomLayout.assessment.lines}줄 수행평가 배치` : "일반 자리배치";
-  root.innerHTML = `<section class="tv-final"><div class="tv-kicker">${esc(SCENE_LABELS[sceneKey()] || "교실 안내")}</div><h1>${title}</h1><p>최종 위치를 확인한 뒤 조용히 착석해주세요.</p><div class="tv-teacher">교탁</div><div class="tv-room" style="grid-template-columns:repeat(${data.cols},1fr)">${data.cells.join("")}</div>${progress(d.finalSeconds)}</section>`;
+  const html = `<section class="tv-final"><div class="tv-kicker">${esc(SCENE_LABELS[sceneKey()] || "교실 안내")}</div><h1>${title}</h1><p>최종 위치를 확인한 뒤 조용히 착석해주세요.</p><div class="tv-teacher">교탁</div><div class="tv-room" style="grid-template-columns:repeat(${data.cols},1fr)">${data.cells.join("")}</div>${progress(d.finalSeconds)}</section>`;
+  setScreen(html, `final:${sceneKey()}:${mode}`);
   timer = setTimeout(idle, d.finalSeconds * 1000);
 }
 async function refresh() {
@@ -198,7 +218,7 @@ async function refresh() {
     lastSceneKey = sceneKey();
     idle();
   } catch {
-    root.innerHTML = `<section class="tv-error"><strong>교실 배치를 불러오지 못했습니다</strong><span>로그인과 권한을 확인해주세요.</span></section>`;
+    setScreen(`<section class="tv-error"><strong>교실 배치를 불러오지 못했습니다</strong><span>로그인과 권한을 확인해주세요.</span></section>`, "error");
   }
 }
 refresh();
