@@ -1,7 +1,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
-import { dispatchSchoolLifeNotifications } from "./school-life-notifications.mjs";
+import { dispatchSchoolLifeNotifications } from "./school-life-notifications-optimized.mjs";
 
 async function main() {
   const serviceJson = String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "").trim();
