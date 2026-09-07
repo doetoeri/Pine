@@ -23,7 +23,6 @@ await import("./app.js?v=20260905-readonly1");
 await import("./readonly-notice.js?v=20260905-readonly1");
 await import("./app-interactions.js?v=20260830-interaction1");
 await import("./route-current-semantics.js?v=20260907-route1");
-await import("./dialog-open-guard.js?v=20260907-dialog1");
 await import("./detail-history-stability.js?v=20260831-history1");
 await import("./evaluation-plan-preview.js?v=20260831-media2");
 await import("./write-mode.js");
