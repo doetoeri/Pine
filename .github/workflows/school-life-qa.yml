@@ -11,6 +11,7 @@ on:
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
       - "next/firestore-visibility-budget.js"
+      - "next/firestore-route-budget.js"
       - "next/route-current-semantics.js"
       - "next/ui-regression-fixes.js"
       - "next/tests/school-life-*.mjs"
@@ -30,6 +31,7 @@ on:
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
       - "next/firestore-visibility-budget.js"
+      - "next/firestore-route-budget.js"
       - "next/route-current-semantics.js"
       - "next/ui-regression-fixes.js"
       - "next/tests/school-life-*.mjs"
@@ -67,6 +69,7 @@ jobs:
             next/school-life-inbox.js \
             next/school-life-editor.js \
             next/firestore-visibility-budget.js \
+            next/firestore-route-budget.js \
             next/app-bootstrap.js \
             next/app-interactions.js \
             next/route-current-semantics.js \
