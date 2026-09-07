@@ -861,24 +861,12 @@ async function bootstrap() {
   await gateway.start().catch(() => null);
   snapshot = gateway.snapshot();
   await startSchoolLifeListeners().catch(() => {});
-  observer = new MutationObserver((records) => {
-  const relevant = records.some((record) => {
-    const target = record.target instanceof Element
-      ? record.target
-      : record.target?.parentElement;
-    if (target?.closest?.(`#${ROOT_ID}`)) return false;
-
-    const changedElements = [...record.addedNodes, ...record.removedNodes]
-      .filter((node) => node.nodeType === Node.ELEMENT_NODE);
-    if (!changedElements.length) return true;
-
-    return changedElements.some((node) => (
-      node instanceof Element
-      && node.id !== ROOT_ID
-      && !node.closest?.(`#${ROOT_ID}`)
-    ));
-  });
-  if (relevant) queueRender();
+  observer = new MutationObserver(() => {
+  const schoolLifeRoute = ["today", "timetable", "more"].includes(route());
+  if (!schoolLifeRoute) return;
+  if (document.getElementById(ROOT_ID)) return;
+  if (!document.querySelector("#mainContent")) return;
+  queueRender();
 });
 const app = document.querySelector("#app");
 if (app) observer.observe(app, { childList: true, subtree: true });
