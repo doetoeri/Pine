@@ -12,6 +12,17 @@ function profile() {
   return snapshot.profile || readClassProfile();
 }
 
+function route() {
+  return location.hash.replace(/^#/, "").split("/")[0] || "today";
+}
+
+function disconnect() {
+  try { unsubscribe?.(); } catch {}
+  unsubscribe = null;
+  currentKey = "";
+  items = [];
+}
+
 function esc(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -55,11 +66,15 @@ async function connect() {
   const user = snapshot.user;
   const p = profile();
   const api = gateway.repository?.api;
-  if (!user?.uid || !p?.classKey || !api) return;
-  const key = `${p.classKey}:${user.uid}`;
+  if (route() !== "more" || document.hidden || !user?.uid || !p?.classKey || !api) {
+    disconnect();
+    requestAnimationFrame(mount);
+    return;
+  }
+  const key = `${p.classKey}:${user.uid}:more`;
   if (key === currentKey) return;
+  disconnect();
   currentKey = key;
-  unsubscribe?.();
   const ref = api.query(
     api.collection(api.db, "schools", SCHOOL.id, "schoolLifeUsers", user.uid, "notificationInbox"),
     api.orderBy("createdAtMs", "desc"),
@@ -97,5 +112,8 @@ gateway.addEventListener("change", (event) => {
 await gateway.start().catch(() => null);
 snapshot = gateway.snapshot();
 await connect().catch(() => {});
+window.addEventListener("hashchange", () => connect().catch(() => {}));
+window.addEventListener("popstate", () => connect().catch(() => {}));
+document.addEventListener("visibilitychange", () => connect().catch(() => {}));
 new MutationObserver(() => requestAnimationFrame(mount)).observe(document.documentElement, { childList: true, subtree: true });
 mount();
