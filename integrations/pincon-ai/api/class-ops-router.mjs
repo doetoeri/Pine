@@ -14,6 +14,7 @@ import subject from "../handlers/class-ops/subject.mjs";
 import settings from "../handlers/class-ops/settings.mjs";
 import classroomLayout from "../handlers/class-ops/classroom-layout.mjs";
 import adminOverview from "../handlers/class-ops/admin-overview.mjs";
+import firestoreHealth from "../handlers/health/firestore.mjs";
 import { sendJson } from "../lib/request.mjs";
 
 // Keep account and class-operation endpoints in one Vercel Function. The public URLs stay stable through vercel.json rewrites.
@@ -34,6 +35,7 @@ const ROUTES = Object.freeze({
   settings,
   "classroom-layout": classroomLayout,
   "admin-overview": adminOverview,
+  "firestore-health": firestoreHealth,
 });
 
 export default async function classOpsRouter(req, res) {
