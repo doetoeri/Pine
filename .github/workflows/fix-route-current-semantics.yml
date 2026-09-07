@@ -18,46 +18,48 @@ jobs:
         with:
           ref: feat/school-life-assistant-2026-09-07
       - name: Synchronize aria-current after Material shadow DOM upgrades
-        shell: python
+        shell: bash
         run: |
+          python3 - <<'PY'
           from pathlib import Path
 
           path = Path("next/app-interactions.js")
           source = path.read_text(encoding="utf-8")
           old = '''function prepareHost(host) {
-  if (!(host instanceof HTMLElement)) return;
-  bindShadowCapture(host);
-  queueMicrotask(() => bindShadowCapture(host));
-  requestAnimationFrame(() => bindShadowCapture(host));
-  window.setTimeout(() => bindShadowCapture(host), 0);
-  window.setTimeout(() => bindShadowCapture(host), 50);
-  const updateComplete = host.updateComplete;
-  if (updateComplete && typeof updateComplete.then === "function") {
-    updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
-  }
-}'''
+            if (!(host instanceof HTMLElement)) return;
+            bindShadowCapture(host);
+            queueMicrotask(() => bindShadowCapture(host));
+            requestAnimationFrame(() => bindShadowCapture(host));
+            window.setTimeout(() => bindShadowCapture(host), 0);
+            window.setTimeout(() => bindShadowCapture(host), 50);
+            const updateComplete = host.updateComplete;
+            if (updateComplete && typeof updateComplete.then === "function") {
+              updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
+            }
+          }'''.replace('          ', '')
           new = '''function prepareHost(host) {
-  if (!(host instanceof HTMLElement)) return;
-  const settle = () => {
-    bindShadowCapture(host);
-    if (!host.hasAttribute("data-route")) return;
-    const current = host.getAttribute("data-aria-current") === "page"
-      || host.getAttribute("aria-current") === "page";
-    setCurrentState(host, current);
-  };
-  settle();
-  queueMicrotask(settle);
-  requestAnimationFrame(settle);
-  window.setTimeout(settle, 0);
-  window.setTimeout(settle, 50);
-  const updateComplete = host.updateComplete;
-  if (updateComplete && typeof updateComplete.then === "function") {
-    updateComplete.then(settle).catch(() => {});
-  }
-}'''
+            if (!(host instanceof HTMLElement)) return;
+            const settle = () => {
+              bindShadowCapture(host);
+              if (!host.hasAttribute("data-route")) return;
+              const current = host.getAttribute("data-aria-current") === "page"
+                || host.getAttribute("aria-current") === "page";
+              setCurrentState(host, current);
+            };
+            settle();
+            queueMicrotask(settle);
+            requestAnimationFrame(settle);
+            window.setTimeout(settle, 0);
+            window.setTimeout(settle, 50);
+            const updateComplete = host.updateComplete;
+            if (updateComplete && typeof updateComplete.then === "function") {
+              updateComplete.then(settle).catch(() => {});
+            }
+          }'''.replace('          ', '')
           if old not in source:
-            raise SystemExit("prepareHost patch anchor not found")
+              raise SystemExit("prepareHost patch anchor not found")
           path.write_text(source.replace(old, new, 1), encoding="utf-8")
+          PY
       - name: Commit fix
         shell: bash
         run: |
