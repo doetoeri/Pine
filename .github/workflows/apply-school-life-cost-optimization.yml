@@ -1,0 +1,404 @@
+name: Apply school life cost optimization
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-school-life-cost-optimization.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'feat/school-life-assistant-2026-09-07'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/school-life-assistant-2026-09-07
+      - name: Apply cost controls
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              text = path.read_text()
+              if old not in text:
+                  raise SystemExit(f"target not found in {path}: {old[:80]!r}")
+              path.write_text(text.replace(old, new, 1))
+
+          scheduler = Path('automation/school-life-notifications.mjs')
+          replace_once(scheduler, '''async function queryRows(ref) {
+  const snapshot = await ref.get();
+  return snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+}
+''', '''async function queryRows(ref) {
+  const snapshot = await ref.get();
+  return snapshot.docs.map((document) => ({ id: document.id, ...document.data() }));
+}
+
+async function queryRowsByIds(collectionRef, ids = []) {
+  const uniqueIds = [...new Set((Array.isArray(ids) ? ids : []).map((id) => String(id || "")).filter(Boolean))];
+  if (!uniqueIds.length) return [];
+  const rows = [];
+  for (let index = 0; index < uniqueIds.length; index += 100) {
+    const refs = uniqueIds.slice(index, index + 100).map((id) => collectionRef.doc(id));
+    const snapshots = await collectionRef.firestore.getAll(...refs);
+    for (const snapshot of snapshots) {
+      if (snapshot.exists) rows.push({ id: snapshot.id, ...snapshot.data() });
+    }
+  }
+  return rows;
+}
+
+function uniqueRows(rows = []) {
+  return [...new Map(rows.map((item) => [item.id, item])).values()];
+}
+''')
+
+          replace_once(scheduler, '''async function loadUserContext(root, user) {
+  const userRef = root.collection("schoolLifeUsers").doc(user.uid);
+  const [preferenceSnapshot, personalMaterials, materialStates, assessmentStates] = await Promise.all([
+    userRef.collection("settings").doc("notifications").get(),
+    queryRows(userRef.collection("materials").limit(250)),
+    queryRows(userRef.collection("materialStates").limit(600)),
+    queryRows(userRef.collection("assessmentStates").limit(400)),
+  ]);
+  return {
+    user,
+    preferences: normalizeNotificationPreferences(preferenceSnapshot.exists ? preferenceSnapshot.data() : {}),
+    personalMaterials: active(personalMaterials),
+    materialStates: Object.fromEntries(materialStates.map((item) => [item.id, item])),
+    assessmentStates: Object.fromEntries(assessmentStates.map((item) => [item.id, item])),
+  };
+}
+''', '''async function loadUserContext(root, user, context) {
+  const userRef = root.collection("schoolLifeUsers").doc(user.uid);
+  const [preferenceSnapshot, recurringMaterials, datedMaterials] = await Promise.all([
+    userRef.collection("settings").doc("notifications").get(),
+    queryRows(userRef.collection("materials").where("recurrence", "==", "subject-default").limit(100)),
+    queryRows(userRef.collection("materials").where("date", ">=", context.date).where("date", "<=", context.tomorrow).limit(160)),
+  ]);
+  const personalMaterials = active(uniqueRows([...recurringMaterials, ...datedMaterials]));
+  const seed = {
+    user,
+    preferences: normalizeNotificationPreferences(preferenceSnapshot.exists ? preferenceSnapshot.data() : {}),
+    personalMaterials,
+    materialStates: {},
+    assessmentStates: {},
+  };
+  const relevantBundles = [
+    ...bundlesFor(context, seed, context.date),
+    ...bundlesFor(context, seed, context.tomorrow),
+  ];
+  const materialStateIds = relevantBundles.flatMap((bundle) => bundle.materials.map((item) => item.stateKey).filter(Boolean));
+  const assessmentStateIds = relevantBundles.flatMap((bundle) => bundle.assessments.map((item) => item.id).filter(Boolean));
+  const [materialStates, assessmentStates] = await Promise.all([
+    queryRowsByIds(userRef.collection("materialStates"), materialStateIds),
+    queryRowsByIds(userRef.collection("assessmentStates"), assessmentStateIds),
+  ]);
+  return {
+    ...seed,
+    materialStates: Object.fromEntries(materialStates.map((item) => [item.id, item])),
+    assessmentStates: Object.fromEntries(assessmentStates.map((item) => [item.id, item])),
+  };
+}
+''')
+
+          replace_once(scheduler, '''async function subscriptionMap(root) {
+  const snapshot = await root.collection("pushSubscriptions").where("enabled", "==", true).get();
+  const byUid = new Map();
+  for (const document of snapshot.docs) {
+    const data = document.data();
+    const uid = String(data.ownerUid || "");
+    if (!uid || !data.token) continue;
+    const group = byUid.get(uid) || [];
+    if (!group.some((item) => item.data().token === data.token)) group.push(document);
+    byUid.set(uid, group);
+  }
+  return byUid;
+}
+''', '''async function subscriptionMap(root) {
+  const snapshot = await root.collection("pushSubscriptions").where("enabled", "==", true).get();
+  const byUid = new Map();
+  for (const document of snapshot.docs) {
+    const data = document.data();
+    const uid = String(data.ownerUid || "");
+    if (!uid || !data.token) continue;
+    const group = byUid.get(uid) || [];
+    if (!group.some((item) => item.data().token === data.token)) group.push(document);
+    byUid.set(uid, group);
+  }
+  return byUid;
+}
+
+function lazySubscriptionMap(root) {
+  let promise = null;
+  return {
+    async get(uid) {
+      if (!promise) promise = subscriptionMap(root);
+      return (await promise).get(uid) || [];
+    },
+  };
+}
+''')
+
+          replace_once(scheduler, '''  const subscriptions = subscriptionsByUid.get(user.uid) || [];
+''', '''  const subscriptions = await subscriptionsByUid.get(user.uid);
+''')
+          replace_once(scheduler, '''  const subscriptionsByUid = await subscriptionMap(root);
+''', '''  const subscriptionsByUid = lazySubscriptionMap(root);
+''')
+          replace_once(scheduler, '''    for (const user of classUsers) loaded.push(await loadUserContext(root, user));
+''', '''    for (const user of classUsers) loaded.push(await loadUserContext(root, user, contexts.get(classKey)));
+''')
+
+          school = Path('next/school-life.js')
+          replace_once(school, '''let listenerKey = "";
+let unsubscribers = [];
+''', '''let listenerKey = "";
+let listenerIdentity = "";
+let unsubscribers = [];
+''')
+          replace_once(school, '''function stopSchoolLifeListeners() {
+  unsubscribers.splice(0).forEach((stop) => {
+    try { stop(); } catch {}
+  });
+  listenerKey = "";
+  state = {
+    classMaterials: [],
+    personalMaterials: [],
+    lessonOverrides: [],
+    materialStates: {},
+    assessmentStates: {},
+    preferences: { ...SCHOOL_LIFE_NOTIFICATION_DEFAULTS },
+    inbox: [],
+  };
+}
+''', '''function stopSchoolLifeListeners({ reset = true } = {}) {
+  unsubscribers.splice(0).forEach((stop) => {
+    try { stop(); } catch {}
+  });
+  listenerKey = "";
+  if (!reset) return;
+  state = {
+    classMaterials: [],
+    personalMaterials: [],
+    lessonOverrides: [],
+    materialStates: {},
+    assessmentStates: {},
+    preferences: { ...SCHOOL_LIFE_NOTIFICATION_DEFAULTS },
+    inbox: [],
+  };
+}
+''')
+          old_start = '''async function startSchoolLifeListeners() {
+  const p = profile();
+  const user = snapshot.user;
+  if (!p?.classKey || !user?.uid || !gateway.repository?.api) return;
+  const key = `${p.classKey}:${user.uid}`;
+  if (listenerKey === key) return;
+  stopSchoolLifeListeners();
+  listenerKey = key;
+  firestore = gateway.repository.api;
+  const schoolRoot = ["schools", SCHOOL.id];
+  const listen = (ref, assign) => {
+    unsubscribers.push(firestore.onSnapshot(ref, (value) => {
+      assign(value);
+      queueRender();
+    }, () => {}));
+  };
+
+  listen(
+    firestore.query(firestore.collection(firestore.db, ...schoolRoot, "lessonMaterials"), firestore.where("classKey", "==", p.classKey), firestore.limit(300)),
+    (value) => { state.classMaterials = rows(value); },
+  );
+  listen(
+    firestore.query(firestore.collection(firestore.db, ...schoolRoot, "lessonOverrides"), firestore.where("classKey", "==", p.classKey), firestore.where("date", ">=", kstDate(Date.now(), -1)), firestore.limit(120)),
+    (value) => { state.lessonOverrides = rows(value); },
+  );
+  listen(
+    firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "materials"),
+    (value) => { state.personalMaterials = rows(value); },
+  );
+  listen(
+    firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "materialStates"),
+    (value) => { state.materialStates = materialStateMap(rows(value)); },
+  );
+  listen(
+    firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "assessmentStates"),
+    (value) => { state.assessmentStates = materialStateMap(rows(value)); },
+  );
+  const preferencesRef = firestore.doc(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "settings", "notifications");
+  unsubscribers.push(firestore.onSnapshot(preferencesRef, (value) => {
+    state.preferences = normalizeNotificationPreferences(value.exists() ? value.data() : {});
+    queueRender();
+  }, () => {}));
+  listen(
+    firestore.query(firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "notificationInbox"), firestore.orderBy("createdAtMs", "desc"), firestore.limit(30)),
+    (value) => { state.inbox = rows(value); },
+  );
+}
+'''
+          new_start = '''async function startSchoolLifeListeners() {
+  const p = profile();
+  const user = snapshot.user;
+  const currentRoute = route();
+  const schoolLifeRoute = ["today", "timetable", "more"].includes(currentRoute);
+  if (!p?.classKey || !user?.uid || !gateway.repository?.api) {
+    stopSchoolLifeListeners();
+    listenerIdentity = "";
+    return;
+  }
+  if (!schoolLifeRoute || document.hidden) {
+    stopSchoolLifeListeners({ reset: false });
+    return;
+  }
+  const identity = `${p.classKey}:${user.uid}`;
+  const key = `${identity}:${currentRoute}`;
+  if (listenerKey === key) return;
+  const identityChanged = Boolean(listenerIdentity && listenerIdentity !== identity);
+  stopSchoolLifeListeners({ reset: identityChanged });
+  listenerIdentity = identity;
+  listenerKey = key;
+  firestore = gateway.repository.api;
+  const schoolRoot = ["schools", SCHOOL.id];
+  const listen = (ref, assign) => {
+    unsubscribers.push(firestore.onSnapshot(ref, (value) => {
+      assign(value);
+      queueRender();
+    }, () => {}));
+  };
+
+  if (["today", "timetable"].includes(currentRoute)) {
+    listen(
+      firestore.query(firestore.collection(firestore.db, ...schoolRoot, "lessonMaterials"), firestore.where("classKey", "==", p.classKey), firestore.limit(300)),
+      (value) => { state.classMaterials = rows(value); },
+    );
+    listen(
+      firestore.query(firestore.collection(firestore.db, ...schoolRoot, "lessonOverrides"), firestore.where("classKey", "==", p.classKey), firestore.where("date", ">=", kstDate(Date.now(), -1)), firestore.limit(120)),
+      (value) => { state.lessonOverrides = rows(value); },
+    );
+    listen(
+      firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "materials"),
+      (value) => { state.personalMaterials = rows(value); },
+    );
+    listen(
+      firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "materialStates"),
+      (value) => { state.materialStates = materialStateMap(rows(value)); },
+    );
+    listen(
+      firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "assessmentStates"),
+      (value) => { state.assessmentStates = materialStateMap(rows(value)); },
+    );
+  }
+
+  if (currentRoute === "more") {
+    const preferencesRef = firestore.doc(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "settings", "notifications");
+    unsubscribers.push(firestore.onSnapshot(preferencesRef, (value) => {
+      state.preferences = normalizeNotificationPreferences(value.exists() ? value.data() : {});
+      queueRender();
+    }, () => {}));
+  }
+
+  if (currentRoute === "today") {
+    listen(
+      firestore.query(firestore.collection(firestore.db, ...schoolRoot, "schoolLifeUsers", user.uid, "notificationInbox"), firestore.orderBy("createdAtMs", "desc"), firestore.limit(30)),
+      (value) => { state.inbox = rows(value); },
+    );
+  }
+}
+'''
+          replace_once(school, old_start, new_start)
+          replace_once(school, '''  window.addEventListener("hashchange", queueRender);
+  window.addEventListener("popstate", queueRender);
+''', '''  const handleRouteChange = () => {
+    startSchoolLifeListeners().catch(() => {});
+    queueRender();
+  };
+  window.addEventListener("hashchange", handleRouteChange);
+  window.addEventListener("popstate", handleRouteChange);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopSchoolLifeListeners({ reset: false });
+    else startSchoolLifeListeners().catch(() => {});
+  });
+''')
+
+          inbox = Path('next/school-life-inbox.js')
+          replace_once(inbox, '''let unsubscribe = null;
+let currentKey = "";
+''', '''let unsubscribe = null;
+let currentKey = "";
+
+function route() {
+  return location.hash.replace(/^#/, "").split("/")[0] || "today";
+}
+
+function disconnect() {
+  try { unsubscribe?.(); } catch {}
+  unsubscribe = null;
+  currentKey = "";
+  items = [];
+}
+''')
+          replace_once(inbox, '''async function connect() {
+  const user = snapshot.user;
+  const p = profile();
+  const api = gateway.repository?.api;
+  if (!user?.uid || !p?.classKey || !api) return;
+  const key = `${p.classKey}:${user.uid}`;
+  if (key === currentKey) return;
+  currentKey = key;
+  unsubscribe?.();
+''', '''async function connect() {
+  const user = snapshot.user;
+  const p = profile();
+  const api = gateway.repository?.api;
+  if (route() !== "more" || document.hidden || !user?.uid || !p?.classKey || !api) {
+    disconnect();
+    requestAnimationFrame(mount);
+    return;
+  }
+  const key = `${p.classKey}:${user.uid}:more`;
+  if (key === currentKey) return;
+  disconnect();
+  currentKey = key;
+''')
+          replace_once(inbox, '''await connect().catch(() => {});
+new MutationObserver(() => requestAnimationFrame(mount)).observe(document.documentElement, { childList: true, subtree: true });
+mount();
+''', '''await connect().catch(() => {});
+window.addEventListener("hashchange", () => connect().catch(() => {}));
+window.addEventListener("popstate", () => connect().catch(() => {}));
+document.addEventListener("visibilitychange", () => connect().catch(() => {}));
+new MutationObserver(() => requestAnimationFrame(mount)).observe(document.documentElement, { childList: true, subtree: true });
+mount();
+''')
+
+          test = Path('next/tests/school-life-cost-contract.test.mjs')
+          test.write_text('''import test from "node:test";\nimport assert from "node:assert/strict";\nimport fs from "node:fs";\n\nconst automation = fs.readFileSync(new URL("../../automation/school-life-notifications.mjs", import.meta.url), "utf8");\nconst schoolLife = fs.readFileSync(new URL("../school-life.js", import.meta.url), "utf8");\nconst inbox = fs.readFileSync(new URL("../school-life-inbox.js", import.meta.url), "utf8");\n\ntest("notification scheduler reads only relevant personal state documents", () => {\n  assert.match(automation, /queryRowsByIds/);\n  assert.match(automation, /collectionRef\\.firestore\\.getAll/);\n  assert.doesNotMatch(automation, /materialStates"\\)\\.limit\\(600\\)/);\n  assert.doesNotMatch(automation, /assessmentStates"\\)\\.limit\\(400\\)/);\n  assert.match(automation, /lazySubscriptionMap/);\n  assert.match(automation, /await subscriptionsByUid\\.get\\(user\\.uid\\)/);\n});\n\ntest("school-life listeners are scoped to visible routes", () => {\n  assert.match(schoolLife, /const key = `\\$\\{identity\\}:\\$\\{currentRoute\\}`/);\n  assert.match(schoolLife, /if \\(\\["today", "timetable"\\]\\.includes\\(currentRoute\\)\\)/);\n  assert.match(schoolLife, /if \\(currentRoute === "more"\\)/);\n  assert.match(schoolLife, /document\\.hidden/);\n  assert.match(inbox, /route\\(\\) !== "more"/);\n  assert.match(inbox, /document\\.hidden/);\n});\n''')
+
+          qa = Path('.github/workflows/school-life-qa.yml')
+          replace_once(qa, '''      - name: Run school-life core tests
+        run: node --test next/tests/school-life-core.test.mjs
+''', '''      - name: Run school-life core tests
+        run: node --test next/tests/school-life-core.test.mjs next/tests/school-life-cost-contract.test.mjs
+''')
+          PY
+      - name: Verify syntax and contracts
+        run: |
+          node --input-type=module --check < automation/school-life-notifications.mjs
+          node --input-type=module --check < next/school-life.js
+          node --input-type=module --check < next/school-life-inbox.js
+          node --test next/tests/school-life-core.test.mjs next/tests/school-life-cost-contract.test.mjs
+      - name: Commit patch and remove one-shot workflow
+        shell: bash
+        run: |
+          git rm .github/workflows/apply-school-life-cost-optimization.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add automation/school-life-notifications.mjs next/school-life.js next/school-life-inbox.js next/tests/school-life-cost-contract.test.mjs .github/workflows/school-life-qa.yml
+          git commit -m "perf: reduce school-life Firestore read amplification"
+          git push origin HEAD:feat/school-life-assistant-2026-09-07
