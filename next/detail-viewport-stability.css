@@ -32,13 +32,18 @@
   max-height: calc(var(--pincon-visual-height, 100vh) - 32px);
 }
 
+/*
+ * Leave one physical CSS pixel of containment slack for WebKit's fractional
+ * visualViewport rounding. Without it a 390x844 viewport can report a sheet
+ * bottom around 845.11px even though the visible viewport ends at 844px.
+ */
 .detail-surface[data-mode="bottom"] {
-  bottom: 0;
-  height: min(68vh, calc(var(--pincon-visual-height, 100vh) - 64px));
-  max-height: var(--pincon-visual-height, 100vh);
+  bottom: 1px;
+  height: min(68vh, calc(var(--pincon-visual-height, 100vh) - 65px));
+  max-height: calc(var(--pincon-visual-height, 100vh) - 1px);
 }
 
 .detail-surface[data-mode="bottom"].detail-surface--expanded {
-  height: var(--pincon-visual-height, 100vh);
-  max-height: var(--pincon-visual-height, 100vh);
+  height: calc(var(--pincon-visual-height, 100vh) - 1px);
+  max-height: calc(var(--pincon-visual-height, 100vh) - 1px);
 }
