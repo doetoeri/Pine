@@ -4,7 +4,9 @@ import fs from "node:fs";
 
 const optimized = fs.readFileSync(new URL("../../automation/school-life-notifications-optimized.mjs", import.meta.url), "utf8");
 const runner = fs.readFileSync(new URL("../../automation/school-life-runner.mjs", import.meta.url), "utf8");
-const budget = fs.readFileSync(new URL("../firestore-visibility-budget.js", import.meta.url), "utf8");
+const visibilityBudget = fs.readFileSync(new URL("../firestore-visibility-budget.js", import.meta.url), "utf8");
+const routeBudget = fs.readFileSync(new URL("../firestore-route-budget.js", import.meta.url), "utf8");
+const inbox = fs.readFileSync(new URL("../school-life-inbox.js", import.meta.url), "utf8");
 const bootstrap = fs.readFileSync(new URL("../app-bootstrap.js", import.meta.url), "utf8");
 
 test("school-life runner uses bounded-read scheduler", () => {
@@ -36,9 +38,29 @@ test("push subscriptions are loaded lazily only when a notification is sent", ()
 
 test("foreground Firestore listeners are suspended while the app is hidden", () => {
   assert.match(bootstrap, /firestore-visibility-budget\.js/);
-  assert.match(budget, /document\.addEventListener\("visibilitychange"/);
-  assert.match(budget, /window\.addEventListener\("pagehide"/);
-  assert.match(budget, /stopAll\(repo\.unsubscribers\)/);
-  assert.match(budget, /stopAll\(repo\.privateUnsubscribers\)/);
-  assert.match(budget, /repo\.listenPublic\?\.\(\)/);
+  assert.match(visibilityBudget, /document\.addEventListener\("visibilitychange"/);
+  assert.match(visibilityBudget, /window\.addEventListener\("pagehide"/);
+  assert.match(visibilityBudget, /stopAll\(repo\.unsubscribers\)/);
+  assert.match(visibilityBudget, /stopAll\(repo\.privateUnsubscribers\)/);
+  assert.match(visibilityBudget, /repo\.listenPublic\?\.\(\)/);
+});
+
+test("Next public listeners are scoped by route before app startup", () => {
+  const patchIndex = bootstrap.indexOf("firestore-route-budget.js");
+  const appIndex = bootstrap.indexOf("./app.js");
+  assert.ok(patchIndex >= 0 && appIndex > patchIndex, "route budget must patch the repository before app startup");
+  assert.match(routeBudget, /const COLLECTION_ORDER = Object\.freeze/);
+  assert.match(routeBudget, /today:/);
+  assert.match(routeBudget, /timetable:/);
+  assert.match(routeBudget, /schedule:/);
+  assert.match(routeBudget, /classroom:/);
+  assert.match(routeBudget, /more:/);
+  assert.match(routeBudget, /if \(!wanted\.has\(collectionName\)\) return \(\) => \{\}/);
+  assert.match(routeBudget, /path === "\/next" \|\| path === "\/next\/index\.html"/);
+});
+
+test("notification inbox listener only runs on visible more route", () => {
+  assert.match(inbox, /route\(\) !== "more"/);
+  assert.match(inbox, /document\.hidden/);
+  assert.match(inbox, /window\.addEventListener\("hashchange"/);
 });
