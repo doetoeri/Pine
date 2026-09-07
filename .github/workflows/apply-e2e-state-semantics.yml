@@ -1,3 +1,4 @@
+# one-shot patch, removed by its own job
 name: Apply E2E offline state semantics fix
 
 on:
