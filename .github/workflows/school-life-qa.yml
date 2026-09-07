@@ -10,6 +10,7 @@ on:
       - "next/core/school-life.js"
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
+      - "next/firestore-visibility-budget.js"
       - "next/route-current-semantics.js"
       - "next/ui-regression-fixes.js"
       - "next/tests/school-life-*.mjs"
@@ -28,6 +29,7 @@ on:
       - "next/core/school-life.js"
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
+      - "next/firestore-visibility-budget.js"
       - "next/route-current-semantics.js"
       - "next/ui-regression-fixes.js"
       - "next/tests/school-life-*.mjs"
@@ -64,6 +66,7 @@ jobs:
             next/school-life-bell-schedule.js \
             next/school-life-inbox.js \
             next/school-life-editor.js \
+            next/firestore-visibility-budget.js \
             next/app-bootstrap.js \
             next/app-interactions.js \
             next/route-current-semantics.js \
