@@ -1,14 +1,12 @@
 name: School life notifications
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "automation/school-life-*.mjs"
-      - "next/core/school-life.js"
-      - ".github/workflows/school-life-notifications.yml"
+  # GitHub cron is UTC. These two windows equal 06:00-22:59 KST, Monday-Friday.
   schedule:
-    - cron: "*/5 * * * 1-5"
+    # 09:00-22:59 KST on Monday-Friday.
+    - cron: "*/5 0-13 * * 1-5"
+    # 06:00-08:59 KST on Monday-Friday (21:00-23:59 UTC on the previous day).
+    - cron: "*/5 21-23 * * 0-4"
   workflow_dispatch:
 
 permissions:
