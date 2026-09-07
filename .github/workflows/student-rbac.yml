@@ -86,6 +86,7 @@ jobs:
             integrations/pincon-ai/lib/class-operations.mjs \
             integrations/pincon-ai/lib/class-ops-store.mjs \
             integrations/pincon-ai/api/class-ops-router.mjs \
+            integrations/pincon-ai/api/v1-router.mjs \
             integrations/pincon-ai/handlers/accounts/session.mjs \
             integrations/pincon-ai/handlers/accounts/create.mjs \
             integrations/pincon-ai/handlers/accounts/manage.mjs \
@@ -106,6 +107,8 @@ jobs:
         run: npm install --prefix integrations/pincon-ai --ignore-scripts
       - name: Run RBAC core tests
         run: npm run test:rbac --prefix integrations/pincon-ai
+      - name: Verify consolidated v1 API function budget
+        run: node --test integrations/pincon-ai/tests/v1-router-contract.test.mjs
       - name: Run student auth contracts
         run: node --test next/tests/student-auth-contract.test.mjs
       - name: Run account creator parser tests
