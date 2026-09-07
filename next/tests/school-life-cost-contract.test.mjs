@@ -4,6 +4,7 @@ import fs from "node:fs";
 
 const optimized = fs.readFileSync(new URL("../../automation/school-life-notifications-optimized.mjs", import.meta.url), "utf8");
 const runner = fs.readFileSync(new URL("../../automation/school-life-runner.mjs", import.meta.url), "utf8");
+const notificationWorkflow = fs.readFileSync(new URL("../../.github/workflows/school-life-notifications.yml", import.meta.url), "utf8");
 const visibilityBudget = fs.readFileSync(new URL("../firestore-visibility-budget.js", import.meta.url), "utf8");
 const routeBudget = fs.readFileSync(new URL("../firestore-route-budget.js", import.meta.url), "utf8");
 const inbox = fs.readFileSync(new URL("../school-life-inbox.js", import.meta.url), "utf8");
@@ -34,6 +35,13 @@ test("push subscriptions are loaded lazily only when a notification is sent", ()
   assert.match(optimized, /if \(!promise\) promise = subscriptionMap\(root\)/);
   assert.match(optimized, /await subscriptionsByUid\.get\(user\.uid\)/);
   assert.doesNotMatch(optimized, /const subscriptionsByUid = await subscriptionMap\(root\)/);
+});
+
+test("notification scheduler follows KST weekdays instead of UTC weekdays", () => {
+  assert.match(notificationWorkflow, /cron: "\*\/5 0-13 \* \* 1-5"/);
+  assert.match(notificationWorkflow, /cron: "\*\/5 21-23 \* \* 0-4"/);
+  assert.doesNotMatch(notificationWorkflow, /cron: "\*\/5 \* \* \* 1-5"/);
+  assert.doesNotMatch(notificationWorkflow, /branches: \[main\]/);
 });
 
 test("foreground Firestore listeners are suspended while the app is hidden", () => {
