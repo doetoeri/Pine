@@ -10,7 +10,10 @@ on:
       - "next/core/school-life.js"
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
+      - "next/route-current-semantics.js"
+      - "next/dialog-open-guard.js"
       - "next/tests/school-life-*.mjs"
+      - "next/tests/route-lifecycle-diagnostic.spec.mjs"
       - "automation/school-life-*.mjs"
       - "automation/neis-sync.mjs"
       - "firestore.rules"
@@ -25,7 +28,10 @@ on:
       - "next/core/school-life.js"
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
+      - "next/route-current-semantics.js"
+      - "next/dialog-open-guard.js"
       - "next/tests/school-life-*.mjs"
+      - "next/tests/route-lifecycle-diagnostic.spec.mjs"
       - "automation/school-life-*.mjs"
       - "automation/neis-sync.mjs"
       - "firestore.rules"
@@ -60,6 +66,8 @@ jobs:
             next/school-life-editor.js \
             next/app-bootstrap.js \
             next/app-interactions.js \
+            next/route-current-semantics.js \
+            next/dialog-open-guard.js \
             automation/school-life-notifications.mjs \
             automation/school-life-runner.mjs \
             automation/neis-sync.mjs \
@@ -128,6 +136,8 @@ jobs:
         run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Navigation · Chromium
         run: npx playwright test next/tests/navigation-integrity.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Route lifecycle diagnostic · Chromium
+        run: npx playwright test next/tests/route-lifecycle-diagnostic.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Navigation · WebKit
         run: npx playwright test next/tests/navigation-integrity.spec.mjs --browser=webkit --reporter=line --max-failures=1
       - name: Notification rendering · Chromium
