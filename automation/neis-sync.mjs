@@ -332,41 +332,6 @@ async function readExisting(db, refs) {
   return new Map(snapshots.filter((item) => item.exists).map((item) => [item.id, item.data()]));
 }
 
-async function sendClassNotification(db, classKey, title, body) {
-  const subscriptions = await db.collection("schools").doc(SCHOOL.id)
-    .collection("pushSubscriptions")
-    .where("classKey", "==", classKey)
-    .where("enabled", "==", true)
-    .get();
-  if (subscriptions.empty) return 0;
-
-  const documents = subscriptions.docs.filter((item) => item.data().preferences?.timetableChange !== false);
-  if (!documents.length) return 0;
-  let sent = 0;
-  for (let index = 0; index < documents.length; index += 500) {
-    const batch = documents.slice(index, index + 500);
-    const response = await getMessaging().sendEachForMulticast({
-      tokens: batch.map((item) => item.data().token),
-      data: {
-        title,
-        body,
-        tag: `pincon-${classKey}-timetable`,
-        link: "https://pincon.app/?class-ops=1&class-tab=schedule",
-      },
-      webpush: { headers: { Urgency: "high" } },
-    });
-    sent += response.successCount;
-    const invalidDeletes = response.responses.flatMap((result, responseIndex) => {
-      const code = result.error?.code || "";
-      return code.includes("registration-token-not-registered") || code.includes("invalid-registration-token")
-        ? [batch[responseIndex].ref.delete()]
-        : [];
-    });
-    await Promise.all(invalidDeletes);
-  }
-  return sent;
-}
-
 async function syncTimetables(db, start, end) {
   const fetched = await fetchPreferredTimetables(start, end);
   const documents = groupTimetableRows(fetched.rows);
@@ -395,7 +360,7 @@ async function syncTimetables(db, start, end) {
   }
   await writer.close();
 
-  let pushes = 0;
+  let notificationEvents = 0;
   for (const change of changes) {
     const title = `${classLabel(change.classKey)} 시간표 변경`;
     const summary = change.differences.slice(0, 4).join(", ");
@@ -417,7 +382,27 @@ async function syncTimetables(db, start, end) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
-    pushes += await sendClassNotification(db, change.classKey, title, body);
+    for (const difference of change.differences) {
+      const match = /^(\d+)교시\s+/.exec(difference);
+      const period = Number(match?.[1] || 0);
+      await db.collection("schools").doc(SCHOOL.id).collection("notificationEvents").add({
+        type: "CLASS_CHANGED",
+        classKey: change.classKey,
+        audience: "class",
+        targetUserIds: [],
+        date: change.date,
+        period: Number.isInteger(period) && period > 0 ? period : 0,
+        title: "시간표가 변경됐어요",
+        body: dateLabel(change.date) + " · " + difference,
+        relatedId: change.id + "-" + (period || "all"),
+        status: "pending",
+        createdBy: "system-neis-sync",
+        createdAtMs: Date.now(),
+        createdAt: FieldValue.serverTimestamp(),
+        sentAtMs: 0,
+      });
+      notificationEvents += 1;
+    }
   }
 
   return {
@@ -426,7 +411,7 @@ async function syncTimetables(db, start, end) {
     rows: fetched.rows.length,
     documents: documents.length,
     changes: changes.length,
-    pushes,
+    notificationEvents,
   };
 }
 

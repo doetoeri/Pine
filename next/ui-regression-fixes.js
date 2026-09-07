@@ -44,10 +44,13 @@ if (root) {
   let queued = false;
   let notificationOpenSequence = 0;
 
+  function dialogActuallyOpen(dialog) {
+    return Boolean(dialog?.open || dialog?.hasAttribute?.("open"));
+  }
+
   function dialogIsOpen(dialog) {
     return Boolean(
-      dialog?.open
-      || dialog?.hasAttribute?.("open")
+      dialogActuallyOpen(dialog)
       || dialog?.getAttribute?.("data-pincon-opening") === "true"
     );
   }
@@ -127,6 +130,24 @@ if (root) {
     return true;
   }
 
+  function nextFrame() {
+    return new Promise((resolve) => requestAnimationFrame(resolve));
+  }
+
+  async function waitForActualOpen(dialog, sequence, timeoutMs = 1200) {
+    const started = performance.now();
+    while (
+      dialog?.isConnected
+      && sequence === notificationOpenSequence
+      && !dialogActuallyOpen(dialog)
+      && performance.now() - started < timeoutMs
+    ) {
+      dialog.setAttribute("data-pincon-opening", "true");
+      await nextFrame();
+    }
+    return dialogActuallyOpen(dialog);
+  }
+
   function ensureNotificationDialogOpensFrom(event) {
     if (!eventHost(event, "openNotifications")) return;
     const sequence = ++notificationOpenSequence;
@@ -134,24 +155,44 @@ if (root) {
       try {
         await customElements.whenDefined("md-dialog");
         const dialog = root.querySelector("#notificationDialog");
-        if (!dialog || sequence !== notificationOpenSequence || dialogIsOpen(dialog)) return;
+        if (!dialog || sequence !== notificationOpenSequence || dialogActuallyOpen(dialog)) return;
+
         const content = root.querySelector("#notificationContent");
         if (content && content.childElementCount === 0) {
           content.innerHTML = '<div class="empty"><md-icon>notifications_none</md-icon><strong>알림이 없습니다</strong><span>공지·수행·학급 행사가 생기면 기록이 이곳에 남습니다.</span></div>';
         }
+
         if (dialog.updateComplete && typeof dialog.updateComplete.then === "function") {
           await dialog.updateComplete;
         }
-        if (sequence !== notificationOpenSequence || dialogIsOpen(dialog)) return;
+        if (sequence !== notificationOpenSequence || dialogActuallyOpen(dialog)) return;
+
+        // The primary app handler marks the dialog as opening before calling
+        // show(). Material/WebKit can resolve show() before reflecting `open`.
+        // Preserve that opening state and wait for the actual component state
+        // before deciding a fallback call is necessary.
+        if (dialog.getAttribute("data-pincon-opening") === "true") {
+          const primaryOpened = await waitForActualOpen(dialog, sequence, 900);
+          if (primaryOpened || sequence !== notificationOpenSequence || !dialog.isConnected) {
+            dialog.removeAttribute("data-pincon-opening");
+            return;
+          }
+        }
+
         if (typeof dialog.show === "function") {
           dialog.setAttribute("data-pincon-opening", "true");
           await Promise.resolve(dialog.show());
+          const opened = await waitForActualOpen(dialog, sequence, 1200);
+          if (!opened && sequence === notificationOpenSequence && dialog.isConnected) {
+            console.warn("PinCon notification dialog did not report open state after fallback show().");
+          }
           dialog.removeAttribute("data-pincon-opening");
         } else {
           dialog.setAttribute("open", "");
         }
       } catch (error) {
         console.error(error);
+        root.querySelector("#notificationDialog")?.removeAttribute("data-pincon-opening");
       } finally {
         queueFixes();
       }

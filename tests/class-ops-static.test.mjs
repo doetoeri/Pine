@@ -130,7 +130,7 @@ test("회장 쓰기 권한과 업로드 제한이 서버 규칙에 있다", asyn
   assert.match(storageRules, /class-lost-items/);
 });
 
-test("모든 학급 운영 관리 쓰기는 서버의 회장 역할 검사에 연결된다", async () => {
+test("학급 운영 쓰기는 서버 권한 검사에 연결되고 수행평가는 과목 범위를 제한한다", async () => {
   const [firestoreRules, repository] = await Promise.all([read("firestore.rules"), read("pincon-class-ops-data.js")]);
   const block = (collection) => {
     const start = firestoreRules.indexOf(`match /schools/{schoolId}/${collection}`);
@@ -139,12 +139,16 @@ test("모든 학급 운영 관리 쓰기는 서버의 회장 역할 검사에 �
     return firestoreRules.slice(start, next < 0 ? undefined : next);
   };
   for (const collection of [
-    "announcements", "classAssignments", "events", "feedback", "supplies",
+    "announcements", "events", "feedback", "supplies",
     "supplyLoans", "lostItems", "resources", "patchNotes", "patchNoteDrafts",
     "classSettings", "changeLogs",
   ]) {
     assert.match(block(collection), /classOperator\(/, `${collection}에 회장 권한 검사가 없습니다.`);
   }
+  const assignmentRules = block("classAssignments");
+  assert.match(assignmentRules, /classOrSubjectOperator\(/, "수행평가 생성에 학급/과목 범위 검사가 없습니다.");
+  assert.match(assignmentRules, /schoolLifeClassOperator\(/, "수행평가 수정에 학교생활 학급 권한 검사가 없습니다.");
+  assert.match(assignmentRules, /subjectOperator\(/, "수행평가 수정에 담당 과목 범위 검사가 없습니다.");
   assert.match(block("polls"), /officialPoll\(\)[\s\S]*classOperator\(/);
   assert.match(repository, /adminWrite\([\s\S]*?this\.requirePresident\(\)/);
 });

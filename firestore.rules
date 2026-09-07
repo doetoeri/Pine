@@ -40,6 +40,43 @@ service cloud.firestore {
         );
     }
 
+    // 신형 계정의 역할/과목 범위를 기존 Firestore 역할 문서에 호환 필드로 동기화한다.
+    // 기존 classOperator 권한은 그대로 유지하고, 이 기능에서만 부회장/과목 담당 범위를 추가한다.
+    function schoolLifeClassOperator(schoolId, classKey) {
+      return classOperator(schoolId, classKey)
+        || (
+          activeRole(schoolId)
+          && classKeyIsValid(classKey)
+          && roleDocument(schoolId).data.classKeys is list
+          && classKey in roleDocument(schoolId).data.classKeys
+          && roleDocument(schoolId).data.get('accountRoles', []) is list
+          && 'CLASS_VICE_PRESIDENT' in roleDocument(schoolId).data.get('accountRoles', [])
+        );
+    }
+
+    function subjectOperator(schoolId, classKey, subjectKey) {
+      return activeRole(schoolId)
+        && classKeyIsValid(classKey)
+        && subjectKey is string
+        && subjectKey.size() > 0
+        && subjectKey.size() <= 80
+        && roleDocument(schoolId).data.classKeys is list
+        && classKey in roleDocument(schoolId).data.classKeys
+        && roleDocument(schoolId).data.get('accountRoles', []) is list
+        && 'SUBJECT_MANAGER' in roleDocument(schoolId).data.get('accountRoles', [])
+        && roleDocument(schoolId).data.get('subjectKeys', []) is list
+        && subjectKey in roleDocument(schoolId).data.get('subjectKeys', []);
+    }
+
+    function classOrSubjectOperator(schoolId, classKey, subjectKey) {
+      return schoolLifeClassOperator(schoolId, classKey)
+        || subjectOperator(schoolId, classKey, subjectKey);
+    }
+
+    function schoolLifeOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
     function validClassOpsBase(classKey) {
       return classKeyIsValid(classKey)
         && request.resource.data.classKey == classKey
@@ -401,12 +438,40 @@ service cloud.firestore {
 
     match /schools/{schoolId}/classAssignments/{assignmentId} {
       allow read: if true;
-      allow create, update: if classOperator(schoolId, request.resource.data.classKey)
+      allow create: if classOrSubjectOperator(
+          schoolId,
+          request.resource.data.classKey,
+          request.resource.data.get('subjectKey', '')
+        )
         && validClassOpsBase(request.resource.data.classKey)
         && request.resource.data.type in ['assessment', 'exam', 'preparation']
         && validTitle(request.resource.data.title, 120)
         && request.resource.data.subject is string
-        && request.resource.data.subject.size() <= 40
+        && request.resource.data.subject.size() <= 60
+        && request.resource.data.dueDate is string
+        && request.resource.data.dueDate.size() in [0, 10]
+        && request.resource.data.dueAtMs is int
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 1200
+        && request.resource.data.dateType in ['exact', 'range', 'month', 'undecided']
+        && request.resource.data.verificationStatus in ['review', 'verified', 'changed']
+        && request.resource.data.published is bool
+        && request.resource.data.recoveryRelevant is bool
+        && request.resource.data.announcedDate is string
+        && request.resource.data.announcedDate.size() == 10;
+      allow update: if (
+          schoolLifeClassOperator(schoolId, request.resource.data.classKey)
+          || (
+            subjectOperator(schoolId, request.resource.data.classKey, request.resource.data.get('subjectKey', ''))
+            && request.resource.data.get('subjectKey', '') == resource.data.get('subjectKey', '')
+          )
+        )
+        && request.resource.data.classKey == resource.data.classKey
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.type in ['assessment', 'exam', 'preparation']
+        && validTitle(request.resource.data.title, 120)
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() <= 60
         && request.resource.data.dueDate is string
         && request.resource.data.dueDate.size() in [0, 10]
         && request.resource.data.dueAtMs is int
@@ -689,15 +754,222 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // 학급 공통/과목 공통 준비물. 개인 준비물은 별도 사용자 경로에 둔다.
+    match /schools/{schoolId}/lessonMaterials/{materialId} {
+      allow read: if true;
+      allow create: if classOrSubjectOperator(
+          schoolId,
+          request.resource.data.classKey,
+          request.resource.data.subjectKey
+        )
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.title, 80)
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 60
+        && request.resource.data.subjectKey is string
+        && request.resource.data.subjectKey.size() > 0
+        && request.resource.data.subjectKey.size() <= 80
+        && request.resource.data.date is string
+        && request.resource.data.date.size() in [0, 10]
+        && request.resource.data.period is int
+        && request.resource.data.period >= 0
+        && request.resource.data.period <= 12
+        && request.resource.data.recurrence in ['once', 'subject-default']
+        && request.resource.data.scope in ['class', 'subject']
+        && request.resource.data.ownerUid == ''
+        && request.resource.data.authorUid == request.auth.uid;
+      allow update: if classOrSubjectOperator(
+          schoolId,
+          request.resource.data.classKey,
+          request.resource.data.subjectKey
+        )
+        && request.resource.data.classKey == resource.data.classKey
+        && request.resource.data.subjectKey == resource.data.subjectKey
+        && request.resource.data.authorUid == resource.data.authorUid
+        && request.resource.data.createdAtMs == resource.data.createdAtMs
+        && validClassOpsBase(request.resource.data.classKey)
+        && validTitle(request.resource.data.title, 80)
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 60
+        && request.resource.data.date is string
+        && request.resource.data.date.size() in [0, 10]
+        && request.resource.data.period is int
+        && request.resource.data.period >= 0
+        && request.resource.data.period <= 12
+        && request.resource.data.recurrence in ['once', 'subject-default']
+        && request.resource.data.scope in ['class', 'subject']
+        && request.resource.data.ownerUid == '';
+      allow delete: if false;
+    }
+
+    // NEIS/컴시간 원본은 건드리지 않고 날짜+교시 단위로 운영 변경사항만 겹쳐 쓴다.
+    match /schools/{schoolId}/lessonOverrides/{overrideId} {
+      allow read: if true;
+      allow create, update: if schoolLifeClassOperator(schoolId, request.resource.data.classKey)
+        && validClassOpsBase(request.resource.data.classKey)
+        && request.resource.data.date is string
+        && request.resource.data.date.size() == 10
+        && request.resource.data.period is int
+        && request.resource.data.period >= 1
+        && request.resource.data.period <= 12
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 60
+        && request.resource.data.subjectKey is string
+        && request.resource.data.subjectKey.size() > 0
+        && request.resource.data.subjectKey.size() <= 80
+        && request.resource.data.location is string
+        && request.resource.data.location.size() <= 80
+        && request.resource.data.previousLocation is string
+        && request.resource.data.previousLocation.size() <= 80
+        && request.resource.data.previousSubject is string
+        && request.resource.data.previousSubject.size() <= 60
+        && request.resource.data.startTime is string
+        && request.resource.data.startTime.size() in [0, 5]
+        && request.resource.data.endTime is string
+        && request.resource.data.endTime.size() in [0, 5]
+        && request.resource.data.isMovingClass is bool
+        && request.resource.data.changed is bool
+        && request.resource.data.createdBy is string
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // 클라이언트는 변경 이벤트를 생성만 하고, 전송/완료 처리는 Admin SDK 자동화만 수행한다.
+    match /schools/{schoolId}/notificationEvents/{eventId} {
+      allow read: if false;
+      allow create: if (
+          schoolLifeClassOperator(schoolId, request.resource.data.classKey)
+          || (
+            request.resource.data.type == 'MATERIAL_REMINDER'
+            && subjectOperator(
+              schoolId,
+              request.resource.data.classKey,
+              request.resource.data.get('subjectKey', '')
+            )
+          )
+        )
+        && request.resource.data.type in [
+          'DAILY_BRIEFING', 'NEXT_DAY_MATERIALS', 'MATERIAL_REMINDER',
+          'ASSESSMENT_REMINDER', 'CLASS_CHANGED', 'LOCATION_CHANGED',
+          'SPORTS_LOCATION_CHANGED', 'MOVING_CLASS'
+        ]
+        && request.resource.data.audience == 'class'
+        && request.resource.data.targetUserIds is list
+        && request.resource.data.targetUserIds.size() == 0
+        && request.resource.data.date is string
+        && request.resource.data.date.size() in [0, 10]
+        && request.resource.data.period is int
+        && request.resource.data.period >= 0
+        && request.resource.data.period <= 12
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.body is string
+        && request.resource.data.body.size() <= 600
+        && request.resource.data.relatedId is string
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.sentAtMs == 0;
+      allow update, delete: if false;
+    }
+
+    // 개인 학교생활 데이터. 다른 학생의 준비물/완료 상태/알림 설정은 읽을 수도 없다.
+    match /schools/{schoolId}/schoolLifeUsers/{userId} {
+      allow read: if schoolLifeOwner(userId);
+      allow create, update: if schoolLifeOwner(userId)
+        && request.resource.data.ownerUid == request.auth.uid
+        && classKeyIsValid(request.resource.data.classKey)
+        && request.resource.data.enabled is bool
+        && request.resource.data.updatedAtMs is int;
+      allow delete: if false;
+
+      match /materials/{materialId} {
+        allow read: if schoolLifeOwner(userId);
+        allow create, update: if schoolLifeOwner(userId)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.scope == 'personal'
+          && classKeyIsValid(request.resource.data.classKey)
+          && validClassOpsBase(request.resource.data.classKey)
+          && validTitle(request.resource.data.title, 80)
+          && request.resource.data.subject is string
+          && request.resource.data.subject.size() > 0
+          && request.resource.data.subject.size() <= 60
+          && request.resource.data.subjectKey is string
+          && request.resource.data.subjectKey.size() > 0
+          && request.resource.data.subjectKey.size() <= 80
+          && request.resource.data.date is string
+          && request.resource.data.date.size() in [0, 10]
+          && request.resource.data.period is int
+          && request.resource.data.period >= 0
+          && request.resource.data.period <= 12
+          && request.resource.data.recurrence in ['once', 'subject-default'];
+        allow delete: if false;
+      }
+
+      match /materialStates/{stateId} {
+        allow read: if schoolLifeOwner(userId);
+        allow create, update: if schoolLifeOwner(userId)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.completed is bool
+          && request.resource.data.updatedAtMs is int;
+        allow delete: if false;
+      }
+
+      match /settings/{settingId} {
+        allow read: if schoolLifeOwner(userId);
+        allow create, update: if schoolLifeOwner(userId)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.updatedAtMs is int;
+        allow delete: if false;
+      }
+
+      match /assessmentStates/{assessmentId} {
+        allow read: if schoolLifeOwner(userId);
+        allow create, update: if schoolLifeOwner(userId)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.submitted is bool
+          && request.resource.data.updatedAtMs is int;
+        allow delete: if false;
+      }
+
+      match /notificationInbox/{notificationId} {
+        allow read: if schoolLifeOwner(userId);
+        allow create, delete: if false;
+        allow update: if schoolLifeOwner(userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+          && request.resource.data.read is bool;
+      }
+    }
+
     // 변경 기록은 회장만 읽고 쓸 수 있으며 수정·삭제할 수 없다.
     match /schools/{schoolId}/changeLogs/{changeId} {
       allow read: if classOperator(schoolId, resource.data.classKey);
-      allow create: if classOperator(schoolId, request.resource.data.classKey)
+      allow create: if (
+          (
+            request.resource.data.collection in ['lessonMaterials', 'classAssignments']
+            && schoolLifeClassOperator(schoolId, request.resource.data.classKey)
+          )
+          || classOperator(schoolId, request.resource.data.classKey)
+          || (
+            request.resource.data.collection in ['lessonMaterials', 'classAssignments']
+            && request.resource.data.after is map
+            && subjectOperator(
+              schoolId,
+              request.resource.data.classKey,
+              request.resource.data.after.get('subjectKey', '')
+            )
+          )
+        )
         && request.resource.data.actorUid == request.auth.uid
         && request.resource.data.collection in [
           'announcements', 'classAssignments', 'events', 'polls', 'feedback',
           'evaluationPlans', 'supplies', 'supplyLoans', 'lostItems', 'resources', 'patchNotes',
-          'patchNoteDrafts', 'classSettings'
+          'patchNoteDrafts', 'classSettings', 'lessonMaterials', 'lessonOverrides'
         ]
         && request.resource.data.action in ['create', 'update', 'delete', 'restore', 'publish']
         && request.resource.data.documentId is string

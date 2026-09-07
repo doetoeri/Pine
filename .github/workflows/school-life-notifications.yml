@@ -1,0 +1,36 @@
+name: School life notifications
+
+on:
+  # GitHub cron is UTC. These two windows equal 06:00-22:59 KST, Monday-Friday.
+  schedule:
+    # 09:00-22:59 KST on Monday-Friday.
+    - cron: "*/5 0-13 * * 1-5"
+    # 06:00-08:59 KST on Monday-Friday (21:00-23:59 UTC on the previous day).
+    - cron: "*/5 21-23 * * 0-4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pincon-school-life-notifications
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: automation/package-lock.json
+      - name: Install automation dependencies
+        working-directory: automation
+        run: npm ci
+      - name: Dispatch PinCon school-life notifications
+        run: node automation/school-life-runner.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
