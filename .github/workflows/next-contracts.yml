@@ -67,6 +67,9 @@ jobs:
             next/admin/account-create-service.js \
             next/admin/account-create.js \
             next/admin/class-duty-manager.js \
+            next/classroom-entry.js \
+            next/classroom/classroom.js \
+            next/classroom/tv.js \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
@@ -96,6 +99,8 @@ jobs:
           next/tests/student-auth-contract.test.mjs
           next/tests/account-create-service.test.mjs
           next/tests/class-duty-manager-contract.test.mjs
+          next/tests/classroom-layout-contract.test.mjs
+          next/tests/classroom-officer-tv-contract.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest

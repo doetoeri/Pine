@@ -36,11 +36,16 @@ test("TV display control is separated from seat editing permission",async()=>{
   assert.match(api,/assertOperator\(actor\)[\s\S]*CLASSROOM_LAYOUT_UPDATE/);
 });
 
-test("TV supports five classroom situations and keeps the previous general seating for move guidance",async()=>{
-  const api=await read("integrations/pincon-ai/handlers/class-ops/classroom-layout.mjs");
-  for(const key of ["morning","assessment","seat-change","history-group","special"]) assert.match(api,new RegExp(key.replace("-","\\-")));
+test("TV supports five classroom situations and keeps previous seating and schedule settings",async()=>{
+  const [api,tv]=await Promise.all([read("integrations/pincon-ai/handlers/class-ops/classroom-layout.mjs"),read("next/classroom/tv.js")]);
+  for(const key of ["morning","assessment","seat-change","history-group","special"]) {
+    assert.match(api,new RegExp(key.replace("-","\\-")));
+    assert.match(tv,new RegExp(key.replace("-","\\-")));
+  }
   assert.match(api,/previousSeats/);
+  assert.match(tv,/previousSeats/);
   assert.match(api,/leadMinutes/);
+  assert.match(tv,/guideAt/);
   assert.match(api,/startAt/);
   assert.match(api,/finalSeconds/);
 });
@@ -60,32 +65,60 @@ test("officer classroom page provides printing, TV presets and three layout mode
   assert.match(css,/@media print/);
 });
 
-test("TV mode keeps countdown, movement, desk rotation and final layout",async()=>{
-  const [tv,css]=await Promise.all([read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
-  assert.match(tv,/activeScene/);
-  assert.match(tv,/countdownText/);
-  assert.match(tv,/guideAt/);
-  assert.match(tv,/previousSeats/);
-  assert.match(tv,/showMove/);
-  assert.match(tv,/showFinal/);
-  assert.match(tv,/rotation/);
-  assert.match(css,/tv-countdown/);
-  assert.match(css,/@keyframes progress/);
+test("TV renderer has explicit states and independent render functions",async()=>{
+  const tv=await read("next/classroom/tv.js");
+  for(const state of ["waiting","intro","movement","final","messageOnly","error"]) assert.match(tv,new RegExp(`"${state}"`));
+  assert.match(tv,/function renderWaiting/);
+  assert.match(tv,/function renderIntro/);
+  assert.match(tv,/function renderMovement/);
+  assert.match(tv,/function renderFinal/);
+  assert.match(tv,/function renderMessage/);
+  assert.match(tv,/function renderError/);
+  assert.match(tv,/function transitionTo/);
 });
 
-test("TV is rebuilt as a minimal bright display with fast fade-only transitions",async()=>{
-  const [html,tv,css]=await Promise.all([read("next/classroom/tv.html"),read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
-  assert.match(html,/theme-color" content="#f5f5f7"/);
+test("TV keeps movement, assessment lines and group desk rotation contracts",async()=>{
+  const tv=await read("next/classroom/tv.js");
+  assert.match(tv,/movementItems/);
+  assert.match(tv,/activeSceneKey\(\) === "seat-change" \? generalPositions\(true\)/);
+  assert.match(tv,/assessment\.lines/);
+  assert.match(tv,/rotationArrow/);
+  assert.match(tv,/책상 방향/);
+  assert.match(tv,/번 책상/);
+});
+
+test("TV uses short defaults and migrates only the complete legacy default timing tuple",async()=>{
+  const tv=await read("next/classroom/tv.js");
   assert.match(tv,/DEFAULT_TIMING/);
   assert.match(tv,/intro:\s*2\.4/);
   assert.match(tv,/move:\s*1\.5/);
   assert.match(tv,/final:\s*4\.5/);
+  assert.match(tv,/idle === 12 && move === 5 && final === 8/);
+  assert.match(tv,/POLL_INTERVAL_MS = 15000/);
+});
+
+test("TV transitions are fade-only and reduced-motion safe",async()=>{
+  const [html,tv,css]=await Promise.all([read("next/classroom/tv.html"),read("next/classroom/tv.js"),read("next/classroom/tv.css")]);
+  assert.match(html,/theme-color" content="#f5f5f7"/);
+  assert.match(tv,/FADE_OUT_MS = 180/);
+  assert.match(tv,/FADE_IN_MS = 200/);
   assert.match(tv,/is-fading-out/);
   assert.match(tv,/is-fading-in/);
-  assert.doesNotMatch(css,/translateY|scale\(|blur\(/);
-  assert.match(css,/transition:opacity \.18s ease/);
+  assert.match(css,/transition-property:opacity/);
+  assert.doesNotMatch(css,/translate(?:X|Y)?\(|scale(?:X|Y)?\(|blur\(|rotate\(/);
+  assert.doesNotMatch(css,/@keyframes/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
   assert.match(css,/--bg:#f5f5f7/);
+  assert.doesNotMatch(css,/linear-gradient|radial-gradient|box-shadow/);
+});
+
+test("countdown updates in place and polling restarts only for relevant TV changes",async()=>{
+  const tv=await read("next/classroom/tv.js");
+  assert.match(tv,/querySelector\("\[data-countdown\]"\)/);
+  assert.match(tv,/countdown\.textContent = countdownText/);
+  assert.match(tv,/function tvSignature/);
+  assert.match(tv,/nextSignature !== lastFlowSignature/);
+  assert.doesNotMatch(tv,/updatedAtMs\s*!==/);
 });
 
 test("main PinCon loads the officer classroom entry",async()=>{
