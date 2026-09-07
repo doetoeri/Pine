@@ -1,6 +1,6 @@
 /* Keep the desktop brand block physically inside the floating rail in Chromium and WebKit.
    WebKit can over-size a max-content flex child by a subpixel, so the desktop wordmark
-   uses a single-column grid instead of flex shrink-to-fit sizing. */
+   uses a single-column grid and the tagline is constrained to that grid track. */
 @media (min-width: 840px) {
   .rail__brand {
     box-sizing: border-box !important;
@@ -15,7 +15,7 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr);
     align-content: center;
-    justify-items: start;
+    justify-items: stretch;
     flex: 1 1 0;
     width: 0;
     max-width: 100%;
@@ -27,16 +27,17 @@
     box-sizing: border-box;
     max-width: 100%;
     min-width: 0;
+    justify-self: start;
   }
 
   .rail__tagline {
     box-sizing: border-box;
     display: block;
-    justify-self: start;
-    width: auto;
-    max-width: calc(100% - 4px);
+    justify-self: stretch;
+    width: 100% !important;
+    max-width: 100% !important;
     min-width: 0;
-    margin-inline: 2px !important;
+    margin-inline: 0 !important;
     overflow: hidden !important;
     text-overflow: ellipsis;
     white-space: nowrap;
