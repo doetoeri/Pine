@@ -77,6 +77,13 @@ export function normalizeSubjectRoles(value) {
   return result;
 }
 
+export function subjectPermissionKey(value) {
+  return text(value, 60)
+    .toLocaleLowerCase("ko-KR")
+    .replace(/[\s·/()\[\]{}_-]+/g, "")
+    .replace(/[^0-9a-z가-힣]/g, "");
+}
+
 export function normalizeClassKey(grade, classNumber) {
   const g = Number(grade);
   const c = Number(classNumber);
@@ -245,9 +252,33 @@ export function canManageSubject(profile, subject) {
 
 export function compatibilityRole(profile) {
   if (!profile || profile.status !== "ACTIVE") return null;
-  if (hasRole(profile, ROLE.ADMIN)) return { enabled: true, level: "school", classKeys: [] };
+  const accountRoles = normalizeRoles(profile.roles);
+  const subjectKeys = normalizeSubjectRoles(profile.subjectRoles)
+    .map((item) => subjectPermissionKey(item.subject))
+    .filter(Boolean);
+  const schoolLifeOfficer = [ROLE.CLASS_VICE_PRESIDENT, ROLE.SUBJECT_MANAGER, ROLE.DEPARTMENT_HEAD]
+    .some((role) => hasRole(profile, role));
+
+  if (hasRole(profile, ROLE.ADMIN)) {
+    return { enabled: true, level: "school", classKeys: [], accountRoles, subjectKeys };
+  }
   if (hasRole(profile, ROLE.TEACHER) || hasRole(profile, ROLE.CLASS_PRESIDENT)) {
-    return { enabled: true, level: hasRole(profile, ROLE.CLASS_PRESIDENT) ? "president" : "class", classKeys: [profile.classKey] };
+    return {
+      enabled: true,
+      level: hasRole(profile, ROLE.CLASS_PRESIDENT) ? "president" : "class",
+      classKeys: [profile.classKey],
+      accountRoles,
+      subjectKeys,
+    };
+  }
+  if (schoolLifeOfficer) {
+    return {
+      enabled: true,
+      level: "student",
+      classKeys: [profile.classKey],
+      accountRoles,
+      subjectKeys,
+    };
   }
   return null;
 }

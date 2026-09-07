@@ -1,0 +1,136 @@
+name: PinCon school-life QA
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "next/school-life*.js"
+      - "next/school-life*.css"
+      - "next/core/school-life.js"
+      - "next/app-bootstrap.js"
+      - "next/app-interactions.js"
+      - "next/tests/school-life-*.mjs"
+      - "automation/school-life-*.mjs"
+      - "automation/neis-sync.mjs"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "integrations/pincon-ai/lib/class-accounts.mjs"
+      - "integrations/pincon-ai/handlers/accounts/session.mjs"
+      - ".github/workflows/school-life-qa.yml"
+  pull_request:
+    paths:
+      - "next/school-life*.js"
+      - "next/school-life*.css"
+      - "next/core/school-life.js"
+      - "next/app-bootstrap.js"
+      - "next/app-interactions.js"
+      - "next/tests/school-life-*.mjs"
+      - "automation/school-life-*.mjs"
+      - "automation/neis-sync.mjs"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - "integrations/pincon-ai/lib/class-accounts.mjs"
+      - "integrations/pincon-ai/handlers/accounts/session.mjs"
+      - ".github/workflows/school-life-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check school-life module syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            next/core/school-life.js \
+            next/school-life.js \
+            next/school-life-registration.js \
+            next/school-life-bell-schedule.js \
+            next/school-life-inbox.js \
+            next/school-life-editor.js \
+            next/app-bootstrap.js \
+            next/app-interactions.js \
+            automation/school-life-notifications.mjs \
+            automation/school-life-runner.mjs \
+            automation/neis-sync.mjs \
+            integrations/pincon-ai/lib/class-accounts.mjs \
+            integrations/pincon-ai/handlers/accounts/session.mjs \
+            firebase-messaging-sw.js
+          do
+            node --input-type=module --check < "$file"
+          done
+      - name: Run school-life core tests
+        run: node --test next/tests/school-life-core.test.mjs
+      - name: Run existing student auth contract
+        run: node --test next/tests/student-auth-contract.test.mjs
+      - name: Run classroom officer contract
+        run: node --test next/tests/classroom-officer-tv-contract.test.mjs
+
+  firestore-rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install Firebase emulator runtime
+        run: npm install --no-save firebase @firebase/rules-unit-testing firebase-tools
+      - name: Test school-life and existing production RBAC rules
+        run: >-
+          npx firebase emulators:exec
+          --only firestore
+          --project pincon-school-life-rules-test
+          --config next/firebase-production-test.json
+          "node --test next/tests/school-life-rules.test.mjs next/tests/student-rbac-rules.test.mjs"
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install browser runtime
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Start static preview
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/pincon-school-life-http.log 2>&1 &
+          echo $! > /tmp/pincon-school-life-http.pid
+          sleep 1
+      - name: Boot · Chromium
+        run: npx playwright test next/tests/boot.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Boot · WebKit
+        run: npx playwright test next/tests/boot.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Responsive UI · Chromium
+        run: npx playwright test next/tests/ui.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Responsive UI · WebKit
+        run: npx playwright test next/tests/ui.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Navigation · Chromium
+        run: npx playwright test next/tests/navigation-integrity.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Navigation · WebKit
+        run: npx playwright test next/tests/navigation-integrity.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Notification rendering · Chromium
+        run: npx playwright test next/tests/notification-render.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Notification rendering · WebKit
+        run: npx playwright test next/tests/notification-render.spec.mjs --browser=webkit --reporter=line --max-failures=1

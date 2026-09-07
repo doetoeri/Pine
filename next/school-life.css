@@ -1,0 +1,340 @@
+.school-life {
+  --sl-surface: color-mix(in srgb, white 92%, #eef3e6 8%);
+  --sl-border: color-mix(in srgb, #60705b 17%, transparent);
+  --sl-text: #1d241c;
+  --sl-muted: #667064;
+  --sl-accent: #294d2d;
+  color: var(--sl-text);
+  margin: 0 0 18px;
+}
+
+.school-life__surface {
+  background: var(--sl-surface);
+  border: 1px solid var(--sl-border);
+  border-radius: 24px;
+  padding: clamp(16px, 3vw, 24px);
+  box-shadow: 0 8px 26px rgb(35 51 32 / 0.06);
+}
+
+.school-life__header,
+.school-life__lesson-head,
+.school-life__actions,
+.school-life__setting-row,
+.school-life__material {
+  display: flex;
+  align-items: center;
+}
+
+.school-life__header,
+.school-life__lesson-head,
+.school-life__setting-row {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.school-life__eyebrow {
+  margin: 0 0 4px;
+  color: var(--sl-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.school-life h2,
+.school-life h3,
+.school-life p {
+  margin-top: 0;
+}
+
+.school-life h2 {
+  margin-bottom: 0;
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  line-height: 1.25;
+}
+
+.school-life h3 {
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.school-life__meta,
+.school-life__empty,
+.school-life__byline {
+  color: var(--sl-muted);
+  font-size: 0.88rem;
+}
+
+.school-life__empty {
+  margin: 14px 0 0;
+}
+
+.school-life__actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.school-life button,
+.school-life select,
+.school-life input,
+.school-life textarea {
+  font: inherit;
+}
+
+.school-life__button {
+  min-height: 42px;
+  border: 1px solid var(--sl-border);
+  border-radius: 999px;
+  padding: 0 15px;
+  background: #fff;
+  color: var(--sl-text);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.school-life__button--primary {
+  background: var(--sl-accent);
+  border-color: var(--sl-accent);
+  color: #fff;
+}
+
+.school-life__button:focus-visible,
+.school-life input:focus-visible,
+.school-life select:focus-visible,
+.school-life textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sl-accent) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.school-life__lessons {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.school-life__lesson {
+  border-top: 1px solid var(--sl-border);
+  padding-top: 14px;
+}
+
+.school-life__lesson:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.school-life__lesson-title {
+  min-width: 0;
+}
+
+.school-life__lesson-title strong {
+  font-size: 1.04rem;
+}
+
+.school-life__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: #edf2e8;
+  color: #38503a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.school-life__status--changed {
+  background: #fff0d6;
+  color: #79530c;
+}
+
+.school-life__material-list,
+.school-life__assessment-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.school-life__material {
+  gap: 9px;
+  min-height: 36px;
+}
+
+.school-life__material input {
+  inline-size: 20px;
+  block-size: 20px;
+  accent-color: var(--sl-accent);
+}
+
+.school-life__material[data-completed="true"] span {
+  opacity: 0.52;
+  text-decoration: line-through;
+}
+
+.school-life__assessment {
+  border-left: 3px solid #a56b16;
+  padding-left: 10px;
+  font-size: 0.9rem;
+}
+
+.school-life__change {
+  color: #79530c;
+  font-size: 0.84rem;
+  margin-top: 5px;
+}
+
+.school-life__settings {
+  display: grid;
+  gap: 0;
+  margin-top: 12px;
+}
+
+.school-life__setting-row {
+  min-height: 58px;
+  border-top: 1px solid var(--sl-border);
+}
+
+.school-life__setting-row:first-child {
+  border-top: 0;
+}
+
+.school-life__setting-row label {
+  font-weight: 620;
+}
+
+.school-life__setting-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.school-life__setting-controls select,
+.school-life__setting-controls input[type="time"] {
+  min-height: 38px;
+  border: 1px solid var(--sl-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 0 9px;
+}
+
+.school-life__dialog {
+  width: min(92vw, 520px);
+  max-height: min(86vh, 760px);
+  border: 0;
+  border-radius: 28px;
+  padding: 0;
+  color: var(--sl-text);
+  box-shadow: 0 28px 90px rgb(24 34 23 / 0.24);
+}
+
+.school-life__dialog::backdrop {
+  background: rgb(18 25 18 / 0.38);
+  backdrop-filter: blur(5px);
+}
+
+.school-life__dialog-form {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.school-life__dialog-form h2 {
+  margin: 0;
+}
+
+.school-life__field {
+  display: grid;
+  gap: 6px;
+}
+
+.school-life__field > span {
+  color: var(--sl-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.school-life__field input,
+.school-life__field select,
+.school-life__field textarea {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  border: 1px solid var(--sl-border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 10px 12px;
+  color: inherit;
+}
+
+.school-life__field textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.school-life__dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.school-life__toast {
+  position: fixed;
+  z-index: 4000;
+  left: 50%;
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: min(90vw, 520px);
+  border-radius: 999px;
+  padding: 11px 16px;
+  background: #1d241c;
+  color: #fff;
+  font-size: 0.88rem;
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.18);
+}
+
+@media (max-width: 600px) {
+  .school-life__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .school-life__actions {
+    width: 100%;
+  }
+
+  .school-life__actions .school-life__button {
+    flex: 1 1 auto;
+  }
+
+  .school-life__setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 0;
+  }
+
+  .school-life__setting-controls {
+    width: 100%;
+  }
+
+  .school-life__setting-controls select,
+  .school-life__setting-controls input[type="time"] {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .school-life__surface,
+  .school-life__dialog {
+    animation: school-life-fade 150ms ease-out;
+  }
+
+  @keyframes school-life-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+.school-life__material-author{display:block;margin-top:2px;font-size:11px;font-weight:500;color:var(--md-sys-color-on-surface-variant,#66736b)}
+.school-life__assessment{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.school-life__assessment-submit{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12px;color:var(--md-sys-color-on-surface-variant,#66736b)}
+.school-life__assessment[data-submitted="true"]>div{opacity:.58}

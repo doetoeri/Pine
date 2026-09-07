@@ -111,9 +111,24 @@ export function applyTemporaryOpenWrite(source) {
 
   const operator = "classOperator(schoolId, request.resource.data.classKey)";
   const temporaryOperator = `(${operator} || temporaryClassEditor(request.resource.data.classKey))`;
-  for (const collection of ["announcements", "classAssignments", "events"]) {
+  for (const collection of ["announcements", "events"]) {
     patched = patchMatchBlock(patched, collection, (block) => block.replace(operator, temporaryOperator));
   }
+
+  patched = patchMatchBlock(patched, "classAssignments", (block) => {
+    const subjectScopedCreate = `classOrSubjectOperator(\n          schoolId,\n          request.resource.data.classKey,\n          request.resource.data.get('subjectKey', '')\n        )`;
+    const schoolLifeUpdate = "schoolLifeClassOperator(schoolId, request.resource.data.classKey)";
+    let next = block.replace(
+      subjectScopedCreate,
+      `(${subjectScopedCreate} || temporaryClassEditor(request.resource.data.classKey))`,
+    );
+    next = next.replace(
+      schoolLifeUpdate,
+      `(${schoolLifeUpdate} || temporaryClassEditor(request.resource.data.classKey))`,
+    );
+    return next;
+  });
+
   patched = patchMatchBlock(patched, "changeLogs", (block) => block.replace(operator, temporaryOperator));
   return patched;
 }

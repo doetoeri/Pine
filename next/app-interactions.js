@@ -428,7 +428,11 @@ document.addEventListener("click", (event) => {
   const dialog = document.querySelector("#notificationDialog");
   if (!dialog || dialog.open || dialog.hasAttribute("open")) return;
   dialog.setAttribute("data-pincon-opening", "true");
-  Promise.resolve(dialog.show?.())
+  Promise.resolve(
+    typeof dialog.show === "function"
+      ? dialog.show()
+      : customElements.whenDefined("md-dialog").then(() => dialog.show?.())
+  )
     .catch((error) => console.error(error))
     .finally(() => {
       dialog.removeAttribute("data-pincon-opening");
