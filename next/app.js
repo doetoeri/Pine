@@ -49,6 +49,7 @@ let lastDetailTriggerKey = "";
 let detailPointer = null;
 let renderTimer = 0;
 let dataRenderDeferred = false;
+let dataRenderQuietUntil = 0;
 
 function appDialogBusy() {
   return ["#searchDialog", "#notificationDialog"].some((selector) => {
@@ -63,14 +64,28 @@ function appDialogBusy() {
 
 function scheduleDataRender() {
   window.clearTimeout(renderTimer);
-  renderTimer = window.setTimeout(() => {
+  const apply = () => {
     if (appDialogBusy()) {
       dataRenderDeferred = true;
       return;
     }
+    const remaining = dataRenderQuietUntil - performance.now();
+    if (remaining > 0) {
+      renderTimer = window.setTimeout(apply, Math.ceil(remaining) + 16);
+      return;
+    }
     dataRenderDeferred = false;
     render({ preserveView: true });
-  }, 32);
+  };
+  renderTimer = window.setTimeout(apply, 32);
+}
+
+function holdBackgroundRenderForRoute(duration = 700) {
+  dataRenderQuietUntil = Math.max(dataRenderQuietUntil, performance.now() + duration);
+  if (renderTimer) {
+    window.clearTimeout(renderTimer);
+    renderTimer = 0;
+  }
 }
 
 function resumeDeferredDataRender() {
@@ -1530,6 +1545,7 @@ function requestCloseDetail() {
 function navigate(route, { push = true } = {}) {
   if (!ROUTES.some((item) => item.id === route)) route = "today";
   if (state.route === route && !state.detailKey) return;
+  holdBackgroundRenderForRoute();
   state.route = route;
   state.detailKey = "";
   state.detailNotificationId = "";
@@ -1848,6 +1864,7 @@ window.addEventListener("popstate", () => {
   state.detailKey = next.detailKey;
   state.detailNotificationId = history.state?.notificationId || "";
   if (routeChanged) {
+    holdBackgroundRenderForRoute();
     render();
     return;
   }
