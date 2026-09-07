@@ -5,6 +5,39 @@ function hasOfflineClassProfile() {
   return !navigator.onLine && Boolean(savedClassProfile());
 }
 
+async function importSchoolLifeModules() {
+  const NativeMutationObserver = globalThis.MutationObserver;
+  if (typeof NativeMutationObserver !== "function") {
+    await import("./school-life.js?v=20260907-schoollife2");
+    await import("./school-life-bell-schedule.js?v=20260907-schoollife2");
+    await import("./school-life-inbox.js?v=20260907-schoollife2");
+    await import("./school-life-editor.js?v=20260907-schoollife3");
+    return;
+  }
+
+  function ScopedSchoolLifeMutationObserver(callback) {
+    return new NativeMutationObserver((records, observer) => {
+      const relevant = records.filter((record) => {
+        const target = record.target;
+        return !(target instanceof Element && target.closest?.("#schoolLifeAssistant"));
+      });
+      if (relevant.length) callback(relevant, observer);
+    });
+  }
+  ScopedSchoolLifeMutationObserver.prototype = NativeMutationObserver.prototype;
+  Object.setPrototypeOf(ScopedSchoolLifeMutationObserver, NativeMutationObserver);
+
+  globalThis.MutationObserver = ScopedSchoolLifeMutationObserver;
+  try {
+    await import("./school-life.js?v=20260907-schoollife2");
+    await import("./school-life-bell-schedule.js?v=20260907-schoollife2");
+    await import("./school-life-inbox.js?v=20260907-schoollife2");
+    await import("./school-life-editor.js?v=20260907-schoollife3");
+  } finally {
+    globalThis.MutationObserver = NativeMutationObserver;
+  }
+}
+
 let accountReady = Promise.resolve(null);
 if (hasOfflineClassProfile()) {
   const detail = { mode: "offline-readonly", user: null, account: null };
@@ -31,8 +64,5 @@ await import("./account-center.js");
 await import("./student-ops.js");
 await import("./classroom-entry.js?v=20260906-officer1");
 await import("./school-life-registration.js?v=20260907-schoollife1");
-await import("./school-life.js?v=20260907-schoollife2");
-await import("./school-life-bell-schedule.js?v=20260907-schoollife2");
-await import("./school-life-inbox.js?v=20260907-schoollife2");
-await import("./school-life-editor.js?v=20260907-schoollife3");
+await importSchoolLifeModules();
 await import("./dialog-focus-stability.js?v=20260903-focus1");
