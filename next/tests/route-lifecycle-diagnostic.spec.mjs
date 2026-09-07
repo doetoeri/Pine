@@ -17,7 +17,7 @@ function snapshot(page, label) {
     bodyClass: document.body.className,
     appChild: document.querySelector("#app")?.firstElementChild?.className || "",
     profile: localStorage.getItem("pincon-profile-v2"),
-  }), tag);
+  }), label);
 }
 
 test("diagnose route shell around more to today", async ({ page }) => {
