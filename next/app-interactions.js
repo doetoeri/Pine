@@ -78,14 +78,21 @@ function bindShadowCapture(host) {
 
 function prepareHost(host) {
   if (!(host instanceof HTMLElement)) return;
-  bindShadowCapture(host);
-  queueMicrotask(() => bindShadowCapture(host));
-  requestAnimationFrame(() => bindShadowCapture(host));
-  window.setTimeout(() => bindShadowCapture(host), 0);
-  window.setTimeout(() => bindShadowCapture(host), 50);
+  const settle = () => {
+    bindShadowCapture(host);
+    if (!host.hasAttribute("data-route")) return;
+    const current = host.getAttribute("data-aria-current") === "page"
+      || host.getAttribute("aria-current") === "page";
+    setCurrentState(host, current);
+  };
+  settle();
+  queueMicrotask(settle);
+  requestAnimationFrame(settle);
+  window.setTimeout(settle, 0);
+  window.setTimeout(settle, 50);
   const updateComplete = host.updateComplete;
   if (updateComplete && typeof updateComplete.then === "function") {
-    updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
+    updateComplete.then(settle).catch(() => {});
   }
 }
 
