@@ -52,6 +52,7 @@ await accountReady;
 await import("./route-focus-stability.js?v=20260903-route2");
 await import("./core/evaluation-plan-media.js?v=20260831-media2");
 await import("./personal-notification-filter.js?v=20260830-personal1");
+await import("./firestore-route-budget.js?v=20260908-budget1");
 await import("./app.js?v=20260905-readonly1");
 await import("./firestore-visibility-budget.js?v=20260908-budget1");
 await import("./readonly-notice.js?v=20260905-readonly1");
