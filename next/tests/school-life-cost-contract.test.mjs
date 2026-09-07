@@ -4,6 +4,8 @@ import fs from "node:fs";
 
 const optimized = fs.readFileSync(new URL("../../automation/school-life-notifications-optimized.mjs", import.meta.url), "utf8");
 const runner = fs.readFileSync(new URL("../../automation/school-life-runner.mjs", import.meta.url), "utf8");
+const budget = fs.readFileSync(new URL("../firestore-visibility-budget.js", import.meta.url), "utf8");
+const bootstrap = fs.readFileSync(new URL("../app-bootstrap.js", import.meta.url), "utf8");
 
 test("school-life runner uses bounded-read scheduler", () => {
   assert.match(runner, /school-life-notifications-optimized\.mjs/);
@@ -30,4 +32,13 @@ test("push subscriptions are loaded lazily only when a notification is sent", ()
   assert.match(optimized, /if \(!promise\) promise = subscriptionMap\(root\)/);
   assert.match(optimized, /await subscriptionsByUid\.get\(user\.uid\)/);
   assert.doesNotMatch(optimized, /const subscriptionsByUid = await subscriptionMap\(root\)/);
+});
+
+test("foreground Firestore listeners are suspended while the app is hidden", () => {
+  assert.match(bootstrap, /firestore-visibility-budget\.js/);
+  assert.match(budget, /document\.addEventListener\("visibilitychange"/);
+  assert.match(budget, /window\.addEventListener\("pagehide"/);
+  assert.match(budget, /stopAll\(repo\.unsubscribers\)/);
+  assert.match(budget, /stopAll\(repo\.privateUnsubscribers\)/);
+  assert.match(budget, /repo\.listenPublic\?\.\(\)/);
 });
