@@ -1,0 +1,24 @@
+name: Temporary Firestore health check
+
+on:
+  push:
+    branches:
+      - hotfix/operator-api-firestore-health-20260907
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install Firebase Admin
+        working-directory: automation
+        run: npm ci
+      - name: Read one Firestore document
+        working-directory: automation
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: node firestore-health-check.mjs
