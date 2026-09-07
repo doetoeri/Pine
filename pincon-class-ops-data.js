@@ -292,12 +292,15 @@ export class PinconClassOpsRepository extends EventTarget {
     if (!this.state.classKey) throw new Error("먼저 PinCon에서 학년과 반을 선택해 주세요.");
     this.loadCache();
     if (localAutomationMode()) {
+      const hasCachedData = this.cachedCollections.size > 0;
       for (const name of PUBLIC_COLLECTIONS) {
-        if (this.state.collectionStatus[name] === "idle") this.state.collectionStatus[name] = "success";
+        if (this.state.collectionStatus[name] === "idle") this.state.collectionStatus[name] = "error";
       }
       this.state.ready = true;
       this.state.syncing = false;
-      this.state.lastError = "";
+      this.state.lastError = hasCachedData
+        ? ""
+        : "테스트 환경에서는 운영 Firestore 연결을 사용하지 않습니다.";
       this.emit();
       return this.snapshot();
     }
