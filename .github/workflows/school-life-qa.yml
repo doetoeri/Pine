@@ -11,7 +11,7 @@ on:
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
       - "next/route-current-semantics.js"
-      - "next/dialog-open-guard.js"
+      - "next/ui-regression-fixes.js"
       - "next/tests/school-life-*.mjs"
       - "next/tests/route-lifecycle-diagnostic.spec.mjs"
       - "automation/school-life-*.mjs"
@@ -29,7 +29,7 @@ on:
       - "next/app-bootstrap.js"
       - "next/app-interactions.js"
       - "next/route-current-semantics.js"
-      - "next/dialog-open-guard.js"
+      - "next/ui-regression-fixes.js"
       - "next/tests/school-life-*.mjs"
       - "next/tests/route-lifecycle-diagnostic.spec.mjs"
       - "automation/school-life-*.mjs"
@@ -67,7 +67,7 @@ jobs:
             next/app-bootstrap.js \
             next/app-interactions.js \
             next/route-current-semantics.js \
-            next/dialog-open-guard.js \
+            next/ui-regression-fixes.js \
             automation/school-life-notifications.mjs \
             automation/school-life-runner.mjs \
             automation/neis-sync.mjs \
