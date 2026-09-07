@@ -6,6 +6,10 @@ on:
     branches: [hotfix/e2e-no-live-firestore-20260908]
     paths:
       - ".github/workflows/apply-e2e-state-semantics.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/apply-e2e-state-semantics.yml"
 
 permissions:
   contents: write
