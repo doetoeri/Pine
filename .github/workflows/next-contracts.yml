@@ -101,6 +101,7 @@ jobs:
           next/tests/class-duty-manager-contract.test.mjs
           next/tests/classroom-layout-contract.test.mjs
           next/tests/classroom-officer-tv-contract.test.mjs
+          next/tests/e2e-firestore-isolation-contract.test.mjs
 
   firestore-rules:
     runs-on: ubuntu-latest
