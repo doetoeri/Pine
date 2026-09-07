@@ -69,6 +69,7 @@ jobs:
             next/route-current-semantics.js \
             next/ui-regression-fixes.js \
             automation/school-life-notifications.mjs \
+            automation/school-life-notifications-optimized.mjs \
             automation/school-life-runner.mjs \
             automation/neis-sync.mjs \
             integrations/pincon-ai/lib/class-accounts.mjs \
@@ -77,8 +78,8 @@ jobs:
           do
             node --input-type=module --check < "$file"
           done
-      - name: Run school-life core tests
-        run: node --test next/tests/school-life-core.test.mjs
+      - name: Run school-life core and cost contracts
+        run: node --test next/tests/school-life-core.test.mjs next/tests/school-life-cost-contract.test.mjs
       - name: Run existing student auth contract
         run: node --test next/tests/student-auth-contract.test.mjs
       - name: Run classroom officer contract
