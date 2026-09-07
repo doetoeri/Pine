@@ -1,0 +1,77 @@
+name: Apply E2E offline state semantics fix
+
+on:
+  push:
+    branches: [hotfix/e2e-no-live-firestore-20260908]
+    paths:
+      - ".github/workflows/apply-e2e-state-semantics.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/e2e-no-live-firestore-20260908
+      - name: Preserve unavailable vs known-empty semantics
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('pincon-class-ops-data.js')
+          text = path.read_text()
+          old = '''    if (localAutomationMode()) {
+      for (const name of PUBLIC_COLLECTIONS) {
+        if (this.state.collectionStatus[name] === "idle") this.state.collectionStatus[name] = "success";
+      }
+      this.state.ready = true;
+      this.state.syncing = false;
+      this.state.lastError = "";
+      this.emit();
+      return this.snapshot();
+    }
+'''
+          new = '''    if (localAutomationMode()) {
+      const hasCachedData = this.cachedCollections.size > 0;
+      for (const name of PUBLIC_COLLECTIONS) {
+        if (this.state.collectionStatus[name] === "idle") this.state.collectionStatus[name] = "error";
+      }
+      this.state.ready = true;
+      this.state.syncing = false;
+      this.state.lastError = hasCachedData
+        ? ""
+        : "테스트 환경에서는 운영 Firestore 연결을 사용하지 않습니다.";
+      this.emit();
+      return this.snapshot();
+    }
+'''
+          if old not in text:
+              raise SystemExit('target E2E block not found')
+          path.write_text(text.replace(old, new, 1))
+
+          test_path = Path('next/tests/e2e-firestore-isolation-contract.test.mjs')
+          test = test_path.read_text()
+          anchor = '''  assert.ok(guard >= 0 && firebase > guard, "E2E guard must return before firebaseApi is called");
+'''
+          replacement = '''  assert.ok(guard >= 0 && firebase > guard, "E2E guard must return before firebaseApi is called");
+  assert.match(source, /collectionStatus\[name\] === "idle"\) this\.state\.collectionStatus\[name\] = "error"/);
+  assert.match(source, /테스트 환경에서는 운영 Firestore 연결을 사용하지 않습니다/);
+  assert.doesNotMatch(source.slice(guard, firebase), /collectionStatus\[name\].*= "success"/);
+'''
+          if anchor not in test:
+              raise SystemExit('contract anchor not found')
+          test_path.write_text(test.replace(anchor, replacement, 1))
+          PY
+      - name: Remove one-shot workflow and commit
+        shell: bash
+        run: |
+          git rm .github/workflows/apply-e2e-state-semantics.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pincon-class-ops-data.js next/tests/e2e-firestore-isolation-contract.test.mjs
+          git commit -m "fix: preserve unavailable state in isolated E2E"
+          git push origin HEAD:hotfix/e2e-no-live-firestore-20260908
