@@ -28,6 +28,7 @@ if (!snapshot.canArchiveContent) {
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
   await import("./classroom-layout-v2.js?v=20260906-layout4");
+  await import("./classroom-layout-manual.js?v=20260909-manual1");
   await import("./classroom-nominations-v2.js?v=20260906-officer1");
   await import("./class-duty-manager.js?v=20260901-duty1");
 }
