@@ -327,14 +327,14 @@ function mount() {
   if (!panel) return;
 
   let host = panel.querySelector("[data-manual-seat-editor]");
-  if (!host) {
-    host = document.createElement("section");
-    host.className = "pincon-manual-seat-card";
-    host.dataset.manualSeatEditor = "";
-    const actions = panel.querySelector(".pincon-layout-actions");
-    if (actions) actions.insertAdjacentElement("afterend", host);
-    else panel.prepend(host);
-  }
+  if (host) return;
+
+  host = document.createElement("section");
+  host.className = "pincon-manual-seat-card";
+  host.dataset.manualSeatEditor = "";
+  const actions = panel.querySelector(".pincon-layout-actions");
+  if (actions) actions.insertAdjacentElement("afterend", host);
+  else panel.prepend(host);
   renderEditor();
 }
 
