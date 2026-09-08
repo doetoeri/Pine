@@ -286,7 +286,9 @@ export class ContentServiceV2 extends EventTarget {
       classKey: snapshot.profile.classKey,
       collection,
       documentId: id,
-      action: archived ? "archive" : "restore",
+      // Production rules currently model soft archive as the existing "delete" audit action.
+      // The record itself is never physically deleted: deleted=true keeps it restorable from the archive view.
+      action: archived ? "delete" : "restore",
       label: `${titleOf(before, collection)} ${archived ? "보관" : "복원"}`,
       before: safeAudit(before),
       after: safeAudit(next),
