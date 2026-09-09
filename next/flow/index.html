@@ -8,16 +8,33 @@
   <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>PinCon Flow · Private Beta</title>
+  <title>PinCon Flow · HIG Beta</title>
   <link rel="icon" href="../assets/pincon-icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./flow.css?v=20260909-1" />
-  <link rel="stylesheet" href="./flow-hig.css?v=20260909-1" />
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const share = params.get("_vercel_share");
+      const withShare = (url) => {
+        if (!share) return url;
+        const separator = url.includes("?") ? "&" : "?";
+        return `${url}${separator}_vercel_share=${encodeURIComponent(share)}`;
+      };
+      globalThis.PINCON_FLOW_WITH_SHARE = withShare;
+
+      const hig = document.createElement("link");
+      hig.rel = "stylesheet";
+      hig.href = withShare("./flow-hig.css?v=20260909-2");
+      hig.dataset.pinconHig = "2";
+      document.head.appendChild(hig);
+    })();
+  </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body>
+<body data-hig-beta="2">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
@@ -56,7 +73,17 @@
       window.addEventListener("pincon-flow-ready", () => clearTimeout(timer), { once: true });
     })();
   </script>
+
   <script type="module" src="./flow.js?v=20260909-2"></script>
-  <script type="module" src="./flow-interactions.js?v=20260909-1"></script>
+  <script type="module">
+    const withShare = globalThis.PINCON_FLOW_WITH_SHARE || ((url) => url);
+    try {
+      await import(withShare("./flow-interactions.js?v=20260909-2"));
+      document.body.dataset.higInteractions = "ready";
+    } catch (error) {
+      document.body.dataset.higInteractions = "failed";
+      console.error("[PinCon Flow HIG] interaction layer failed", error);
+    }
+  </script>
 </body>
 </html>
