@@ -26,7 +26,7 @@ async function fieldHasFocus(page, selector) {
   }, selector);
 }
 
-async function tabToControl(page, locator, maxTabs = 24) {
+async function tabToControl(page, locator, maxTabs = 32) {
   for (let index = 0; index < maxTabs; index += 1) {
     await page.keyboard.press("Tab");
     if (await actualHasFocus(locator)) return;
@@ -59,6 +59,8 @@ test("document and landmarks expose stable Korean semantics", async ({ page }) =
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   await expect(page.locator("main#mainContent")).toHaveCount(1);
   await expect(page.locator('nav[aria-label="주요 메뉴"]')).toHaveCount(2);
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  await expect(page.locator(".rail")).toBeHidden();
 
   const search = page.locator("#openSearch");
   const notifications = page.locator("#openNotifications");
@@ -94,13 +96,24 @@ test("notification dialog opens from real Tab keyboard navigation and returns fo
 });
 
 test("route changes from real Tab keyboard navigation move programmatic focus to main content", async ({ page }) => {
-  const timetable = page.locator('.rail [data-route="timetable"]');
+  const timetable = page.locator('.bottom-nav [data-route="timetable"]');
   await tabToControl(page, timetable);
   await expect.poll(() => actualHasFocus(timetable)).toBe(true);
   await page.keyboard.press("Enter");
 
   await expect(page.locator("#timetable-title")).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("mainContent");
+});
+
+test("effects panel is keyboard reachable and Escape returns focus", async ({ page }) => {
+  const trigger = page.locator("#pinconEffectsToggle");
+  await expect(trigger).toBeVisible();
+  await openByKeyboard(page, trigger);
+  await expect(page.locator("#pinconEffectsPanel")).toBeVisible();
+  await expect(page.locator('#pinconEffectsPanel [data-pincon-effect="light"]')).toHaveValue("100");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#pinconEffectsPanel")).toBeHidden();
+  await expect.poll(() => actualHasFocus(trigger)).toBe(true);
 });
 
 test("reduced motion preference collapses transition and animation duration", async ({ page }) => {
