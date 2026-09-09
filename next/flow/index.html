@@ -8,11 +8,12 @@
   <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>PinCon Flow · Rim Button Beta</title>
+  <title>PinCon Flow · Stability Beta</title>
   <link rel="icon" href="../assets/pincon-icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..0" rel="stylesheet" />
   <link rel="stylesheet" href="./flow.css?v=20260909-1" />
   <script>
     (() => {
@@ -36,11 +37,17 @@
       rim.href = withShare("./flow-button-rim.css?v=20260909-1");
       rim.dataset.pinconButtonMaterial = "subtle-rim-v4";
       document.head.appendChild(rim);
+
+      const stability = document.createElement("link");
+      stability.rel = "stylesheet";
+      stability.href = withShare("./flow-stability-v5.css?v=20260909-1");
+      stability.dataset.pinconStability = "v5";
+      document.head.appendChild(stability);
     })();
   </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body data-hig-beta="4" data-material="subtle-rim">
+<body data-hig-beta="5" data-material="subtle-rim" data-stability="v5">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
@@ -51,7 +58,7 @@
   <dialog class="flow-sheet" id="flowSheet" aria-labelledby="flowSheetTitle">
     <form method="dialog" class="flow-sheet__chrome">
       <div class="flow-sheet__grab" aria-hidden="true"></div>
-      <button class="icon-button" value="cancel" aria-label="닫기">×</button>
+      <button class="icon-button" value="cancel" aria-label="닫기"><span class="material-symbols-rounded" aria-hidden="true">close</span></button>
     </form>
     <div class="flow-sheet__content" id="flowSheetContent"></div>
   </dialog>
@@ -83,12 +90,23 @@
   <script type="module" src="./flow.js?v=20260909-2"></script>
   <script type="module">
     const withShare = globalThis.PINCON_FLOW_WITH_SHARE || ((url) => url);
-    try {
-      await import(withShare("./flow-interactions.js?v=20260909-2"));
-      document.body.dataset.higInteractions = "ready";
-    } catch (error) {
+    const jobs = [
+      import(withShare("./flow-interactions.js?v=20260909-2")).then(() => {
+        document.body.dataset.higInteractions = "ready";
+      }),
+      import(withShare("./flow-icons.js?v=20260909-1")).then(() => {
+        document.body.dataset.iconSystem = "material-symbols";
+      })
+    ];
+
+    const results = await Promise.allSettled(jobs);
+    if (results[0].status === "rejected") {
       document.body.dataset.higInteractions = "failed";
-      console.error("[PinCon Flow] interaction layer failed", error);
+      console.error("[PinCon Flow] interaction layer failed", results[0].reason);
+    }
+    if (results[1].status === "rejected") {
+      document.body.dataset.iconSystem = "failed";
+      console.error("[PinCon Flow] icon layer failed", results[1].reason);
     }
   </script>
 </body>
