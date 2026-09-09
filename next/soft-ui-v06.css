@@ -1,0 +1,257 @@
+/* PinCon Soft UI v06
+ * Visual-only layer. Keeps the existing route/data/event model intact.
+ * Defaults: shadow 24%, light 100%.
+ */
+:root {
+  --pc-bg: #f4f6f2;
+  --pc-surface: #ffffff;
+  --pc-text: #20251d;
+  --pc-muted: #626c5c;
+  --pc-line: #e3e8df;
+  --pc-primary: #2daa00;
+  --pc-primary-bright: #49d716;
+  --pc-primary-soft: #effae8;
+  --pc-primary-ink: #267b10;
+  --pc-danger: #a83640;
+
+  /* First paint = JS defaults (shadow 24%, light 100%). */
+  --fx-shadow-near: .0226;
+  --fx-shadow-far: .0186;
+  --fx-shadow-dock: .0360;
+  --fx-shadow-pressed: .0232;
+  --fx-light-bright: .1900;
+  --fx-light-soft: .0684;
+  --fx-light-tint: .0120;
+  --fx-light-rim: .0340;
+  --fx-button-shadow: 1px 2px 4px rgb(23 32 19 / var(--fx-shadow-near)), 2px 6px 14px rgb(23 32 19 / var(--fx-shadow-far));
+  --fx-card-shadow: 1px 2px 5px rgb(23 32 19 / var(--fx-shadow-far)), 4px 10px 28px rgb(23 32 19 / var(--fx-shadow-far));
+  --fx-dock-shadow: 0 1px 2px rgb(23 32 19 / var(--fx-shadow-near)), 0 10px 30px rgb(23 32 19 / var(--fx-shadow-dock));
+  --fx-light-edge: inset 1px 1px 1px rgb(255 255 255 / var(--fx-light-bright)), inset -1px -1px 0 rgb(34 55 24 / var(--fx-light-rim));
+  --fx-light-layer: radial-gradient(ellipse at 0% 0%, rgb(255 255 255 / var(--fx-light-bright)), rgb(255 255 255 / 0) 66%), linear-gradient(135deg, rgb(34 55 24 / 0) 55%, rgb(34 55 24 / var(--fx-light-tint)));
+  --pincon-soft-dock-clearance: 112px;
+
+  --md-sys-color-primary: var(--pc-primary);
+  --md-sys-color-primary-container: #dff6d2;
+  --md-sys-color-on-primary-container: #14310a;
+  --md-sys-color-background: var(--pc-bg);
+  --md-sys-color-surface: var(--pc-bg);
+  --md-sys-color-surface-container-lowest: var(--pc-surface);
+  --md-sys-color-on-background: var(--pc-text);
+  --md-sys-color-on-surface: var(--pc-text);
+  --md-sys-color-on-surface-variant: #596453;
+  --md-sys-color-outline-variant: #d8e1d3;
+  background: var(--pc-bg);
+}
+
+html { scroll-padding-bottom: calc(var(--pincon-soft-dock-clearance) + env(safe-area-inset-bottom)); }
+body { background: var(--pc-bg); color: var(--pc-text); }
+
+/* Keep one bottom-centered navigation on every viewport. */
+.shell { display: block !important; min-height: 100dvh; }
+.app-frame { margin-left: 0 !important; min-height: 100dvh; }
+.rail { display: none !important; }
+.bottom-nav {
+  position: fixed !important;
+  z-index: 44 !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: max(16px, env(safe-area-inset-bottom)) !important;
+  transform: translateX(-50%) !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 2px !important;
+  width: min(480px, calc(100% - 32px)) !important;
+  max-width: none !important;
+  padding: 5px !important;
+  border: 1px solid rgb(218 228 213 / .92) !important;
+  border-radius: 25px !important;
+  overflow: hidden !important;
+  background-color: rgb(252 254 250 / .88) !important;
+  background-image: var(--fx-light-layer) !important;
+  box-shadow: var(--fx-dock-shadow), var(--fx-light-edge) !important;
+  backdrop-filter: blur(20px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.08) !important;
+  isolation: isolate;
+}
+.bottom-nav > [data-route],
+.bottom-nav > [data-route]:nth-child(4),
+.bottom-nav > [data-route]:nth-child(5) { grid-column: auto !important; }
+.bottom-nav md-text-button,
+.bottom-nav md-filled-tonal-button {
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  font-size: 10.5px !important;
+  font-weight: 540 !important;
+  letter-spacing: -.015em !important;
+  --md-text-button-container-height: 53px;
+  --md-filled-tonal-button-container-height: 53px;
+  --md-text-button-leading-space: 4px;
+  --md-text-button-trailing-space: 4px;
+  --md-text-button-with-leading-icon-leading-space: 4px;
+  --md-text-button-with-leading-icon-trailing-space: 4px;
+  --md-text-button-icon-spacing: 4px;
+  --md-filled-tonal-button-leading-space: 4px;
+  --md-filled-tonal-button-trailing-space: 4px;
+  --md-filled-tonal-button-with-leading-icon-leading-space: 4px;
+  --md-filled-tonal-button-with-leading-icon-trailing-space: 4px;
+  --md-filled-tonal-button-icon-spacing: 4px;
+  --md-text-button-label-text-color: #64715c;
+  --md-text-button-icon-color: #64715c;
+  --md-filled-tonal-button-container-color: #edf8e6;
+  --md-filled-tonal-button-label-text-color: var(--pc-primary-ink);
+  --md-filled-tonal-button-icon-color: var(--pc-primary-ink);
+  --md-filled-tonal-button-label-text-weight: 650;
+}
+.bottom-nav md-icon { font-size: 20.5px !important; }
+
+/* Desktop keeps the compact top brand instead of reintroducing a side rail. */
+.topbar {
+  min-height: 66px !important;
+  padding: 9px max(16px, calc((100vw - 1192px) / 2 + 18px)) !important;
+  background: rgb(244 246 242 / .86) !important;
+  border-bottom-color: rgb(216 225 211 / .72) !important;
+  backdrop-filter: blur(18px) saturate(1.04) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.04) !important;
+}
+.topbar .brand { display: flex !important; }
+.topbar__actions { margin-left: auto !important; }
+.brand__mark { box-shadow: none !important; }
+
+/* Bottom clearance must follow the floating dock at every width. */
+.content-wrap {
+  width: min(100%, 1192px) !important;
+  margin-inline: auto !important;
+  padding: 28px 36px calc(var(--pincon-soft-dock-clearance) + env(safe-area-inset-bottom)) !important;
+}
+
+/* Calm white surfaces; depth comes from the shared effect variables. */
+.surface,
+.splash__surface,
+.schedule-group,
+.lesson-list {
+  border-color: #e7ece3 !important;
+  background-color: var(--pc-surface) !important;
+  background-image: var(--fx-light-layer) !important;
+  box-shadow: var(--fx-card-shadow), var(--fx-light-edge) !important;
+}
+.surface { border-radius: 26px !important; }
+.surface--hero { border-radius: 28px !important; }
+
+/* Effects controls */
+.pincon-effects-panel {
+  position: fixed;
+  z-index: 80;
+  top: 82px;
+  right: max(18px, calc((100vw - 1192px) / 2 + 18px));
+  width: 316px;
+  max-width: calc(100% - 32px);
+  padding: 18px 22px 14px;
+  border: 1px solid #dce6d4;
+  border-radius: 26px;
+  background-color: rgb(252 254 250 / .94);
+  background-image: var(--fx-light-layer);
+  box-shadow: var(--fx-dock-shadow), var(--fx-light-edge);
+  backdrop-filter: blur(18px) saturate(1.04);
+  -webkit-backdrop-filter: blur(18px) saturate(1.04);
+}
+.pincon-effects-panel[hidden] { display: none !important; }
+.pincon-effects-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pincon-effects-head h2 { margin: 0; font-size: 19px; line-height: 1.3; letter-spacing: -.025em; }
+.pincon-effects-note { margin: 4px 0 16px; color: #687861; font-size: 11px; line-height: 1.65; }
+.pincon-effect-list { display: grid; gap: 14px; }
+.pincon-effect-control { display: grid; gap: 2px; }
+.pincon-effect-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; font-weight: 600; }
+.pincon-effect-label output { color: var(--pc-primary-ink); font-variant-numeric: tabular-nums; }
+.pincon-effect-range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%; height: 44px; margin: 0; padding: 0;
+  border: 0; background: transparent; cursor: pointer;
+}
+.pincon-effect-range::-webkit-slider-runnable-track { height: 7px; border-radius: 999px; background: linear-gradient(to right, var(--pc-primary) 0 var(--range-fill, 0%), #e2eadd var(--range-fill, 0%) 100%); }
+.pincon-effect-range::-moz-range-track { height: 7px; border-radius: 999px; background: #e2eadd; }
+.pincon-effect-range::-moz-range-progress { height: 7px; border-radius: 999px; background: var(--pc-primary); }
+.pincon-effect-range::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 24px; height: 24px; margin-top: -8.5px; border: 1px solid #91b17c; border-radius: 50%; background: #fff; box-shadow: var(--fx-button-shadow), var(--fx-light-edge); }
+.pincon-effect-range::-moz-range-thumb { width: 24px; height: 24px; border: 1px solid #91b17c; border-radius: 50%; background: #fff; box-shadow: var(--fx-button-shadow), var(--fx-light-edge); }
+.pincon-effect-scale { display: flex; justify-content: space-between; margin-top: -5px; color: #819376; font-size: 9px; }
+.pincon-effect-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 13px; padding-top: 8px; border-top: 1px solid #edf2e9; }
+.pincon-effect-action { min-height: 44px; border: 0; border-radius: 14px; padding: 0 9px; background: transparent; color: #5d754f; font: 600 12px/1.2 inherit; cursor: pointer; }
+.pincon-effect-action:hover { background: #f0f5ed; }
+.pincon-effect-action:focus-visible, .pincon-effect-range:focus-visible { outline: 3px solid #8cad7b; outline-offset: 3px; }
+.pincon-effects-close { width: 44px; min-width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: #596453; cursor: pointer; }
+.pincon-effects-close:hover { background: #eff3ec; }
+
+.pincon-effects-settings {
+  margin-bottom: 18px;
+  padding: 22px 24px;
+  border: 1px solid #e7ece3;
+  border-radius: 26px;
+  background-color: #fff;
+  background-image: var(--fx-light-layer);
+  box-shadow: var(--fx-card-shadow), var(--fx-light-edge);
+}
+.pincon-effects-settings h2 { margin: 0 0 4px; font-size: 19px; }
+.pincon-effects-settings .pincon-effects-note { margin-bottom: 18px; }
+.pincon-effects-settings .pincon-effect-list,
+.pincon-effects-settings .pincon-effect-actions { max-width: 540px; }
+
+@media (max-width: 760px) {
+  :root { --pincon-soft-dock-clearance: 110px; }
+  .topbar { padding-inline: 15px !important; }
+  .content-wrap { padding: 20px 20px calc(var(--pincon-soft-dock-clearance) + env(safe-area-inset-bottom)) !important; }
+  .bottom-nav { bottom: max(15px, env(safe-area-inset-bottom)) !important; }
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button { font-size: 10px !important; }
+  .bottom-nav md-icon { font-size: 20px !important; }
+  .pincon-effects-panel {
+    top: auto;
+    right: 16px;
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    width: calc(100% - 32px);
+    max-height: calc(100dvh - 128px - env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 450px) {
+  .content-wrap { padding-inline: 17px !important; padding-top: 16px !important; }
+  .bottom-nav { width: calc(100% - 32px) !important; padding: 5px !important; }
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button { font-size: 9.8px !important; }
+}
+
+@media (max-width: 370px) {
+  .bottom-nav { width: calc(100% - 20px) !important; }
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button { font-size: 9.2px !important; }
+  .bottom-nav md-icon { font-size: 19px !important; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  :root { --pincon-soft-dock-clearance: 92px; }
+  .bottom-nav { bottom: max(8px, env(safe-area-inset-bottom)) !important; padding: 4px !important; border-radius: 23px !important; }
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button {
+    font-size: 9.5px !important;
+    --md-text-button-container-height: 48px;
+    --md-filled-tonal-button-container-height: 48px;
+  }
+  .bottom-nav md-icon { font-size: 18px !important; }
+  .content-wrap { padding-bottom: calc(var(--pincon-soft-dock-clearance) + env(safe-area-inset-bottom)) !important; }
+}
+
+@media (hover: hover) {
+  .bottom-nav md-text-button:hover {
+    --md-text-button-container-color: #f4f8f1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pincon-effects-panel, .pincon-effect-range, .pincon-effect-action { transition: none !important; }
+}
+
+@media print {
+  .bottom-nav, .pincon-effects-panel, #pinconEffectsToggle { display: none !important; }
+  .content-wrap { padding-bottom: 0 !important; }
+}
