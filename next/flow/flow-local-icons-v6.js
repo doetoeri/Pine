@@ -17,68 +17,7 @@ const ICONS = {
   chevron: '<path d="M9.29 6.71a.996.996 0 0 0 0 1.41L13.17 12l-3.88 3.88a.996.996 0 1 0 1.41 1.41l4.59-4.59a.996.996 0 0 0 0-1.41L10.7 6.7a.996.996 0 0 0-1.41.01z"/>'
 };
 
-const ROUTE_ICONS = { today:"today", timetable:"timeline", schedule:"event", assessment:"assignment", hub:"apps" };
-const HUB_ICONS = [
-  ["[data-action='meal-detail']","restaurant"],
-  ["[data-classic-route='classroom']","group"],
-  ["[data-classic-route='more']","settings"],
-  ["[data-classic-route='schedule']","event"],
-  ["[data-action='classic']","open"],
-  ["[data-action='change-class']","group"]
-];
-
-function icon(name, className=""){
-  const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-  svg.setAttribute("viewBox","0 0 24 24");
-  svg.setAttribute("aria-hidden","true");
-  svg.classList.add("ui-icon");
-  if(className) svg.classList.add(className);
-  svg.innerHTML=ICONS[name]||ICONS.apps;
-  return svg;
-}
-
-function decorate(root){
-  root.querySelectorAll?.("[data-route]").forEach(button=>{
-    const holder=button.querySelector(":scope > b");
-    if(!holder) return;
-    holder.className="nav-icon";
-    holder.replaceChildren(icon(ROUTE_ICONS[button.dataset.route]||"apps"));
-  });
-
-  root.querySelectorAll?.(".quick-action").forEach(button=>{
-    const name=HUB_ICONS.find(([selector])=>button.matches(selector))?.[1]||"apps";
-    const holder=button.querySelector(":scope > em");
-    if(holder) holder.replaceChildren(icon(name));
-  });
-
-  root.querySelectorAll?.("button[data-action='refresh']").forEach(button=>button.replaceChildren(icon("refresh")));
-  root.querySelectorAll?.("button[data-action='classic'].soft-button").forEach(button=>{
-    if(!button.querySelector(":scope > .button-icon")) button.prepend(icon("open","button-icon"));
-  });
-
-  root.querySelectorAll?.(".task-row,.event").forEach(row=>{
-    if(!row.querySelector(":scope > .row-chevron")) row.append(icon("chevron","row-chevron"));
-  });
-
-  root.querySelectorAll?.(".next-time").forEach(node=>{
-    const text=node.textContent.trim().replace(/^→\s*/,"");
-    if(!text) return;
-    node.replaceChildren(icon("arrow"),document.createTextNode(text));
-  });
-}
-
-const app=document.querySelector("#flowApp");
-const sheet=document.querySelector("#flowSheet");
-const sheetContent=document.querySelector("#flowSheetContent");
-
-decorate(document);
-if(app){
-  new MutationObserver(()=>decorate(app)).observe(app,{childList:true});
-}
-if(sheetContent){
-  new MutationObserver(()=>decorate(sheetContent)).observe(sheetContent,{childList:true});
-}
-if(sheet){
-  const close=sheet.querySelector("button[value='cancel']");
-  if(close) close.replaceChildren(icon("close"));
+// Only fixed internal icon names/classes are passed by Flow templates.
+export function iconMarkup(name, className = "") {
+  return `<svg class="ui-icon ${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[name] || ICONS.apps}</svg>`;
 }

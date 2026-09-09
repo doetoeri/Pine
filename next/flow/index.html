@@ -8,7 +8,7 @@
   <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>PinCon Flow · Lightweight v6 Beta</title>
+  <title>PinCon Flow · Flow Layout Beta</title>
   <link rel="icon" href="../assets/pincon-icon.svg" type="image/svg+xml" />
   <script>
     (() => {
@@ -23,19 +23,19 @@
 
       const base = document.createElement("link");
       base.rel = "stylesheet";
-      base.href = withShare("./flow.css?v=20260909-1");
+      base.href = withShare("./flow.css?v=20260909-layout1");
       document.head.appendChild(base);
 
       const lite = document.createElement("link");
       lite.rel = "stylesheet";
-      lite.href = withShare("./flow-lite-v6.css?v=20260909-1");
+      lite.href = withShare("./flow-lite-v6.css?v=20260909-layout1");
       lite.dataset.pinconFlowLayer = "lite-v6";
       document.head.appendChild(lite);
     })();
   </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body data-flow-version="6" data-performance-mode="lightweight" data-icon-system="local-material-svg">
+<body data-flow-version="6.1" data-performance-mode="lightweight" data-icon-system="local-material-svg">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
@@ -80,8 +80,7 @@
   <script type="module">
     const withShare = globalThis.PINCON_FLOW_WITH_SHARE || ((url) => url);
     try {
-      await import(withShare("./flow.js?v=20260909-2"));
-      await import(withShare("./flow-local-icons-v6.js?v=20260909-1"));
+      await import(withShare("./flow.js?v=20260909-layout1"));
       document.body.dataset.flowReady = "true";
     } catch (error) {
       document.body.dataset.flowReady = "failed";
