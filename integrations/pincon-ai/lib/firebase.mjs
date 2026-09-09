@@ -1,10 +1,12 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getMessaging } from "firebase-admin/messaging";
 
 let appInstance;
 let db;
 let authInstance;
+let messagingInstance;
 
 function serviceAccount() {
   const raw = String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || "").trim();
@@ -34,4 +36,9 @@ export function firestore() {
 export function firebaseAuth() {
   if (!authInstance) authInstance = getAuth(firebaseApp());
   return authInstance;
+}
+
+export function firebaseMessaging() {
+  if (!messagingInstance) messagingInstance = getMessaging(firebaseApp());
+  return messagingInstance;
 }
