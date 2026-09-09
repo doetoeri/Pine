@@ -1,0 +1,16 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Flow layout fixture · 합성 데이터</title><link rel="stylesheet" href="../flow.css"><link rel="stylesheet" href="../flow-lite-v6.css"></head><body><div id="flowApp"></div><dialog class="flow-sheet" id="flowSheet" aria-labelledby="flowSheetTitle"><form method="dialog" class="flow-sheet__chrome"><button class="icon-button" value="cancel" aria-label="닫기">닫기</button></form><div class="flow-sheet__content" id="flowSheetContent"></div></dialog><script type="module">
+// QA uses the actual Flow module with an isolated, synthetic read-only gateway.
+// No Firebase imports, student accounts, or writes are used in this fixture.
+try {
+  const response=await fetch('../flow.js');
+  if(!response.ok)throw new Error(`Flow source: ${response.status}`);
+  const gatewayUrl=new URL('./fixture-gateway.js',location.href).href;
+  const iconUrl=new URL('../flow-local-icons-v6.js',location.href).href;
+  let source=await response.text();
+  source=source.replace('"../core/data-gateway.js"',JSON.stringify(gatewayUrl)).replace(/withShare\("\.\/flow-local-icons-v6\.js[^\"]*"\)/,JSON.stringify(iconUrl));
+  source=source.replaceAll('../assets/pincon-icon.svg','../../assets/pincon-icon.svg');
+  source+='\nwindow.qa={state,lessonState,assignments,render,go,gateway};';
+  const blob=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+  await import(blob);URL.revokeObjectURL(blob);
+} catch(error){document.body.textContent='Fixture error: '+error.message;throw error}
+</script></body></html>

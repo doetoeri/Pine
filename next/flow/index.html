@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f7f2" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>PinCon Flow · Flow Layout Beta</title>
+  <link rel="icon" href="../assets/pincon-icon.svg" type="image/svg+xml" />
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      const share = params.get("_vercel_share");
+      const withShare = (url) => {
+        if (!share) return url;
+        const separator = url.includes("?") ? "&" : "?";
+        return `${url}${separator}_vercel_share=${encodeURIComponent(share)}`;
+      };
+      globalThis.PINCON_FLOW_WITH_SHARE = withShare;
+
+      const base = document.createElement("link");
+      base.rel = "stylesheet";
+      base.href = withShare("./flow.css?v=20260909-layout1");
+      document.head.appendChild(base);
+
+      const lite = document.createElement("link");
+      lite.rel = "stylesheet";
+      lite.href = withShare("./flow-lite-v6.css?v=20260909-layout1");
+      lite.dataset.pinconFlowLayer = "lite-v6";
+      document.head.appendChild(lite);
+    })();
+  </script>
+  <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
+</head>
+<body data-flow-version="6.1" data-performance-mode="lightweight" data-icon-system="local-material-svg">
+  <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
+    <img src="../assets/pincon-icon.svg" alt="" />
+    <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
+  </div>
+
+  <div id="flowApp"></div>
+
+  <dialog class="flow-sheet" id="flowSheet" aria-labelledby="flowSheetTitle">
+    <form method="dialog" class="flow-sheet__chrome">
+      <div class="flow-sheet__grab" aria-hidden="true"></div>
+      <button class="icon-button" value="cancel" aria-label="닫기">
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+    </form>
+    <div class="flow-sheet__content" id="flowSheetContent"></div>
+  </dialog>
+
+  <noscript>PinCon Flow를 사용하려면 JavaScript가 필요합니다.</noscript>
+
+  <script>
+    (() => {
+      const timer = setTimeout(() => {
+        const boot = document.getElementById("flowBoot");
+        const app = document.getElementById("flowApp");
+        const text = document.getElementById("flowBootText");
+        if (!boot || boot.classList.contains("is-hidden")) return;
+        if (text) text.textContent = "불러오기에 실패했습니다";
+        if (app && !app.children.length) {
+          app.innerHTML = `<main class="profile-gate">
+            <img src="../assets/pincon-icon.svg" alt="PinCon" />
+            <h1>Flow를 열지 못했습니다.</h1>
+            <p>베타 화면을 불러오는 중 문제가 생겼습니다.</p>
+            <button onclick="location.href='../'">기존 PinCon 열기</button>
+          </main>`;
+        }
+        boot.classList.add("is-hidden");
+      }, 7000);
+      window.addEventListener("pincon-flow-ready", () => clearTimeout(timer), { once: true });
+    })();
+  </script>
+
+  <script type="module">
+    const withShare = globalThis.PINCON_FLOW_WITH_SHARE || ((url) => url);
+    try {
+      await import(withShare("./flow.js?v=20260909-layout1"));
+      document.body.dataset.flowReady = "true";
+    } catch (error) {
+      document.body.dataset.flowReady = "failed";
+      console.error("[PinCon Flow v6] boot module failed", error);
+    }
+  </script>
+</body>
+</html>
