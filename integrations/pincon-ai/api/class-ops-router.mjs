@@ -13,6 +13,7 @@ import phone from "../handlers/class-ops/phone.mjs";
 import subject from "../handlers/class-ops/subject.mjs";
 import settings from "../handlers/class-ops/settings.mjs";
 import classroomLayout from "../handlers/class-ops/classroom-layout.mjs";
+import assessmentLayout from "../handlers/class-ops/assessment-layout.mjs";
 import adminOverview from "../handlers/class-ops/admin-overview.mjs";
 import { sendJson } from "../lib/request.mjs";
 
@@ -33,6 +34,7 @@ const ROUTES = Object.freeze({
   subject,
   settings,
   "classroom-layout": classroomLayout,
+  "assessment-layout": assessmentLayout,
   "admin-overview": adminOverview,
 });
 
