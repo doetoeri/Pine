@@ -92,7 +92,10 @@ for (const viewport of VIEWPORTS) {
 test("light and dark glass modes persist and keep the dock visible", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
-    localStorage.removeItem("pincon-soft-effects-v1");
+    if (!sessionStorage.getItem("pincon-theme-test-initialized")) {
+      localStorage.removeItem("pincon-soft-effects-v1");
+      sessionStorage.setItem("pincon-theme-test-initialized", "1");
+    }
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
