@@ -59,9 +59,11 @@ test("route selection and visible content settle within 300ms", async ({ page })
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
   await expect(page.locator("#today-title")).toBeVisible();
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  await expect(page.locator(".rail")).toBeHidden();
 
   for (const [route, heading] of ROUTES) {
-    const control = page.locator(`.rail__nav [data-route="${route}"]`);
+    const control = page.locator(`.bottom-nav [data-route="${route}"]`);
     await armInPageRouteTimer(page, route, heading);
     await control.click();
     await expect(page.locator(heading)).toBeVisible({ timeout: 300 });
