@@ -10,7 +10,7 @@ async function start() {
     const scene = display.scenes?.[key] || display.scenes?.morning || {};
     const assessmentRequested = key === "assessment" || scene.targetMode === "assessment";
     if (assessmentRequested) {
-      await import("./tv-assessment-v2.js?v=20260910-assessment3");
+      await import("./tv-assessment-v2.js?v=20260910-assessment4");
       return;
     }
   } catch (error) {
