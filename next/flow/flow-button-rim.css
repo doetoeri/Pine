@@ -1,0 +1,202 @@
+/* PinCon Flow · Subtle Rim Button Material v4
+   Keep the HIG surfaces calm; reserve the reference-image treatment for controls. */
+:root{
+  --rim-border:rgba(76,91,78,.14);
+  --rim-border-soft:rgba(76,91,78,.09);
+  --rim-highlight:rgba(255,255,255,.92);
+  --rim-highlight-soft:rgba(255,255,255,.62);
+  --rim-shadow:0 2px 6px rgba(37,54,39,.065);
+  --rim-shadow-hover:0 4px 12px rgba(37,54,39,.085);
+}
+
+/* Undo the broad sculpted/neumorphic treatment. Surfaces return to calm HIG-like planes. */
+body{
+  background:radial-gradient(circle at 6% -2%,rgba(255,230,43,.10),transparent 27rem),
+             radial-gradient(circle at 96% 14%,rgba(73,215,22,.075),transparent 31rem),
+             #f4f6f1;
+}
+body::before{opacity:.18}
+
+.card,.week-day,.mission,.quick-action,.profile-gate{
+  border:1px solid rgba(65,81,67,.075);
+  background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(250,252,248,.90));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 10px 34px rgba(35,55,34,.055);
+}
+.card::before,.week-day::before,.mission::before,.quick-action::before,.profile-gate::before{display:none}
+
+.hero-day{
+  border:1px solid rgba(255,255,255,.78);
+  background:radial-gradient(circle at 87% 14%,rgba(255,230,43,.56),transparent 22%),
+             radial-gradient(circle at 73% 42%,rgba(73,215,22,.19),transparent 29%),
+             linear-gradient(145deg,#e6ffdc,#f8fbf4);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 22px 64px rgba(45,170,0,.09);
+}
+
+.topline{
+  border:1px solid rgba(255,255,255,.74);
+  background:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.12)),rgba(247,249,244,.78);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.78),0 12px 36px rgba(29,50,28,.075);
+  backdrop-filter:blur(26px) saturate(1.45);
+  -webkit-backdrop-filter:blur(26px) saturate(1.45);
+}
+body.is-scrolled .topline{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.84),0 14px 42px rgba(29,50,28,.10);
+}
+.topline__actions{
+  background:rgba(235,239,233,.66);
+  box-shadow:inset 0 0 0 1px rgba(62,75,61,.045);
+}
+
+.dock{
+  border:1px solid rgba(255,255,255,.78);
+  background:linear-gradient(180deg,rgba(255,255,255,.48),rgba(255,255,255,.14)),rgba(246,249,244,.80);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.86),0 20px 58px rgba(24,44,23,.15);
+  backdrop-filter:blur(28px) saturate(1.5);
+  -webkit-backdrop-filter:blur(28px) saturate(1.5);
+}
+
+.period,.task-row,.event,.dish,.subject-pill,.empty-state{
+  border:1px solid rgba(70,84,70,.055);
+  background:#f4f7f2;
+  box-shadow:none;
+}
+.period.is-now{
+  background:#172116;
+  color:#fff;
+  box-shadow:0 12px 30px rgba(23,33,22,.14),inset 0 1px 0 rgba(255,255,255,.10);
+}
+
+/* Reference-image treatment: only ordinary controls get the fine rim and top highlight. */
+.soft-button,
+.icon-button,
+.day-chip,
+.chip,
+.profile-fields button,
+.topline__actions .soft-button,
+.topline__actions .icon-button{
+  position:relative;
+  overflow:hidden;
+  border:1px solid var(--rim-border);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.88) 0,rgba(255,255,255,.42) 2px,rgba(255,255,255,0) 11px),
+    linear-gradient(180deg,#f7f9f5 0%,#eef2ec 100%);
+  color:#425047;
+  box-shadow:
+    inset 0 1px 0 var(--rim-highlight),
+    inset 0 -1px 0 rgba(48,65,51,.035),
+    var(--rim-shadow);
+}
+
+/* A very narrow highlight hugging the top edge, like the supplied reference. */
+.soft-button::before,
+.icon-button::before,
+.day-chip::before,
+.profile-fields button::before{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  left:10%;
+  right:10%;
+  top:1px;
+  height:1px;
+  border-radius:999px;
+  background:linear-gradient(90deg,transparent,var(--rim-highlight) 15%,#fff 50%,var(--rim-highlight) 85%,transparent);
+  opacity:.92;
+  transition:opacity .16s ease,transform .20s ease;
+}
+.icon-button::before{left:18%;right:18%}
+.day-chip::before{left:14%;right:14%}
+
+/* Segmented controls stay visually quieter but retain the same rim on the selected piece. */
+.filter-row{
+  background:rgba(226,231,223,.72);
+  border:1px solid rgba(66,81,67,.055);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.38);
+}
+.chip{
+  border:1px solid transparent;
+  background:transparent;
+  box-shadow:none;
+}
+.chip.is-active{
+  border-color:var(--rim-border-soft);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.92) 0,rgba(255,255,255,.38) 2px,transparent 10px),
+    rgba(255,255,255,.92);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.98),0 2px 7px rgba(28,42,27,.095);
+}
+
+.day-chip.is-selected{
+  border-color:rgba(17,25,18,.26);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.16) 0,rgba(255,255,255,.05) 2px,transparent 10px),
+    #172116;
+  color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 22px rgba(22,31,21,.14);
+  transform:none;
+}
+.day-chip.is-selected::before{opacity:.34}
+
+/* Bottom tab buttons get the same small rim only when selected. */
+.dock__item{
+  border:1px solid transparent;
+  box-shadow:none;
+  background:transparent;
+}
+.dock__item::before{
+  inset:3px;
+  border:1px solid transparent;
+  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(228,255,220,.82));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 4px 12px rgba(45,170,0,.08);
+}
+.dock__item.is-active::before{border-color:rgba(58,93,55,.10)}
+
+/* Pressed state: keep feedback, but do not turn it into deep neumorphism. */
+.soft-button.is-pressing,.icon-button.is-pressing,.day-chip.is-pressing,.chip.is-pressing,.profile-fields button.is-pressing,
+.soft-button:active,.icon-button:active,.day-chip:active,.chip:active,.profile-fields button:active{
+  transform:translateY(1px) scale(.982);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.42) 0,rgba(255,255,255,.10) 2px,transparent 9px),
+    linear-gradient(180deg,#edf1eb,#f4f6f1);
+  box-shadow:
+    inset 0 1px 3px rgba(55,70,57,.11),
+    inset 0 -1px 0 rgba(255,255,255,.70),
+    0 1px 2px rgba(35,52,37,.045)!important;
+}
+.soft-button.is-pressing::before,.icon-button.is-pressing::before,.day-chip.is-pressing::before,.profile-fields button.is-pressing::before,
+.soft-button:active::before,.icon-button:active::before,.day-chip:active::before,.profile-fields button:active::before{
+  opacity:.28;
+  transform:translateY(1px) scaleX(.96);
+}
+
+/* Remove v3's heavy raised hover. */
+@media(hover:hover) and (pointer:fine){
+  .soft-button:hover,.icon-button:hover,.day-chip:hover{
+    transform:translateY(-1px);
+    filter:none;
+    box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 rgba(48,65,51,.035),var(--rim-shadow-hover);
+  }
+  .meal-card:hover,.mission:hover,.quick-action:hover{
+    transform:translateY(-1px);
+    filter:brightness(1.004);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.94),0 14px 38px rgba(35,55,34,.075);
+  }
+  .task-row:hover,.event:hover{
+    background:#f1f5ef;
+    box-shadow:none;
+  }
+}
+
+@media(min-width:980px){
+  .desktop-rail{background:rgba(244,247,241,.58);box-shadow:none;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+  .desktop-rail nav button{
+    border:1px solid transparent;
+    background:transparent;
+    box-shadow:none;
+  }
+  .desktop-rail nav button.is-active{
+    border-color:var(--rim-border-soft);
+    background:linear-gradient(180deg,rgba(255,255,255,.90),rgba(247,249,245,.82));
+    box-shadow:inset 0 1px 0 #fff,0 3px 10px rgba(35,52,37,.065);
+  }
+}
