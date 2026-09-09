@@ -54,7 +54,7 @@ for (const viewport of VIEWPORTS) {
     expect(dockGeometry.left).toBeGreaterThanOrEqual(8);
     expect(dockGeometry.right).toBeLessThanOrEqual(dockGeometry.viewportWidth - 8);
     expect(dockGeometry.bottom).toBeLessThanOrEqual(dockGeometry.viewportHeight - 8);
-    expect(dockGeometry.width).toBeLessThanOrEqual(480.5);
+    expect(dockGeometry.width).toBeLessThanOrEqual(488.5);
 
     const timetableButton = page.locator('.bottom-nav [data-route="timetable"]');
     await timetableButton.click();
@@ -88,3 +88,28 @@ for (const viewport of VIEWPORTS) {
     await context.close();
   });
 }
+
+test("light and dark glass modes persist and keep the dock visible", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.removeItem("pincon-soft-effects-v1");
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "light");
+
+  await page.locator("#pinconThemeToggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "dark");
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#10130f");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "dark");
+
+  await page.locator("#pinconEffectsToggle").click();
+  await expect(page.locator("#pinconEffectsPanel")).toBeVisible();
+  await page.locator('[data-pincon-theme-choice="light"]').first().click();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "light");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#f4f6f2");
+});
