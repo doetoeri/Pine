@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260902-account-api2";
+const PINCON_SW_VERSION = "20260910-assessment-resilience1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}-offline3`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -20,6 +20,7 @@ const PINCON_NEXT_SHELL = [
   "./next/reveal-loader.js",
   "./next/first-login-onboarding.js",
   "./next/app-bootstrap.js",
+  "./next/loading-resilience.js",
   "./next/simple-account-gate.js",
   "./next/readonly-notice.js",
   "./next/route-focus-stability.js",
@@ -45,7 +46,12 @@ const PINCON_NEXT_SHELL = [
   "./next/core/today-changes.js",
   "./next/core/today-open-write.js",
   "./next/core/student-auth.js",
-  "./next/assets/pincon-icon.svg"
+  "./next/assets/pincon-icon.svg",
+  "./next/classroom/tv.html",
+  "./next/classroom/tv.css",
+  "./next/classroom/tv-entry-v2.js",
+  "./next/classroom/tv-assessment-v2.js",
+  "./next/classroom/tv.js"
 ];
 
 const PINCON_APP_SHELL = [
