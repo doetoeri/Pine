@@ -1,0 +1,44 @@
+/* Ultra-narrow dock containment for legacy/small viewports.
+ * Keeps all five routes visible without changing the 360px+ glass layout.
+ */
+@media (max-width: 320px) {
+  .bottom-nav {
+    width: calc(100% - 12px) !important;
+    padding: 4px !important;
+    gap: 1px !important;
+    border-radius: 24px !important;
+  }
+
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button {
+    min-width: 0 !important;
+    font-size: 9px !important;
+    letter-spacing: -.035em !important;
+
+    --md-text-button-leading-space: 1px;
+    --md-text-button-trailing-space: 1px;
+    --md-text-button-with-leading-icon-leading-space: 1px;
+    --md-text-button-with-leading-icon-trailing-space: 1px;
+    --md-text-button-icon-spacing: 1px;
+    --md-text-button-icon-size: 17px;
+
+    --md-filled-tonal-button-leading-space: 1px;
+    --md-filled-tonal-button-trailing-space: 1px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 1px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 1px;
+    --md-filled-tonal-button-icon-spacing: 1px;
+    --md-filled-tonal-button-icon-size: 17px;
+  }
+
+  .bottom-nav md-icon {
+    inline-size: 17px !important;
+    width: 17px !important;
+    min-width: 17px !important;
+    max-width: 17px !important;
+    block-size: 17px !important;
+    height: 17px !important;
+    font-size: 17px !important;
+    line-height: 17px !important;
+    flex: 0 0 17px !important;
+  }
+}
