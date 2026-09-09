@@ -18,7 +18,7 @@ if (!snapshot.canArchiveContent) {
   await import("./content-editor-v2.js?v=20260903-ops2");
   await import("./evaluation-plan-media.js?v=20260831-media2");
   await import("./daily-brief-image.js?v=20260831-daily2");
-  await import("./personal-notifications.js?v=20260830-personal1");
+  await import("./personal-notifications.js?v=20260910-broadcast1");
   await import("./user-manager.js?v=20260903-pinless1");
   await import("./classroom-role-augment.js?v=20260906-officer1");
   await import("./account-create-v2.js?v=20260903-identity2");
@@ -29,7 +29,7 @@ if (!snapshot.canArchiveContent) {
   await import("./class-ops-settings-v2.js");
   await import("./classroom-layout-v2.js?v=20260906-layout4");
   await import("./classroom-layout-manual.js?v=20260909-manual1");
-  await import("./classroom-assessment-v3.js?v=20260909-assessment3");
+  await import("./classroom-assessment-v4.js?v=20260910-assessment4");
   await import("./classroom-group-freeform.js?v=20260909-freegroup1");
   await import("./classroom-group-real-rotation.js?v=20260909-realrotate2");
   await import("./classroom-nominations-v2.js?v=20260906-officer1");
