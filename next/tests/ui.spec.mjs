@@ -10,6 +10,7 @@ const VIEWPORTS = [
   { width: 839, height: 900 },
   { width: 840, height: 900 },
   { width: 1024, height: 768 },
+  { width: 1440, height: 900 },
 ];
 
 async function ariaCurrent(locator) {
@@ -20,7 +21,7 @@ async function ariaCurrent(locator) {
 }
 
 for (const viewport of VIEWPORTS) {
-  test(`responsive shell ${viewport.width}x${viewport.height}`, async ({ browser }) => {
+  test(`responsive soft shell ${viewport.width}x${viewport.height}`, async ({ browser }) => {
     const context = await browser.newContext({ viewport });
     const page = await context.newPage();
     await page.addInitScript(() => {
@@ -30,88 +31,32 @@ for (const viewport of VIEWPORTS) {
     await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
     await expect(page.locator(".shell")).toBeVisible();
     await expect(page.locator("#today-title")).toBeVisible();
+    await expect(page.locator(".bottom-nav")).toBeVisible();
+    await expect(page.locator(".rail")).toBeHidden();
 
     const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(hasHorizontalOverflow).toBe(false);
 
-    if (viewport.width < 600) {
-      await expect(page.locator(".bottom-nav")).toBeVisible();
-      await expect(page.locator(".rail")).toBeHidden();
+    const dockGeometry = await page.evaluate(() => {
+      const dock = document.querySelector(".bottom-nav")?.getBoundingClientRect();
+      if (!dock) return null;
+      return {
+        left: dock.left,
+        right: dock.right,
+        top: dock.top,
+        bottom: dock.bottom,
+        width: dock.width,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+      };
+    });
+    expect(dockGeometry).not.toBeNull();
+    expect(dockGeometry.left).toBeGreaterThanOrEqual(8);
+    expect(dockGeometry.right).toBeLessThanOrEqual(dockGeometry.viewportWidth - 8);
+    expect(dockGeometry.bottom).toBeLessThanOrEqual(dockGeometry.viewportHeight - 8);
+    expect(dockGeometry.width).toBeLessThanOrEqual(488.5);
 
-      const dockGeometry = await page.evaluate(() => {
-        const dock = document.querySelector(".bottom-nav")?.getBoundingClientRect();
-        if (!dock) return null;
-        return {
-          left: dock.left,
-          right: dock.right,
-          bottom: dock.bottom,
-          width: dock.width,
-          viewportWidth: window.innerWidth,
-          viewportHeight: window.innerHeight,
-        };
-      });
-      expect(dockGeometry).not.toBeNull();
-      expect(dockGeometry.left).toBeGreaterThanOrEqual(8);
-      expect(dockGeometry.right).toBeLessThanOrEqual(dockGeometry.viewportWidth - 8);
-      expect(dockGeometry.bottom).toBeLessThanOrEqual(dockGeometry.viewportHeight - 8);
-    } else {
-      await expect(page.locator(".rail")).toBeVisible();
-      await expect(page.locator(".bottom-nav")).toBeHidden();
-
-      const railClearance = await page.evaluate(() => {
-        const rail = document.querySelector(".rail")?.getBoundingClientRect();
-        const frame = document.querySelector(".app-frame")?.getBoundingClientRect();
-        if (!rail || !frame) return -1;
-        return frame.left - rail.right;
-      });
-      expect(railClearance).toBeGreaterThanOrEqual(8);
-
-      const floatingGeometry = await page.evaluate(() => {
-        const rail = document.querySelector(".rail")?.getBoundingClientRect();
-        if (!rail) return null;
-        return {
-          left: rail.left,
-          top: rail.top,
-          right: rail.right,
-          bottom: rail.bottom,
-          viewportWidth: window.innerWidth,
-          viewportHeight: window.innerHeight,
-        };
-      });
-      expect(floatingGeometry).not.toBeNull();
-      expect(floatingGeometry.left).toBeGreaterThanOrEqual(8);
-      expect(floatingGeometry.top).toBeGreaterThanOrEqual(8);
-      expect(floatingGeometry.right).toBeLessThanOrEqual(floatingGeometry.viewportWidth - 8);
-      expect(floatingGeometry.bottom).toBeLessThanOrEqual(floatingGeometry.viewportHeight - 8);
-
-      if (viewport.width < 840) {
-        const iconGeometry = await page.evaluate(() => {
-          const rail = document.querySelector(".rail")?.getBoundingClientRect();
-          if (!rail) return [];
-          return [...document.querySelectorAll(".rail__nav [data-route]")].map((control) => {
-            const host = control.getBoundingClientRect();
-            const icon = control.querySelector("md-icon")?.getBoundingClientRect();
-            return {
-              railLeft: rail.left,
-              railRight: rail.right,
-              hostLeft: host.left,
-              hostRight: host.right,
-              iconLeft: icon?.left ?? -1,
-              iconRight: icon?.right ?? -1,
-            };
-          });
-        });
-        expect(iconGeometry).toHaveLength(5);
-        for (const item of iconGeometry) {
-          expect(item.hostLeft).toBeGreaterThanOrEqual(item.railLeft + 4);
-          expect(item.hostRight).toBeLessThanOrEqual(item.railRight - 4);
-          expect(item.iconLeft).toBeGreaterThanOrEqual(item.railLeft + 4);
-          expect(item.iconRight).toBeLessThanOrEqual(item.railRight - 4);
-        }
-      }
-    }
-
-    const timetableButton = page.locator('[data-route="timetable"]').nth(viewport.width < 600 ? 1 : 0);
+    const timetableButton = page.locator('.bottom-nav [data-route="timetable"]');
     await timetableButton.click();
     await expect(page.locator("#timetable-title")).toBeVisible();
     await expect(page.locator("#today-title")).toHaveCount(0);
@@ -122,21 +67,52 @@ for (const viewport of VIEWPORTS) {
     await page.keyboard.press("Escape");
     await expect(page.locator("#searchDialog")).toBeHidden();
 
-    if (viewport.width < 600) {
-      const moreButton = page.locator('[data-route="more"]').nth(1);
-      await moreButton.click();
-      await expect(page.locator("#more-title")).toBeVisible();
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-      const clearance = await page.evaluate(() => {
-        const nav = document.querySelector(".bottom-nav")?.getBoundingClientRect();
-        const surfaces = [...document.querySelectorAll("#mainContent .surface")];
-        const last = surfaces.at(-1)?.getBoundingClientRect();
-        if (!nav || !last) return 0;
-        return nav.top - last.bottom;
-      });
-      expect(clearance).toBeGreaterThanOrEqual(8);
-    }
+    const moreButton = page.locator('.bottom-nav [data-route="more"]');
+    await moreButton.click();
+    await expect(page.locator("#more-title")).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const clearance = await page.evaluate(() => {
+      const nav = document.querySelector(".bottom-nav")?.getBoundingClientRect();
+      const visible = [...document.querySelectorAll("#mainContent .surface, #mainContent .pincon-effects-settings")]
+        .filter((node) => {
+          const style = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          return style.display !== "none" && style.visibility !== "hidden" && rect.height > 0;
+        });
+      const last = visible.at(-1)?.getBoundingClientRect();
+      if (!nav || !last) return 0;
+      return nav.top - last.bottom;
+    });
+    expect(clearance).toBeGreaterThanOrEqual(8);
 
     await context.close();
   });
 }
+
+test("light and dark glass modes persist and keep the dock visible", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    if (!sessionStorage.getItem("pincon-theme-test-initialized")) {
+      localStorage.removeItem("pincon-soft-effects-v1");
+      sessionStorage.setItem("pincon-theme-test-initialized", "1");
+    }
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "light");
+
+  await page.locator("#pinconThemeToggle").click();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "dark");
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#10130f");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "dark");
+
+  await page.locator("#pinconEffectsToggle").click();
+  await expect(page.locator("#pinconEffectsPanel")).toBeVisible();
+  await page.locator('[data-pincon-theme-choice="light"]').first().click();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "light");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#f4f6f2");
+});
