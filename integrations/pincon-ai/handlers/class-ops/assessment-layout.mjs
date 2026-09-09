@@ -12,6 +12,7 @@ import { jsonBody, sendJson } from "../../lib/request.mjs";
 
 const LINES = 5;
 const LABEL_MODES = new Set(["student", "desk", "both"]);
+const MAX_DUMMIES = 20;
 
 function deny(message = "assessment-layout-access-denied") {
   throw Object.assign(new Error(message), { status: 403 });
@@ -40,6 +41,7 @@ function sortedRoster(users = []) {
       name: safeText(student.name, 40),
       number: Number(student.number) || 0,
       studentNumber: safeText(student.studentNumber, 30),
+      dummy: false,
     }))
     .filter((student) => student.uid)
     .sort((a, b) => {
@@ -53,8 +55,79 @@ function normalizeLabelMode(value) {
   return LABEL_MODES.has(String(value || "")) ? String(value) : "both";
 }
 
-function normalizeDeskOwners(value, seatOrder, slotCount) {
-  const known = new Set(seatOrder);
+function dummyId(value, index) {
+  const raw = String(value || "").trim();
+  if (/^dummy-[a-zA-Z0-9_-]{1,80}$/.test(raw)) return raw;
+  return `dummy-${Date.now().toString(36)}-${index}`;
+}
+
+function normalizeDummies(value = []) {
+  if (!Array.isArray(value)) return [];
+  const used = new Set();
+  const result = [];
+  for (let index = 0; index < value.slice(0, MAX_DUMMIES).length; index += 1) {
+    const item = value[index] || {};
+    let id = dummyId(item.id, index);
+    while (used.has(id)) id = `${id}-${index}`;
+    used.add(id);
+    result.push({
+      id,
+      uid: id,
+      name: safeText(item.name, 40) || `가상 자리 ${index + 1}`,
+      slotIndex: Math.max(0, Math.trunc(Number(item.slotIndex) || 0)),
+      dummy: true,
+      number: 0,
+      studentNumber: "",
+    });
+  }
+  return result;
+}
+
+function slotCountFor(realCount, dummies = []) {
+  const occupants = Math.max(1, Number(realCount || 0) + dummies.length);
+  const requestedMax = dummies.reduce((max, item) => Math.max(max, Number(item.slotIndex || 0) + 1), 0);
+  const needed = Math.max(occupants, requestedMax, LINES);
+  return Math.ceil(needed / LINES) * LINES;
+}
+
+function verticalIndexes(slotCount) {
+  const rows = Math.max(1, Math.ceil(slotCount / LINES));
+  const indexes = [];
+  for (let column = 0; column < LINES; column += 1) {
+    for (let row = 0; row < rows; row += 1) {
+      const index = row * LINES + column;
+      if (index < slotCount) indexes.push(index);
+    }
+  }
+  return indexes;
+}
+
+function buildSeatOrder(realRoster, dummies, slotCount) {
+  const result = Array(slotCount).fill("");
+  const occupied = new Set();
+  const order = verticalIndexes(slotCount);
+
+  for (const dummy of dummies) {
+    let target = Math.max(0, Math.min(slotCount - 1, Number(dummy.slotIndex || 0)));
+    if (occupied.has(target)) target = order.find((index) => !occupied.has(index)) ?? target;
+    result[target] = dummy.uid;
+    dummy.slotIndex = target;
+    occupied.add(target);
+  }
+
+  let cursor = 0;
+  for (const index of order) {
+    if (occupied.has(index)) continue;
+    const student = realRoster[cursor];
+    if (!student) break;
+    result[index] = student.uid;
+    cursor += 1;
+  }
+  return result;
+}
+
+function normalizeDeskOwners(value, validIds, slotCount) {
+  const known = new Set(validIds);
   const result = Array(slotCount).fill("");
   const used = new Set();
 
@@ -67,7 +140,7 @@ function normalizeDeskOwners(value, seatOrder, slotCount) {
     });
   }
 
-  const missing = seatOrder.filter((uid) => !used.has(uid));
+  const missing = validIds.filter((uid) => !used.has(uid));
   let cursor = 0;
   for (let index = 0; index < result.length && cursor < missing.length; index += 1) {
     if (result[index]) continue;
@@ -77,28 +150,33 @@ function normalizeDeskOwners(value, seatOrder, slotCount) {
   return result;
 }
 
-async function context(actor, requestedClassKey = "") {
+async function context(actor, requestedClassKey = "", override = null) {
   if (!canViewClassroomLayout(actor)) deny();
   const classKey = targetClassKey(actor, requestedClassKey);
   const [users, snapshot] = await Promise.all([
     classUsers(classKey),
     document("assessmentLayouts", classKey).get(),
   ]);
-  const roster = sortedRoster(users);
-  const seatOrder = roster.map((student) => student.uid);
-  const slotCount = Math.max(LINES, Math.ceil(Math.max(1, seatOrder.length) / LINES) * LINES);
   const raw = snapshot.exists ? snapshot.data() : {};
+  const realRoster = sortedRoster(users);
+  const dummies = normalizeDummies(override?.dummies ?? raw.dummies ?? []);
+  const slotCount = slotCountFor(realRoster.length, dummies);
+  const seatOrder = buildSeatOrder(realRoster, dummies, slotCount);
+  const roster = [...realRoster, ...dummies];
+  const validIds = seatOrder.filter(Boolean);
   const assessmentPlan = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     lines: LINES,
+    numberingMode: "vertical",
     seatOrder,
     slotCount,
-    deskOwners: normalizeDeskOwners(raw.deskOwners, seatOrder, slotCount),
-    tvLabelMode: normalizeLabelMode(raw.tvLabelMode),
+    dummies: dummies.map(({ id, name, slotIndex }) => ({ id, name, slotIndex })),
+    deskOwners: normalizeDeskOwners(override?.deskOwners ?? raw.deskOwners, validIds, slotCount),
+    tvLabelMode: normalizeLabelMode(override?.tvLabelMode ?? raw.tvLabelMode),
     updatedAtMs: Number(raw.updatedAtMs || 0),
     updatedByName: safeText(raw.updatedByName, 40),
   };
-  return { classKey, roster, assessmentPlan, raw };
+  return { classKey, roster, realRoster, dummies, assessmentPlan, raw };
 }
 
 async function getView(actor, requestedClassKey = "") {
@@ -116,13 +194,19 @@ async function getView(actor, requestedClassKey = "") {
 
 async function save(actor, body) {
   if (!isClassOperator(actor)) deny("class-operator-required");
-  const { classKey, roster, assessmentPlan, raw } = await context(actor, body.classKey);
+  const { classKey, roster, assessmentPlan, raw } = await context(actor, body.classKey, {
+    dummies: body.dummies,
+    deskOwners: body.deskOwners,
+    tvLabelMode: body.tvLabelMode,
+  });
   const after = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     classKey,
     lines: LINES,
-    deskOwners: normalizeDeskOwners(body.deskOwners, assessmentPlan.seatOrder, assessmentPlan.slotCount),
-    tvLabelMode: normalizeLabelMode(body.tvLabelMode),
+    numberingMode: "vertical",
+    dummies: assessmentPlan.dummies,
+    deskOwners: assessmentPlan.deskOwners,
+    tvLabelMode: assessmentPlan.tvLabelMode,
     updatedAtMs: Date.now(),
     updatedByUid: actor.uid,
     updatedByName: safeText(actor.name, 40),
@@ -141,8 +225,6 @@ async function save(actor, body) {
     roster,
     assessmentPlan: {
       ...assessmentPlan,
-      deskOwners: after.deskOwners,
-      tvLabelMode: after.tvLabelMode,
       updatedAtMs: after.updatedAtMs,
       updatedByName: after.updatedByName,
     },
