@@ -29,21 +29,22 @@ test("mobile header keeps PinCon Beta and shows the class tagline separately", a
   await context.close();
 });
 
-test("desktop floating brand uses the same class brand tagline", async ({ browser }) => {
+test("desktop compact header uses the same class brand tagline", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1024, height: 768 } });
   const page = await context.newPage();
   await seedClass(page, "우리 반 허브");
   await page.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
 
-  await expect(page.locator(".rail")).toBeVisible();
-  const tagline = page.locator(".rail__tagline");
+  await expect(page.locator(".rail")).toBeHidden();
+  await expect(page.locator(".bottom-nav")).toBeVisible();
+  const tagline = page.locator(".topbar .brand__tagline");
   await expect(tagline).toBeVisible();
   await expect(tagline).toHaveText("우리 반 허브");
 
   const contained = await page.evaluate(() => {
-    const rail = document.querySelector(".rail")?.getBoundingClientRect();
-    const tag = document.querySelector(".rail__tagline")?.getBoundingClientRect();
-    return Boolean(rail && tag && tag.left >= rail.left && tag.right <= rail.right);
+    const header = document.querySelector(".topbar")?.getBoundingClientRect();
+    const tag = document.querySelector(".topbar .brand__tagline")?.getBoundingClientRect();
+    return Boolean(header && tag && tag.left >= header.left && tag.right <= header.right);
   });
   expect(contained).toBe(true);
   await context.close();
