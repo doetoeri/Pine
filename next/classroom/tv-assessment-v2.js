@@ -6,6 +6,7 @@ const reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)
 const POLL_MS = 15000;
 const FADE_OUT_MS = 180;
 const FADE_IN_MS = 200;
+const ASSESSMENT_LINES = 5;
 
 let classroomView = null;
 let assessmentView = null;
@@ -28,18 +29,18 @@ function installStyles() {
   const style = document.createElement("style");
   style.id = "pinconAssessmentTvStyles";
   style.textContent = `
-    .tv-assessment-move{display:grid;align-content:center;gap:1.1vw}
+    .tv-assessment-move{display:grid;align-content:center;gap:.8vw;padding:2.2vw 3vw}
     .tv-assessment-step{margin:0;color:var(--accent);font-size:clamp(15px,1vw,20px);font-weight:800}
-    .tv-assessment-move h1{margin:.2vw 0 1vw;font-size:clamp(46px,4.6vw,88px);line-height:1.03;letter-spacing:-.055em}
-    .tv-assessment-card{width:min(92vw,1320px);margin:0 auto;padding:1.05vw 1.4vw;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left}
-    .tv-assessment-card>small{display:block;color:var(--muted);font-size:clamp(13px,.9vw,18px);font-weight:750}
-    .tv-assessment-card .tv-route{margin:.55vw 0 0;justify-content:flex-start;gap:1.2vw;font-size:clamp(24px,2.25vw,44px);max-width:none}
-    .tv-assessment-seat-note{margin:.5vw 0 0;color:var(--muted);font-size:clamp(14px,1vw,20px);font-weight:600}
-    .tv-assessment-final .tv-seat{padding:.35vw .45vw}
-    .tv-assessment-final .tv-seat .seat-no{margin-bottom:.12vw;color:var(--accent);font-size:clamp(9px,.62vw,12px);font-weight:800}
-    .tv-assessment-final .tv-seat strong{font-size:clamp(12px,1vw,19px)}
-    .tv-assessment-final .tv-seat .desk-owner{margin-top:.16vw;margin-bottom:0;font-size:clamp(9px,.67vw,13px)}
-    @media(max-aspect-ratio:4/3){.tv-assessment-card{padding:1.2vh 1.5vw}.tv-assessment-card .tv-route{font-size:clamp(21px,2.7vw,38px)}}
+    .tv-assessment-move h1{margin:.1vw 0 .5vw;font-size:clamp(40px,4vw,76px);line-height:1.03;letter-spacing:-.055em}
+    .tv-assessment-map{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:1.1vw;align-items:center;width:min(95vw,1500px);margin:0 auto}
+    .tv-assessment-map-side{display:grid;gap:.45vw}.tv-assessment-map-side>strong{text-align:center;font-size:clamp(14px,1.05vw,21px)}
+    .tv-assessment-mini-grid{display:grid;gap:.28vw}.tv-assessment-mini-seat{min-height:clamp(34px,4.4vh,62px);border:1px solid var(--line);border-radius:8px;background:var(--surface);display:grid;place-items:center;padding:.25vw;text-align:center;font-size:clamp(8px,.64vw,12px);line-height:1.15;color:var(--muted)}
+    .tv-assessment-mini-seat.is-active{outline:clamp(2px,.24vw,4px) solid var(--accent);outline-offset:1px;background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--text);font-weight:850}
+    .tv-assessment-map-arrow{font-size:clamp(34px,4vw,72px);color:var(--accent);font-weight:300}
+    .tv-assessment-route-line{margin:.2vw auto 0;text-align:center;font-size:clamp(18px,1.6vw,31px);font-weight:800}.tv-assessment-seat-line{margin:0 auto;text-align:center;color:var(--muted);font-size:clamp(14px,1.05vw,21px);font-weight:650}
+    .tv-assessment-final .tv-seat{padding:.35vw .45vw}.tv-assessment-final .tv-seat[data-dummy='true']{border-style:dashed}
+    .tv-assessment-final .tv-seat .seat-no{margin-bottom:.12vw;color:var(--accent);font-size:clamp(9px,.62vw,12px);font-weight:800}.tv-assessment-final .tv-seat strong{font-size:clamp(12px,1vw,19px)}.tv-assessment-final .tv-seat .desk-owner{margin-top:.16vw;margin-bottom:0;font-size:clamp(9px,.67vw,13px)}
+    @media(max-aspect-ratio:4/3){.tv-assessment-map{gap:.65vw}.tv-assessment-mini-seat{min-height:34px}.tv-assessment-move{padding:1.5vw}.tv-assessment-move h1{font-size:clamp(34px,4.5vw,64px)}}
   `;
   document.head.appendChild(style);
 }
@@ -63,7 +64,7 @@ function durations() {
   const display = classroomView?.classroomLayout?.display || {};
   return {
     intro: Math.max(2, Math.min(5, Number(display.idleSeconds) || 3)),
-    move: Math.max(2, Math.min(12, Number(display.stepSeconds) || 5)),
+    move: Math.max(3, Math.min(15, Number(display.stepSeconds) || 6)),
     final: Math.max(4, Math.min(20, Number(display.finalSeconds) || 8)),
   };
 }
@@ -72,8 +73,12 @@ function roster() {
   return Array.isArray(assessmentView?.roster) ? assessmentView.roster : [];
 }
 
+function realRoster() {
+  return roster().filter((item) => !item.dummy);
+}
+
 function plan() {
-  return assessmentView?.assessmentPlan || { lines: 5, seatOrder: [], deskOwners: [], slotCount: 5, tvLabelMode: "both" };
+  return assessmentView?.assessmentPlan || { lines: 5, numberingMode: "vertical", seatOrder: [], deskOwners: [], slotCount: 5, tvLabelMode: "both", dummies: [] };
 }
 
 function student(uid) {
@@ -82,13 +87,22 @@ function student(uid) {
 
 function studentLabel(uid) {
   const item = student(uid);
-  return item ? `${Number(item.number) || "-"}번 ${item.name || "이름 없음"}` : "빈자리";
+  if (!item) return "빈자리";
+  if (item.dummy) return `가상 · ${item.name || "자리"}`;
+  return `${Number(item.number) || "-"}번 ${item.name || "이름 없음"}`;
 }
 
-function sourceDeskLabel(uid) {
-  const seats = classroomView?.classroomLayout?.general?.seats || [];
-  const index = seats.findIndex((value) => value === uid);
-  return index >= 0 ? `일반 자리 ${index + 1}` : "현재 책상 위치";
+function sourceSeats() {
+  return classroomView?.classroomLayout?.general?.seats || [];
+}
+
+function sourceLines() {
+  const value = Number(classroomView?.classroomLayout?.general?.lines || 5);
+  return Number.isInteger(value) && value >= 3 && value <= 8 ? value : 5;
+}
+
+function sourceDeskIndex(uid) {
+  return sourceSeats().findIndex((value) => value === uid);
 }
 
 function seatTargetIndex(uid) {
@@ -97,6 +111,11 @@ function seatTargetIndex(uid) {
 
 function deskTargetIndex(uid) {
   return (plan().deskOwners || []).findIndex((value) => value === uid);
+}
+
+function coordinate(index, lines) {
+  if (index < 0) return "위치 미정";
+  return `${(index % lines) + 1}열 ${Math.floor(index / lines) + 1}행`;
 }
 
 async function transition(html, key, { instant = false } = {}) {
@@ -118,42 +137,58 @@ async function transition(html, key, { instant = false } = {}) {
 }
 
 function introMarkup() {
-  return `<section class="tv-screen tv-intro"><p class="tv-kicker">PINCON · 수행평가</p><h1>${esc(scene().message || "번호순으로 이동해주세요.")}</h1></section>`;
+  return `<section class="tv-screen tv-intro"><p class="tv-kicker">PINCON · 수행평가</p><h1>${esc(scene().message || "번호순으로 이동해주세요.")}</h1><p>번호는 각 세로줄에서 위에서 아래로 증가합니다.</p></section>`;
+}
+
+function miniGrid(seats, activeUid, lines, slotCount = seats.length) {
+  const count = Math.max(lines, Math.ceil(Math.max(1, slotCount) / lines) * lines);
+  return Array.from({ length: count }, (_, index) => {
+    const uid = seats[index] || "";
+    const active = uid && uid === activeUid;
+    const item = student(uid);
+    const text = uid ? (item?.dummy ? "가상" : `${Number(item?.number) || "-"}번`) : "·";
+    return `<div class="tv-assessment-mini-seat ${active ? "is-active" : ""}">${esc(text)}</div>`;
+  }).join("");
 }
 
 function movementMarkup(item, index) {
+  const sourceIndex = sourceDeskIndex(item.uid);
   const deskTarget = deskTargetIndex(item.uid);
   const seatTarget = seatTargetIndex(item.uid);
   const seatDeskOwner = seatTarget >= 0 ? plan().deskOwners?.[seatTarget] || "" : "";
-  const deskDestination = deskTarget >= 0 ? `수행평가 자리 ${deskTarget + 1}` : "책상 이동 없음";
-  const seatDestination = seatTarget >= 0 ? `수행평가 자리 ${seatTarget + 1}` : "착석 자리 미정";
+  const sourceCols = sourceLines();
+  const sourceText = sourceIndex >= 0 ? `기본 ${coordinate(sourceIndex, sourceCols)}` : "기본 위치 미정";
+  const deskText = deskTarget >= 0 ? `수행평가 ${coordinate(deskTarget, ASSESSMENT_LINES)}` : "책상 이동 없음";
+  const seatText = seatTarget >= 0 ? `수행평가 ${coordinate(seatTarget, ASSESSMENT_LINES)}` : "착석 자리 미정";
   const ownerNote = seatDeskOwner ? `${studentLabel(seatDeskOwner)}의 책상` : "책상 없음";
   return `<section class="tv-screen tv-assessment-move">
-    <p class="tv-assessment-step">${index + 1} / ${roster().length}</p>
+    <p class="tv-assessment-step">${index + 1} / ${realRoster().length}</p>
     <h1>${esc(studentLabel(item.uid))}</h1>
-    <div class="tv-assessment-card"><small>① 내 책상 옮기기</small><div class="tv-route"><span>${esc(sourceDeskLabel(item.uid))}</span><b>→</b><span>${esc(deskDestination)}</span></div></div>
-    <div class="tv-assessment-card"><small>② 내가 앉을 곳</small><div class="tv-route"><span>${esc(studentLabel(item.uid))}</span><b>→</b><span>${esc(seatDestination)}</span></div><p class="tv-assessment-seat-note">그 자리의 책상: ${esc(ownerNote)}</p></div>
+    <div class="tv-assessment-map">
+      <div class="tv-assessment-map-side"><strong>현재 기본 책상</strong><div class="tv-assessment-mini-grid" style="grid-template-columns:repeat(${sourceCols},minmax(0,1fr))">${miniGrid(sourceSeats(), item.uid, sourceCols, sourceSeats().length)}</div></div>
+      <div class="tv-assessment-map-arrow">→</div>
+      <div class="tv-assessment-map-side"><strong>옮길 수행평가 책상 위치</strong><div class="tv-assessment-mini-grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">${miniGrid(plan().deskOwners || [], item.uid, ASSESSMENT_LINES, Number(plan().slotCount || 5))}</div></div>
+    </div>
+    <p class="tv-assessment-route-line">내 책상 · ${esc(sourceText)} → ${esc(deskText)}</p>
+    <p class="tv-assessment-seat-line">내가 앉을 곳 · ${esc(seatText)} · 그 자리 책상: ${esc(ownerNote)}</p>
   </section>`;
 }
 
 function finalCell(index) {
   const sitterUid = plan().seatOrder?.[index] || "";
   const ownerUid = plan().deskOwners?.[index] || "";
+  const sitter = student(sitterUid);
   const mode = ["student", "desk", "both"].includes(plan().tvLabelMode) ? plan().tvLabelMode : "both";
-  if (!sitterUid && !ownerUid) return `<div class="tv-seat is-empty"><span class="seat-no">${index + 1}</span></div>`;
-  if (mode === "student") {
-    return `<div class="tv-seat"><span class="seat-no">${index + 1}번 자리</span><strong>${esc(studentLabel(sitterUid))}</strong></div>`;
-  }
-  if (mode === "desk") {
-    return `<div class="tv-seat"><span class="seat-no">${index + 1}번 자리</span><strong>${esc(studentLabel(ownerUid))}</strong><small class="desk-owner">책상 주인</small></div>`;
-  }
-  return `<div class="tv-seat"><span class="seat-no">${index + 1}번 자리</span><strong>앉는 사람 · ${esc(studentLabel(sitterUid))}</strong><small class="desk-owner">책상 · ${esc(studentLabel(ownerUid))}</small></div>`;
+  if (!sitterUid && !ownerUid) return `<div class="tv-seat is-empty"><span class="seat-no">${coordinate(index, 5)}</span></div>`;
+  if (mode === "student") return `<div class="tv-seat" data-dummy="${sitter?.dummy === true}"><span class="seat-no">${coordinate(index, 5)}</span><strong>${esc(studentLabel(sitterUid))}</strong></div>`;
+  if (mode === "desk") return `<div class="tv-seat" data-dummy="${sitter?.dummy === true}"><span class="seat-no">${coordinate(index, 5)}</span><strong>${esc(studentLabel(ownerUid))}</strong><small class="desk-owner">책상 주인</small></div>`;
+  return `<div class="tv-seat" data-dummy="${sitter?.dummy === true}"><span class="seat-no">${coordinate(index, 5)}</span><strong>앉는 사람 · ${esc(studentLabel(sitterUid))}</strong><small class="desk-owner">책상 · ${esc(studentLabel(ownerUid))}</small></div>`;
 }
 
 function finalMarkup() {
   const slotCount = Number(plan().slotCount || 5);
   const cells = Array.from({ length: slotCount }, (_, index) => finalCell(index)).join("");
-  return `<section class="tv-screen tv-final tv-assessment-final"><header class="tv-final-head"><div><p class="tv-kicker">PINCON · 수행평가</p><h1>5줄 · 번호순 최종 자리</h1></div><div class="tv-teacher">교탁</div></header><div class="tv-room" style="grid-template-columns:repeat(5,minmax(0,1fr))">${cells}</div></section>`;
+  return `<section class="tv-screen tv-final tv-assessment-final"><header class="tv-final-head"><div><p class="tv-kicker">PINCON · 수행평가</p><h1>5줄 · 세로 번호순 최종 자리</h1></div><div class="tv-teacher">교탁</div></header><div class="tv-room" style="grid-template-columns:repeat(5,minmax(0,1fr))">${cells}</div></section>`;
 }
 
 function waitingMarkup(milliseconds) {
@@ -171,7 +206,6 @@ async function waitUntilGuide(flowId) {
   if (!Number.isFinite(start.getTime())) return true;
   const guideAt = start.getTime() - Number(current.leadMinutes || 0) * 60000;
   if (guideAt <= Date.now()) return true;
-
   while (flowId === flowToken && Date.now() < guideAt) {
     const remaining = guideAt - Date.now();
     await transition(waitingMarkup(remaining), `waiting:${sceneKey()}`);
@@ -184,21 +218,18 @@ async function runFlow() {
   const id = ++flowToken;
   if (!(await waitUntilGuide(id))) return;
   const timing = durations();
-
   while (id === flowToken) {
     await transition(introMarkup(), `intro:${sceneKey()}`);
     await sleep(timing.intro * 1000);
     if (id !== flowToken) return;
-
     if (scene().showMovement !== false) {
-      for (let index = 0; index < roster().length; index += 1) {
+      const students = realRoster();
+      for (let index = 0; index < students.length; index += 1) {
         if (id !== flowToken) return;
-        const item = roster()[index];
-        await transition(movementMarkup(item, index), `movement:${item.uid}:${index}`);
+        await transition(movementMarkup(students[index], index), `movement:${students[index].uid}:${index}`);
         await sleep(timing.move * 1000);
       }
     }
-
     if (id !== flowToken) return;
     await transition(finalMarkup(), `final:${plan().updatedAtMs}:${plan().tvLabelMode}`);
     await sleep(timing.final * 1000);
@@ -206,12 +237,7 @@ async function runFlow() {
 }
 
 function signature() {
-  return JSON.stringify({
-    sceneKey: sceneKey(),
-    scene: scene(),
-    assessment: plan(),
-    generalSeats: classroomView?.classroomLayout?.general?.seats || [],
-  });
+  return JSON.stringify({ sceneKey: sceneKey(), scene: scene(), assessment: plan(), generalSeats: sourceSeats() });
 }
 
 async function refresh({ restart = false } = {}) {
@@ -221,12 +247,10 @@ async function refresh({ restart = false } = {}) {
   ]);
   classroomView = nextClassroom;
   assessmentView = nextAssessment;
-
-  if (scene().targetMode !== "assessment") {
+  if (scene().targetMode !== "assessment" && forcedScene !== "assessment") {
     location.reload();
     return;
   }
-
   const nextSignature = signature();
   if (restart || nextSignature !== lastSignature) {
     lastSignature = nextSignature;
