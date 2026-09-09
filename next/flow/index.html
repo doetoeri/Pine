@@ -19,7 +19,7 @@
 <body>
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
-    <div><strong>PinCon Flow</strong><span>오늘을 정리하는 중</span></div>
+    <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
   </div>
 
   <div id="flowApp"></div>
@@ -33,6 +33,28 @@
   </dialog>
 
   <noscript>PinCon Flow를 사용하려면 JavaScript가 필요합니다.</noscript>
-  <script type="module" src="./flow.js?v=20260909-1"></script>
+
+  <script>
+    (() => {
+      const timer = setTimeout(() => {
+        const boot = document.getElementById("flowBoot");
+        const app = document.getElementById("flowApp");
+        const text = document.getElementById("flowBootText");
+        if (!boot || boot.classList.contains("is-hidden")) return;
+        if (text) text.textContent = "불러오기에 실패했습니다";
+        if (app && !app.children.length) {
+          app.innerHTML = `<main class="profile-gate">
+            <img src="../assets/pincon-icon.svg" alt="PinCon" />
+            <h1>Flow를 열지 못했습니다.</h1>
+            <p>베타 화면을 불러오는 중 문제가 생겼습니다.</p>
+            <button onclick="location.href='../'">기존 PinCon 열기</button>
+          </main>`;
+        }
+        boot.classList.add("is-hidden");
+      }, 7000);
+      window.addEventListener("pincon-flow-ready", () => clearTimeout(timer), { once: true });
+    })();
+  </script>
+  <script type="module" src="./flow.js?v=20260909-2"></script>
 </body>
 </html>
