@@ -177,7 +177,10 @@ if (boot && field) {
   }
 
   layout();
-  requestAnimationFrame(() => requestAnimationFrame(() => field.classList.add("is-visible")));
+  // WebKit can defer nested requestAnimationFrame callbacks during startup.
+  // Make the leaf field visible in the same task so the loader cannot finish
+  // before its first visible frame has actually existed.
+  field.classList.add("is-visible");
 
   boot.remove = finish;
   globalThis.PinConRevealLoader = Object.freeze({ finish });
