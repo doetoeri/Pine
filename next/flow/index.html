@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f1f3ee" />
+  <meta name="theme-color" content="#f4f6f1" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>PinCon Flow · Soft Material Beta</title>
+  <title>PinCon Flow · Rim Button Beta</title>
   <link rel="icon" href="../assets/pincon-icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,13 +28,19 @@
       const material = document.createElement("link");
       material.rel = "stylesheet";
       material.href = withShare("./flow-hig.css?v=20260909-3");
-      material.dataset.pinconMaterial = "soft-sculpted-v3";
+      material.dataset.pinconMaterial = "hig-base";
       document.head.appendChild(material);
+
+      const rim = document.createElement("link");
+      rim.rel = "stylesheet";
+      rim.href = withShare("./flow-button-rim.css?v=20260909-1");
+      rim.dataset.pinconButtonMaterial = "subtle-rim-v4";
+      document.head.appendChild(rim);
     })();
   </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body data-hig-beta="3" data-material="soft-sculpted">
+<body data-hig-beta="4" data-material="subtle-rim">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
