@@ -8,14 +8,17 @@ document.querySelector('#width').onchange=e=>f.width=e.target.value;
 document.querySelector('#route').onchange=e=>f.contentWindow.qa.go(e.target.value);
 document.querySelector('#zoom').onclick=()=>{const s=f.contentDocument.documentElement.style;s.fontSize=s.fontSize?'':'32px'};
 document.querySelector('#run').onclick=async()=>{
+try {
  const lines=[];let failures=0,checks=0;
  const check=(ok,name,detail='')=>{checks++;if(!ok)failures++;lines.push(`${ok?'PASS':'FAIL'} ${name} ${detail}`);out.textContent=lines.join('\n');out.scrollTop=out.scrollHeight};
  const win=f.contentWindow,doc=f.contentDocument,q=win.qa;
+ const until=async(predicate)=>{const end=Date.now()+12000;while(!predicate()){if(Date.now()>end)throw new Error('검증 화면 전환 시간 초과');await pause(80)}};
+ const visit=async(route)=>{q.go(route);await until(()=>doc.querySelector('.canvas')?.dataset.page===route && !doc.querySelector('.canvas').classList.contains('is-leaving'));await pause(220)};
  status.textContent='검증 중';
  for(const width of [320,390,768,820,1024,1366]){
   f.width=width;
   for(const route of ['today','timetable','schedule','assessment','meal','hub']){
-   q.go(route);await pause(320);
+   await visit(route);
    check(doc.documentElement.scrollWidth<=Number(width)+1,`${width}px ${route} 문서 넘침`,`${doc.documentElement.scrollWidth}px`);
    const clips=[...doc.querySelectorAll('h1,h2,.mission-title,.prep-row strong,.period__body strong,.event strong,.quick-action strong')].filter(el=>el.scrollWidth>el.clientWidth+2&&el.clientWidth>0);
    check(!clips.length,`${width}px ${route} 긴 한국어`,clips.map(el=>el.className).join(','));
@@ -24,21 +27,22 @@ document.querySelector('#run').onclick=async()=>{
   }
  }
  f.width=768;doc.documentElement.style.fontSize='32px';
- for(const route of ['today','timetable','schedule','assessment','meal','hub']){q.go(route);await pause(320);check(doc.documentElement.scrollWidth<=769,`200% ${route} 문서 넘침`,`${doc.documentElement.scrollWidth}px`)}
+ for(const route of ['today','timetable','schedule','assessment','meal','hub']){await visit(route);check(doc.documentElement.scrollWidth<=769,`200% ${route} 문서 넘침`,`${doc.documentElement.scrollWidth}px`)}
  doc.documentElement.style.fontSize='';
- q.go('assessment');await pause(320);doc.querySelector('[data-assessment-filter="exam"]').click();await pause(320);
+ await visit('assessment');doc.querySelector('[data-assessment-filter="exam"]').click();await until(()=>doc.querySelector('[data-assessment-filter="exam"]').getAttribute('aria-pressed')==='true');await pause(220);
  let button=doc.querySelector('.mission'),expected=button.querySelector('.mission-title').textContent;button.focus();button.click();await pause(240);check(doc.querySelector('#flowSheetTitle').textContent===expected,'필터 후 ID 없는 항목 상세');
- doc.querySelector('#flowSheet button').click();await pause(240);check(doc.activeElement===button,'상세 닫기 초점 복귀');
- q.go('schedule');await pause(320);check(doc.body.textContent.includes('날짜 미정 학사 일정'),'날짜 미정 일정 표시');
- let ev=[...doc.querySelectorAll('.event')].find(e=>e.textContent.includes('학급 회의'));ev.click();await pause(240);check(doc.querySelector('#flowSheetTitle').textContent==='학급 회의','학급 일정 클릭');doc.querySelector('#flowSheet button').click();await pause(230);
- q.go('timetable');await pause(320);doc.querySelector('.period').click();await pause(240);check(doc.querySelector('#flowSheet').textContent.includes('준비물'),'교시별 상세');doc.querySelector('#flowSheet button').click();await pause(230);
+ doc.querySelector('#flowSheet button').click();await until(()=>!doc.querySelector('#flowSheet').open);check(doc.activeElement===button,'상세 닫기 초점 복귀');
+ await visit('schedule');check(doc.body.textContent.includes('날짜 미정 학사 일정'),'날짜 미정 일정 표시');
+ let ev=[...doc.querySelectorAll('.event')].find(e=>e.textContent.includes('학급 회의'));ev.click();await pause(240);check(doc.querySelector('#flowSheetTitle').textContent==='학급 회의','학급 일정 클릭');doc.querySelector('#flowSheet button').click();await until(()=>!doc.querySelector('#flowSheet').open);
+ await visit('timetable');doc.querySelector('.period').click();await pause(240);check(doc.querySelector('#flowSheet').textContent.includes('준비물'),'교시별 상세');doc.querySelector('#flowSheet button').click();await until(()=>!doc.querySelector('#flowSheet').open);
  const today=new Date(),day=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`,periods=[{startTime:'09:00',endTime:'09:50'},{startTime:'10:00',endTime:'10:50'}];
  for(const [time,expect]of[['08:59',{index:0}],['09:00',{index:0,current:true}],['09:50',{index:1}],['10:50',{index:-1,finished:true}]]){const state=q.lessonState(periods,day,new Date(day+'T'+time));check(Object.entries(expect).every(([k,v])=>state[k]===v),'수업 시각 경계 '+time)}
  check(q.lessonState([{subject:'국어'}],day,today).index===-1,'시각 미등록일 때 현재 수업 추정 금지');
- q.go('today');await pause(320);const canvas=doc.querySelector('.canvas'),nav=doc.querySelector('.dock');q.render();await pause(80);check(doc.querySelector('.canvas')===canvas && doc.querySelector('.dock')===nav,'동일 데이터 갱신 DOM 유지');
+ await visit('today');const canvas=doc.querySelector('.canvas'),nav=doc.querySelector('.dock');q.render();await pause(80);check(doc.querySelector('.canvas')===canvas && doc.querySelector('.dock')===nav,'동일 데이터 갱신 DOM 유지');
  let sample=q.state.data; q.state.data={...sample,data:{},ready:true};q.render();await pause(80);check(doc.body.textContent.includes('등록되지'),'빈 데이터 안내');q.state.data=sample;q.render();await pause(80);
  const costly=[...doc.querySelectorAll('*')].some(e=>win.getComputedStyle(e).backdropFilter!=='none'&&win.getComputedStyle(e).backdropFilter!==undefined);check(!costly,'backdrop-filter 없음');
  check(doc.querySelectorAll('link[rel="stylesheet"]').length===2,'스타일시트 2개');check(doc.querySelectorAll('.material-symbols-rounded').length===0,'외부 아이콘 폰트 없음');
  status.textContent=`검증 완료: ${checks-failures}/${checks} 통과 · ${failures} 실패`;document.querySelector('#route').value='today';f.width=768;
+} catch(error){status.textContent='검증 중단: '+error.message;throw error}
 };
 </script></html>
