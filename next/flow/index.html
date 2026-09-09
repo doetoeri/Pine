@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f8f2" />
+  <meta name="theme-color" content="#f1f3ee" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <title>PinCon Flow · HIG Beta</title>
+  <title>PinCon Flow · Soft Material Beta</title>
   <link rel="icon" href="../assets/pincon-icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,16 +25,16 @@
       };
       globalThis.PINCON_FLOW_WITH_SHARE = withShare;
 
-      const hig = document.createElement("link");
-      hig.rel = "stylesheet";
-      hig.href = withShare("./flow-hig.css?v=20260909-2");
-      hig.dataset.pinconHig = "2";
-      document.head.appendChild(hig);
+      const material = document.createElement("link");
+      material.rel = "stylesheet";
+      material.href = withShare("./flow-hig.css?v=20260909-3");
+      material.dataset.pinconMaterial = "soft-sculpted-v3";
+      document.head.appendChild(material);
     })();
   </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body data-hig-beta="2">
+<body data-hig-beta="3" data-material="soft-sculpted">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
@@ -82,7 +82,7 @@
       document.body.dataset.higInteractions = "ready";
     } catch (error) {
       document.body.dataset.higInteractions = "failed";
-      console.error("[PinCon Flow HIG] interaction layer failed", error);
+      console.error("[PinCon Flow] interaction layer failed", error);
     }
   </script>
 </body>
