@@ -748,6 +748,16 @@ service cloud.firestore {
     }
 
 
+    // TEMP DEBUG MODE: Guardian namespace only. PinCon remains protected.
+    // Remove after Guardian client/server contract is stable.
+    match /guardianFamilies/{document=**} {
+      allow read, write: if true;
+    }
+
+    match /guardianPairingCodes/{document=**} {
+      allow read, write: if true;
+    }
+
     // Guardian parental-control/focus manager. Isolated from PinCon school collections.
     function guardianFamilyPath(familyId) {
       return /databases/$(database)/documents/guardianFamilies/$(familyId);
