@@ -1,0 +1,6 @@
+{
+  "functions": {
+    "source": "guardian-functions",
+    "runtime": "nodejs22"
+  }
+}
