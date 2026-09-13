@@ -1,0 +1,42 @@
+name: Deploy Guardian Screen Share Function
+
+on:
+  push:
+    branches: [guardian-live]
+    paths:
+      - "guardian-functions/**"
+      - "guardian-functions-firebase.json"
+      - ".github/workflows/guardian-functions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guardian-screen-share-functions
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install function dependencies
+        working-directory: guardian-functions
+        run: npm install --omit=dev
+      - name: Configure Firebase credentials
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+      - name: Deploy screen-share notification function
+        run: |
+          npx --yes firebase-tools@latest deploy             --only functions:guardianScreenShareNotify             --project studio-2803086992-2d4cf             --config guardian-functions-firebase.json             --non-interactive
