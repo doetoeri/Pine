@@ -747,6 +747,211 @@ service cloud.firestore {
         && request.resource.data.enabled is bool;
     }
 
+
+    // Guardian parental-control/focus manager. Isolated from PinCon school collections.
+    function guardianFamilyPath(familyId) {
+      return /databases/$(database)/documents/guardianFamilies/$(familyId);
+    }
+
+    function guardianDevicePath(familyId, deviceId) {
+      return /databases/$(database)/documents/guardianFamilies/$(familyId)/devices/$(deviceId);
+    }
+
+    function guardianPairingPath(code) {
+      return /databases/$(database)/documents/guardianPairingCodes/$(code);
+    }
+
+    function guardianOwner(familyId) {
+      return signedIn()
+        && exists(guardianFamilyPath(familyId))
+        && get(guardianFamilyPath(familyId)).data.ownerUid == request.auth.uid;
+    }
+
+    function guardianDevicePrincipal(familyId, deviceId) {
+      return signedIn()
+        && exists(guardianDevicePath(familyId, deviceId))
+        && get(guardianDevicePath(familyId, deviceId)).data.principalUid == request.auth.uid;
+    }
+
+    function guardianValidDeviceCreate(familyId, deviceId) {
+      return signedIn()
+        && request.resource.data.principalUid == request.auth.uid
+        && request.resource.data.pairingCode is string
+        && request.resource.data.pairingCode.size() >= 12
+        && request.resource.data.pairingCode.size() <= 80
+        && existsAfter(guardianPairingPath(request.resource.data.pairingCode))
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.familyId == familyId
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimed == true
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimedByUid == request.auth.uid
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimedDeviceId == deviceId;
+    }
+
+    function guardianValidPolicy() {
+      return request.resource.data.keys().hasOnly([
+          'revision', 'days', 'startMinuteOfDay', 'endMinuteOfDay', 'zoneId',
+          'alwaysAllowed', 'studyAllowed', 'blocked', 'dailyLimitsMillis',
+          'temporaryAllowances', 'updatedAtMillis'
+        ])
+        && request.resource.data.revision is int
+        && request.resource.data.revision > 0
+        && request.resource.data.days is list
+        && request.resource.data.days.size() > 0
+        && request.resource.data.days.size() <= 7
+        && request.resource.data.days.hasOnly([1, 2, 3, 4, 5, 6, 7])
+        && request.resource.data.startMinuteOfDay is int
+        && request.resource.data.startMinuteOfDay >= 0
+        && request.resource.data.startMinuteOfDay < 1440
+        && request.resource.data.endMinuteOfDay is int
+        && request.resource.data.endMinuteOfDay >= 0
+        && request.resource.data.endMinuteOfDay < 1440
+        && request.resource.data.startMinuteOfDay != request.resource.data.endMinuteOfDay
+        && request.resource.data.zoneId == 'Asia/Seoul'
+        && request.resource.data.alwaysAllowed is list
+        && request.resource.data.alwaysAllowed.size() <= 200
+        && request.resource.data.studyAllowed is list
+        && request.resource.data.studyAllowed.size() <= 200
+        && request.resource.data.blocked is list
+        && request.resource.data.blocked.size() <= 500
+        && request.resource.data.dailyLimitsMillis is map
+        && request.resource.data.temporaryAllowances is map
+        && request.resource.data.updatedAtMillis is int;
+    }
+
+    match /guardianFamilies/{familyId} {
+      allow get, list: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'name', 'createdAtMillis', 'updatedAtMillis'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.createdAtMillis is int
+        && request.resource.data.updatedAtMillis is int;
+      allow update: if guardianOwner(familyId)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'updatedAtMillis']);
+      allow delete: if false;
+
+      match /devices/{deviceId} {
+        allow read: if guardianOwner(familyId) || guardianDevicePrincipal(familyId, deviceId);
+        allow create: if guardianValidDeviceCreate(familyId, deviceId)
+          && request.resource.data.keys().hasOnly([
+            'principalUid', 'pairingCode', 'label', 'model', 'createdAtMillis',
+            'lastSeenAtMillis', 'desiredRevision', 'appliedRevision', 'focusActive', 'usageStatus'
+          ])
+          && request.resource.data.label is string
+          && request.resource.data.label.size() > 0
+          && request.resource.data.label.size() <= 80
+          && request.resource.data.model is string
+          && request.resource.data.model.size() <= 120
+          && request.resource.data.createdAtMillis is int
+          && request.resource.data.lastSeenAtMillis is int
+          && request.resource.data.desiredRevision == 0
+          && request.resource.data.appliedRevision == 0
+          && request.resource.data.focusActive == false
+          && request.resource.data.usageStatus == 'UNKNOWN';
+        allow update: if (
+            guardianDevicePrincipal(familyId, deviceId)
+            && request.resource.data.principalUid == resource.data.principalUid
+            && request.resource.data.pairingCode == resource.data.pairingCode
+            && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'lastSeenAtMillis', 'desiredRevision', 'appliedRevision', 'focusActive', 'usageStatus'
+            ])
+          ) || (
+            guardianOwner(familyId)
+            && request.resource.data.principalUid == resource.data.principalUid
+            && request.resource.data.pairingCode == resource.data.pairingCode
+            && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'desiredRevision'])
+          );
+        allow delete: if guardianOwner(familyId);
+
+        match /desired/{policyId} {
+          allow read: if guardianOwner(familyId) || guardianDevicePrincipal(familyId, deviceId);
+          allow create: if policyId == 'current'
+            && guardianOwner(familyId)
+            && guardianValidPolicy()
+            && request.resource.data.revision == 1;
+          allow update: if policyId == 'current'
+            && guardianOwner(familyId)
+            && guardianValidPolicy()
+            && request.resource.data.revision == resource.data.revision + 1;
+          allow delete: if false;
+        }
+
+        match /approvalRequests/{requestId} {
+          allow read: if guardianOwner(familyId) || guardianDevicePrincipal(familyId, deviceId);
+          allow create: if guardianDevicePrincipal(familyId, deviceId)
+            && request.resource.data.keys().hasOnly([
+              'principalUid', 'packageName', 'requestedDurationMinutes',
+              'requestedAtMillis', 'status', 'resolvedAtMillis', 'allowanceExpiresAtMillis'
+            ])
+            && request.resource.data.principalUid == request.auth.uid
+            && request.resource.data.packageName is string
+            && request.resource.data.packageName.size() > 0
+            && request.resource.data.packageName.size() <= 250
+            && request.resource.data.requestedDurationMinutes is int
+            && request.resource.data.requestedDurationMinutes >= 1
+            && request.resource.data.requestedDurationMinutes <= 120
+            && request.resource.data.requestedAtMillis is int
+            && request.resource.data.status == 'PENDING'
+            && request.resource.data.resolvedAtMillis == 0
+            && request.resource.data.allowanceExpiresAtMillis == 0;
+          allow update: if guardianOwner(familyId)
+            && request.resource.data.principalUid == resource.data.principalUid
+            && request.resource.data.packageName == resource.data.packageName
+            && request.resource.data.requestedDurationMinutes == resource.data.requestedDurationMinutes
+            && request.resource.data.requestedAtMillis == resource.data.requestedAtMillis
+            && request.resource.data.status in ['APPROVED', 'DENIED']
+            && request.resource.data.resolvedAtMillis is int
+            && request.resource.data.resolvedAtMillis > 0
+            && request.resource.data.allowanceExpiresAtMillis is int;
+          allow delete: if false;
+        }
+      }
+    }
+
+    match /guardianPairingCodes/{code} {
+      allow get: if signedIn()
+        && resource.data.expiresAtMillis is int
+        && resource.data.expiresAtMillis > request.time.toMillis();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'familyId', 'createdByUid', 'createdAtMillis', 'expiresAtMillis',
+          'claimed', 'claimedByUid', 'claimedDeviceId', 'claimedAtMillis'
+        ])
+        && guardianOwner(request.resource.data.familyId)
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.createdAtMillis is int
+        && request.resource.data.expiresAtMillis is int
+        && request.resource.data.expiresAtMillis > request.time.toMillis()
+        && request.resource.data.expiresAtMillis <= request.time.toMillis() + 900000
+        && request.resource.data.claimed == false
+        && request.resource.data.claimedByUid == ''
+        && request.resource.data.claimedDeviceId == ''
+        && request.resource.data.claimedAtMillis == 0;
+      allow update: if signedIn()
+        && resource.data.claimed == false
+        && resource.data.expiresAtMillis > request.time.toMillis()
+        && request.resource.data.familyId == resource.data.familyId
+        && request.resource.data.createdByUid == resource.data.createdByUid
+        && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+        && request.resource.data.expiresAtMillis == resource.data.expiresAtMillis
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'claimed', 'claimedByUid', 'claimedDeviceId', 'claimedAtMillis'
+        ])
+        && request.resource.data.claimed == true
+        && request.resource.data.claimedByUid == request.auth.uid
+        && request.resource.data.claimedDeviceId is string
+        && request.resource.data.claimedDeviceId.size() >= 12
+        && request.resource.data.claimedDeviceId.size() <= 100
+        && request.resource.data.claimedAtMillis is int;
+      allow delete: if guardianOwner(resource.data.familyId);
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
