@@ -940,6 +940,20 @@ service cloud.firestore {
           allow delete: if false;
         }
 
+        match /push/{pushId} {
+          allow read: if pushId == 'current'
+            && guardianDevicePrincipal(familyId, deviceId);
+          allow create, update: if pushId == 'current'
+            && guardianDevicePrincipal(familyId, deviceId)
+            && request.resource.data.keys().hasOnly(['token', 'updatedAtMillis'])
+            && request.resource.data.token is string
+            && request.resource.data.token.size() >= 20
+            && request.resource.data.token.size() <= 4096
+            && request.resource.data.updatedAtMillis is int
+            && request.resource.data.updatedAtMillis > 0;
+          allow delete: if false;
+        }
+
         match /screenShare/{shareId} {
           allow read: if shareId == 'current'
             && (guardianOwner(familyId) || guardianDevicePrincipal(familyId, deviceId));
