@@ -814,7 +814,7 @@ service cloud.firestore {
       return request.resource.data.keys().hasOnly([
           'revision', 'days', 'startMinuteOfDay', 'endMinuteOfDay', 'zoneId',
           'alwaysAllowed', 'studyAllowed', 'blocked', 'dailyLimitsMillis',
-          'temporaryAllowances', 'updatedAtMillis'
+          'temporaryAllowances', 'notifyPackages', 'updatedAtMillis'
         ])
         && request.resource.data.revision is int
         && request.resource.data.revision > 0
@@ -838,6 +838,8 @@ service cloud.firestore {
         && request.resource.data.blocked.size() <= 500
         && request.resource.data.dailyLimitsMillis is map
         && request.resource.data.temporaryAllowances is map
+        && request.resource.data.notifyPackages is list
+        && request.resource.data.notifyPackages.size() <= 200
         && request.resource.data.updatedAtMillis is int;
     }
 
@@ -1002,6 +1004,29 @@ service cloud.firestore {
               )
             );
           allow delete: if false;
+        }
+
+        match /attentionEvents/{eventId} {
+          allow read: if guardianOwner(familyId) || guardianDevicePrincipal(familyId, deviceId);
+          allow create: if guardianDevicePrincipal(familyId, deviceId)
+            && request.resource.data.keys().hasOnly([
+              'principalUid', 'packageName', 'appLabel', 'eventType',
+              'eventAtMillis', 'focusActive', 'source'
+            ])
+            && request.resource.data.principalUid == request.auth.uid
+            && request.resource.data.packageName is string
+            && request.resource.data.packageName.size() > 0
+            && request.resource.data.packageName.size() <= 250
+            && request.resource.data.appLabel is string
+            && request.resource.data.appLabel.size() > 0
+            && request.resource.data.appLabel.size() <= 120
+            && request.resource.data.eventType == 'APP_OPENED'
+            && request.resource.data.eventAtMillis is int
+            && request.resource.data.eventAtMillis > request.time.toMillis() - 300000
+            && request.resource.data.eventAtMillis <= request.time.toMillis() + 60000
+            && request.resource.data.focusActive is bool
+            && request.resource.data.source == 'USAGE_STATS';
+          allow update, delete: if false;
         }
 
         match /approvalRequests/{requestId} {
