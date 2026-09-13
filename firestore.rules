@@ -817,6 +817,65 @@ service cloud.firestore {
         && request.resource.data.updatedAtMillis is int;
     }
 
+    function guardianValidScreenRequest() {
+      return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'requestedByUid', 'requestedAtMillis', 'status',
+          'studentConsentAtMillis', 'stoppedAtMillis', 'frameAtMillis',
+          'width', 'height', 'sequence', 'frame'
+        ])
+        && request.resource.data.requestedByUid == request.auth.uid
+        && request.resource.data.requestedAtMillis is int
+        && request.resource.data.requestedAtMillis > 0
+        && request.resource.data.status == 'REQUESTED'
+        && request.resource.data.studentConsentAtMillis == 0
+        && request.resource.data.stoppedAtMillis == 0
+        && request.resource.data.frameAtMillis == 0
+        && request.resource.data.width == 0
+        && request.resource.data.height == 0
+        && request.resource.data.sequence == 0
+        && request.resource.data.frame is bytes
+        && request.resource.data.frame.size() == 0;
+    }
+
+    function guardianValidScreenDeviceUpdate() {
+      return request.resource.data.requestedByUid == resource.data.requestedByUid
+        && request.resource.data.requestedAtMillis == resource.data.requestedAtMillis
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'studentConsentAtMillis', 'stoppedAtMillis',
+          'frameAtMillis', 'width', 'height', 'sequence', 'frame'
+        ])
+        && request.resource.data.status in ['ACTIVE', 'STOPPED', 'DENIED', 'FAILED']
+        && request.resource.data.studentConsentAtMillis is int
+        && request.resource.data.studentConsentAtMillis >= 0
+        && request.resource.data.stoppedAtMillis is int
+        && request.resource.data.stoppedAtMillis >= 0
+        && request.resource.data.frameAtMillis is int
+        && request.resource.data.frameAtMillis >= 0
+        && request.resource.data.width is int
+        && request.resource.data.width >= 0
+        && request.resource.data.width <= 1080
+        && request.resource.data.height is int
+        && request.resource.data.height >= 0
+        && request.resource.data.height <= 2400
+        && request.resource.data.sequence is int
+        && request.resource.data.sequence >= 0
+        && request.resource.data.frame is bytes
+        && request.resource.data.frame.size() <= 650000
+        && (
+          (
+            request.resource.data.status == 'ACTIVE'
+            && request.resource.data.studentConsentAtMillis > 0
+            && request.resource.data.stoppedAtMillis == 0
+          )
+          || (
+            request.resource.data.status in ['STOPPED', 'DENIED', 'FAILED']
+            && request.resource.data.stoppedAtMillis > 0
+            && request.resource.data.frame.size() == 0
+          )
+        );
+    }
+
     match /guardianFamilies/{familyId} {
       allow get, list: if signedIn() && resource.data.ownerUid == request.auth.uid;
       allow create: if signedIn()
@@ -878,6 +937,32 @@ service cloud.firestore {
             && guardianOwner(familyId)
             && guardianValidPolicy()
             && request.resource.data.revision == resource.data.revision + 1;
+          allow delete: if false;
+        }
+
+        match /screenShare/{shareId} {
+          allow read: if shareId == 'current'
+            && (guardianOwner(familyId) || guardianDevicePrincipal(familyId, deviceId));
+          allow create: if shareId == 'current'
+            && guardianOwner(familyId)
+            && guardianValidScreenRequest();
+          allow update: if shareId == 'current'
+            && (
+              (
+                guardianOwner(familyId)
+                && guardianValidScreenRequest()
+              )
+              || (
+                guardianOwner(familyId)
+                && resource.data.status in ['REQUESTED', 'ACTIVE']
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+                && request.resource.data.status == 'STOP_REQUESTED'
+              )
+              || (
+                guardianDevicePrincipal(familyId, deviceId)
+                && guardianValidScreenDeviceUpdate()
+              )
+            );
           allow delete: if false;
         }
 
