@@ -144,6 +144,13 @@ function logAction(action, params = {}) {
 async function startGrantedCollection() {
   const instance = await loadAnalytics();
   if (!instance) return;
+  analyticsApi.setConsent({
+    analytics_storage: "granted",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  });
+  analyticsApi.setAnalyticsCollectionEnabled(analytics, true);
   log("pincon_app_open", { route: routeFromLocation(), installed: matchMedia("(display-mode: standalone)").matches ? 1 : 0 });
   logScreen();
 }
@@ -240,6 +247,15 @@ function exposeApi() {
     setChoice: setCollectionChoice,
     showSettings: () => {
       localStorage.removeItem(CONSENT_KEY);
+      if (initialized && analytics && analyticsApi) {
+        analyticsApi.setConsent({
+          analytics_storage: "denied",
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+        });
+        analyticsApi.setAnalyticsCollectionEnabled(analytics, false);
+      }
       showPrompt();
     },
     event: (name, params = {}) => {
