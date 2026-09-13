@@ -838,7 +838,7 @@ service cloud.firestore {
         allow create: if guardianValidDeviceCreate(familyId, deviceId)
           && request.resource.data.keys().hasOnly([
             'principalUid', 'pairingCode', 'label', 'model', 'createdAtMillis',
-            'lastSeenAtMillis', 'desiredRevision', 'appliedRevision', 'focusActive', 'usageStatus'
+            'lastSeenAtMillis', 'appliedRevision', 'focusActive', 'usageStatus'
           ])
           && request.resource.data.label is string
           && request.resource.data.label.size() > 0
