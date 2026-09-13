@@ -6,6 +6,8 @@ on:
     paths:
       - "firestore.rules"
       - "automation/deploy-firestore-rules.mjs"
+      - "guardian-parent-site/**"
+      - "guardian-hosting.json"
       - ".github/workflows/guardian-firestore.yml"
   workflow_dispatch:
 
@@ -20,7 +22,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,3 +35,15 @@ jobs:
           FIREBASE_STORAGE_BUCKET: studio-2803086992-2d4cf.firebasestorage.app
           FIREBASE_RULES_FIRESTORE_ONLY: "true"
         run: node automation/deploy-firestore-rules.mjs
+      - name: Configure Firebase credentials
+        shell: bash
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          test -n "$FIREBASE_SERVICE_ACCOUNT_JSON"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+      - name: Deploy Guardian Parent to Firebase Hosting
+        run: |
+          npx --yes firebase-tools@latest deploy             --only hosting             --project studio-2803086992-2d4cf             --config guardian-hosting.json             --non-interactive
