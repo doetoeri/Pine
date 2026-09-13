@@ -786,6 +786,30 @@ service cloud.firestore {
         && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimedDeviceId == deviceId;
     }
 
+    function guardianValidDeviceRebind(familyId, deviceId) {
+      return signedIn()
+        && resource.data.principalUid is string
+        && request.resource.data.principalUid == request.auth.uid
+        && request.resource.data.pairingCode is string
+        && request.resource.data.pairingCode.size() >= 12
+        && request.resource.data.pairingCode.size() <= 80
+        && request.resource.data.createdAtMillis == resource.data.createdAtMillis
+        && request.resource.data.label == resource.data.label
+        && request.resource.data.model == resource.data.model
+        && request.resource.data.desiredRevision == resource.data.desiredRevision
+        && request.resource.data.appliedRevision == resource.data.appliedRevision
+        && request.resource.data.focusActive == resource.data.focusActive
+        && request.resource.data.usageStatus == resource.data.usageStatus
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'principalUid', 'pairingCode', 'lastSeenAtMillis'
+        ])
+        && existsAfter(guardianPairingPath(request.resource.data.pairingCode))
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.familyId == familyId
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimed == true
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimedByUid == request.auth.uid
+        && getAfter(guardianPairingPath(request.resource.data.pairingCode)).data.claimedDeviceId == deviceId;
+    }
+
     function guardianValidPolicy() {
       return request.resource.data.keys().hasOnly([
           'revision', 'days', 'startMinuteOfDay', 'endMinuteOfDay', 'zoneId',
@@ -924,7 +948,7 @@ service cloud.firestore {
             && request.resource.data.pairingCode == resource.data.pairingCode
             && request.resource.data.createdAtMillis == resource.data.createdAtMillis
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'desiredRevision'])
-          );
+          ) || guardianValidDeviceRebind(familyId, deviceId);
         allow delete: if guardianOwner(familyId);
 
         match /desired/{policyId} {
