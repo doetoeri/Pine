@@ -881,7 +881,7 @@ service cloud.firestore {
           'status', 'studentConsentAtMillis', 'stoppedAtMillis',
           'frameAtMillis', 'width', 'height', 'sequence', 'frame'
         ])
-        && request.resource.data.status in ['ACTIVE', 'STOPPED', 'DENIED', 'FAILED']
+        && request.resource.data.status in ['ACTIVE', 'PAUSED_LOCKED', 'RESUME_REQUIRED', 'STOPPED', 'DENIED', 'FAILED']
         && request.resource.data.studentConsentAtMillis is int
         && request.resource.data.studentConsentAtMillis >= 0
         && request.resource.data.stoppedAtMillis is int
@@ -905,7 +905,7 @@ service cloud.firestore {
             && request.resource.data.stoppedAtMillis == 0
           )
           || (
-            request.resource.data.status in ['STOPPED', 'DENIED', 'FAILED']
+            request.resource.data.status in ['PAUSED_LOCKED', 'RESUME_REQUIRED', 'STOPPED', 'DENIED', 'FAILED']
             && request.resource.data.stoppedAtMillis > 0
             && request.resource.data.frame.size() == 0
           )
@@ -973,7 +973,7 @@ service cloud.firestore {
             && guardianOwner(familyId)
             && guardianValidPolicy()
             && request.resource.data.revision == resource.data.revision + 1;
-          allow delete: if false;
+          allow delete: if guardianOwner(familyId);
         }
 
         match /push/{pushId} {
@@ -987,7 +987,7 @@ service cloud.firestore {
             && request.resource.data.token.size() <= 4096
             && request.resource.data.updatedAtMillis is int
             && request.resource.data.updatedAtMillis > 0;
-          allow delete: if false;
+          allow delete: if guardianOwner(familyId);
         }
 
         match /screenShare/{shareId} {
@@ -1013,7 +1013,7 @@ service cloud.firestore {
                 && guardianValidScreenDeviceUpdate()
               )
             );
-          allow delete: if false;
+          allow delete: if guardianOwner(familyId);
         }
 
         match /attentionEvents/{eventId} {
@@ -1036,7 +1036,8 @@ service cloud.firestore {
             && request.resource.data.eventAtMillis <= request.time.toMillis() + 60000
             && request.resource.data.focusActive is bool
             && request.resource.data.source == 'USAGE_STATS';
-          allow update, delete: if false;
+          allow update: if false;
+          allow delete: if guardianOwner(familyId);
         }
 
         match /approvalRequests/{requestId} {
