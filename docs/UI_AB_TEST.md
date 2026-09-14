@@ -56,9 +56,24 @@
 - permission error
 - cache/update
 
+## 공개 베타 단계
+
+Canary 안정성 확인 뒤, 정식 A/B 전에 공개 베타를 선택적으로 열 수 있다.
+
+공개 베타는 자발적 참여 집단이므로 정식 A/B 결과와 섞지 않는다. 공개 베타 참여 이벤트는 `cohort=public-beta`로 분리 집계한다.
+
+권장 순서:
+
+```text
+Canary 5~7명
+-> 공개 베타
+-> 전체 roster 17:17 사전배정
+-> ACTIVE A/B
+```
+
 ## A/B 시작
 
-Canary 검증 뒤 운영센터에서 필요하면 **34명 균형 사전배정**을 먼저 실행한다.
+Canary/공개 베타 검증 뒤 운영센터에서 **현재 학급 roster 전체를 균형 사전배정**한다. 학생이 PinCon을 한 번도 열지 않았더라도 계정 UID가 있으면 배정할 수 있다.
 
 그 뒤 상태를 ACTIVE로 변경하고 `allocation.nextPercent=50`을 사용한다.
 
