@@ -36,4 +36,10 @@ if (!snapshot.canArchiveContent) {
   await import("./class-duty-manager.js?v=20260901-duty1");
 }
 
-await import("./experiments.js?v=20260914-exp1").catch((error) => console.warn("[Experiment Admin] unavailable", error));
+const experimentsLoaded = await import("./experiments.js?v=20260914-exp2")
+  .then(() => true)
+  .catch((error) => { console.warn("[Experiment Admin] unavailable", error); return false; });
+if (experimentsLoaded) {
+  await import("./experiment-navigation.js?v=20260914-exp2")
+    .catch((error) => console.warn("[Experiment Navigation] unavailable", error));
+}
