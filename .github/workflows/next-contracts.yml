@@ -11,6 +11,7 @@ on:
       - "firestore.rules"
       - "storage.rules"
       - "automation/deploy-firestore-rules.mjs"
+      - "tests/firebase-experiment-test.json"
       - ".github/workflows/next-contracts.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "automation/deploy-firestore-rules.mjs"
       - "firestore.rules"
       - "storage.rules"
+      - "tests/firebase-experiment-test.json"
       - ".github/workflows/firebase-rules.yml"
       - ".github/workflows/next-contracts.yml"
 
