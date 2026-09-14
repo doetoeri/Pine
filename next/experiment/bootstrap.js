@@ -160,6 +160,7 @@ export async function initExperimentPlatform() {
     log: (eventType, properties, options) => platform.log(eventType, properties, options),
     flush: () => platform.analytics.flush(),
     saveNotificationSurvey: (payload) => platform.saveNotificationSurvey(payload),
+    setPublicBetaEnrollment: (enabled) => platform.setPublicBetaEnrollment(enabled),
   });
 
   installNavigationInstrumentation();
