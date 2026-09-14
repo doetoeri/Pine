@@ -125,7 +125,7 @@ async function classCandidates(root, classKey, date) {
   return rows.sort((a,b) => String(a.due).localeCompare(String(b.due)) || a.key.localeCompare(b.key));
 }
 
-function eventRecord({ anonymousParticipant, config, condition, type, notificationId: id, category, now }) {
+function eventRecord({ anonymousParticipant, config, condition, period, type, notificationId: id, category, now }) {
   return {
     schemaVersion: 1,
     eventId: `server_${digest(`${type}:${id}`,28)}`,
@@ -137,7 +137,7 @@ function eventRecord({ anonymousParticipant, config, condition, type, notificati
     timestampMs: now.getTime(),
     sessionId: "server-notification",
     deviceCategory: "server",
-    properties: { notificationId: id, condition, category },
+    properties: { notificationId: id, condition, category, period: Number(period || 0) },
   };
 }
 
@@ -216,7 +216,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       const batch = db.batch();
       batch.set(root.collection("experimentNotifications").doc(id), metadata);
       batch.set(root.collection("experimentEvents").doc(`server_${digest(`notification_scheduled:${id}`,28)}`),
-        eventRecord({ anonymousParticipant: participant, config: ready.config, condition, type: "notification_scheduled", notificationId: id, category: candidate.category, now }));
+        eventRecord({ anonymousParticipant: participant, config: ready.config, condition, period: state.period, type: "notification_scheduled", notificationId: id, category: candidate.category, now }));
       batch.set(receipt, { ...metadata, status: "scheduled", createdAt: FieldValue.serverTimestamp() });
       await batch.commit();
       scheduled += 1;
@@ -233,6 +233,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
             notificationId: id,
             experimentId: EXPERIMENT_ID,
             condition,
+            period: String(state.period),
             category: candidate.category,
             targetRoute: candidate.targetRoute,
             scheduledAtMs: String(scheduledAtMs),
@@ -243,7 +244,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
         await Promise.all([
           receipt.set({ status: "fcm-accepted", sentAtMs: Date.now() }, { merge: true }),
           root.collection("experimentEvents").doc(`server_${digest(`notification_sent:${id}`,28)}`).set(
-            eventRecord({ anonymousParticipant: participant, config: ready.config, condition, type: "notification_sent", notificationId: id, category: candidate.category, now: new Date() }),
+            eventRecord({ anonymousParticipant: participant, config: ready.config, condition, period: state.period, type: "notification_sent", notificationId: id, category: candidate.category, now: new Date() }),
           ),
         ]);
       } catch (error) {
