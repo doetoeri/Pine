@@ -67,6 +67,7 @@ export const ALLOWED_EVENT_PROPERTY_KEYS = Object.freeze(new Set([
   "notificationId",
   "condition",
   "category",
+  "period",
   "window",
   "value",
   "reason",
