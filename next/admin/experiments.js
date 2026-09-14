@@ -10,33 +10,10 @@ let loading = false;
 
 const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 const avg = (rows) => rows.length ? rows.reduce((a,b)=>a+b,0)/rows.length : NaN;
-const percent = (value) => Number.isFinite(value) ? `${(value*100).toFixed(1)}%` : "–";
+const percent = (value) => Number.isFinite(value) ? `${(value*100).toFixed(1)}%` : "–";\n\nconst kstDateKey = (timestampMs = Date.now()) => new Intl.DateTimeFormat("en-CA", {\n  timeZone: "Asia/Seoul",\n  year: "numeric",\n  month: "2-digit",\n  day: "2-digit",\n}).format(new Date(Number(timestampMs) || Date.now()));
 const eventRows = (type, variant="") => bundle.events.filter((row)=>row.eventType===type && (!variant || row.variant===variant));
 
-function variantMetrics(variant) {
-  const rows = bundle.events.filter((row)=>row.variant===variant);
-  const participants = new Set(rows.map((row)=>row.anonymousParticipant));
-  const sessions = new Set(rows.filter((row)=>row.eventType==="session_start").map((row)=>row.sessionId));
-  const reach = new Set(rows.filter((row)=>["schedule_view","assignment_view","material_view","notice_view","target_information_view"].includes(row.eventType)).map((row)=>row.anonymousParticipant));
-  const tti = rows.filter((row)=>row.eventType==="target_information_view").map((row)=>Number(row.properties?.durationMs)).filter(Number.isFinite);
-  const errors = rows.filter((row)=>["js_error","data_load_failure","login_failure","fcm_failure","navigation_error"].includes(row.eventType)).length;
-  const days = new Map();
-  rows.filter((row)=>row.eventType==="session_start").forEach((row)=>{
-    const set=days.get(row.anonymousParticipant)||new Set();
-    set.add(new Date(row.timestampMs).toISOString().slice(0,10));
-    days.set(row.anonymousParticipant,set);
-  });
-  return {
-    participants: participants.size,
-    sessions: sessions.size,
-    reach: participants.size ? reach.size/participants.size : NaN,
-    tti: avg(tti),
-    errors: sessions.size ? errors/sessions.size : NaN,
-    returns: participants.size ? [...days.values()].filter((set)=>set.size>=2).length/participants.size : NaN,
-  };
-}
-
-function conditionMetrics(condition) {
+function variantMetrics(variant) {\n  const rows = bundle.events.filter((row) => row.variant === variant);\n  const participants = new Set(rows.map((row) => row.anonymousParticipant));\n  const sessionRows = rows.filter((row) => row.eventType === "session_start");\n  const sessions = new Set(sessionRows.map((row) => row.sessionId));\n  const today = kstDateKey();\n  const dau = new Set(sessionRows.filter((row) => kstDateKey(row.timestampMs) === today).map((row) => row.anonymousParticipant)).size;\n  const reach = new Set(rows.filter((row) => ["schedule_view", "assignment_view", "material_view", "notice_view", "target_information_view"].includes(row.eventType)).map((row) => row.anonymousParticipant));\n  const tti = rows.filter((row) => row.eventType === "target_information_view").map((row) => Number(row.properties?.durationMs)).filter(Number.isFinite);\n  const taskStarts = rows.filter((row) => row.eventType === "task_start").length;\n  const taskTargets = rows.filter((row) => row.eventType === "target_information_view").length;\n  const errors = rows.filter((row) => ["js_error", "data_load_failure", "login_failure", "fcm_failure", "navigation_error"].includes(row.eventType)).length;\n  const dataFailures = rows.filter((row) => row.eventType === "data_load_failure").length;\n  const satisfaction = rows.filter((row) => row.eventType === "ui_satisfaction").map((row) => Number(row.properties?.value)).filter(Number.isFinite);\n  const days = new Map();\n  sessionRows.forEach((row) => {\n    const set = days.get(row.anonymousParticipant) || new Set();\n    set.add(kstDateKey(row.timestampMs));\n    days.set(row.anonymousParticipant, set);\n  });\n  return {\n    participants: participants.size,\n    sessions: sessions.size,\n    dau,\n    reach: participants.size ? reach.size / participants.size : NaN,\n    taskSuccess: taskStarts ? Math.min(1, taskTargets / taskStarts) : NaN,\n    tti: avg(tti),\n    errors: sessions.size ? errors / sessions.size : NaN,\n    dataFailure: sessions.size ? dataFailures / sessions.size : NaN,\n    satisfaction: avg(satisfaction),\n    returns: participants.size ? [...days.values()].filter((set) => set.size >= 2).length / participants.size : NaN,\n  };\n}\nfunction conditionMetrics(condition) {
   const sent = eventRows("notification_sent", condition).length;
   const ratio = (type) => percent(sent ? eventRows(type, condition).length/sent : NaN);
   const surveys = bundle.surveys.filter((row)=>row.condition===condition);
