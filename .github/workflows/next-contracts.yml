@@ -142,7 +142,7 @@ jobs:
           --only firestore
           --project pincon-experiment-rules-test
           --config tests/firebase-experiment-test.json
-          "node --test tests/experiment-firestore-rules.test.mjs"
+          "node --test next/tests/experiment-platform-firestore-rules.test.mjs"
 
   responsive-smoke:
     runs-on: ubuntu-latest
