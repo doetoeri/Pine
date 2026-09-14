@@ -113,19 +113,40 @@ function installNotificationAttribution() {
     route: routeFromLocation(),
   });
 
-  const clickedAt = Number(url.searchParams.get("pinconClickedAt") || Date.now());
-  const elapsed = Math.max(0, Date.now() - clickedAt);
+  const sentAt = Number(url.searchParams.get("pinconSentAt") || Date.now());
+  const elapsed = Math.max(0, Date.now() - sentAt);
   if (elapsed <= 5 * 60_000) platform?.log("app_open_after_notification_5m", { notificationId, window: "5m" });
   if (elapsed <= 30 * 60_000) platform?.log("app_open_after_notification_30m", { notificationId, window: "30m" });
   if (elapsed <= 60 * 60_000) platform?.log("app_open_after_notification_1h", { notificationId, window: "1h" });
 
-  ["pinconNotificationId", "pinconExperimentId", "pinconCondition", "pinconCategory", "pinconClickedAt"]
+  const targetRoute = url.searchParams.get("pinconTargetRoute") || "";
+  if (targetRoute && routeFromLocation() === targetRoute) {
+    window.setTimeout(() => platform?.log("target_view_after_notification", {
+      notificationId,
+      condition: url.searchParams.get("pinconCondition") || "",
+      category: url.searchParams.get("pinconCategory") || "",
+      route: targetRoute,
+    }), 700);
+  }
+
+  ["pinconNotificationId", "pinconExperimentId", "pinconCondition", "pinconCategory", "pinconTargetRoute", "pinconSentAt"]
     .forEach((key) => url.searchParams.delete(key));
   history.replaceState(history.state, "", url.pathname + url.search + url.hash);
 }
 
 export async function initExperimentPlatform() {
   platform = await getExperimentPlatform();
+
+  navigator.serviceWorker?.addEventListener?.("message", (event) => {
+    const message = event.data || {};
+    if (message.type !== "pincon-experiment-notification-received") return;
+    platform?.log("notification_received", {
+      notificationId: message.notificationId || "",
+      condition: message.condition || "",
+      category: message.category || "",
+      route: message.targetRoute || "",
+    });
+  });
 
   globalThis.PinConExperiment = Object.freeze({
     get context() { return platform.context; },
