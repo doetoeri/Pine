@@ -307,6 +307,8 @@ export class ExperimentPlatform {
       variant: period.condition || period.phase,
       condition: period.condition,
       period: period.period,
+      periodDay: period.periodDay,
+      periodDays: Math.max(1, Number(config.periodDays || 4)),
       phase: period.phase,
       anonymousParticipant: participant,
       status: String(config.status || EXPERIMENT_STATUS.DRAFT),
