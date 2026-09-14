@@ -87,6 +87,7 @@ jobs:
             next/experiment/bootstrap.js \
             next/experiments/pincon-next-ui.js \
             next/experiments/notification-frequency.js \
+            next/experiments/ui-satisfaction.js \
             next/admin/experiments.js \
             pincon-class-ops-data.js \
             automation/deploy-firestore-rules.mjs
