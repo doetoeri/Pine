@@ -35,3 +35,5 @@ if (!snapshot.canArchiveContent) {
   await import("./classroom-nominations-v2.js?v=20260906-officer1");
   await import("./class-duty-manager.js?v=20260901-duty1");
 }
+
+await import("./experiments.js?v=20260914-exp1").catch((error) => console.warn("[Experiment Admin] unavailable", error));
