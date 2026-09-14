@@ -82,6 +82,8 @@ button { font: inherit; }
   padding: max(18px, env(safe-area-inset-top)) 0 max(54px, env(safe-area-inset-bottom));
   min-width: 0;
 }
+.admin-workspace--experiments > :not(.admin-topbar):not(#pinconExperimentAdmin) { display: none !important; }
+.admin-workspace--experiments #pinconExperimentAdmin { display: block; margin-top: 0; }
 
 .admin-topbar {
   min-height: 58px;
@@ -225,7 +227,7 @@ button { font: inherit; }
   .admin-shell { display: block; padding-bottom: 76px; }
   .admin-sidebar { position: fixed; left: 10px; right: 10px; top: auto; bottom: max(8px, env(safe-area-inset-bottom)); width: auto; height: 64px; padding: 7px; border: 0; border-radius: 22px; box-shadow: 0 8px 28px rgba(0,0,0,.14); background: color-mix(in srgb, var(--md-sys-color-surface-container-high, #e5e8e0) 94%, transparent); backdrop-filter: blur(18px); display: block; overflow: hidden; }
   .admin-sidebar > .admin-brand, .admin-sidebar__foot { display: none; }
-  .admin-nav { height: 100%; display: grid; grid-template-columns: repeat(7, minmax(48px, 1fr)); gap: 3px; overflow-x: auto; scrollbar-width: none; }
+  .admin-nav { height: 100%; display: grid; grid-template-columns: repeat(var(--admin-nav-count, 7), minmax(54px, 1fr)); gap: 3px; overflow-x: auto; scrollbar-width: none; }
   .admin-nav::-webkit-scrollbar { display: none; }
   .admin-nav__item { min-height: 50px; height: 50px; border-radius: 16px; }
   .admin-workspace { width: min(100% - 20px, 1320px); padding-top: max(10px, env(safe-area-inset-top)); }
