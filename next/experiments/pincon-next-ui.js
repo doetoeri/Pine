@@ -7,15 +7,30 @@ document.body.appendChild(root);
 
 const style = document.createElement("link");
 style.rel = "stylesheet";
-style.href = "./experiments/pincon-next-ui.css?v=20260914-exp1";
+style.href = "./experiments/pincon-next-ui.css?v=20260914-flux1";
 document.head.appendChild(style);
 
 const gateway = new NextDataGateway();
 let snapshot = gateway.snapshot();
-let openKey = "";
 let flowTab = location.hash.startsWith("#schedule") ? "schedule" : "timetable";
 let classroomTab = "notice";
 let searchQuery = "";
+let selectedLesson = 0;
+let selectedDayDate = "";
+let detailOpen = false;
+let focusMode = false;
+let timelineDrag = null;
+let navDrag = null;
+let toastTimer = 0;
+let transitionDirection = 1;
+const completedPreparation = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem("pincon-flux-prep-v1") || "[]");
+    return new Set(Array.isArray(raw) ? raw.map(String) : []);
+  } catch {
+    return new Set();
+  }
+})();
 
 const NAV = [
   { id: "today", label: "오늘", route: "today" },
@@ -78,21 +93,72 @@ function minutes(value) {
   const m = String(value || "").match(/(\d{1,2}):(\d{2})/);
   return m ? Number(m[1]) * 60 + Number(m[2]) : NaN;
 }
-function lessonState(period) {
+function lessonState(period, dateText = localDate()) {
   const { start, end } = periodTimes(period);
-  const now = new Date(), current = now.getHours()*60 + now.getMinutes();
   const a = minutes(start), b = minutes(end);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return { current:false, past:false };
+  if (dateText !== localDate() || !Number.isFinite(a) || !Number.isFinite(b)) {
+    return { current:false, past:Boolean(dateText && dateText < localDate()) };
+  }
+  const now = new Date(), current = now.getHours()*60 + now.getMinutes();
   return { current: current >= a && current <= b, past: current > b };
 }
-function matchingPreparation(period) {
-  const subject = clean(period?.subject || period?.name || "");
+function dateLabel(dateText) {
+  if (!dateText) return "";
+  const date = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateText;
+  return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" }).format(date);
+}
+function weekdayLabel(dateText) {
+  if (!dateText) return "";
+  const date = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR", { weekday: "long" }).format(date);
+}
+function shortDate(dateText) {
+  const match = String(dateText || "").match(/^\d{4}-(\d{2})-(\d{2})/);
+  return match ? `${match[1]}.${match[2]}` : dateText || "미정";
+}
+function sortedTimetables() {
+  const rows = (data().neisTimetables || [])
+    .filter((doc) => Array.isArray(doc.periods) && doc.periods.length)
+    .sort((a,b) => String(a.date || "").localeCompare(String(b.date || "")));
   const today = localDate();
+  const future = rows.filter((doc) => !doc.date || doc.date >= today).slice(0,3);
+  return future.length ? future : rows.slice(-3);
+}
+function activeTimetable() {
+  const docs = sortedTimetables();
+  if (!docs.length) return null;
+  if (!selectedDayDate || !docs.some((doc) => doc.date === selectedDayDate)) {
+    selectedDayDate = docs.find((doc) => doc.date === localDate())?.date || docs[0]?.date || "";
+  }
+  return docs.find((doc) => doc.date === selectedDayDate) || docs[0];
+}
+function currentPeriodIndex(periods = [], dateText = localDate()) {
+  const current = periods.findIndex((period) => lessonState(period, dateText).current);
+  if (current >= 0) return current;
+  const firstFuture = periods.findIndex((period) => !lessonState(period, dateText).past);
+  return firstFuture >= 0 ? firstFuture : Math.max(0, periods.length - 1);
+}
+function syncSelectedLesson() {
+  const doc = activeTimetable();
+  const periods = doc?.periods || [];
+  if (!periods.length) { selectedLesson = 0; return; }
+  if (!Number.isInteger(selectedLesson) || selectedLesson < 0 || selectedLesson >= periods.length) {
+    selectedLesson = currentPeriodIndex(periods, doc?.date || localDate());
+  }
+}
+function saveCompletedPreparation() {
+  try { localStorage.setItem("pincon-flux-prep-v1", JSON.stringify([...completedPreparation].slice(-200))); } catch {}
+}
+
+function matchingPreparation(period, dateText = selectedDayDate || localDate()) {
+  const subject = clean(period?.subject || period?.name || "");
   return (data().classAssignments || []).filter((item) => {
     if (item.deleted || item.published === false) return false;
     const type = String(item.type || "");
     return type === "preparation"
-      && (!itemDate(item) || itemDate(item) === today)
+      && (!itemDate(item) || itemDate(item) === dateText)
       && (!subject || !item.subject || subject.includes(clean(item.subject)) || clean(item.subject).includes(subject));
   });
 }
