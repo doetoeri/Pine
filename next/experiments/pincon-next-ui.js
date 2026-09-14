@@ -180,6 +180,7 @@ function meMarkup() {
   const ui = globalThis.PinConExperiment?.uiContext;
   return `<section><div class="qf-hero"><span class="qf-eyebrow">Me</span><h1>${esc(name)}</h1><p>실험 중에도 사용자가 Variant를 직접 바꾸는 스위치는 제공하지 않습니다.</p></div>
     <div class="qf-status"><span class="qf-pill">${esc(syncLabel())}</span><span class="qf-pill">UI · ${esc(ui?.variant || "legacy")}</span><span class="qf-pill">${esc(profileLabel())}</span></div>
+    ${ui?.cohort === "public-beta" ? '<div class="qf-flat"><div><h3>공개 베타 참여 중</h3><p>이 사용 기록은 정식 A/B 비교와 분리됩니다. 원하면 바로 기존 PinCon으로 돌아갈 수 있습니다.</p></div><button class="qf-button" type="button" data-pincon-public-beta="leave">기존 화면으로 돌아가기</button></div>' : ""}
     ${notificationSurveyMarkup()}
     ${snapshot.canArchiveContent ? '<div class="qf-flat"><div><h3>PinCon 운영센터</h3><p>학급 운영과 실험 집계는 권한이 있는 계정만 접근합니다.</p></div><a class="qf-button primary" href="./admin/">운영센터</a></div>' : ""}
     <div class="qf-flat"><div><h3>PWA · 알림</h3><p>설치형 앱과 FCM 연결은 기존 PinCon 계층을 그대로 사용합니다. 현재 알림 권한: ${esc(Notification.permission || "default")}</p></div></div>
