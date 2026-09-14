@@ -296,7 +296,7 @@ export class ExperimentPlatform {
         assignedAtMs: Date.now(),
         experimentVersion: Number(config.version || 1),
         anonymousParticipant: participant,
-        cohort: "notification",
+        assignmentSource: "crossover",
       };
       try {
         await api.setDoc(ref, record, { merge: false });
