@@ -106,10 +106,12 @@ function installNotificationAttribution() {
   const experimentId = url.searchParams.get("pinconExperimentId") || "";
   if (!notificationId || !experimentId) return;
 
+  const condition = url.searchParams.get("pinconCondition") || "";
+  const category = url.searchParams.get("pinconCategory") || "";
   platform?.log("notification_click", {
     notificationId,
-    condition: url.searchParams.get("pinconCondition") || "",
-    category: url.searchParams.get("pinconCategory") || "",
+    condition,
+    category,
     route: routeFromLocation(),
   });
 
@@ -123,8 +125,8 @@ function installNotificationAttribution() {
   if (targetRoute && routeFromLocation() === targetRoute) {
     window.setTimeout(() => platform?.log("target_view_after_notification", {
       notificationId,
-      condition: url.searchParams.get("pinconCondition") || "",
-      category: url.searchParams.get("pinconCategory") || "",
+      condition,
+      category,
       route: targetRoute,
     }), 700);
   }
