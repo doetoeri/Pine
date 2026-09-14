@@ -39,3 +39,17 @@ test("Flux motion respects reduced-motion accessibility", () => {
   assert.match(css, /prefers-reduced-motion:reduce/);
   assert.match(js, /prefers-reduced-motion: reduce/);
 });
+
+
+test("Flux supports president editing, lunch stop, and rounded icon navigation", () => {
+  assert.match(js, /saveManagedRecord\("classAssignments"/);
+  assert.match(js, /automaticPreparationMarker/);
+  assert.match(js, /auto-slot:/);
+  assert.match(js, /data-qf-edit="auto-preparation"/);
+  assert.match(js, /data-qf-meal-stop/);
+  assert.match(js, /material-symbols-rounded/);
+  assert.match(js, /icon: "home"/);
+  assert.match(css, /\.qf-stop--meal/);
+  assert.match(css, /\.qf-editor-dialog/);
+  assert.match(css, /\.qf-dock button \.material-symbols-rounded/);
+});

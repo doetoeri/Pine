@@ -1,7 +1,7 @@
 if ("serviceWorker" in navigator) {
   const hadController = Boolean(navigator.serviceWorker.controller);
   const scriptBase = document.currentScript?.src || new URL("./registerSW.js", location.origin).href;
-  const serviceWorkerUrl = new URL("./sw.js?v=20260914-flux1", scriptBase).href;
+  const serviceWorkerUrl = new URL("./sw.js?v=20260915-flux2", scriptBase).href;
   const serviceWorkerScope = new URL("./", scriptBase).href;
   let reloading = false;
 
