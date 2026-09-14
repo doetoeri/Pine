@@ -44,6 +44,7 @@ export function resolveUiVariant({
   flag = null,
   assignment = null,
   target = null,
+  betaEnrollment = null,
   uid = "",
 } = {}) {
   const stable = ["legacy", "next"].includes(config?.stableVariant)
@@ -60,6 +61,13 @@ export function resolveUiVariant({
   }
 
   const status = String(config.status || EXPERIMENT_STATUS.DRAFT);
+  if (
+    status === EXPERIMENT_STATUS.CANARY
+    && config.publicBetaEnabled === true
+    && betaEnrollment?.enabled === true
+  ) {
+    return { variant: "next", source: "public-beta", bucket: null, needsAssignment: false };
+  }
   if ([EXPERIMENT_STATUS.DRAFT, EXPERIMENT_STATUS.PAUSED, EXPERIMENT_STATUS.ABORTED].includes(status)) {
     return { variant: stable, source: "stable", bucket: null, needsAssignment: false };
   }
