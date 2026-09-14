@@ -25,6 +25,7 @@ const eventRows = (type, variant="") => bundle.events.filter((row)=>row.eventTyp
 
 function controlledRows(variant = "") {
   const startedAt = Number(bundle.config?.activeStartedAtMs || 0);
+  if (!startedAt) return [];
   return bundle.events.filter((row) => {
     if (variant && row.variant !== variant) return false;
     if (startedAt && Number(row.timestampMs || 0) < startedAt) return false;
