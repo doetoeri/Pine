@@ -64,9 +64,14 @@ function todayTimetable() {
     || (data().neisTimetables || []).find((doc) => Array.isArray(doc.periods))
     || null;
 }
+const FALLBACK_PERIOD_TIMES = Object.freeze({
+  1:["09:00","09:50"],2:["10:00","10:50"],3:["11:00","11:50"],4:["12:00","12:50"],
+  5:["13:50","14:40"],6:["14:50","15:40"],7:["15:50","16:40"],
+});
 function periodTimes(period = {}) {
-  const start = clean(period.startTime || period.startsAt || "");
-  const end = clean(period.endTime || period.endsAt || "");
+  const fallback = FALLBACK_PERIOD_TIMES[Number(period.period || 0)] || ["",""];
+  const start = clean(period.startTime || period.startsAt || fallback[0]);
+  const end = clean(period.endTime || period.endsAt || fallback[1]);
   return { start, end };
 }
 function minutes(value) {
@@ -135,7 +140,7 @@ function todayMarkup() {
     <div class="qf-hero"><span class="qf-eyebrow">Living Spine · ${esc(localDate())}</span><h1>${current ? esc(clean(current.subject || "지금 수업")) : "오늘의 흐름"}</h1><p>${current ? "현재 시간에 가까운 정보가 자연스럽게 커집니다." : "시간표와 준비물, 가까운 일정을 한 축에서 확인합니다."}</p></div>
     ${snapshot.syncing && !snapshot.ready ? '<div class="qf-skeleton"></div>' : snapshot.error && !periods.length ? '<div class="qf-error">시간표를 불러오지 못했습니다. 안정된 PinCon 데이터가 다시 연결되면 자동으로 갱신됩니다.</div>' : `<div class="qf-timeline">${periods.length ? periods.map(rowMarkup).join("") : '<div class="qf-empty">오늘 시간표 데이터가 아직 없습니다.</div>'}</div>`}
     ${important ? `<div class="qf-mass"><span class="qf-eyebrow">Approach</span><h2>${esc(title(important))}</h2><p>${esc([clean(important.subject), itemDate(important)].filter(Boolean).join(" · "))}</p><button class="qf-button primary" type="button" data-qf-route="schedule" data-task="assignment">가까운 수행 확인</button></div>` : ""}
-    ${meal ? `<div class="qf-flat"><div><h3>오늘 급식</h3><p>${esc(clean(meal.menu || meal.dishName || meal.meal || meal.body || (Array.isArray(meal.items) ? meal.items.join(" · ") : "급식 정보 확인"))).slice(0,220)}</p></div><button class="qf-button" data-qf-event="meal_view">확인</button></div>` : ""}
+    ${meal ? `<div class="qf-flat"><div><h3>오늘 급식</h3><p>${esc(clean(meal.menu || meal.dishName || meal.dishesHtml || meal.meal || meal.body || (Array.isArray(meal.items) ? meal.items.join(" · ") : "급식 정보 확인"))).slice(0,220)}</p></div><button class="qf-button" data-qf-event="meal_view">확인</button></div>` : ""}
   </section>`;
 }
 function flowRows(items) {
