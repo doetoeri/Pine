@@ -417,7 +417,7 @@ service cloud.firestore {
       match /assignments/{userId} {
         allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
         allow create: if signedIn()
-          && request.auth.uid == userId
+          && (request.auth.uid == userId || schoolAdmin(schoolId))
           && exists(participantPath(schoolId, userId))
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'variant', 'bucket', 'sequence', 'sequenceIndex',
