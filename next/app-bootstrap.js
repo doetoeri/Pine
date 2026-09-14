@@ -46,7 +46,7 @@ try {
 
 if (experimentPlatform?.uiContext?.variant === "next") {
   try {
-    await import("./experiments/pincon-next-ui.js?v=20260914-beta1");
+    await import("./experiments/pincon-next-ui.js?v=20260914-flux1");
   } catch (error) {
     document.body.dataset.pinconVariant = "legacy";
     experimentPlatform?.log("js_error", { errorType: "variant_boot", source: "pincon-next-ui" });
