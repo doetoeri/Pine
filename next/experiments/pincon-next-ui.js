@@ -23,6 +23,7 @@ let timelineDrag = null;
 let navDrag = null;
 let toastTimer = 0;
 let transitionDirection = 1;
+let ignoreNavClick = false;
 const completedPreparation = (() => {
   try {
     const raw = JSON.parse(localStorage.getItem("pincon-flux-prep-v1") || "[]");
@@ -318,40 +319,149 @@ function meMarkup() {
 function dockMarkup(active) {
   return `<div class="qf-dock-wrap" data-qf-dock-wrap><nav class="qf-dock" aria-label="PinCon 주요 탐색"><span class="qf-selector" aria-hidden="true"></span>${NAV.map((item) => `<button type="button" data-qf-nav="${item.id}" aria-current="${active === item.id ? "page" : "false"}"><span class="qf-nav-dot"></span>${item.label}</button>`).join("")}</nav></div>`;
 }
-function render() {
+function render({ animate = true } = {}) {
   reportDataGatewaySnapshot(snapshot);
   const active = sectionFromHash();
-  root.innerHTML = `<div class="qf-shell"><header class="qf-top"><div class="qf-brand"><span class="qf-seed" aria-hidden="true"></span><div><strong>PinCon</strong><small>Quiet Flux · ${esc(profileLabel())}</small></div></div><span class="qf-sync">${esc(syncLabel())}</span></header><main class="qf-main">${active==="today"?todayMarkup():active==="flow"?flowMarkup():active==="classroom"?classroomMarkup():meMarkup()}</main></div>${dockMarkup(active)}`;
-  settleDock(false);
+  root.innerHTML = `<div class="qf-shell">
+    <header class="qf-top"><div class="qf-brand"><span class="qf-seed" aria-hidden="true"></span><div><strong>PinCon</strong><small>Presence × Quiet Flux · ${esc(profileLabel())}</small></div></div><span class="qf-sync">${esc(syncLabel())}</span></header>
+    <main class="qf-main">${active === "today" ? todayMarkup() : active === "flow" ? flowMarkup() : active === "classroom" ? classroomMarkup() : meMarkup()}</main>
+  </div>${dockMarkup(active)}<div class="qf-toast" data-qf-toast role="status" aria-live="polite"></div>`;
+  syncPhysicalControls(false);
+  const page = root.querySelector(".qf-page");
+  if (animate && page && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    page.animate([
+      { opacity: 0, transform: `translateX(${12 * transitionDirection}px) scale(.995)` },
+      { opacity: 1, transform: "translateX(0) scale(1)" },
+    ], { duration: 330, easing: "cubic-bezier(.2,.76,.2,1)" });
+  }
 }
-function settleDock(animate=true) {
-  const active = sectionFromHash();
-  const index = NAV.findIndex((item)=>item.id===active);
+function timelineGeometry() {
+  const timeline = root.querySelector("[data-qf-timeline]");
+  const cursor = root.querySelector("[data-qf-cursor]");
+  const stops = [...root.querySelectorAll("[data-qf-lesson]")];
+  if (!timeline || !cursor || !stops.length) return null;
+  const centers = stops.map((stop) => stop.offsetLeft + stop.offsetWidth / 2);
+  return { timeline, cursor, stops, centers };
+}
+function positionTimelineCursor(animate = true) {
+  const geometry = timelineGeometry();
+  if (!geometry) return;
+  const { cursor, centers, stops } = geometry;
+  const index = Math.max(0, Math.min(stops.length - 1, selectedLesson));
+  cursor.style.transition = animate ? "transform .46s var(--qf-spring)" : "none";
+  cursor.style.transform = `translate3d(${centers[index] - cursor.offsetWidth / 2}px,0,0)`;
+  cursor.setAttribute("aria-valuenow", String(index + 1));
+  const label = cursor.querySelector("span");
+  if (label) label.textContent = String((activeTimetable()?.periods || [])[index]?.period || index + 1).padStart(2, "0");
+  const progress = stops.length <= 1 ? 0 : index / (stops.length - 1) * 100;
+  root.querySelector(".qf-time-thread")?.style.setProperty("--qf-progress", `${progress}%`);
+}
+function dockGeometry() {
+  const wrap = root.querySelector("[data-qf-dock-wrap]");
   const selector = root.querySelector(".qf-selector");
-  if (!selector) return;
-  if (!animate) selector.style.transition = "none";
-  selector.style.width = "25%";
-  selector.style.transform = `translateX(${Math.max(0,index)*100}%)`;
-  requestAnimationFrame(()=>{ selector.style.transition = ""; });
+  const buttons = [...root.querySelectorAll("[data-qf-nav]")];
+  if (!wrap || !selector || !buttons.length) return null;
+  const rect = wrap.getBoundingClientRect();
+  const pad = 7;
+  const innerLeft = rect.left + pad;
+  const innerWidth = rect.width - pad * 2;
+  const cell = innerWidth / buttons.length;
+  return { wrap, selector, buttons, rect, innerLeft, innerWidth, cell };
+}
+function syncPhysicalControls(animate = true) {
+  requestAnimationFrame(() => {
+    positionTimelineCursor(animate);
+    settleDock(animate);
+    const node = root.querySelector("[data-qf-spine-node]");
+    if (node) node.style.top = `${58 + selectedLesson * 9}px`;
+  });
+}
+function showToast(message) {
+  const toast = root.querySelector("[data-qf-toast]");
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove("show"), 1800);
+}
+function animateSubjectChange() {
+  const story = root.querySelector("[data-qf-story]");
+  const heading = root.querySelector("[data-qf-subject-title]");
+  story?.classList.add("changing");
+  window.setTimeout(() => story?.classList.remove("changing"), 280);
+  if (heading && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    heading.animate([
+      { opacity: .25, transform: `translateX(${transitionDirection * 14}px) scale(.99)` },
+      { opacity: 1, transform: "translateX(0) scale(1)" },
+    ], { duration: 340, easing: "cubic-bezier(.2,.76,.2,1)" });
+  }
+}
+function selectLesson(index, { immediate = false } = {}) {
+  const periods = activeTimetable()?.periods || [];
+  if (!periods.length) return;
+  const next = Math.max(0, Math.min(periods.length - 1, Number(index) || 0));
+  transitionDirection = next >= selectedLesson ? 1 : -1;
+  selectedLesson = next;
+  detailOpen = false;
+  render({ animate: false });
+  syncPhysicalControls(!immediate);
+  animateSubjectChange();
+  globalThis.PinConExperiment?.log("schedule_view", { route: "today", itemType: "lesson" });
+}
+function togglePreparation(id) {
+  if (completedPreparation.has(id)) completedPreparation.delete(id);
+  else completedPreparation.add(id);
+  saveCompletedPreparation();
+  const done = completedPreparation.has(id);
+  render({ animate: false });
+  showToast(done ? "준비 완료" : "다시 표시");
+}
+function settleDock(animate = true) {
+  const geometry = dockGeometry();
+  if (!geometry) return;
+  const { selector, buttons, cell } = geometry;
+  const active = Math.max(0, NAV.findIndex((item) => item.id === sectionFromHash()));
+  buttons.forEach((button, index) => button.setAttribute("aria-current", index === active ? "page" : "false"));
+  selector.style.transition = animate ? "transform .4s var(--qf-spring),width .24s var(--qf-ease)" : "none";
+  selector.style.width = `${cell}px`;
+  selector.style.transform = `translateX(${active * cell}px)`;
 }
 function navigate(section) {
-  const nav = NAV.find((item)=>item.id===section);
+  const nav = NAV.find((item) => item.id === section);
   if (!nav) return;
-  const route = section==="flow" ? (flowTab==="schedule"?"schedule":"timetable") : nav.route;
-  if (location.hash !== `#${route}`) history.pushState({route}, "", `#${route}`);
+  const oldIndex = Math.max(0, NAV.findIndex((item) => item.id === sectionFromHash()));
+  const newIndex = Math.max(0, NAV.findIndex((item) => item.id === section));
+  transitionDirection = newIndex >= oldIndex ? 1 : -1;
+  const route = section === "flow" ? (flowTab === "schedule" ? "schedule" : "timetable") : nav.route;
+  if (location.hash !== `#${route}`) history.pushState({ route }, "", `#${route}`);
   render();
-  globalThis.PinConExperiment?.log("navigation_change",{to:route,route});
+  globalThis.PinConExperiment?.log("navigation_change", { to: route, route });
 }
 function openSurvey() {
   const ctx = globalThis.PinConExperiment?.context;
-  if (!ctx || ctx.experimentId!=="notification-frequency") return;
-  const dialog=document.createElement("dialog");
-  dialog.innerHTML=`<form method="dialog" style="width:min(520px,86vw);font-family:inherit"><h2>알림 피드백</h2><p>각 항목을 1~5점으로 답해 주세요.</p>
-  ${[["usefulnessScore","알림이 유용했다"],["annoyanceScore","알림이 너무 많다고 느꼈다"],["increasedUseScore","알림 때문에 PinCon을 더 자주 확인했다"],["continueScore","이 정도의 알림을 계속 받고 싶다"]].map(([name,label])=>`<label style="display:grid;gap:6px;margin:14px 0">${label}<input name="${name}" type="range" min="1" max="5" value="3"></label>`).join("")}
-  <label style="display:grid;gap:6px">적절한 하루 알림 수<select name="preferredDailyCount"><option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5+</option></select></label>
-  <p style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px"><button value="cancel">취소</button><button value="save">저장</button></p></form>`;
-  document.body.appendChild(dialog);dialog.showModal();
-  dialog.addEventListener("close",async()=>{if(dialog.returnValue==="save"){const fd=new FormData(dialog.querySelector("form"));await globalThis.PinConExperiment.saveNotificationSurvey({period:ctx.period,condition:ctx.condition,usefulnessScore:Number(fd.get("usefulnessScore")),annoyanceScore:Number(fd.get("annoyanceScore")),increasedUseScore:Number(fd.get("increasedUseScore")),continueScore:Number(fd.get("continueScore")),preferredDailyCount:String(fd.get("preferredDailyCount"))}).catch(()=>{});}dialog.remove();},{once:true});
+  if (!ctx || ctx.experimentId !== "notification-frequency") return;
+  const dialog = document.createElement("dialog");
+  dialog.className = "qf-survey-dialog";
+  dialog.innerHTML = `<form method="dialog"><h2>알림 피드백</h2><p>각 항목을 1~5점으로 답해 주세요.</p>
+    ${[["usefulnessScore", "알림이 유용했다"], ["annoyanceScore", "알림이 너무 많다고 느꼈다"], ["increasedUseScore", "알림 때문에 PinCon을 더 자주 확인했다"], ["continueScore", "이 정도의 알림을 계속 받고 싶다"]].map(([name, label]) => `<label>${label}<input name="${name}" type="range" min="1" max="5" value="3"></label>`).join("")}
+    <label>적절한 하루 알림 수<select name="preferredDailyCount"><option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5+</option></select></label>
+    <div class="qf-dialog-actions"><button value="cancel">취소</button><button value="save">저장</button></div></form>`;
+  document.body.appendChild(dialog);
+  dialog.showModal();
+  dialog.addEventListener("close", async () => {
+    if (dialog.returnValue === "save") {
+      const fd = new FormData(dialog.querySelector("form"));
+      await globalThis.PinConExperiment.saveNotificationSurvey({
+        period: ctx.period, condition: ctx.condition,
+        usefulnessScore: Number(fd.get("usefulnessScore")),
+        annoyanceScore: Number(fd.get("annoyanceScore")),
+        increasedUseScore: Number(fd.get("increasedUseScore")),
+        continueScore: Number(fd.get("continueScore")),
+        preferredDailyCount: String(fd.get("preferredDailyCount")),
+      }).catch(() => {});
+    }
+    dialog.remove();
+  }, { once: true });
 }
 
 root.addEventListener("click",(event)=>{
