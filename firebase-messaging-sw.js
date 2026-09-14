@@ -31,6 +31,7 @@ function notificationOptions(payload = {}) {
       notificationId: data.notificationId || tag,
       experimentId: data.experimentId || "",
       condition: data.condition || "",
+      period: data.period || "",
       category: data.category || "",
       targetRoute: data.targetRoute || data.route || "today",
       scheduledAtMs: Number(data.scheduledAtMs || timestamp || Date.now()),
@@ -51,6 +52,7 @@ if (globalThis.PINCON_FIREBASE_CONFIG) {
         notificationId: options.data.notificationId,
         experimentId: options.data.experimentId,
         condition: options.data.condition,
+        period: options.data.period,
         category: options.data.category,
         targetRoute: options.data.targetRoute,
       }));
@@ -72,6 +74,7 @@ self.addEventListener("notificationclick", (event) => {
     target.searchParams.set("pinconNotificationId", data.notificationId || "");
     target.searchParams.set("pinconExperimentId", data.experimentId);
     target.searchParams.set("pinconCondition", data.condition || "");
+    target.searchParams.set("pinconPeriod", data.period || "");
     target.searchParams.set("pinconCategory", data.category || "");
     target.searchParams.set("pinconTargetRoute", data.targetRoute || data.route || "today");
     target.searchParams.set("pinconSentAt", String(Number(data.scheduledAtMs || Date.now())));
