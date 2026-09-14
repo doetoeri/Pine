@@ -548,7 +548,7 @@ service cloud.firestore {
         && request.resource.data.properties is map
         && request.resource.data.properties.keys().hasOnly([
           'from', 'to', 'route', 'task', 'itemType', 'durationMs', 'errorType', 'source',
-          'notificationId', 'condition', 'category', 'window', 'value', 'reason'
+          'notificationId', 'condition', 'category', 'period', 'window', 'value', 'reason'
         ]);
       allow update: if signedIn()
         && exists(participantPath(schoolId, request.auth.uid))
