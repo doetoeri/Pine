@@ -88,6 +88,7 @@ jobs:
             next/experiment/experiment-service.js \
             next/experiment/bootstrap.js \
             next/experiments/pincon-next-ui.js \
+            next/experiments/public-beta.js \
             next/experiments/notification-frequency.js \
             next/experiments/ui-satisfaction.js \
             next/admin/experiments.js \
