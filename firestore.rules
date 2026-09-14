@@ -395,6 +395,175 @@ service cloud.firestore {
       }
     }
 
+
+    // Experiment Platform. Settings are school-admin only; research events never store a UID/name/student number.
+    match /schools/{schoolId}/experiments/{experimentId} {
+      allow read: if signedIn();
+      allow create, update: if schoolAdmin(schoolId)
+        && request.resource.data.id == experimentId
+        && request.resource.data.status in ['DRAFT', 'CANARY', 'ACTIVE', 'PAUSED', 'ROLLOUT', 'COMPLETED', 'ABORTED']
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.get('stableVariant', 'legacy') in ['legacy', 'next']
+        && request.resource.data.get('promotedVariant', '') in ['', 'legacy', 'next']
+        && request.resource.data.get('rolloutPercent', 0) is number
+        && request.resource.data.get('rolloutPercent', 0) >= 0
+        && request.resource.data.get('rolloutPercent', 0) <= 100
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedBy == request.auth.uid
+        && experimentWriteIsolated(schoolId, experimentId);
+      allow delete: if false;
+
+      match /assignments/{userId} {
+        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+        allow create: if signedIn()
+          && request.auth.uid == userId
+          && exists(participantPath(schoolId, userId))
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'variant', 'bucket', 'sequence', 'sequenceIndex',
+            'assignedAtMs', 'experimentVersion', 'anonymousParticipant'
+          ])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.experimentVersion is int
+          && request.resource.data.experimentVersion >= 1
+          && request.resource.data.assignedAtMs is int
+          && request.resource.data.anonymousParticipant
+            == get(participantPath(schoolId, userId)).data.anonymousParticipant
+          && (
+            (experimentId == 'pincon-next-ui'
+              && request.resource.data.variant in ['legacy', 'next']
+              && request.resource.data.bucket is int
+              && request.resource.data.bucket >= 0
+              && request.resource.data.bucket < 10000)
+            || (experimentId == 'notification-frequency'
+              && request.resource.data.sequence is list
+              && request.resource.data.sequence.size() == 3
+              && request.resource.data.sequence.hasOnly(['LOW', 'MID', 'HIGH'])
+              && request.resource.data.sequenceIndex is int
+              && request.resource.data.sequenceIndex >= 0
+              && request.resource.data.sequenceIndex < 6)
+          );
+        allow update: if schoolAdmin(schoolId);
+        allow delete: if false;
+      }
+
+      match /targets/{userId} {
+        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+        allow create, update: if schoolAdmin(schoolId)
+          && request.resource.data.keys().hasOnly(['mode', 'updatedAtMs', 'updatedBy'])
+          && request.resource.data.mode in ['canary', 'force_legacy', 'force_next', 'blocked']
+          && request.resource.data.updatedAtMs is int
+          && request.resource.data.updatedBy == request.auth.uid;
+        allow delete: if false;
+      }
+
+      match /participants/{userId}/surveyResponses/{surveyId} {
+        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && exists(participantPath(schoolId, userId))
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'anonymousParticipant', 'period', 'condition',
+            'usefulnessScore', 'annoyanceScore', 'increasedUseScore',
+            'continueScore', 'preferredDailyCount', 'submittedAtMs'
+          ])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.anonymousParticipant
+            == get(participantPath(schoolId, userId)).data.anonymousParticipant
+          && request.resource.data.period is int
+          && request.resource.data.period >= 1
+          && request.resource.data.period <= 3
+          && request.resource.data.condition in ['LOW', 'MID', 'HIGH']
+          && request.resource.data.usefulnessScore >= 1
+          && request.resource.data.usefulnessScore <= 5
+          && request.resource.data.annoyanceScore >= 1
+          && request.resource.data.annoyanceScore <= 5
+          && request.resource.data.increasedUseScore >= 1
+          && request.resource.data.increasedUseScore <= 5
+          && request.resource.data.continueScore >= 1
+          && request.resource.data.continueScore <= 5
+          && request.resource.data.preferredDailyCount in ['0', '1', '2', '3', '4', '5+']
+          && request.resource.data.submittedAtMs is int;
+        allow delete: if false;
+      }
+    }
+
+    match /schools/{schoolId}/experimentFlags/{flagId} {
+      allow read: if signedIn();
+      allow create, update: if schoolAdmin(schoolId)
+        && request.resource.data.enabled is bool
+        && request.resource.data.get('rolloutPercent', 0) is number
+        && request.resource.data.get('rolloutPercent', 0) >= 0
+        && request.resource.data.get('rolloutPercent', 0) <= 100
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedBy == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /schools/{schoolId}/experimentParticipants/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['schemaVersion', 'anonymousParticipant', 'createdAtMs'])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.anonymousParticipant is string
+        && request.resource.data.anonymousParticipant.size() >= 20
+        && request.resource.data.anonymousParticipant.size() <= 52
+        && request.resource.data.createdAtMs is int;
+      allow update, delete: if false;
+    }
+
+    match /schools/{schoolId}/experimentEvents/{eventId} {
+      allow read: if schoolAdmin(schoolId);
+      allow create: if signedIn()
+        && exists(participantPath(schoolId, request.auth.uid))
+        && eventId == request.resource.data.eventId
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'eventId', 'anonymousParticipant', 'experimentId',
+          'experimentVersion', 'variant', 'eventType', 'timestampMs',
+          'sessionId', 'deviceCategory', 'properties'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.anonymousParticipant
+          == get(participantPath(schoolId, request.auth.uid)).data.anonymousParticipant
+        && request.resource.data.experimentId is string
+        && request.resource.data.experimentId.size() <= 60
+        && request.resource.data.experimentVersion is int
+        && request.resource.data.experimentVersion >= 1
+        && request.resource.data.variant is string
+        && request.resource.data.variant.size() <= 24
+        && request.resource.data.eventType in [
+          'session_start', 'session_end', 'schedule_view', 'assignment_view', 'material_view',
+          'notice_view', 'meal_view', 'notification_click', 'notification_received',
+          'navigation_change', 'item_expand', 'task_start', 'target_information_view',
+          'return_visit', 'js_error', 'data_load_failure', 'login_failure', 'fcm_failure',
+          'page_load', 'navigation_error', 'ui_satisfaction', 'notification_scheduled',
+          'notification_sent', 'app_open_after_notification_5m', 'app_open_after_notification_30m',
+          'app_open_after_notification_1h', 'target_view_after_notification'
+        ]
+        && request.resource.data.timestampMs is int
+        && request.resource.data.sessionId is string
+        && request.resource.data.sessionId.size() <= 80
+        && request.resource.data.deviceCategory in ['mobile', 'tablet', 'desktop']
+        && request.resource.data.properties is map
+        && request.resource.data.properties.keys().hasOnly([
+          'from', 'to', 'route', 'task', 'itemType', 'durationMs', 'errorType', 'source',
+          'notificationId', 'condition', 'category', 'window', 'value', 'reason'
+        ]);
+      allow update, delete: if false;
+    }
+
+    // These collections are populated only by trusted Firebase Admin automation.
+    match /schools/{schoolId}/experimentNotifications/{notificationId} {
+      allow read: if schoolAdmin(schoolId);
+      allow write: if false;
+    }
+
+    match /schools/{schoolId}/notificationExperimentReceipts/{receiptId} {
+      allow read: if schoolAdmin(schoolId);
+      allow write: if false;
+    }
+
     // 방문자 통계: 각 사용자는 자기 세션만 기록할 수 있고, 전체 원자료는 학교 운영자만 읽는다.
     match /schools/{schoolId}/visits/{visitId} {
       allow read: if schoolAdmin(schoolId);
