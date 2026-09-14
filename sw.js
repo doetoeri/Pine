@@ -54,6 +54,7 @@ const PINCON_NEXT_SHELL = [
   "./next/experiments/pincon-next-ui.css",
   "./next/experiments/pincon-next-ui.js",
   "./next/experiments/notification-frequency.js",
+  "./next/experiments/ui-satisfaction.js",
   "./next/admin/experiments.css",
   "./next/admin/experiments.js",
   "./next/assets/pincon-icon.svg",
