@@ -72,11 +72,11 @@ test("account API can use the verified Identity v2 alias while main is missing r
 test("PinCon PWA revalidates code assets after a deployment", async () => {
   const worker = await source("../../sw.js");
   const registration = await source("../../registerSW.js");
-  assert.match(worker, /PINCON_SW_VERSION = "\\d{8}-[a-z0-9-]+"/);
+  assert.match(worker, /PINCON_SW_VERSION = "[0-9]{8}-[a-z0-9-]+"/);
   assert.match(worker, /new Request\(request, \{ cache: "reload" \}\)/);
   assert.match(worker, /mustRevalidate = \/\\\.\(\?:js\|css\|html\|webmanifest\|json\)\$\/i/);
   assert.match(worker, /networkFirst\(request, "\.\/index\.html", \{ forceReload: true \}\)/);
-  assert.match(registration, /\.\/sw\.js\?v=\\d{8}-[a-z0-9-]+/);
+  assert.match(registration, /\.\/sw\.js\?v=[0-9]{8}-[a-z0-9-]+/);
   assert.match(registration, /updateViaCache: "none"/);
 });
 
@@ -164,7 +164,7 @@ test("application modules boot only after the account gate resolves", async () =
   assert.match(bootstrap, /account-gate\.js\?v=20260903-identity2/);
   assert.match(bootstrap, /simple-account-gate\.js\?v=20260905-readonly1/);
   assert.match(bootstrap, /readonly-notice\.js\?v=20260905-readonly1/);
-  assert.match(html, /src="\.\/app-bootstrap\.js\?v=\\d{8}-[a-z0-9-]+"/);
+  assert.match(html, /src="\.\/app-bootstrap\.js\?v=[0-9]{8}-[a-z0-9-]+"/);
   assert.match(html, /account-center\.css/);
   assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
