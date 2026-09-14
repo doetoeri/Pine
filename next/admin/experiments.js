@@ -249,7 +249,7 @@ window.addEventListener("pincon-admin-view-change", (event) => {
   render();
   if (event.detail?.view === "experiments") load();
 });
-new MutationObserver(render).observe(document.querySelector("#adminApp"),{childList:true,subtree:true});
+new MutationObserver(() => { if (!document.querySelector("#pinconExperimentAdmin")) render(); }).observe(document.querySelector("#adminApp"),{childList:true,subtree:true});
 gateway.addEventListener("change",render);
 render();
 if (experimentViewOpen()) load();
