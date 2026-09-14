@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260910-assessment-resilience1";
+const PINCON_SW_VERSION = "20260914-experiment-platform1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}-offline3`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -46,6 +46,16 @@ const PINCON_NEXT_SHELL = [
   "./next/core/today-changes.js",
   "./next/core/today-open-write.js",
   "./next/core/student-auth.js",
+  "./next/experiment/constants.js",
+  "./next/experiment/assignment-service.js",
+  "./next/experiment/analytics.js",
+  "./next/experiment/experiment-service.js",
+  "./next/experiment/bootstrap.js",
+  "./next/experiments/pincon-next-ui.css",
+  "./next/experiments/pincon-next-ui.js",
+  "./next/experiments/notification-frequency.js",
+  "./next/admin/experiments.css",
+  "./next/admin/experiments.js",
   "./next/assets/pincon-icon.svg",
   "./next/classroom/tv.html",
   "./next/classroom/tv.css",
@@ -109,7 +119,7 @@ const PINCON_APP_SHELL = [
 ];
 
 try {
-  importScripts("./firebase-messaging-sw.js?v=20260825-android-notify2");
+  importScripts("./firebase-messaging-sw.js?v=20260914-experiment1");
 } catch (error) {
   console.warn("[PinCon SW] Firebase messaging worker could not be loaded", error);
 }
