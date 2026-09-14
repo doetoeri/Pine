@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260914-experiment-platform1";
+const PINCON_SW_VERSION = "20260914-experiment-platform2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}-offline3`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
@@ -53,6 +53,7 @@ const PINCON_NEXT_SHELL = [
   "./next/experiment/bootstrap.js",
   "./next/experiments/pincon-next-ui.css",
   "./next/experiments/pincon-next-ui.js",
+  "./next/experiments/public-beta.js",
   "./next/experiments/notification-frequency.js",
   "./next/experiments/ui-satisfaction.js",
   "./next/admin/experiments.css",
