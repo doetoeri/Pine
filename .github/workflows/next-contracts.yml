@@ -80,6 +80,14 @@ jobs:
             next/core/today-changes.js \
             next/core/today-open-write.js \
             next/core/trust-model.js \
+            next/experiment/constants.js \
+            next/experiment/assignment-service.js \
+            next/experiment/analytics.js \
+            next/experiment/experiment-service.js \
+            next/experiment/bootstrap.js \
+            next/experiments/pincon-next-ui.js \
+            next/experiments/notification-frequency.js \
+            next/admin/experiments.js \
             pincon-class-ops-data.js \
             automation/deploy-firestore-rules.mjs
           do
