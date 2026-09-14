@@ -550,7 +550,11 @@ service cloud.firestore {
           'from', 'to', 'route', 'task', 'itemType', 'durationMs', 'errorType', 'source',
           'notificationId', 'condition', 'category', 'window', 'value', 'reason'
         ]);
-      allow update, delete: if false;
+      allow update: if signedIn()
+        && exists(participantPath(schoolId, request.auth.uid))
+        && eventId == request.resource.data.eventId
+        && request.resource.data == resource.data;
+      allow delete: if false;
     }
 
     // These collections are populated only by trusted Firebase Admin automation.
