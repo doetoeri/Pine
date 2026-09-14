@@ -11,6 +11,7 @@ let snapshot = gateway.snapshot();
 let opsOverview = null;
 let opsLoading = false;
 let searchQuery = "";
+let activeAdminTarget = "overview";
 
 const COLLECTION_LABELS = Object.freeze({
   announcements: "공지",
@@ -40,6 +41,7 @@ const ADMIN_TARGETS = Object.freeze({
   access: "#adminRoleManager",
   audit: "#adminAuditExplorer",
   system: "#adminSystemHealth",
+  experiments: "#pinconExperimentAdmin",
 });
 
 function escapeHtml(value) {
@@ -171,12 +173,11 @@ function navigationMarkup() {
     ["operations", "checklist", "학급 운영", pending ? String(pending) : ""],
     ["content", "edit_note", "콘텐츠", ""],
     ["access", "admin_panel_settings", "권한", ""],
-    ["audit", "history", "감사 기록", ""],
-    ["system", "monitor_heart", "시스템", ""],
   ];
-  return `<nav class="admin-nav" aria-label="관리자 메뉴">${items.map(([key, icon, label, badge]) => `<button type="button" class="admin-nav__item" data-admin-target="${key}" ${key === "overview" ? 'aria-current="page"' : ""}><md-icon>${icon}</md-icon><span>${label}</span>${badge ? `<b>${escapeHtml(badge)}</b>` : ""}</button>`).join("")}</nav>`;
+  if (snapshot.access?.role === "system-admin") items.push(["experiments", "science", "실험 · 통계", ""]);
+  items.push(["audit", "history", "감사 기록", ""], ["system", "monitor_heart", "시스템", ""]);
+  return `<nav class="admin-nav" aria-label="관리자 메뉴" style="--admin-nav-count:${items.length}">${items.map(([key, icon, label, badge]) => `<button type="button" class="admin-nav__item" data-admin-target="${key}" ${key === activeAdminTarget ? 'aria-current="page"' : ""}><md-icon>${icon}</md-icon><span>${label}</span>${badge ? `<b>${escapeHtml(badge)}</b>` : ""}</button>`).join("")}</nav>`;
 }
-
 function metricMarkup(label, value, icon, support = "") {
   return `<article class="admin-metric"><div class="admin-metric__icon"><md-icon>${icon}</md-icon></div><div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>${support ? `<small>${escapeHtml(support)}</small>` : ""}</div></article>`;
 }
@@ -282,7 +283,7 @@ function dashboardMarkup(accessState) {
 
   return `<main class="admin-shell" id="adminMain" tabindex="-1">
     <aside class="admin-sidebar"><div class="admin-brand"><div class="admin-brand__mark" aria-hidden="true"><md-icon>shield_person</md-icon></div><div class="admin-brand__copy"><strong>PinCon 운영센터</strong><span>${escapeHtml(classLabel(profile))}</span></div></div>${navigationMarkup()}<div class="admin-sidebar__foot"><span>${escapeHtml(access.displayName || "관리자")}</span><small>${escapeHtml(roleLabel(access.role))}</small></div></aside>
-    <div class="admin-workspace">
+    <div class="admin-workspace${activeAdminTarget === "experiments" ? " admin-workspace--experiments" : ""}">
       <header class="admin-topbar"><div><span class="admin-topbar__eyebrow">고촌고등학교</span><strong>${escapeHtml(classLabel(profile))} 운영</strong></div><div class="admin-topbar__actions"><md-outlined-button id="openAdminSearch"><md-icon slot="icon">search</md-icon>검색 <span class="admin-shortcut">Ctrl K</span></md-outlined-button><md-icon-button id="refreshAdminData" aria-label="관리 데이터 새로고침"><md-icon>refresh</md-icon></md-icon-button><md-text-button id="backToPincon"><md-icon slot="icon">arrow_back</md-icon>학생 화면</md-text-button></div></header>
       <section class="admin-overview" id="adminOverview" aria-labelledby="admin-title"><div class="admin-overview__copy"><p>OPERATIONS CENTER</p><h1 id="admin-title">오늘 필요한 운영만<br />먼저 보이게.</h1><span>${escapeHtml(accessState.message)}</span></div><div class="admin-overview__status"><md-icon>verified_user</md-icon><span><strong>${escapeHtml(accessState.title)}</strong><small>${opsLoading ? "운영 현황 동기화 중" : opsOverview ? "계정·운영 API 연결됨" : "기본 데이터 모드"}</small></span></div></section>
       ${snapshot.error ? `<div class="admin-status admin-status--denied" role="alert"><md-icon>error</md-icon><p>${escapeHtml(snapshot.error)}</p></div>` : ""}
@@ -302,17 +303,29 @@ function eventHost(event, selector) {
 }
 
 function scrollToAdminTarget(key) {
+  if (key === "experiments" && snapshot.access?.role !== "system-admin") return false;
+  activeAdminTarget = key;
+  const workspace = root.querySelector(".admin-workspace");
+  workspace?.classList.toggle("admin-workspace--experiments", key === "experiments");
+  root.querySelectorAll(".admin-nav [data-admin-target][aria-current]").forEach((node) => node.removeAttribute("aria-current"));
+  root.querySelector(`.admin-nav [data-admin-target="${key}"]`)?.setAttribute("aria-current", "page");
+  window.dispatchEvent(new CustomEvent("pincon-admin-view-change", { detail: { view: key } }));
+
+  if (key === "experiments") {
+    const experimentTarget = root.querySelector("#pinconExperimentAdmin");
+    experimentTarget?.scrollIntoView({ behavior: "auto", block: "start" });
+    experimentTarget?.focus?.({ preventScroll: true });
+    return true;
+  }
+
   const selector = ADMIN_TARGETS[key];
   const target = selector ? root.querySelector(selector) : null;
   if (!target) return false;
   target.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   target.classList.add("admin-focus-pulse");
   window.setTimeout(() => target.classList.remove("admin-focus-pulse"), 700);
-  root.querySelectorAll(".admin-nav [data-admin-target][aria-current]").forEach((node) => node.removeAttribute("aria-current"));
-  root.querySelector(`.admin-nav [data-admin-target="${key}"]`)?.setAttribute("aria-current", "page");
   return true;
 }
-
 function performQuickAction(action) {
   if (action === "add-user") {
     scrollToAdminTarget("users");

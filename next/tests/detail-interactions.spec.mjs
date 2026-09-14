@@ -141,12 +141,17 @@ for (const viewport of VIEWPORTS) {
     await expect(surface).toContainText("확정");
     await expect(surface).toContainText("공통영어");
 
+    // WebKit can expose fractional visual-viewport coordinates while the 260ms
+    // detail transform is settling. Wait past the transition, then keep only a
+    // 2px rounding tolerance so genuine viewport overflow is still caught.
+    await page.waitForTimeout(320);
+
     await expect.poll(() => surface.evaluate((node) => {
       const rect = node.getBoundingClientRect();
       return rect.left >= -1
         && rect.top >= -1
         && rect.right <= innerWidth + 1
-        && rect.bottom <= innerHeight + 1;
+        && rect.bottom <= innerHeight + 2;
     }), { timeout: 1_500 }).toBe(true);
 
     const geometry = await surface.evaluate((node, overflowBefore) => {
@@ -190,7 +195,7 @@ for (const viewport of VIEWPORTS) {
     expect(geometry.left).toBeGreaterThanOrEqual(-1);
     expect(geometry.top).toBeGreaterThanOrEqual(-1);
     expect(geometry.right).toBeLessThanOrEqual(geometry.width + 1);
-    expect(geometry.bottom).toBeLessThanOrEqual(geometry.height + 1);
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.height + 2);
     expect(geometry.pageOverflow, JSON.stringify(geometry, null, 2)).toBe(false);
     expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
 

@@ -3,6 +3,7 @@ import { getExperimentPlatform } from "../experiment/experiment-service.js";
 import { notificationPeriodAt } from "../experiment/assignment-service.js";
 
 const gateway = new NextDataGateway();
+await gateway.start();
 const platform = await getExperimentPlatform();
 let currentId = "pincon-next-ui";
 let bundle = { config: null, assignments: [], events: [], surveys: [] };
@@ -53,13 +54,13 @@ function variantMetrics(variant) {
 }
 function conditionMetrics(condition) {
   const sent = eventRows("notification_sent", condition).length;
-  const ratio = (type) => percent(sent ? eventRows(type, condition).length/sent : NaN);
+  const rate = (type) => sent ? eventRows(type, condition).length / sent : NaN;
   const surveys = bundle.surveys.filter((row)=>row.condition===condition);
   return {
     sent,
-    click: ratio("notification_click"),
-    open1h: ratio("app_open_after_notification_1h"),
-    target: ratio("target_view_after_notification"),
+    clickRate: rate("notification_click"),
+    open1hRate: rate("app_open_after_notification_1h"),
+    targetRate: rate("target_view_after_notification"),
     annoyance: avg(surveys.map((row)=>Number(row.annoyanceScore)).filter(Number.isFinite)),
     usefulness: avg(surveys.map((row)=>Number(row.usefulnessScore)).filter(Number.isFinite)),
   };
@@ -67,6 +68,26 @@ function conditionMetrics(condition) {
 
 function metric(label, value, support="") {
   return `<div class="experiment-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(support)}</small></div>`;
+}
+
+function barPercent(value, max = 1) {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.max(0, Math.min(100, (value / Math.max(max, 0.0001)) * 100));
+}
+
+function compareBar(label, a, b, formatter = percent, support = "") {
+  const max = Math.max(Number(a) || 0, Number(b) || 0, 0.0001);
+  return `<div class="experiment-compare-card">
+    <div class="experiment-compare-card__head"><strong>${esc(label)}</strong><span>${esc(support)}</span></div>
+    <div class="experiment-bar-row"><b>Legacy</b><div class="experiment-bar"><i style="width:${barPercent(a, max)}%"></i></div><span>${esc(formatter(a))}</span></div>
+    <div class="experiment-bar-row"><b>Next</b><div class="experiment-bar"><i style="width:${barPercent(b, max)}%"></i></div><span>${esc(formatter(b))}</span></div>
+  </div>`;
+}
+
+function conditionBar(label, rows, key) {
+  const max = Math.max(...rows.map(([, metric]) => Number(metric[key]) || 0), 0.0001);
+  return `<div class="experiment-compare-card"><div class="experiment-compare-card__head"><strong>${esc(label)}</strong></div>${rows.map(([name, metric]) => `
+    <div class="experiment-bar-row"><b>${esc(name)}</b><div class="experiment-bar"><i style="width:${barPercent(metric[key], max)}%"></i></div><span>${esc(percent(metric[key]))}</span></div>`).join("")}</div>`;
 }
 
 function uiBody() {
@@ -78,6 +99,12 @@ function uiBody() {
   }, {});
   return `
     <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>Legacy ${counts.legacy || 0} · Next ${counts.next || 0}</span><span>Rollout ${Number(bundle.config?.rolloutPercent || 0)}%</span></div>
+    <div class="experiment-comparison">
+      ${compareBar("핵심 정보 도달률", legacy.reach, next.reach, percent, "높을수록 좋음")}
+      ${compareBar("주요 작업 성공률", legacy.taskSuccess, next.taskSuccess, percent, "높을수록 좋음")}
+      ${compareBar("Return Rate", legacy.returns, next.returns, percent, "높을수록 좋음")}
+      ${compareBar("Guardrail Error", legacy.errors, next.errors, percent, "낮을수록 좋음")}
+    </div>
     <div class="experiment-grid">
       ${metric("Participants", `A ${legacy.participants} / B ${next.participants}`)}
       ${metric("DAU", `A ${legacy.dau} / B ${next.dau}`)}
@@ -116,15 +143,19 @@ function notificationBody() {
   const counts = currentNotificationCounts();
   return `
     <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>${esc(counts.periodInfo.phase)} · Period ${counts.periodInfo.period || 0}</span><span>참여자 ${bundle.assignments.length}</span><span>LOW ${counts.LOW} · MID ${counts.MID} · HIGH ${counts.HIGH}</span><span>설문 ${bundle.surveys.length}</span></div>
-    <table class="experiment-table"><thead><tr><th>조건</th><th>FCM accepted</th><th>Click</th><th>1h open</th><th>Target</th><th>피로도</th><th>유용성</th></tr></thead><tbody>
-    ${rows.map(([name,m]) => `<tr><td>${name}</td><td>${m.sent}</td><td>${m.click}</td><td>${m.open1h}</td><td>${m.target}</td><td>${Number.isFinite(m.annoyance) ? m.annoyance.toFixed(2) : "–"}</td><td>${Number.isFinite(m.usefulness) ? m.usefulness.toFixed(2) : "–"}</td></tr>`).join("")}
-    </tbody></table>
+    <div class="experiment-comparison experiment-comparison--notification">
+      ${conditionBar("알림 클릭률", rows, "clickRate")}
+      ${conditionBar("Target View", rows, "targetRate")}
+    </div>
+    <div class="experiment-table-wrap"><table class="experiment-table"><thead><tr><th>조건</th><th>FCM accepted</th><th>Click</th><th>1h open</th><th>Target</th><th>피로도</th><th>유용성</th></tr></thead><tbody>
+    ${rows.map(([name,m]) => `<tr><td>${name}</td><td>${m.sent}</td><td>${percent(m.clickRate)}</td><td>${percent(m.open1hRate)}</td><td>${percent(m.targetRate)}</td><td>${Number.isFinite(m.annoyance) ? m.annoyance.toFixed(2) : "–"}</td><td>${Number.isFinite(m.usefulness) ? m.usefulness.toFixed(2) : "–"}</td></tr>`).join("")}
+    </tbody></table></div>
     <div class="experiment-actions"><button data-exp-action="seed-notification">설정 생성</button><button class="primary" data-exp-action="start-notification">실험 시작</button><button data-exp-action="pause-notification">Pause</button><button data-exp-action="csv">CSV</button><button data-exp-action="json">JSON</button></div>
     <p class="experiment-note">Critical 알림은 실험에서 제외됩니다. sent는 실제 기기 도착이 아니라 FCM 발송 수락을 뜻합니다.</p>`;
 }
 function markup() {
-  return `<section class="experiment-admin" id="pinconExperimentAdmin">
-    <div class="experiment-admin__head"><div><span class="admin-meta">EXPERIMENT PLATFORM</span><h2>실험 · 점진 배포</h2><p>Canary, A/B, rollout, rollback과 후속 알림 빈도 실험을 같은 상태 모델로 관리합니다.</p></div><button data-exp-action="refresh">새로고침</button></div>
+  return `<section class="experiment-admin" id="pinconExperimentAdmin" tabindex="-1" aria-labelledby="experiment-admin-title">
+    <div class="experiment-admin__head"><div><span class="admin-meta">EXPERIMENT PLATFORM</span><h2 id="experiment-admin-title">실험 · 통계</h2><p>Canary, A/B, rollout, rollback과 후속 알림 빈도 실험을 같은 상태 모델로 관리합니다.</p></div><button data-exp-action="refresh">새로고침</button></div>
     <div class="experiment-tabs"><button data-exp-tab="pincon-next-ui" aria-selected="${currentId==="pincon-next-ui"}">PinCon Next UI</button><button data-exp-tab="notification-frequency" aria-selected="${currentId==="notification-frequency"}">알림 빈도</button></div>
     <div>${loading?"<md-linear-progress indeterminate></md-linear-progress>":currentId==="pincon-next-ui"?uiBody():notificationBody()}</div>
   </section>`;
@@ -132,14 +163,20 @@ function markup() {
 
 function render() {
   const snap = gateway.snapshot();
-  if (snap.access?.role !== "system-admin") return;
+  const existing = document.querySelector("#pinconExperimentAdmin");
+  if (snap.access?.role !== "system-admin") {
+    existing?.remove();
+    return;
+  }
   const workspace = document.querySelector("#adminApp .admin-workspace");
   if (!workspace) return;
-  const existing = document.querySelector("#pinconExperimentAdmin");
   if (existing) existing.outerHTML = markup();
-  else workspace.querySelector(".admin-modules")?.insertAdjacentHTML("beforebegin", markup());
+  else workspace.insertAdjacentHTML("beforeend", markup());
 }
 
+function experimentViewOpen() {
+  return document.querySelector("#adminApp .admin-workspace")?.classList.contains("admin-workspace--experiments") === true;
+}
 async function load() {
   if (loading) return;
   loading=true; render();
@@ -208,6 +245,11 @@ document.addEventListener("click",(event) => {
   if (button.dataset.expAction === "json") { saveFile(`pincon-${currentId}.json`,"application/json",JSON.stringify(bundle,null,2)); return; }
   run(button.dataset.expAction,button.dataset.value).catch((error) => { console.error("[Experiment Admin]",error); alert(error?.message || "실험 설정을 변경하지 못했습니다."); });
 });
-new MutationObserver(render).observe(document.querySelector("#adminApp"),{childList:true,subtree:true});
+window.addEventListener("pincon-admin-view-change", (event) => {
+  render();
+  if (event.detail?.view === "experiments") load();
+});
+new MutationObserver(() => { if (!document.querySelector("#pinconExperimentAdmin")) render(); }).observe(document.querySelector("#adminApp"),{childList:true,subtree:true});
 gateway.addEventListener("change",render);
-render(); load();
+render();
+if (experimentViewOpen()) load();
