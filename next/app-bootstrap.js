@@ -54,6 +54,7 @@ if (experimentPlatform?.uiContext?.variant === "next") {
   }
 }
 
+await import("./experiments/ui-satisfaction.js?v=20260914-exp1").catch(() => {});
 await import("./experiments/notification-frequency.js?v=20260914-exp1").catch(() => {});
 await import("./readonly-notice.js?v=20260905-readonly1");
 await import("./app-interactions.js?v=20260830-interaction1");
