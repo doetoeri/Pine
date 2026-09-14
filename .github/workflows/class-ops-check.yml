@@ -56,5 +56,7 @@ jobs:
         run: |
           npm ci
           node --check class-ops-notifications.mjs
+          node --check notification-frequency-core.mjs
+          node --check notification-frequency-experiment.mjs
           node --check neis-sync.mjs
           node --check deploy-firestore-rules.mjs
