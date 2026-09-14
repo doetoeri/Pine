@@ -425,7 +425,7 @@ service cloud.firestore {
         allow create, update: if signedIn()
           && request.auth.uid == userId
           && exists(participantPath(schoolId, userId))
-          && validExperimentSurvey();
+          && validExperimentSurvey(schoolId);
         allow delete: if false;
       }
     }
@@ -870,7 +870,11 @@ service cloud.firestore {
     }
 
     function validExperimentAssignment(experimentId) {
-      return request.resource.data.schemaVersion == 1
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion', 'variant', 'bucket', 'sequence', 'sequenceIndex',
+          'assignedAtMs', 'experimentVersion', 'anonymousParticipant'
+        ])
+        && request.resource.data.schemaVersion == 1
         && request.resource.data.experimentVersion is int
         && request.resource.data.experimentVersion >= 1
         && request.resource.data.assignedAtMs is int
@@ -1414,6 +1418,11 @@ service cloud.firestore {
 
     function validExperimentEvent(schoolId) {
       return signedIn()
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'eventId', 'anonymousParticipant', 'experimentId',
+          'experimentVersion', 'variant', 'eventType', 'timestampMs',
+          'sessionId', 'deviceCategory', 'properties'
+        ])
         && exists(participantPath(schoolId, request.auth.uid))
         && request.resource.data.schemaVersion == 1
         && request.resource.data.eventId is string
@@ -1441,8 +1450,13 @@ service cloud.firestore {
         && validExperimentProperties(request.resource.data.properties);
     }
 
-    function validExperimentSurvey() {
-      return request.resource.data.schemaVersion == 1
+    function validExperimentSurvey(schoolId) {
+      return request.resource.data.keys().hasOnly([
+          'schemaVersion', 'anonymousParticipant', 'period', 'condition',
+          'usefulnessScore', 'annoyanceScore', 'increasedUseScore',
+          'continueScore', 'preferredDailyCount', 'submittedAtMs'
+        ])
+        && request.resource.data.schemaVersion == 1
         && request.resource.data.anonymousParticipant
           == get(participantPath(schoolId, request.auth.uid)).data.anonymousParticipant
         && request.resource.data.period is int
