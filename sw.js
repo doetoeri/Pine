@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20260914-experiment-platform2";
+const PINCON_SW_VERSION = "20260914-flux1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}-offline3`;
 const PINCON_OLD_CACHE_PREFIXES = ["workbox-precache", "pincon-shell-"];
 
