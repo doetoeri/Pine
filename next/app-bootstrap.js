@@ -15,12 +15,21 @@ if (hasOfflineClassProfile()) {
   ({ accountReady } = await import("./simple-account-gate.js?v=20260905-readonly1"));
 }
 
-await accountReady;
+try {
+  await accountReady;
+} catch (error) {
+  try { localStorage.setItem("pincon-experiment-login-failure-pending-v1", "1"); } catch {}
+  throw error;
+}
 const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20260914-exp1");
 const experimentPlatform = await initExperimentPlatform().catch((error) => {
   console.warn("[PinCon Experiment] bootstrap failed; using stable UI", error);
   return null;
 });
+if (experimentPlatform && localStorage.getItem("pincon-experiment-login-failure-pending-v1") === "1") {
+  experimentPlatform.log("login_failure", { errorType: "account_gate", source: "previous_session" });
+  localStorage.removeItem("pincon-experiment-login-failure-pending-v1");
+}
 document.body.dataset.pinconVariant = "legacy";
 
 await import("./route-focus-stability.js?v=20260903-route2");
