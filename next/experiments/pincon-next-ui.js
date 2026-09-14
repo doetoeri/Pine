@@ -464,24 +464,219 @@ function openSurvey() {
   }, { once: true });
 }
 
-root.addEventListener("click",(event)=>{
-  const nav=event.target.closest("[data-qf-nav]");if(nav){navigate(nav.dataset.qfNav);return}
-  const expand=event.target.closest("[data-qf-expand]");if(expand){openKey=openKey===expand.dataset.qfExpand?"":expand.dataset.qfExpand;render();globalThis.PinConExperiment?.log("item_expand",{itemType:"schedule",route:sectionFromHash()});return}
-  const route=event.target.closest("[data-qf-route]");if(route){flowTab=route.dataset.qfRoute==="schedule"?"schedule":flowTab;const section=route.dataset.qfRoute==="schedule"?"flow":route.dataset.qfRoute;navigate(section);return}
-  const tab=event.target.closest("[data-qf-tab]");if(tab){const [group,id]=tab.dataset.qfTab.split(":");if(group==="flow"){flowTab=id;history.replaceState(history.state,"",`#${id==="schedule"?"schedule":"timetable"}`)}else classroomTab=id;render();return}
-  const item=event.target.closest("[data-qf-item]");if(item){const type=item.dataset.qfItem;globalThis.PinConExperiment?.log(type==="assignment"?"assignment_view":type==="notice"?"notice_view":type==="material"?"material_view":"schedule_view",{itemType:type,route:sectionFromHash()});return}
-  const evt=event.target.closest("[data-qf-event]");if(evt){globalThis.PinConExperiment?.log(evt.dataset.qfEvent,{route:sectionFromHash()});return}
-  if(event.target.closest("[data-qf-survey]")){openSurvey();return}
-});
-root.addEventListener("input",(event)=>{if(event.target.id==="qfSearch"){searchQuery=String(event.target.value||"");const pos=event.target.selectionStart;render();const input=root.querySelector("#qfSearch");input?.focus();input?.setSelectionRange(pos,pos);}});
+function handleRootClick(event) {
+  const nav = event.target.closest("[data-qf-nav]");
+  if (nav) {
+    if (!ignoreNavClick) navigate(nav.dataset.qfNav);
+    return;
+  }
 
-let drag=null;
-root.addEventListener("pointerdown",(event)=>{const dock=event.target.closest(".qf-dock");if(!dock||event.button!==0)return;const rect=dock.getBoundingClientRect();drag={dock,rect,pointerId:event.pointerId};dock.setPointerCapture?.(event.pointerId);});
-root.addEventListener("pointermove",(event)=>{if(!drag||drag.pointerId!==event.pointerId)return;const selector=drag.dock.querySelector(".qf-selector");const x=Math.max(0,Math.min(drag.rect.width,event.clientX-drag.rect.left));const idx=Math.max(0,Math.min(3,Math.floor(x/(drag.rect.width/4))));selector.style.transition="none";selector.style.transform=`translateX(${idx*100}%)`;drag.index=idx;});
-root.addEventListener("pointerup",(event)=>{if(!drag||drag.pointerId!==event.pointerId)return;const idx=Number.isInteger(drag.index)?drag.index:NAV.findIndex((item)=>item.id===sectionFromHash());drag=null;navigate(NAV[Math.max(0,idx)].id);});
-window.addEventListener("popstate",render,{passive:true});window.addEventListener("hashchange",render,{passive:true});
-gateway.addEventListener("change",(event)=>{snapshot=event.detail;render();});
+  const lesson = event.target.closest("[data-qf-lesson]");
+  if (lesson) { selectLesson(Number(lesson.dataset.qfLesson)); return; }
+
+  const day = event.target.closest("[data-qf-day]");
+  if (day) {
+    selectedDayDate = day.dataset.qfDay;
+    const periods = activeTimetable()?.periods || [];
+    selectedLesson = currentPeriodIndex(periods, selectedDayDate);
+    detailOpen = false;
+    render();
+    return;
+  }
+
+  if (event.target.closest("[data-qf-detail]")) {
+    detailOpen = !detailOpen;
+    render({ animate: false });
+    globalThis.PinConExperiment?.log("item_expand", { itemType: "lesson", route: "today" });
+    return;
+  }
+
+  if (event.target.closest("[data-qf-focus]")) {
+    focusMode = !focusMode;
+    render({ animate: false });
+    showToast(focusMode ? "이 수업에 집중해서 보여줘요" : "하루 전체 흐름으로 돌아왔어요");
+    return;
+  }
+
+  const prep = event.target.closest("[data-qf-prep]");
+  if (prep) { togglePreparation(prep.dataset.qfPrep); return; }
+
+  const notice = event.target.closest("[data-qf-notice-toggle]");
+  if (notice) {
+    const article = notice.closest(".qf-notice");
+    const open = !article.classList.contains("open");
+    article.classList.toggle("open", open);
+    notice.setAttribute("aria-expanded", String(open));
+    if (open) globalThis.PinConExperiment?.log("target_information_view", { route: "today", itemType: "upcoming" });
+    return;
+  }
+
+  const classToggle = event.target.closest("[data-qf-class-toggle]");
+  if (classToggle) {
+    const article = classToggle.closest(".qf-class-item");
+    const open = !article.classList.contains("open");
+    article.classList.toggle("open", open);
+    classToggle.setAttribute("aria-expanded", String(open));
+    if (open) {
+      globalThis.PinConExperiment?.log(classroomTab === "notice" ? "notice_view" : "material_view", { route: "classroom", itemType: classroomTab });
+    }
+    return;
+  }
+
+  const route = event.target.closest("[data-qf-route]");
+  if (route) {
+    if (route.dataset.task) globalThis.PinConExperiment?.log("task_start", { task: route.dataset.task, route: sectionFromHash() });
+    flowTab = route.dataset.qfRoute === "schedule" ? "schedule" : flowTab;
+    navigate(route.dataset.qfRoute === "schedule" ? "flow" : route.dataset.qfRoute);
+    requestAnimationFrame(() => globalThis.PinConExperiment?.log("target_information_view", { route: route.dataset.qfRoute, itemType: route.dataset.task || "schedule" }));
+    return;
+  }
+
+  const tab = event.target.closest("[data-qf-tab]");
+  if (tab) {
+    const [group, id] = tab.dataset.qfTab.split(":");
+    if (group === "flow") {
+      flowTab = id;
+      history.replaceState(history.state, "", `#${id === "schedule" ? "schedule" : "timetable"}`);
+    } else {
+      classroomTab = id;
+    }
+    render();
+    return;
+  }
+
+  const item = event.target.closest("[data-qf-item]");
+  if (item) {
+    const type = item.dataset.qfItem;
+    if (item.dataset.task) globalThis.PinConExperiment?.log("task_start", { task: item.dataset.task, route: sectionFromHash() });
+    globalThis.PinConExperiment?.log(type === "assignment" ? "assignment_view" : type === "notice" ? "notice_view" : type === "material" ? "material_view" : "schedule_view", { itemType: type, route: sectionFromHash() });
+    return;
+  }
+
+  const evt = event.target.closest("[data-qf-event]");
+  if (evt) {
+    globalThis.PinConExperiment?.log(evt.dataset.qfEvent, { route: sectionFromHash() });
+    showToast("확인했어요");
+    return;
+  }
+
+  if (event.target.closest("[data-qf-survey]")) openSurvey();
+}
+function handleRootInput(event) {
+  if (event.target.id !== "qfSearch") return;
+  searchQuery = String(event.target.value || "");
+  const position = event.target.selectionStart;
+  render({ animate: false });
+  const input = root.querySelector("#qfSearch");
+  input?.focus();
+  input?.setSelectionRange(position, position);
+}
+function handlePointerDown(event) {
+  const cursor = event.target.closest("[data-qf-cursor]");
+  if (cursor && (event.button === 0 || event.button === undefined)) {
+    const geometry = timelineGeometry();
+    if (!geometry) return;
+    timelineDrag = { pointerId: event.pointerId, hover: selectedLesson, ...geometry };
+    cursor.setPointerCapture?.(event.pointerId);
+    cursor.style.transition = "none";
+    event.preventDefault();
+    return;
+  }
+
+  const wrap = event.target.closest("[data-qf-dock-wrap]");
+  if (wrap && (event.button === 0 || event.button === undefined)) {
+    const geometry = dockGeometry();
+    if (!geometry) return;
+    navDrag = {
+      pointerId: event.pointerId,
+      hover: NAV.findIndex((item) => item.id === sectionFromHash()),
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+      ...geometry,
+    };
+    wrap.setPointerCapture?.(event.pointerId);
+  }
+}
+function handlePointerMove(event) {
+  if (timelineDrag?.pointerId === event.pointerId) {
+    const { timeline, cursor, stops, centers } = timelineDrag;
+    const rect = timeline.getBoundingClientRect();
+    const x = Math.max(centers[0], Math.min(centers[centers.length - 1], event.clientX - rect.left));
+    cursor.style.transform = `translate3d(${x - cursor.offsetWidth / 2}px,0,0)`;
+    const closest = centers.reduce((best, center, index) => Math.abs(center - x) < Math.abs(centers[best] - x) ? index : best, 0);
+    timelineDrag.hover = closest;
+    stops.forEach((stop, index) => stop.classList.toggle("active", index === closest));
+    const label = cursor.querySelector("span");
+    if (label) label.textContent = String((activeTimetable()?.periods || [])[closest]?.period || closest + 1).padStart(2, "0");
+    const progress = centers.length <= 1 ? 0 : (x - centers[0]) / (centers[centers.length - 1] - centers[0]) * 100;
+    root.querySelector(".qf-time-thread")?.style.setProperty("--qf-progress", `${progress}%`);
+    event.preventDefault();
+    return;
+  }
+
+  if (navDrag?.pointerId === event.pointerId) {
+    const { selector, buttons, innerLeft, innerWidth, cell } = navDrag;
+    if (Math.hypot(event.clientX - navDrag.startX, event.clientY - navDrag.startY) > 4) navDrag.moved = true;
+    if (!navDrag.moved) return;
+    const centerX = Math.max(cell / 2, Math.min(innerWidth - cell / 2, event.clientX - innerLeft));
+    const fractional = centerX / cell - .5;
+    const between = Math.min(1, Math.abs(fractional - Math.round(fractional)) * 2);
+    const extra = 8 + between * 16;
+    const width = cell + extra;
+    const left = Math.max(0, Math.min(innerWidth - width, centerX - width / 2));
+    selector.style.transition = "none";
+    selector.style.width = `${width}px`;
+    selector.style.transform = `translateX(${left}px)`;
+    const localX = Math.max(0, Math.min(innerWidth - .01, event.clientX - innerLeft));
+    const hover = Math.max(0, Math.min(buttons.length - 1, Math.floor(localX / cell)));
+    navDrag.hover = hover;
+    buttons.forEach((button, index) => button.setAttribute("aria-current", index === hover ? "page" : "false"));
+    event.preventDefault();
+  }
+}
+function finishPointer(event) {
+  if (timelineDrag?.pointerId === event.pointerId) {
+    const { hover, cursor } = timelineDrag;
+    try { cursor.releasePointerCapture?.(event.pointerId); } catch {}
+    timelineDrag = null;
+    selectLesson(hover);
+    return;
+  }
+  if (navDrag?.pointerId === event.pointerId) {
+    const { hover, wrap, moved } = navDrag;
+    try { wrap.releasePointerCapture?.(event.pointerId); } catch {}
+    navDrag = null;
+    if (moved) {
+      ignoreNavClick = true;
+      navigate(NAV[Math.max(0, hover)]?.id || "today");
+      window.setTimeout(() => { ignoreNavClick = false; }, 80);
+    } else {
+      settleDock(true);
+    }
+  }
+}
+function handleCursorKeydown(event) {
+  const cursor = event.target.closest("[data-qf-cursor]");
+  if (!cursor) return;
+  if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+    event.preventDefault();
+    selectLesson(selectedLesson + 1);
+  } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+    event.preventDefault();
+    selectLesson(selectedLesson - 1);
+  }
+}
+root.addEventListener("click", handleRootClick);
+root.addEventListener("input", handleRootInput);
+root.addEventListener("pointerdown", handlePointerDown);
+root.addEventListener("pointermove", handlePointerMove);
+root.addEventListener("pointerup", finishPointer);
+root.addEventListener("pointercancel", finishPointer);
+root.addEventListener("keydown", handleCursorKeydown);
+window.addEventListener("popstate",()=>render(),{passive:true});window.addEventListener("hashchange",()=>render(),{passive:true});window.addEventListener("resize",()=>syncPhysicalControls(false),{passive:true});
+gateway.addEventListener("change",(event)=>{snapshot=event.detail;syncSelectedLesson();render({animate:false});});
 
 document.body.dataset.pinconVariant="next";
-render();
+render({animate:false});
 await gateway.start();
