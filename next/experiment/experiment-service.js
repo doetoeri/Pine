@@ -10,6 +10,7 @@ import {
 } from "./constants.js";
 import {
   crossoverSequenceFor,
+  deterministicBucket,
   notificationConditionFor,
   resolveUiVariant,
 } from "./assignment-service.js";
@@ -17,7 +18,7 @@ import { ExperimentAnalytics } from "./analytics.js";
 
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
-const SDK = "12.16.0";
+const SDK = "12.17.1";
 const CACHE_PREFIX = "pincon-experiment-context-v1";
 const PARTICIPANT_PREFIX = "pincon-experiment-participant-v1";
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -374,13 +375,15 @@ export class ExperimentPlatform {
       this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments")),
       this.api.getDocs(this.api.query(
         this.api.collection(this.api.db, "schools", SCHOOL.id, "experimentEvents"),
-        this.api.where("experimentId", "==", experimentId),
         this.api.orderBy("timestampMs", "desc"),
-        this.api.limit(3000),
+        this.api.limit(5000),
       )),
     ]);
     const assignments = assignmentsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const events = eventsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const events = eventsSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((row) => row.experimentId === experimentId)
+      .slice(0, 3000);
     const surveys = [];
     if (experimentId === NOTIFICATION_EXPERIMENT_ID) {
       await Promise.all(assignments.map(async (assignment) => {
@@ -399,6 +402,65 @@ export class ExperimentPlatform {
       assignments,
       events,
       surveys,
+    };
+  }
+
+  async adminBalanceUiAssignments() {
+    const experimentId = UI_EXPERIMENT_ID;
+    const configSnap = await this.api.getDoc(
+      this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId),
+    );
+    if (!configSnap.exists()) throw new Error("UI 실험 설정을 먼저 생성해야 합니다.");
+    const config = { id: configSnap.id, ...configSnap.data() };
+    const [participantsSnap, assignmentsSnap] = await Promise.all([
+      this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experimentParticipants")),
+      this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments")),
+    ]);
+    const assignments = new Map(assignmentsSnap.docs.map((doc) => [doc.id, doc.data()]));
+    const participants = participantsSnap.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+    const version = Number(config.version || 1);
+    const existing = [...assignments.values()].filter((item) => item.experimentVersion === version);
+    const existingNext = existing.filter((item) => item.variant === "next").length;
+    const desiredNext = Math.floor(participants.length / 2);
+    let nextSlots = Math.max(0, desiredNext - existingNext);
+    const unassigned = participants
+      .filter((item) => !assignments.has(item.uid) || assignments.get(item.uid)?.experimentVersion !== version)
+      .map((item) => ({
+        ...item,
+        bucket: deterministicBucket(`${item.uid}:${experimentId}:v${version}`, 10_000),
+      }))
+      .sort((a, b) => a.bucket - b.bucket || a.uid.localeCompare(b.uid));
+    const batch = this.api.writeBatch(this.api.db);
+    let nextCreated = 0;
+    let legacyCreated = 0;
+    for (const item of unassigned) {
+      const variant = nextSlots > 0 ? "next" : "legacy";
+      if (variant === "next") {
+        nextSlots -= 1;
+        nextCreated += 1;
+      } else {
+        legacyCreated += 1;
+      }
+      batch.set(
+        this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments", item.uid),
+        {
+          schemaVersion: EXPERIMENT_SCHEMA_VERSION,
+          variant,
+          bucket: item.bucket,
+          assignedAtMs: Date.now(),
+          experimentVersion: version,
+          anonymousParticipant: item.anonymousParticipant,
+        },
+        { merge: false },
+      );
+    }
+    if (unassigned.length) await batch.commit();
+    return {
+      participants: participants.length,
+      existingAssignments: existing.length,
+      created: unassigned.length,
+      nextCreated,
+      legacyCreated,
     };
   }
 
