@@ -235,6 +235,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
             condition,
             category: candidate.category,
             targetRoute: candidate.targetRoute,
+            scheduledAtMs: String(scheduledAtMs),
           },
           webpush: { headers: { Urgency: "normal" } },
         });
