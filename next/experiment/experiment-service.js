@@ -119,6 +119,8 @@ export class ExperimentPlatform {
     this.api = null;
     this.user = null;
     this.context = null;
+    this.uiContext = null;
+    this.notificationContext = null;
     this.analytics = new ExperimentAnalytics({
       contextProvider: () => this.context,
       transport: (rows) => this.writeEventBatch(rows),
@@ -145,6 +147,8 @@ export class ExperimentPlatform {
       const participant = await ownParticipant(this.api, this.user);
       const uiContext = await this.loadUiContext(participant);
       const notificationContext = await this.loadNotificationContext(participant);
+      this.uiContext = uiContext;
+      this.notificationContext = notificationContext;
 
       this.context = experimentIsRunning(uiContext.status)
         ? uiContext
