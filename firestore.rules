@@ -244,6 +244,32 @@ service cloud.firestore {
         && request.resource.data.closed is bool;
     }
 
+
+    function experimentPath(schoolId, experimentId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/experiments/$(experimentId);
+    }
+
+    function participantPath(schoolId, userId) {
+      return /databases/$(database)/documents/schools/$(schoolId)/experimentParticipants/$(userId);
+    }
+
+    function experimentRunningStatus(status) {
+      return status in ['CANARY', 'ACTIVE', 'ROLLOUT'];
+    }
+
+    function experimentWriteIsolated(schoolId, experimentId) {
+      let status = request.resource.data.status;
+      return !experimentRunningStatus(status)
+        || (experimentId == 'notification-frequency'
+          && exists(experimentPath(schoolId, 'pincon-next-ui'))
+          && get(experimentPath(schoolId, 'pincon-next-ui')).data.status == 'COMPLETED'
+          && get(experimentPath(schoolId, 'pincon-next-ui')).data.get('promotedVariant', '') == 'next')
+        || (experimentId == 'pincon-next-ui'
+          && (!exists(experimentPath(schoolId, 'notification-frequency'))
+            || !experimentRunningStatus(get(experimentPath(schoolId, 'notification-frequency')).data.status)))
+        || !(experimentId in ['pincon-next-ui', 'notification-frequency']);
+    }
+
     match /schools/{schoolId}/content/{contentId} {
       allow read: if true;
 
