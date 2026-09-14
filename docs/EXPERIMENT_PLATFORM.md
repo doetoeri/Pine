@@ -160,3 +160,25 @@ Analytics 전송 실패는 무한 동기 재시도하지 않고 local queue에 �
 - `notification_sent`는 FCM API 수락이며 device delivery와 동일하지 않다.
 - 익명 participant는 사용자가 실험 플랫폼이 포함된 앱에 한 번 로그인한 뒤 생성된다.
 - 운영센터 raw event 로딩은 성능 보호를 위해 최근 데이터에 상한이 있다.
+
+
+## 공개 베타
+
+UI 실험의 Canary 단계에서는 관리자가 `publicBetaEnabled=true`로 공개 베타를 열 수 있다.
+
+- 사용자는 더보기에서 자발적으로 참여한다.
+- enrollment는 `experiments/pincon-next-ui/betaEnrollments/{uid}`에 저장한다.
+- 공개 베타 사용자는 Next UI를 사용하지만 analytics `cohort=public-beta`로 태그한다.
+- 공개 베타 데이터는 정식 controlled A/B 지표에서 제외한다.
+- ACTIVE 전환 시 공개 베타는 자동으로 닫힌다.
+- 사용자는 Next UI의 ‘나’ 화면에서 기존 UI로 돌아갈 수 있다.
+
+## 접속 전 사전배정
+
+운영센터는 계정 API의 현재 학급 roster를 기준으로 UI Variant를 미리 생성한다.
+
+- 학생이 PinCon을 열지 않았어도 UID가 존재하면 assignment 생성 가능
+- 아직 experimentParticipant가 없다면 assignment의 anonymousParticipant는 빈 문자열
+- 실제 분석 이벤트는 최초 접속 후 익명 participant가 생성된 다음부터 기록
+- 운영센터에서 Assigned Users와 Activated Users를 분리해서 표시
+- ACTIVE/ROLLOUT/COMPLETED 상태에서는 재균형 배정을 금지해 Sticky Assignment를 보존
