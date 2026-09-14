@@ -132,6 +132,7 @@ test("PWA and bootstrap include experiment modules and stable fallback", async (
   ]);
   assert.match(sw, /next\/experiment\/experiment-service\.js/);
   assert.match(sw, /next\/experiments\/pincon-next-ui\.js/);
+  assert.match(sw, /next\/experiments\/public-beta\.js/);
   assert.match(bootstrap, /initExperimentPlatform/);
   assert.match(bootstrap, /dataset\.pinconVariant = "legacy"/);
   assert.match(bootstrap, /experimentPlatform\?\.uiContext\?\.variant === "next"/);
