@@ -239,30 +239,62 @@ function todayMarkup() {
 }
 function flowRows(items) {
   if (!items.length) return '<div class="qf-empty">표시할 일정이 없습니다.</div>';
-  return `<div class="qf-flow">${items.map(({item,kind})=>`<article class="qf-row"><div class="qf-clock">${esc(itemDate(item) || "미정")}</div><div class="qf-row-main"><button class="qf-row-button" type="button" data-qf-item="${esc(kind)}"><span class="qf-title">${esc(title(item))}</span><span class="qf-sub">${esc([clean(item.subject), clean(item.status || item.verificationStatus)].filter(Boolean).join(" · "))}</span></button></div></article>`).join("")}</div>`;
+  return `<div class="qf-flow">${items.map(({ item, kind }, index) => `<article class="qf-flow-row" style="--qf-row-index:${index}">
+    <div class="qf-flow-date qf-mono">${esc(shortDate(itemDate(item)))}</div>
+    <button class="qf-flow-main" type="button" data-qf-item="${esc(kind)}" data-task="${kind === "assignment" ? "assignment" : ""}">
+      <span class="qf-title">${esc(title(item))}</span>
+      <span class="qf-sub">${esc([clean(item.subject), clean(item.status || item.verificationStatus)].filter(Boolean).join(" · "))}</span>
+    </button>
+  </article>`).join("")}</div>`;
 }
 function flowMarkup() {
   if (flowTab === "timetable") {
-    const doc = todayTimetable();
-    return `<section><div class="qf-hero"><span class="qf-eyebrow">Flow</span><h1>시간의 흐름</h1><p>수업 순서가 하나의 축으로 이어집니다.</p></div>${subnav("flow", [["timetable","시간표"],["schedule","수행·일정"]],flowTab)}<div class="qf-timeline">${(doc?.periods||[]).length ? doc.periods.map(rowMarkup).join("") : '<div class="qf-empty">시간표 데이터가 없습니다.</div>'}</div></section>`;
+    const doc = activeTimetable();
+    const rows = (doc?.periods || []).map((period) => ({
+      item: { ...period, title: period.subject || period.name, date: doc?.date },
+      kind: "schedule",
+    }));
+    return `<section class="qf-page" data-qf-page="flow">
+      <div class="qf-hero"><span class="qf-eyebrow">Flow</span><h1>시간의 흐름</h1><p>수업 순서를 하나의 축으로 이어서 봅니다.</p></div>
+      ${subnav("flow", [["timetable", "시간표"], ["schedule", "수행·일정"]], flowTab)}
+      ${flowRows(rows)}
+    </section>`;
   }
   const rows = [
-    ...(data().classAssignments || []).filter((x)=>!x.deleted && x.published!==false).map(item=>({item,kind:item.type==="preparation"?"material":"assignment"})),
-    ...(data().academicSchedules || []).filter((x)=>!x.deleted).map(item=>({item,kind:"schedule"})),
-  ].sort((a,b)=>String(itemDate(a.item)).localeCompare(String(itemDate(b.item))));
-  return `<section><div class="qf-hero"><span class="qf-eyebrow">Approach</span><h1>다가오는 것들</h1><p>가까워지는 수행평가와 학사일정이 먼저 보입니다.</p></div>${subnav("flow", [["timetable","시간표"],["schedule","수행·일정"]],flowTab)}${flowRows(rows)}</section>`;
+    ...(data().classAssignments || []).filter((x) => !x.deleted && x.published !== false).map((item) => ({ item, kind: item.type === "preparation" ? "material" : "assignment" })),
+    ...(data().academicSchedules || []).filter((x) => !x.deleted).map((item) => ({ item, kind: "schedule" })),
+  ].sort((a, b) => String(itemDate(a.item) || "9999").localeCompare(String(itemDate(b.item) || "9999")));
+  return `<section class="qf-page" data-qf-page="flow">
+    <div class="qf-hero"><span class="qf-eyebrow">Approach</span><h1>다가오는 것들</h1><p>가까워지는 수행평가와 학사일정이 먼저 공간을 차지합니다.</p></div>
+    ${subnav("flow", [["timetable", "시간표"], ["schedule", "수행·일정"]], flowTab)}
+    ${flowRows(rows)}
+  </section>`;
 }
 function subnav(group, entries, active) {
   return `<nav class="qf-subnav" aria-label="하위 탐색">${entries.map(([id,label])=>`<button type="button" data-qf-tab="${group}:${id}" aria-selected="${active===id}">${label}</button>`).join("")}</nav>`;
 }
 function classroomMarkup() {
-  const notices = (data().announcements || []).filter((x)=>!x.deleted);
-  const resources = (data().resources || []).filter((x)=>!x.deleted && (!x.moderationStatus || x.moderationStatus==="approved"));
-  const items = classroomTab === "notice" ? notices : resources;
-  return `<section><div class="qf-hero"><span class="qf-eyebrow">Classroom</span><h1>${esc(profileLabel())}의 맥락</h1><p>공지와 자료를 별도 카드 더미가 아니라 같은 흐름에서 펼칩니다.</p></div>
-  ${subnav("classroom", [["notice","공지"],["resources","자료"]],classroomTab)}
-  <div class="qf-search"><input id="qfSearch" type="search" value="${esc(searchQuery)}" placeholder="제목으로 빠르게 찾기" aria-label="학급 정보 검색"></div>
-  ${items.filter((item)=>!searchQuery || title(item).toLowerCase().includes(searchQuery.toLowerCase())).map((item)=>`<div class="qf-flat"><div><h3>${esc(title(item))}</h3><p>${esc(clean(item.body || item.description || item.subject || "")).slice(0,200)}</p></div><button class="qf-button" type="button" data-qf-item="${classroomTab==="notice"?"notice":"material"}">확인</button></div>`).join("") || '<div class="qf-empty">조건에 맞는 정보가 없습니다.</div>'}</section>`;
+  const notices = (data().announcements || []).filter((x) => !x.deleted);
+  const resources = (data().resources || []).filter((x) => !x.deleted && (!x.moderationStatus || x.moderationStatus === "approved"));
+  const items = (classroomTab === "notice" ? notices : resources)
+    .filter((item) => !searchQuery || title(item).toLowerCase().includes(searchQuery.toLowerCase()));
+  return `<section class="qf-page" data-qf-page="classroom">
+    <div class="qf-hero"><span class="qf-eyebrow">Classroom</span><h1>${esc(profileLabel())}의 맥락</h1><p>공지와 자료가 카드 더미가 아니라 하나의 얇은 흐름으로 이어집니다.</p></div>
+    ${subnav("classroom", [["notice", "공지"], ["resources", "자료"]], classroomTab)}
+    <div class="qf-search"><input id="qfSearch" type="search" value="${esc(searchQuery)}" placeholder="제목으로 빠르게 찾기" aria-label="학급 정보 검색"></div>
+    <div class="qf-class-stream">${items.map((item, index) => {
+      const key = `${classroomTab}-${item.id || index}`;
+      const body = clean(item.body || item.description || item.subject || "");
+      return `<article class="qf-class-item" data-qf-class="${esc(key)}" style="--qf-row-index:${index}">
+        <button class="qf-class-toggle" type="button" data-qf-class-toggle="${esc(key)}" aria-expanded="false">
+          <span class="qf-class-index qf-mono">${String(index + 1).padStart(2, "0")}</span>
+          <span><b>${esc(title(item))}</b><small>${esc(classroomTab === "notice" ? "공지" : "자료")}</small></span>
+          <span class="qf-class-arrow">›</span>
+        </button>
+        <div class="qf-class-body"><div><p>${esc(body || "PinCon에서 자세한 내용을 확인할 수 있습니다.")}</p></div></div>
+      </article>`;
+    }).join("") || '<div class="qf-empty qf-empty--compact">조건에 맞는 정보가 없습니다.</div>'}</div>
+  </section>`;
 }
 function notificationSurveyMarkup() {
   const ctx = globalThis.PinConExperiment?.context;
@@ -272,17 +304,19 @@ function notificationSurveyMarkup() {
 function meMarkup() {
   const name = clean(snapshot.user?.displayName || snapshot.user?.email || "PinCon 사용자");
   const ui = globalThis.PinConExperiment?.uiContext;
-  return `<section><div class="qf-hero"><span class="qf-eyebrow">Me</span><h1>${esc(name)}</h1><p>실험 중에도 사용자가 Variant를 직접 바꾸는 스위치는 제공하지 않습니다.</p></div>
+  const permission = globalThis.Notification?.permission || "unsupported";
+  return `<section class="qf-page" data-qf-page="me">
+    <div class="qf-hero"><span class="qf-eyebrow">Me</span><h1>${esc(name)}</h1><p>현재 상태와 실험 참여 정보만 조용하게 보여줍니다.</p></div>
     <div class="qf-status"><span class="qf-pill">${esc(syncLabel())}</span><span class="qf-pill">UI · ${esc(ui?.variant || "legacy")}</span><span class="qf-pill">${esc(profileLabel())}</span></div>
-    ${ui?.cohort === "public-beta" ? '<div class="qf-flat"><div><h3>공개 베타 참여 중</h3><p>이 사용 기록은 정식 A/B 비교와 분리됩니다. 원하면 바로 기존 PinCon으로 돌아갈 수 있습니다.</p></div><button class="qf-button" type="button" data-pincon-public-beta="leave">기존 화면으로 돌아가기</button></div>' : ""}
+    ${ui?.cohort === "public-beta" ? '<div class="qf-flat"><div><h3>공개 베타 참여 중</h3><p>이 사용 기록은 정식 A/B 비교와 분리됩니다.</p></div><button class="qf-button" type="button" data-pincon-public-beta="leave">기존 화면으로 돌아가기</button></div>' : ""}
     ${notificationSurveyMarkup()}
     ${snapshot.canArchiveContent ? '<div class="qf-flat"><div><h3>PinCon 운영센터</h3><p>학급 운영과 실험 집계는 권한이 있는 계정만 접근합니다.</p></div><a class="qf-button primary" href="./admin/">운영센터</a></div>' : ""}
-    <div class="qf-flat"><div><h3>PWA · 알림</h3><p>설치형 앱과 FCM 연결은 기존 PinCon 계층을 그대로 사용합니다. 현재 알림 권한: ${esc(Notification.permission || "default")}</p></div></div>
+    <div class="qf-flat"><div><h3>PWA · 알림</h3><p>설치형 앱과 FCM 연결은 기존 PinCon 계층을 그대로 사용합니다. 현재 알림 권한: ${esc(permission)}</p></div></div>
     <div class="qf-flat"><div><h3>분석 개인정보</h3><p>실험 이벤트에는 이름·학번·입력한 검색어 원문을 저장하지 않습니다.</p></div></div>
   </section>`;
 }
 function dockMarkup(active) {
-  return `<div class="qf-dock-wrap"><nav class="qf-dock" aria-label="PinCon 주요 탐색"><span class="qf-selector" aria-hidden="true"></span>${NAV.map((item)=>`<button type="button" data-qf-nav="${item.id}" aria-current="${active===item.id?"page":"false"}">${item.label}</button>`).join("")}</nav></div>`;
+  return `<div class="qf-dock-wrap" data-qf-dock-wrap><nav class="qf-dock" aria-label="PinCon 주요 탐색"><span class="qf-selector" aria-hidden="true"></span>${NAV.map((item) => `<button type="button" data-qf-nav="${item.id}" aria-current="${active === item.id ? "page" : "false"}"><span class="qf-nav-dot"></span>${item.label}</button>`).join("")}</nav></div>`;
 }
 function render() {
   reportDataGatewaySnapshot(snapshot);
