@@ -11,6 +11,7 @@ on:
       - "firestore.rules"
       - "storage.rules"
       - "automation/deploy-firestore-rules.mjs"
+      - "firebase-experiment-test.json"
       - ".github/workflows/next-contracts.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "automation/deploy-firestore-rules.mjs"
       - "firestore.rules"
       - "storage.rules"
+      - "firebase-experiment-test.json"
       - ".github/workflows/firebase-rules.yml"
       - ".github/workflows/next-contracts.yml"
 
@@ -80,6 +82,15 @@ jobs:
             next/core/today-changes.js \
             next/core/today-open-write.js \
             next/core/trust-model.js \
+            next/experiment/constants.js \
+            next/experiment/assignment-service.js \
+            next/experiment/analytics.js \
+            next/experiment/experiment-service.js \
+            next/experiment/bootstrap.js \
+            next/experiments/pincon-next-ui.js \
+            next/experiments/notification-frequency.js \
+            next/experiments/ui-satisfaction.js \
+            next/admin/experiments.js \
             pincon-class-ops-data.js \
             automation/deploy-firestore-rules.mjs
           do
@@ -127,6 +138,13 @@ jobs:
           --project pincon-next-rules-test
           --config next/firebase-test.json
           "node --test next/tests/firestore-rules.test.mjs"
+      - name: Run Experiment Platform rules suite
+        run: >-
+          npx firebase emulators:exec
+          --only firestore
+          --project pincon-experiment-rules-test
+          --config firebase-experiment-test.json
+          "node --test next/tests/experiment-platform-firestore-rules.test.mjs"
 
   responsive-smoke:
     runs-on: ubuntu-latest

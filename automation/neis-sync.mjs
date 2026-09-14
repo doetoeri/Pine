@@ -2,6 +2,7 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { closeExpiredClassOps, dispatchClassOpsNotifications, purgeExpiredClassOpsTrash } from "./class-ops-notifications.mjs";
+import { dispatchNotificationFrequencyExperiment } from "./notification-frequency-experiment.mjs";
 import {
   classLabel,
   dateLabel,
@@ -518,8 +519,9 @@ async function main() {
   ]);
   const classOpsClosed = await closeExpiredClassOps({ db });
   const classOpsNotifications = await dispatchClassOpsNotifications({ db, messaging: getMessaging() });
+  const notificationExperiment = await dispatchNotificationFrequencyExperiment({ db, messaging: getMessaging() });
   const classOpsTrash = await purgeExpiredClassOpsTrash({ db });
-  console.log(JSON.stringify({ start, timetableEnd, academicEnd, timetables, meals, academicSchedules, classOpsClosed, classOpsNotifications, classOpsTrash }));
+  console.log(JSON.stringify({ start, timetableEnd, academicEnd, timetables, meals, academicSchedules, classOpsClosed, classOpsNotifications, notificationExperiment, classOpsTrash }));
 }
 
 main().catch((error) => {

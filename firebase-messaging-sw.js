@@ -29,6 +29,12 @@ function notificationOptions(payload = {}) {
       route: data.route || "today",
       kind: data.kind || "school-update",
       notificationId: data.notificationId || tag,
+      experimentId: data.experimentId || "",
+      condition: data.condition || "",
+      period: data.period || "",
+      category: data.category || "",
+      targetRoute: data.targetRoute || data.route || "today",
+      scheduledAtMs: Number(data.scheduledAtMs || timestamp || Date.now()),
     },
   };
 }
@@ -36,9 +42,22 @@ function notificationOptions(payload = {}) {
 if (globalThis.PINCON_FIREBASE_CONFIG) {
   firebase.initializeApp(globalThis.PINCON_FIREBASE_CONFIG);
   const messaging = firebase.messaging();
-  messaging.onBackgroundMessage((payload) => {
+  messaging.onBackgroundMessage(async (payload) => {
     const title = payload.data?.title || "PinCon 알림";
-    return self.registration.showNotification(title, notificationOptions(payload));
+    const options = notificationOptions(payload);
+    if (options.data?.experimentId) {
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      clients.forEach((client) => client.postMessage({
+        type: "pincon-experiment-notification-received",
+        notificationId: options.data.notificationId,
+        experimentId: options.data.experimentId,
+        condition: options.data.condition,
+        period: options.data.period,
+        category: options.data.category,
+        targetRoute: options.data.targetRoute,
+      }));
+    }
+    return self.registration.showNotification(title, options);
   });
 }
 
@@ -48,7 +67,19 @@ self.addEventListener("notificationclick", (event) => {
     return;
   }
 
-  const link = event.notification.data?.link || "./next/#today";
+  const data = event.notification.data || {};
+  const rawLink = data.link || "./next/#today";
+  const target = new URL(rawLink, self.location.origin);
+  if (data.experimentId) {
+    target.searchParams.set("pinconNotificationId", data.notificationId || "");
+    target.searchParams.set("pinconExperimentId", data.experimentId);
+    target.searchParams.set("pinconCondition", data.condition || "");
+    target.searchParams.set("pinconPeriod", data.period || "");
+    target.searchParams.set("pinconCategory", data.category || "");
+    target.searchParams.set("pinconTargetRoute", data.targetRoute || data.route || "today");
+    target.searchParams.set("pinconSentAt", String(Number(data.scheduledAtMs || Date.now())));
+  }
+  const link = target.href;
   event.notification.close();
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });

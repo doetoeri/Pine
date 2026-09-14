@@ -139,6 +139,16 @@ async function sendOnce({ root, messaging, classKey, key, title, items, subscrip
 
 export async function dispatchClassOpsNotifications({ db, messaging, now = new Date() }) {
   const root = db.collection("schools").doc(SCHOOL_ID);
+  const [frequencyConfig, frequencyFlag] = await Promise.all([
+    root.collection("experiments").doc("notification-frequency").get().catch(() => null),
+    root.collection("experimentFlags").doc("notification_experiment").get().catch(() => null),
+  ]);
+  const frequencyControlled = Boolean(
+    frequencyConfig?.exists
+    && frequencyConfig.data()?.status === "ACTIVE"
+    && frequencyFlag?.exists
+    && frequencyFlag.data()?.enabled !== false
+  );
   const { documents: subscriptionDocs, classKeys } = await classKeysWithSubscriptions(root);
   if (!classKeys.length) return { classes: 0, sent: 0, windows: [] };
 
@@ -157,7 +167,7 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
       queryRows(root.collection("announcements"), "classKey", "==", classKey),
     ]);
 
-    if (morning) {
+    if (morning && !frequencyControlled) {
       const items = assignments.filter((item) => !item.deleted && item.dueDate === clock.date).flatMap((item) => {
         if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentToday", line: `${item.subject ? `${item.subject} ` : ""}${item.title}`, urgent: true }];
         if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}`, urgent: true }];
@@ -168,7 +178,7 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
       if (items.length) windows.push(`${classKey}:morning`);
     }
 
-    if (evening) {
+    if (evening && !frequencyControlled) {
       const items = assignments.filter((item) => !item.deleted && item.dueDate === tomorrow).flatMap((item) => {
         if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentTomorrow", line: `${item.subject ? `${item.subject} ` : ""}${item.title}` }];
         if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}` }];
@@ -193,7 +203,7 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
     }
   }
 
-  return { classes: classKeys.length, sent, windows };
+  return { classes: classKeys.length, sent, windows, frequencyControlled };
 }
 
 export async function closeExpiredClassOps({ db, now = new Date() }) {
