@@ -177,37 +177,65 @@ function syncLabel() {
   if (snapshot.error) return "일부 정보 연결 실패";
   return "실시간 동기화";
 }
-function rowMarkup(period, index) {
-  const key = `lesson-${period.id || period.period || index+1}`;
-  const state = lessonState(period);
+function dayToggleMarkup(docs, activeDate) {
+  if (!docs.length) return "";
+  const active = Math.max(0, docs.findIndex((doc) => doc.date === activeDate));
+  return `<div class="qf-day-toggle" style="--qf-days:${docs.length}"><span class="qf-day-ink" style="transform:translateX(${active * 100}%)"></span>${docs.map((doc) => `<button type="button" data-qf-day="${esc(doc.date || "")}" class="${doc.date === activeDate ? "active" : ""}">${esc(weekdayLabel(doc.date) || shortDate(doc.date))}</button>`).join("")}</div>`;
+}
+function timelineMarkup(periods, dateText) {
+  const count = Math.max(1, periods.length);
+  const selected = Math.max(0, Math.min(count - 1, selectedLesson));
+  const progress = count <= 1 ? 0 : selected / (count - 1) * 100;
+  return `<section class="qf-time-section"><div class="qf-section-head"><h2>하루의 흐름</h2><span>과목을 누르거나 초록 점을 드래그</span></div><div class="qf-timeline-wrap" data-qf-timeline-wrap><div class="qf-h-timeline" data-qf-timeline style="--qf-period-count:${count}"><div class="qf-time-thread" style="--qf-progress:${progress}%"></div><div class="qf-cursor" data-qf-cursor role="slider" tabindex="0" aria-label="수업 선택" aria-valuemin="1" aria-valuemax="${count}" aria-valuenow="${selected + 1}"><span class="qf-mono">${String(periods[selected]?.period || selected + 1).padStart(2,"0")}</span></div>${periods.map((period,index) => { const times=periodTimes(period); const state=lessonState(period,dateText); return `<button type="button" class="qf-stop ${index===selected?"active":""}" data-qf-lesson="${index}" data-current="${state.current}"><span class="qf-stop-name">${esc(clean(period.subject || period.name || `${index+1}교시`))}</span><span class="qf-stop-dot"></span><span class="qf-stop-time qf-mono">${esc(times.start || `${period.period || index+1}`)}</span></button>`; }).join("")}</div></div></section>`;
+}
+function preparationId(item,index,period) {
+  return String(item?.id || `${selectedDayDate}:${period?.period || selectedLesson+1}:${index}:${title(item)}`);
+}
+function tasksMarkup(period) {
   const prep = matchingPreparation(period);
-  const times = periodTimes(period);
-  const subtitle = [clean(period.teacher || period.teacherName || ""), clean(period.classroom || period.room || "")].filter(Boolean).join(" · ");
-  return `<article class="qf-row" data-row-key="${esc(key)}" data-open="${openKey===key}" data-current="${state.current}" data-past="${state.past}">
-    <div class="qf-clock">${esc(times.start || `${period.period || index+1}교시`)}${times.end ? `<small>${esc(times.end)}</small>` : ""}</div>
-    <div class="qf-row-main"><button class="qf-row-button" data-qf-expand="${esc(key)}" type="button" aria-expanded="${openKey===key}">
-      <span class="qf-title">${esc(clean(period.subject || period.name || "수업 정보"))}</span>
-      ${subtitle ? `<span class="qf-sub">${esc(subtitle)}</span>` : ""}
-      ${prep.length ? `<span class="qf-attach">준비물 ${prep.length}건</span>` : ""}
-    </button>
-    <div class="qf-detail"><div><div class="qf-detail-inner">
-      ${prep.length ? prep.map((item)=>`<p><strong>준비물</strong> · ${esc(title(item))}${item.materials ? `<br>${esc(clean(item.materials))}` : ""}</p>`).join("") : "<p>등록된 준비물이 없습니다.</p>"}
-      <button class="qf-button" type="button" data-qf-route="schedule" data-task="material">수행·준비물 흐름 보기</button>
-    </div></div></div></div>
-  </article>`;
+  if (!prep.length) return `<div class="qf-prep-head"><h3>이 시간에 필요한 것</h3><span class="qf-prep-count">0개 남음</span></div><div class="qf-empty qf-empty--compact">등록된 준비물이 없습니다.</div>`;
+  let remaining=0;
+  const rows=prep.map((item,index) => {
+    const id=preparationId(item,index,period);
+    const done=completedPreparation.has(id);
+    if(!done) remaining+=1;
+    const note=clean(item.materials || item.description || item.subject || "수업 전 확인");
+    return `<div class="qf-task ${done?"done":""}"><button class="qf-check" type="button" data-qf-prep="${esc(id)}" aria-label="${esc(title(item))} 준비 ${done?"다시 표시":"완료"}" aria-pressed="${done}"></button><div class="qf-task-label">${esc(title(item,"준비물"))}<span class="qf-task-note">${esc(note).slice(0,90)}</span></div></div>`;
+  }).join("");
+  return `<div class="qf-prep-head"><h3>이 시간에 필요한 것</h3><span class="qf-prep-count">${remaining}개 남음</span></div><div>${rows}</div><div class="qf-all-done ${remaining===0?"show":""}">준비가 모두 끝났어요.</div>`;
+}
+function upcomingRows(limit=4) {
+  const today=localDate();
+  const rows=[
+    ...(data().classAssignments || []).filter((item)=>!item.deleted && item.published!==false && item.type!=="preparation").map((item)=>({item,kind:"assignment",date:itemDate(item)})),
+    ...(data().academicSchedules || []).filter((item)=>!item.deleted).map((item)=>({item,kind:"schedule",date:itemDate(item)})),
+  ];
+  return rows.filter((row)=>!row.date || row.date>=today).sort((a,b)=>String(a.date || "9999").localeCompare(String(b.date || "9999"))).slice(0,limit);
+}
+function upcomingMarkup() {
+  const rows=upcomingRows(3);
+  if(!rows.length) return `<section class="qf-upcoming"><div class="qf-lower-title"><h3>곧 이어질 일</h3><span>Coming up</span></div><div class="qf-empty qf-empty--compact">다가오는 일정이 없습니다.</div></section>`;
+  return `<section class="qf-upcoming"><div class="qf-lower-title"><h3>곧 이어질 일</h3><span>Coming up</span></div>${rows.map((row,index)=>{ const key=`${row.kind}-${row.item.id || index}`; const body=clean(row.item.description || row.item.question || row.item.evaluationRange || row.item.subject || ""); const due=row.date; const days=due?Math.ceil((Date.parse(`${due}T23:59:00`)-Date.now())/86400000):NaN; const dday=Number.isFinite(days)?(days<=0?"오늘":`D−${days}`):""; return `<article class="qf-notice" data-qf-notice="${esc(key)}"><button class="qf-notice-toggle" type="button" data-qf-notice-toggle="${esc(key)}" aria-expanded="false"><span class="qf-notice-date qf-mono">${esc(shortDate(due))}</span><span class="qf-notice-title">${esc(title(row.item))}<small>${esc([clean(row.item.subject),row.kind==="assignment"?"수행·과제":"학사일정"].filter(Boolean).join(" · "))}</small></span><span class="qf-notice-dday">${esc(dday)}</span></button><div class="qf-notice-body"><div><p>${esc(body || "PinCon에서 자세한 내용을 확인할 수 있습니다.")}</p></div></div></article>`; }).join("")}</section>`;
+}
+function mealMarkup(dateText) {
+  const meal=(data().meals || []).find((item)=>item.date===dateText) || (dateText===localDate()?(data().meals || [])[0]:null);
+  const raw=meal?clean(meal.menu || meal.dishName || meal.dishesHtml || meal.meal || meal.body || (Array.isArray(meal.items)?meal.items.join(" · "):"")):"";
+  return `<section class="qf-meal"><div class="qf-lower-title"><h3>점심이라는 쉼표</h3><span class="qf-mono">Lunch</span></div><p class="qf-meal-main">${raw?"따뜻한 밥,<br>함께하는 시간.":"오늘의 쉼표."}</p><p class="qf-meal-side">${raw?esc(raw).slice(0,240):"급식 정보가 아직 없습니다."}</p>${raw?'<button class="qf-text-action" type="button" data-qf-event="meal_view">급식 확인</button>':""}</section>`;
 }
 function todayMarkup() {
-  const timetable = todayTimetable();
-  const periods = timetable?.periods || [];
-  const important = nextImportant();
-  const meal = (data().meals || []).find((item)=>item.date===localDate()) || (data().meals || [])[0];
-  const current = periods.find((p)=>lessonState(p).current);
-  return `<section>
-    <div class="qf-hero"><span class="qf-eyebrow">Living Spine · ${esc(localDate())}</span><h1>${current ? esc(clean(current.subject || "지금 수업")) : "오늘의 흐름"}</h1><p>${current ? "현재 시간에 가까운 정보가 자연스럽게 커집니다." : "시간표와 준비물, 가까운 일정을 한 축에서 확인합니다."}</p></div>
-    ${snapshot.syncing && !snapshot.ready ? '<div class="qf-skeleton"></div>' : snapshot.error && !periods.length ? '<div class="qf-error">시간표를 불러오지 못했습니다. 안정된 PinCon 데이터가 다시 연결되면 자동으로 갱신됩니다.</div>' : `<div class="qf-timeline">${periods.length ? periods.map(rowMarkup).join("") : '<div class="qf-empty">오늘 시간표 데이터가 아직 없습니다.</div>'}</div>`}
-    ${important ? `<div class="qf-mass"><span class="qf-eyebrow">Approach</span><h2>${esc(title(important))}</h2><p>${esc([clean(important.subject), itemDate(important)].filter(Boolean).join(" · "))}</p><button class="qf-button primary" type="button" data-qf-route="schedule" data-task="assignment">가까운 수행 확인</button></div>` : ""}
-    ${meal ? `<div class="qf-flat"><div><h3>오늘 급식</h3><p>${esc(clean(meal.menu || meal.dishName || meal.dishesHtml || meal.meal || meal.body || (Array.isArray(meal.items) ? meal.items.join(" · ") : "급식 정보 확인"))).slice(0,220)}</p></div><button class="qf-button" data-qf-event="meal_view">확인</button></div>` : ""}
-  </section>`;
+  const docs=sortedTimetables();
+  const timetable=activeTimetable();
+  const periods=timetable?.periods || [];
+  syncSelectedLesson();
+  const period=periods[selectedLesson] || null;
+  const state=period?lessonState(period,timetable?.date || localDate()):{current:false};
+  const times=period?periodTimes(period):{start:"",end:""};
+  const room=clean(period?.classroom || period?.room || "");
+  const important=nextImportant();
+  const due=important?itemDate(important):"";
+  const days=due?Math.ceil((Date.parse(`${due}T23:59:00`)-Date.now())/86400000):NaN;
+  const dueLabel=Number.isFinite(days)?(days<=0?"오늘.":days===1?"내일.":`D−${days}.`):"";
+  return `<section class="qf-page" data-qf-page="today"><section class="qf-intro"><div><div class="qf-eyebrow">PinCon · Presence × Quiet Flux</div><h1>하루는,<br><span>하나의 흐름으로.</span></h1></div><div class="qf-intro-meta"><div class="qf-date-copy">${esc(dateLabel(timetable?.date || localDate()))}<br>${esc(weekdayLabel(timetable?.date || localDate()))} · ${esc(profileLabel())}</div>${dayToggleMarkup(docs,timetable?.date || "")}</div></section>${periods.length?timelineMarkup(periods,timetable?.date || localDate()):""}${snapshot.syncing&&!snapshot.ready?'<div class="qf-skeleton qf-skeleton--wide"></div>':snapshot.error&&!periods.length?'<div class="qf-error">시간표를 불러오지 못했습니다. 저장된 정보가 있으면 자동으로 복구합니다.</div>':periods.length?`<section class="qf-story ${focusMode?"focus":""}" data-qf-story><div class="qf-spine"></div><div class="qf-spine-node" data-qf-spine-node></div><section class="qf-active-area"><div class="qf-subject"><div class="qf-subject-meta"><span class="qf-live-dot ${state.current?"is-live":""}"></span><span>${esc(period?.period?`${period.period}교시`:"수업")}</span><span class="qf-mono">${esc([times.start,times.end].filter(Boolean).join(" — "))}</span><span>${esc(room?"이동 가능":"우리 반 수업")}</span></div><h2 data-qf-subject-title>${esc(clean(period?.subject || period?.name || "수업 정보"))}</h2><p class="qf-subject-desc">${esc(`${clean(period?.subject || period?.name || "수업")}의 오늘 흐름을 확인해요.\n필요한 준비물과 가까운 일정을 함께 이어서 보여줘요.`)}</p><div class="qf-location"><span>우리 반</span><span class="qf-dash"></span><span>${esc(room || profileLabel())}</span><span class="muted">${room?"이동 여부를 수업 전에 확인":"현재 학급"}</span></div><div class="qf-subject-actions"><button class="qf-text-action" type="button" data-qf-detail>${detailOpen?"접기":"자세히"}</button><button class="qf-text-action" type="button" data-qf-focus>${focusMode?"전체 흐름 보기":"이 수업만 보기"}</button></div><div class="qf-detail ${detailOpen?"open":""}"><div><div class="qf-detail-inner"><div><h3>오늘 살펴볼 것</h3><p>${esc(clean(period?.teacher || period?.teacherName || "수업의 핵심 흐름을 따라가요."))}</p></div><div><h3>수업의 리듬</h3><p><b>${esc(room || profileLabel())}</b><br>준비물과 다음 일정을 한 번에 확인</p></div></div></div></div></div><section class="qf-prep">${tasksMarkup(period)}</section></section>${focusMode?"":`${important?`<section class="qf-mass"><div class="qf-label">Approach · 가장 가까운 중요한 일</div><h2>${esc(title(important))}${dueLabel?`<br><span>${esc(dueLabel)}</span>`:""}</h2><p>${esc([clean(important.subject),clean(important.description || important.evaluationRange || ""),due].filter(Boolean).join(" · ")).slice(0,300)}</p><div class="qf-mass-actions"><button class="qf-text-action" type="button" data-qf-route="schedule" data-task="assignment">일정 확인</button><button class="qf-text-action" type="button" data-qf-route="schedule" data-task="material">준비물 흐름</button></div></section>`:""}<section class="qf-lower">${upcomingMarkup()}${mealMarkup(timetable?.date || localDate())}</section>`}</section>`:'<div class="qf-empty">오늘 시간표 데이터가 아직 없습니다.</div>'}</section>`;
 }
 function flowRows(items) {
   if (!items.length) return '<div class="qf-empty">표시할 일정이 없습니다.</div>';
