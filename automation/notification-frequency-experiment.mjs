@@ -248,7 +248,12 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
           ),
         ]);
       } catch (error) {
-        await receipt.set({ status: "send-failed", errorCode: String(error?.code || "unknown").slice(0,80), failedAtMs: Date.now() }, { merge: true });
+        await Promise.all([
+          receipt.set({ status: "send-failed", errorCode: String(error?.code || "unknown").slice(0,80), failedAtMs: Date.now() }, { merge: true }),
+          root.collection("experimentEvents").doc(`server_${digest(`fcm_failure:${id}`,28)}`).set(
+            eventRecord({ anonymousParticipant: participant, config: ready.config, condition, period: state.period, type: "fcm_failure", notificationId: id, category: candidate.category, now: new Date() }),
+          ),
+        ]);
       }
     }
   }
