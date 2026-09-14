@@ -80,7 +80,10 @@ export class ExperimentAnalytics {
       timestampMs: Date.now(),
       sessionId: sessionId(),
       deviceCategory: deviceCategory(),
-      properties: safeProperties(properties),
+      properties: {
+        ...safeProperties(properties),
+        ...(context.cohort ? { cohort: String(context.cohort).slice(0, 40) } : {}),
+      },
     };
 
     const rows = this.queue();

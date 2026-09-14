@@ -409,6 +409,9 @@ service cloud.firestore {
         && request.resource.data.get('rolloutPercent', 0) is number
         && request.resource.data.get('rolloutPercent', 0) >= 0
         && request.resource.data.get('rolloutPercent', 0) <= 100
+        && request.resource.data.get('publicBetaEnabled', false) is bool
+        && request.resource.data.get('publicBetaStartedAtMs', 0) is int
+        && request.resource.data.get('activeStartedAtMs', 0) is int
         && request.resource.data.updatedAtMs is int
         && request.resource.data.updatedBy == request.auth.uid
         && experimentWriteIsolated(schoolId, experimentId);
@@ -418,24 +421,43 @@ service cloud.firestore {
         allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
         allow create: if signedIn()
           && (request.auth.uid == userId || schoolAdmin(schoolId))
-          && exists(participantPath(schoolId, userId))
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'variant', 'bucket', 'sequence', 'sequenceIndex',
-            'assignedAtMs', 'experimentVersion', 'anonymousParticipant'
+            'assignedAtMs', 'experimentVersion', 'anonymousParticipant', 'assignmentSource'
           ])
           && request.resource.data.schemaVersion == 1
           && request.resource.data.experimentVersion is int
           && request.resource.data.experimentVersion >= 1
           && request.resource.data.assignedAtMs is int
-          && request.resource.data.anonymousParticipant
-            == get(participantPath(schoolId, userId)).data.anonymousParticipant
+          && request.resource.data.anonymousParticipant is string
+          && (
+            (
+              request.auth.uid == userId
+              && exists(participantPath(schoolId, userId))
+              && request.resource.data.anonymousParticipant
+                == get(participantPath(schoolId, userId)).data.anonymousParticipant
+            )
+            || (
+              schoolAdmin(schoolId)
+              && (
+                request.resource.data.anonymousParticipant == ''
+                || (
+                  exists(participantPath(schoolId, userId))
+                  && request.resource.data.anonymousParticipant
+                    == get(participantPath(schoolId, userId)).data.anonymousParticipant
+                )
+              )
+            )
+          )
           && (
             (experimentId == 'pincon-next-ui'
+              && request.resource.data.get('assignmentSource', 'controlled') == 'controlled'
               && request.resource.data.variant in ['legacy', 'next']
               && request.resource.data.bucket is int
               && request.resource.data.bucket >= 0
               && request.resource.data.bucket < 10000)
             || (experimentId == 'notification-frequency'
+              && request.resource.data.get('assignmentSource', 'crossover') == 'crossover'
               && request.resource.data.sequence is list
               && request.resource.data.sequence.size() == 3
               && request.resource.data.sequence.hasOnly(['LOW', 'MID', 'HIGH'])
@@ -454,6 +476,33 @@ service cloud.firestore {
           && request.resource.data.mode in ['canary', 'force_legacy', 'force_next', 'blocked']
           && request.resource.data.updatedAtMs is int
           && request.resource.data.updatedBy == request.auth.uid;
+        allow delete: if false;
+      }
+
+      match /betaEnrollments/{userId} {
+        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+        allow create, update: if signedIn()
+          && request.auth.uid == userId
+          && experimentId == 'pincon-next-ui'
+          && request.resource.data.keys().hasOnly([
+            'schemaVersion', 'enabled', 'experimentVersion', 'joinedAtMs', 'updatedAtMs'
+          ])
+          && request.resource.data.schemaVersion == 1
+          && request.resource.data.enabled is bool
+          && request.resource.data.experimentVersion is int
+          && request.resource.data.experimentVersion >= 1
+          && request.resource.data.joinedAtMs is int
+          && request.resource.data.updatedAtMs is int
+          && (
+            request.resource.data.enabled == false
+            || (
+              exists(experimentPath(schoolId, experimentId))
+              && get(experimentPath(schoolId, experimentId)).data.status == 'CANARY'
+              && get(experimentPath(schoolId, experimentId)).data.get('publicBetaEnabled', false) == true
+              && request.resource.data.experimentVersion
+                == get(experimentPath(schoolId, experimentId)).data.version
+            )
+          );
         allow delete: if false;
       }
 
@@ -548,7 +597,7 @@ service cloud.firestore {
         && request.resource.data.properties is map
         && request.resource.data.properties.keys().hasOnly([
           'from', 'to', 'route', 'task', 'itemType', 'durationMs', 'errorType', 'source',
-          'notificationId', 'condition', 'category', 'period', 'window', 'value', 'reason'
+          'notificationId', 'condition', 'category', 'period', 'window', 'value', 'reason', 'cohort'
         ]);
       allow update: if signedIn()
         && exists(participantPath(schoolId, request.auth.uid))

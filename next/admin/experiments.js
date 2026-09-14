@@ -1,12 +1,14 @@
 import { NextDataGateway } from "../core/data-gateway.js";
 import { getExperimentPlatform } from "../experiment/experiment-service.js";
 import { notificationPeriodAt } from "../experiment/assignment-service.js";
+import { accountRequest } from "../core/student-auth.js";
 
 const gateway = new NextDataGateway();
 await gateway.start();
 const platform = await getExperimentPlatform();
 let currentId = "pincon-next-ui";
-let bundle = { config: null, assignments: [], events: [], surveys: [] };
+let bundle = { config: null, assignments: [], events: [], participants: [], betaEnrollments: [], surveys: [] };
+let roster = [];
 let loading = false;
 
 const esc = (v) => String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
@@ -21,8 +23,19 @@ const kstDateKey = (timestampMs = Date.now()) => new Intl.DateTimeFormat("en-CA"
 }).format(new Date(Number(timestampMs) || Date.now()));
 const eventRows = (type, variant="") => bundle.events.filter((row)=>row.eventType===type && (!variant || row.variant===variant));
 
+function controlledRows(variant = "") {
+  const startedAt = Number(bundle.config?.activeStartedAtMs || 0);
+  if (!startedAt) return [];
+  return bundle.events.filter((row) => {
+    if (variant && row.variant !== variant) return false;
+    if (startedAt && Number(row.timestampMs || 0) < startedAt) return false;
+    const cohort = String(row.properties?.cohort || "");
+    return cohort !== "public-beta" && cohort !== "canary";
+  });
+}
+
 function variantMetrics(variant) {
-  const rows = bundle.events.filter((row) => row.variant === variant);
+  const rows = controlledRows(variant);
   const participants = new Set(rows.map((row) => row.anonymousParticipant));
   const sessionRows = rows.filter((row) => row.eventType === "session_start");
   const sessions = new Set(sessionRows.map((row) => row.sessionId));
@@ -52,6 +65,25 @@ function variantMetrics(variant) {
     returns: participants.size ? [...days.values()].filter((set) => set.size >= 2).length / participants.size : NaN,
   };
 }
+
+function publicBetaMetrics() {
+  const startedAt = Number(bundle.config?.publicBetaStartedAtMs || 0);
+  const rows = bundle.events.filter((row) =>
+    row.properties?.cohort === "public-beta"
+    && (!startedAt || Number(row.timestampMs || 0) >= startedAt)
+  );
+  const participants = new Set(rows.map((row) => row.anonymousParticipant));
+  const sessions = new Set(rows.filter((row) => row.eventType === "session_start").map((row) => row.sessionId));
+  const errors = rows.filter((row) => ["js_error", "data_load_failure", "login_failure", "navigation_error"].includes(row.eventType)).length;
+  const satisfaction = rows.filter((row) => row.eventType === "ui_satisfaction").map((row) => Number(row.properties?.value)).filter(Number.isFinite);
+  return {
+    participants: participants.size,
+    sessions: sessions.size,
+    errorRate: sessions.size ? errors / sessions.size : NaN,
+    satisfaction: avg(satisfaction),
+  };
+}
+
 function conditionMetrics(condition) {
   const sent = eventRows("notification_sent", condition).length;
   const rate = (type) => sent ? eventRows(type, condition).length / sent : NaN;
@@ -90,23 +122,55 @@ function conditionBar(label, rows, key) {
     <div class="experiment-bar-row"><b>${esc(name)}</b><div class="experiment-bar"><i style="width:${barPercent(metric[key], max)}%"></i></div><span>${esc(percent(metric[key]))}</span></div>`).join("")}</div>`;
 }
 
+function assignmentState() {
+  const version = Number(bundle.config?.version || 1);
+  const assignments = new Map(bundle.assignments
+    .filter((item) => Number(item.experimentVersion || 0) === version)
+    .map((item) => [item.id, item]));
+  const participants = new Set(bundle.participants.map((item) => item.uid));
+  const beta = new Set(bundle.betaEnrollments.filter((item) => item.enabled === true).map((item) => item.uid));
+  const rows = roster.map((account) => ({
+    ...account,
+    assignment: assignments.get(account.uid) || null,
+    activated: participants.has(account.uid),
+    beta: beta.has(account.uid),
+  }));
+  return { rows, assignments, participants, beta };
+}
+
+function rosterMarkup() {
+  const state = assignmentState();
+  if (!roster.length) return '<div class="experiment-note">현재 선택 학급의 활성 학생 계정을 불러오지 못했습니다. 계정 관리와 학급 선택을 확인하세요.</div>';
+  return `<div class="experiment-roster">
+    <div class="experiment-roster__head"><div><strong>실험 대상자</strong><span>계정 명단 기준 · PinCon 미접속 학생도 사전배정 가능</span></div><span>${state.rows.length}명</span></div>
+    <div class="experiment-table-wrap"><table class="experiment-table"><thead><tr><th>학생</th><th>배정</th><th>활성화</th><th>공개 베타</th></tr></thead><tbody>
+      ${state.rows.map((row) => `<tr><td><strong>${esc(row.studentNumber || "")}</strong> ${esc(row.name || "")}</td><td>${esc(row.assignment?.variant || "미배정")}</td><td>${row.activated ? "분석 시작" : "미접속"}</td><td>${row.beta ? "참여" : "–"}</td></tr>`).join("")}
+    </tbody></table></div>
+  </div>`;
+}
+
 function uiBody() {
   const legacy = variantMetrics("legacy");
   const next = variantMetrics("next");
-  const counts = bundle.assignments.reduce((out, row) => {
-    if (row.variant === "legacy" || row.variant === "next") out[row.variant] = (out[row.variant] || 0) + 1;
+  const beta = publicBetaMetrics();
+  const assignment = assignmentState();
+  const counts = assignment.rows.reduce((out, row) => {
+    if (row.assignment?.variant === "legacy" || row.assignment?.variant === "next") out[row.assignment.variant] = (out[row.assignment.variant] || 0) + 1;
     return out;
   }, {});
+  const activated = assignment.rows.filter((row) => row.activated).length;
+  const betaOpen = bundle.config?.publicBetaEnabled === true;
   return `
-    <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>Legacy ${counts.legacy || 0} · Next ${counts.next || 0}</span><span>Rollout ${Number(bundle.config?.rolloutPercent || 0)}%</span></div>
+    <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>배정 Legacy ${counts.legacy || 0} · Next ${counts.next || 0}</span><span>활성화 ${activated}/${roster.length}</span><span>공개 베타 ${betaOpen ? "OPEN" : "CLOSED"}</span><span>Rollout ${Number(bundle.config?.rolloutPercent || 0)}%</span></div>
     <div class="experiment-comparison">
-      ${compareBar("핵심 정보 도달률", legacy.reach, next.reach, percent, "높을수록 좋음")}
-      ${compareBar("주요 작업 성공률", legacy.taskSuccess, next.taskSuccess, percent, "높을수록 좋음")}
-      ${compareBar("Return Rate", legacy.returns, next.returns, percent, "높을수록 좋음")}
+      ${compareBar("핵심 정보 도달률", legacy.reach, next.reach, percent, "정식 A/B만")}
+      ${compareBar("주요 작업 성공률", legacy.taskSuccess, next.taskSuccess, percent, "정식 A/B만")}
+      ${compareBar("Return Rate", legacy.returns, next.returns, percent, "정식 A/B만")}
       ${compareBar("Guardrail Error", legacy.errors, next.errors, percent, "낮을수록 좋음")}
     </div>
     <div class="experiment-grid">
-      ${metric("Participants", `A ${legacy.participants} / B ${next.participants}`)}
+      ${metric("Assigned Users", `A ${counts.legacy || 0} / B ${counts.next || 0}`, `roster ${roster.length}명`)}
+      ${metric("Activated Users", `${activated} / ${roster.length}`, "익명 분석 ID 생성")}
       ${metric("DAU", `A ${legacy.dau} / B ${next.dau}`)}
       ${metric("Sessions", `A ${legacy.sessions} / B ${next.sessions}`)}
       ${metric("핵심 정보 도달률", `A ${percent(legacy.reach)} / B ${percent(next.reach)}`)}
@@ -116,15 +180,18 @@ function uiBody() {
       ${metric("Guardrail Error", `A ${percent(legacy.errors)} / B ${percent(next.errors)}`)}
       ${metric("Data Load Failure", `A ${percent(legacy.dataFailure)} / B ${percent(next.dataFailure)}`)}
       ${metric("사용자 만족도", `A ${Number.isFinite(legacy.satisfaction) ? legacy.satisfaction.toFixed(2) : "–"} / B ${Number.isFinite(next.satisfaction) ? next.satisfaction.toFixed(2) : "–"}`, "1~5점")}
+      ${metric("공개 베타", `${beta.participants}명 · ${beta.sessions} sessions`, `오류 ${percent(beta.errorRate)} · 만족 ${Number.isFinite(beta.satisfaction) ? beta.satisfaction.toFixed(2) : "–"}`)}
     </div>
     <div class="experiment-actions">
       <button data-exp-action="seed-ui">설정 생성</button><button class="primary" data-exp-action="canary">Canary</button>
-      <button data-exp-action="balance-ui">34명 균형 사전배정</button><button data-exp-action="active">50:50 A/B</button><button data-exp-action="pause-ui">Pause</button>
+      <button data-exp-action="open-beta">공개 베타 열기</button><button data-exp-action="close-beta">공개 베타 닫기</button>
+      <button data-exp-action="balance-ui">${roster.length || 34}명 균형 사전배정</button><button data-exp-action="active">50:50 A/B</button><button data-exp-action="pause-ui">Pause</button>
       ${[25,50,75,100].map((n) => `<button data-exp-action="rollout" data-value="${n}">${n}%</button>`).join("")}
       <button data-exp-action="complete-next">Next 승격</button><button data-exp-action="complete-legacy">Legacy 유지</button><button class="danger" data-exp-action="rollback">Rollback</button>
     </div>
+    ${rosterMarkup()}
     <div class="experiment-canary"><input id="experimentTargetUids" placeholder="Canary/복귀 대상 UID, 쉼표로 구분"><span><button data-exp-action="set-canary">Canary 지정</button> <button data-exp-action="force-legacy">강제 Legacy</button></span></div>
-    <p class="experiment-note">Canary는 안정성 검증용입니다. 사용자는 Variant를 직접 바꿀 수 없고, 강제 복귀는 운영센터에서만 수행합니다.</p>`;
+    <p class="experiment-note">공개 베타 참여 데이터는 정식 A/B 지표에서 제외됩니다. ACTIVE 이후에는 배정을 다시 섞지 않고 Sticky Assignment를 유지합니다.</p>`;
 }
 
 function currentNotificationCounts() {
@@ -177,14 +244,36 @@ function render() {
 function experimentViewOpen() {
   return document.querySelector("#adminApp .admin-workspace")?.classList.contains("admin-workspace--experiments") === true;
 }
+function activeStudentRoster(accounts = []) {
+  const classKey = String(gateway.snapshot().profile?.classKey || "");
+  return accounts.filter((account) => {
+    const roles = Array.isArray(account.roles) ? account.roles : ["STUDENT"];
+    return account?.uid
+      && account.status === "ACTIVE"
+      && /^\d{5}$/.test(String(account.studentNumber || ""))
+      && (!classKey || account.classKey === classKey)
+      && roles.includes("STUDENT")
+      && !roles.includes("ADMIN")
+      && !roles.includes("TEACHER");
+  });
+}
+
 async function load() {
   if (loading) return;
   loading=true; render();
-  try { bundle = await platform.adminReadExperiment(currentId); }
-  finally { loading=false; render(); }
+  try {
+    const [nextBundle, accountResult] = await Promise.all([
+      platform.adminReadExperiment(currentId),
+      currentId === "pincon-next-ui"
+        ? accountRequest("/api/accounts/manage").catch(() => ({ accounts: [] }))
+        : Promise.resolve({ accounts: [] }),
+    ]);
+    bundle = nextBundle;
+    roster = currentId === "pincon-next-ui" ? activeStudentRoster(accountResult.accounts || []) : [];
+  } finally { loading=false; render(); }
 }
 
-const uiDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"legacy",promotedVariant:"",rolloutPercent:0,allocation:{nextPercent:50},canarySize:7 });
+const uiDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"legacy",promotedVariant:"",rolloutPercent:0,allocation:{nextPercent:50},canarySize:7,publicBetaEnabled:false });
 const notificationDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"next",promotedVariant:"",rolloutPercent:0,startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:1,midPerDay:3,highPerDay:4} });
 
 function targetUids(max = 7) {
@@ -193,20 +282,60 @@ function targetUids(max = 7) {
 
 async function run(action, value) {
   if (action === "refresh") return load();
-  if (action === "seed-ui") { await platform.adminSetExperiment("pincon-next-ui", uiDefaults()); await platform.adminSetFlag("pincon_next_ui",{enabled:true,rolloutPercent:0,experimentId:"pincon-next-ui",stableVariant:"legacy"}); }
-  else if (action === "canary") await platform.adminSetExperiment("pincon-next-ui",{...uiDefaults(),...(bundle.config||{}),status:"CANARY"});
-  else if (action === "balance-ui") { const result = await platform.adminBalanceUiAssignments(); alert(`분석 ID가 생성된 ${result.participants}명 중 ${result.created}명을 새로 균형 배정했습니다. Next ${result.nextCreated}명, Legacy ${result.legacyCreated}명.`); }
-  else if (action === "active") { if (!confirm("Canary 검증 후 50:50 A/B를 시작합니다.")) return; await platform.adminSetExperiment("pincon-next-ui",{...uiDefaults(),...(bundle.config||{}),status:"ACTIVE",allocation:{nextPercent:50}}); }
-  else if (action === "pause-ui") await platform.adminSetExperiment("pincon-next-ui",{status:"PAUSED",stableVariant:"legacy"});
-  else if (action === "rollout") { if (!confirm(`Next를 ${value}%로 배포합니다.`)) return; await platform.adminSetExperiment("pincon-next-ui",{status:"ROLLOUT",stableVariant:"legacy",promotedVariant:"next",rolloutPercent:Number(value)}); await platform.adminSetFlag("pincon_next_ui",{enabled:true,rolloutPercent:Number(value),experimentId:"pincon-next-ui",stableVariant:"legacy"}); }
-  else if (action === "complete-next") { if (!confirm("Next를 최종 Stable UI로 승격합니다.")) return; await platform.adminSetExperiment("pincon-next-ui",{status:"COMPLETED",stableVariant:"next",promotedVariant:"next",rolloutPercent:100}); }
-  else if (action === "complete-legacy") { if (!confirm("UI 실험을 종료하고 Legacy를 유지합니다.")) return; await platform.adminSetExperiment("pincon-next-ui",{status:"COMPLETED",stableVariant:"legacy",promotedVariant:"legacy",rolloutPercent:0}); }
-  else if (action === "rollback") { if (!confirm("즉시 Legacy를 Stable UI로 되돌립니다.")) return; await platform.adminSetExperiment("pincon-next-ui",{status:"PAUSED",stableVariant:"legacy",promotedVariant:"legacy",rolloutPercent:0}); await platform.adminSetFlag("pincon_next_ui",{enabled:false,rolloutPercent:0,experimentId:"pincon-next-ui",stableVariant:"legacy"}); }
-  else if (action === "set-canary") { for (const uid of targetUids()) await platform.adminSetTarget("pincon-next-ui", uid, "canary"); }
-  else if (action === "force-legacy") { const uids = targetUids(); if (!uids.length || !confirm(`${uids.length}명을 Legacy로 강제 복귀시킵니다.`)) return; for (const uid of uids) await platform.adminSetTarget("pincon-next-ui", uid, "force_legacy"); }
-  else if (action === "seed-notification") { await platform.adminSetExperiment("notification-frequency",notificationDefaults()); await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"}); }
-  else if (action === "start-notification") { if (!confirm("UI 실험이 Next 승격으로 완료된 경우에만 시작됩니다.")) return; await platform.adminSetExperiment("notification-frequency",{...notificationDefaults(),...(bundle.config||{}),status:"ACTIVE"}); await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"}); }
-  else if (action === "pause-notification") { await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"}); await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"}); }
+  if (action === "seed-ui") {
+    await platform.adminSetExperiment("pincon-next-ui", uiDefaults());
+    await platform.adminSetFlag("pincon_next_ui",{enabled:true,rolloutPercent:0,experimentId:"pincon-next-ui",stableVariant:"legacy"});
+  } else if (action === "canary") {
+    await platform.adminSetExperiment("pincon-next-ui",{...uiDefaults(),...(bundle.config||{}),status:"CANARY",publicBetaEnabled:false});
+  } else if (action === "open-beta") {
+    if (bundle.config?.status !== "CANARY") throw new Error("공개 베타는 Canary 단계에서만 열 수 있습니다.");
+    await platform.adminSetExperiment("pincon-next-ui",{publicBetaEnabled:true,publicBetaStartedAtMs:Date.now()});
+  } else if (action === "close-beta") {
+    await platform.adminSetExperiment("pincon-next-ui",{publicBetaEnabled:false});
+  } else if (action === "balance-ui") {
+    if (!roster.length) throw new Error("현재 학급의 활성 학생 계정이 없습니다.");
+    if (!confirm(`${roster.length}명을 로그인 여부와 관계없이 Legacy/Next로 균형 사전배정합니다.`)) return;
+    const result = await platform.adminBalanceUiAssignments(roster.map((account) => account.uid));
+    alert(`${result.assigned}명 사전배정 완료: Next ${result.nextCreated}명, Legacy ${result.legacyCreated}명. 이 중 ${result.activated}명은 이미 분석 ID가 있습니다.`);
+  } else if (action === "active") {
+    const state = assignmentState();
+    const assigned = state.rows.filter((row) => row.assignment?.variant === "legacy" || row.assignment?.variant === "next").length;
+    if (roster.length && assigned !== roster.length) throw new Error("먼저 전체 학생을 균형 사전배정하세요.");
+    if (!confirm("공개 베타를 닫고 정식 50:50 A/B를 시작합니다.")) return;
+    await platform.adminSetExperiment("pincon-next-ui",{...uiDefaults(),...(bundle.config||{}),status:"ACTIVE",allocation:{nextPercent:50},publicBetaEnabled:false,activeStartedAtMs:Date.now()});
+  } else if (action === "pause-ui") {
+    await platform.adminSetExperiment("pincon-next-ui",{status:"PAUSED",stableVariant:"legacy",publicBetaEnabled:false});
+  } else if (action === "rollout") {
+    if (!confirm(`Next를 ${value}%로 배포합니다.`)) return;
+    await platform.adminSetExperiment("pincon-next-ui",{status:"ROLLOUT",stableVariant:"legacy",promotedVariant:"next",rolloutPercent:Number(value),publicBetaEnabled:false});
+    await platform.adminSetFlag("pincon_next_ui",{enabled:true,rolloutPercent:Number(value),experimentId:"pincon-next-ui",stableVariant:"legacy"});
+  } else if (action === "complete-next") {
+    if (!confirm("Next를 최종 Stable UI로 승격합니다.")) return;
+    await platform.adminSetExperiment("pincon-next-ui",{status:"COMPLETED",stableVariant:"next",promotedVariant:"next",rolloutPercent:100,publicBetaEnabled:false});
+  } else if (action === "complete-legacy") {
+    if (!confirm("UI 실험을 종료하고 Legacy를 유지합니다.")) return;
+    await platform.adminSetExperiment("pincon-next-ui",{status:"COMPLETED",stableVariant:"legacy",promotedVariant:"legacy",rolloutPercent:0,publicBetaEnabled:false});
+  } else if (action === "rollback") {
+    if (!confirm("즉시 Legacy를 Stable UI로 되돌립니다.")) return;
+    await platform.adminSetExperiment("pincon-next-ui",{status:"PAUSED",stableVariant:"legacy",promotedVariant:"legacy",rolloutPercent:0,publicBetaEnabled:false});
+    await platform.adminSetFlag("pincon_next_ui",{enabled:false,rolloutPercent:0,experimentId:"pincon-next-ui",stableVariant:"legacy"});
+  } else if (action === "set-canary") {
+    for (const uid of targetUids()) await platform.adminSetTarget("pincon-next-ui", uid, "canary");
+  } else if (action === "force-legacy") {
+    const uids = targetUids();
+    if (!uids.length || !confirm(`${uids.length}명을 Legacy로 강제 복귀시킵니다.`)) return;
+    for (const uid of uids) await platform.adminSetTarget("pincon-next-ui", uid, "force_legacy");
+  } else if (action === "seed-notification") {
+    await platform.adminSetExperiment("notification-frequency",notificationDefaults());
+    await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"});
+  } else if (action === "start-notification") {
+    if (!confirm("UI 실험이 Next 승격으로 완료된 경우에만 시작됩니다.")) return;
+    await platform.adminSetExperiment("notification-frequency",{...notificationDefaults(),...(bundle.config||{}),status:"ACTIVE"});
+    await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
+  } else if (action === "pause-notification") {
+    await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"});
+    await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"});
+  }
   await load();
 }
 

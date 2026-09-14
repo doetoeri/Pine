@@ -106,6 +106,15 @@ async function ownParticipant(api, user) {
   }
 }
 
+function uiCohort(source = "", status = "") {
+  const value = String(source || "");
+  if (value === "public-beta") return "public-beta";
+  if (value === "target:canary") return "canary";
+  if (value === "rollout") return "rollout";
+  if (String(status || "") === EXPERIMENT_STATUS.ACTIVE || value === "sticky" || value === "sticky-race" || value === "deterministic") return "controlled";
+  return "stable";
+}
+
 async function readOptional(api, ...segments) {
   try {
     const snap = await api.getDoc(api.doc(api.db, ...segments));
@@ -178,11 +187,12 @@ export class ExperimentPlatform {
   async loadUiContext(participant) {
     const api = this.api;
     const uid = this.user.uid;
-    const [config, flag, target, assignment] = await Promise.all([
+    const [config, flag, target, assignment, betaEnrollment] = await Promise.all([
       readOptional(api, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID),
       readOptional(api, "schools", SCHOOL.id, "experimentFlags", UI_FLAG_ID),
       readOptional(api, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID, "targets", uid),
       readOptional(api, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID, "assignments", uid),
+      readOptional(api, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID, "betaEnrollments", uid),
     ]);
 
     if (!config) {
@@ -196,7 +206,7 @@ export class ExperimentPlatform {
       };
     }
 
-    const resolved = resolveUiVariant({ config, flag, target, assignment, uid });
+    const resolved = resolveUiVariant({ config, flag, target, assignment, betaEnrollment, uid });
     if (resolved.needsAssignment) {
       const assignmentRef = api.doc(
         api.db,
@@ -212,6 +222,7 @@ export class ExperimentPlatform {
           assignedAtMs: Date.now(),
           experimentVersion: Number(config.version || 1),
           anonymousParticipant: participant,
+          assignmentSource: "controlled",
         }, { merge: false });
       } catch {
         const sticky = await readOptional(
@@ -242,7 +253,10 @@ export class ExperimentPlatform {
       anonymousParticipant: participant,
       status: String(config.status || EXPERIMENT_STATUS.DRAFT),
       source: resolved.source,
+      cohort: uiCohort(resolved.source, config.status),
       rolloutPercent: Number(config.rolloutPercent || 0),
+      publicBetaAvailable: String(config.status || "") === EXPERIMENT_STATUS.CANARY && config.publicBetaEnabled === true,
+      publicBetaJoined: betaEnrollment?.enabled === true,
     };
   }
 
@@ -282,6 +296,7 @@ export class ExperimentPlatform {
         assignedAtMs: Date.now(),
         experimentVersion: Number(config.version || 1),
         anonymousParticipant: participant,
+        assignmentSource: "crossover",
       };
       try {
         await api.setDoc(ref, record, { merge: false });
@@ -314,6 +329,7 @@ export class ExperimentPlatform {
       anonymousParticipant: participant,
       status: String(config.status || EXPERIMENT_STATUS.DRAFT),
       source: "crossover",
+      cohort: "notification",
     };
   }
 
@@ -333,6 +349,35 @@ export class ExperimentPlatform {
       batch.set(ref, row, { merge: false });
     }
     await batch.commit();
+  }
+
+  async setPublicBetaEnrollment(enabled) {
+    if (!this.user) throw new Error("로그인이 필요합니다.");
+    const config = await readOptional(this.api, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID);
+    if (enabled && (
+      !config
+      || String(config.status || "") !== EXPERIMENT_STATUS.CANARY
+      || config.publicBetaEnabled !== true
+    )) {
+      throw new Error("현재 공개 베타 참여를 받고 있지 않습니다.");
+    }
+    const ref = this.api.doc(
+      this.api.db,
+      "schools", SCHOOL.id,
+      "experiments", UI_EXPERIMENT_ID,
+      "betaEnrollments", this.user.uid,
+    );
+    const previous = await this.api.getDoc(ref).catch(() => null);
+    const previousData = previous?.exists?.() ? previous.data() : null;
+    await this.api.setDoc(ref, {
+      schemaVersion: EXPERIMENT_SCHEMA_VERSION,
+      enabled: Boolean(enabled),
+      experimentVersion: Number(config?.version || previousData?.experimentVersion || 1),
+      joinedAtMs: Number(previousData?.joinedAtMs || Date.now()),
+      updatedAtMs: Date.now(),
+    }, { merge: false });
+    localStorage.removeItem(contextCacheKey(this.user.uid));
+    return { enabled: Boolean(enabled) };
   }
 
   async saveNotificationSurvey({
@@ -370,7 +415,8 @@ export class ExperimentPlatform {
   }
 
   async adminReadExperiment(experimentId) {
-    const [configSnap, assignmentsSnap, eventsSnap] = await Promise.all([
+    const uiExperiment = experimentId === UI_EXPERIMENT_ID;
+    const [configSnap, assignmentsSnap, eventsSnap, participantsSnap, betaSnap] = await Promise.all([
       this.api.getDoc(this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId)),
       this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments")),
       this.api.getDocs(this.api.query(
@@ -378,12 +424,20 @@ export class ExperimentPlatform {
         this.api.orderBy("timestampMs", "desc"),
         this.api.limit(5000),
       )),
+      uiExperiment
+        ? this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experimentParticipants"))
+        : Promise.resolve(null),
+      uiExperiment
+        ? this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID, "betaEnrollments"))
+        : Promise.resolve(null),
     ]);
     const assignments = assignmentsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
     const events = eventsSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((row) => row.experimentId === experimentId)
       .slice(0, 3000);
+    const participants = participantsSnap?.docs?.map((doc) => ({ uid: doc.id, ...doc.data() })) || [];
+    const betaEnrollments = betaSnap?.docs?.map((doc) => ({ uid: doc.id, ...doc.data() })) || [];
     const surveys = [];
     if (experimentId === NOTIFICATION_EXPERIMENT_ID) {
       await Promise.all(assignments.map(async (assignment) => {
@@ -401,66 +455,71 @@ export class ExperimentPlatform {
       config: configSnap.exists() ? { id: configSnap.id, ...configSnap.data() } : null,
       assignments,
       events,
+      participants,
+      betaEnrollments,
       surveys,
     };
   }
 
-  async adminBalanceUiAssignments() {
+  async adminBalanceUiAssignments(rosterUids = []) {
     const experimentId = UI_EXPERIMENT_ID;
     const configSnap = await this.api.getDoc(
       this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId),
     );
     if (!configSnap.exists()) throw new Error("UI 실험 설정을 먼저 생성해야 합니다.");
     const config = { id: configSnap.id, ...configSnap.data() };
-    const [participantsSnap, assignmentsSnap] = await Promise.all([
-      this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experimentParticipants")),
-      this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments")),
-    ]);
-    const assignments = new Map(assignmentsSnap.docs.map((doc) => [doc.id, doc.data()]));
-    const participants = participantsSnap.docs.map((doc) => ({ uid: doc.id, ...doc.data() }));
+    if ([EXPERIMENT_STATUS.ACTIVE, EXPERIMENT_STATUS.ROLLOUT, EXPERIMENT_STATUS.COMPLETED].includes(String(config.status || ""))) {
+      throw new Error("정식 A/B 시작 후에는 배정을 다시 섞을 수 없습니다.");
+    }
+
+    const uids = [...new Set((Array.isArray(rosterUids) ? rosterUids : [])
+      .map((uid) => String(uid || "").trim())
+      .filter((uid) => /^[A-Za-z0-9_-]{6,160}$/.test(uid)))];
+    if (!uids.length) throw new Error("배정할 활성 학생 계정이 없습니다.");
+
+    const participantsSnap = await this.api.getDocs(
+      this.api.collection(this.api.db, "schools", SCHOOL.id, "experimentParticipants"),
+    );
+    const participants = new Map(participantsSnap.docs.map((doc) => [doc.id, doc.data()]));
     const version = Number(config.version || 1);
-    const existing = [...assignments.values()].filter((item) => item.experimentVersion === version);
-    const existingNext = existing.filter((item) => item.variant === "next").length;
-    const desiredNext = Math.floor(participants.length / 2);
-    let nextSlots = Math.max(0, desiredNext - existingNext);
-    const unassigned = participants
-      .filter((item) => !assignments.has(item.uid) || assignments.get(item.uid)?.experimentVersion !== version)
-      .map((item) => ({
-        ...item,
-        bucket: deterministicBucket(`${item.uid}:${experimentId}:v${version}`, 10_000),
+    const ranked = uids
+      .map((uid) => ({
+        uid,
+        bucket: deterministicBucket(`${uid}:${experimentId}:v${version}`, 10_000),
       }))
       .sort((a, b) => a.bucket - b.bucket || a.uid.localeCompare(b.uid));
+    const nextCount = Math.floor(ranked.length / 2);
     const batch = this.api.writeBatch(this.api.db);
+    const assignedAtMs = Date.now();
     let nextCreated = 0;
     let legacyCreated = 0;
-    for (const item of unassigned) {
-      const variant = nextSlots > 0 ? "next" : "legacy";
-      if (variant === "next") {
-        nextSlots -= 1;
-        nextCreated += 1;
-      } else {
-        legacyCreated += 1;
-      }
+
+    ranked.forEach((item, index) => {
+      const variant = index < nextCount ? "next" : "legacy";
+      if (variant === "next") nextCreated += 1;
+      else legacyCreated += 1;
+      const participant = String(participants.get(item.uid)?.anonymousParticipant || "");
       batch.set(
         this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments", item.uid),
         {
           schemaVersion: EXPERIMENT_SCHEMA_VERSION,
           variant,
           bucket: item.bucket,
-          assignedAtMs: Date.now(),
+          assignedAtMs,
           experimentVersion: version,
-          anonymousParticipant: item.anonymousParticipant,
+          anonymousParticipant: participant,
+          assignmentSource: "controlled",
         },
         { merge: false },
       );
-    }
-    if (unassigned.length) await batch.commit();
+    });
+    await batch.commit();
     return {
-      participants: participants.length,
-      existingAssignments: existing.length,
-      created: unassigned.length,
+      roster: ranked.length,
+      assigned: ranked.length,
       nextCreated,
       legacyCreated,
+      activated: ranked.filter((item) => participants.has(item.uid)).length,
     };
   }
 

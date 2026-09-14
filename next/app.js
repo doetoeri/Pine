@@ -880,6 +880,18 @@ function classroomPage() {
 function morePage() {
   const profile = state.data.profile || readClassProfile();
   const roleLabel = state.data.isManager ? "학급 관리자" : "학생 · 읽기 전용";
+  const uiExperiment = globalThis.PinConExperiment?.uiContext;
+  const publicBetaCard = uiExperiment?.publicBetaAvailable && uiExperiment?.variant === "legacy"
+    ? `<article class="surface">
+        <div class="surface__header"><h2 class="surface__title">새 PinCon 공개 베타</h2><span class="beta-badge">선택 참여</span></div>
+        <div class="trust-grid">
+          <div class="trust-line"><strong>무엇이 다른가</strong><span>새로운 Living Spine UI를 정식 배포 전에 먼저 체험합니다.</span></div>
+          <div class="trust-line"><strong>통계 처리</strong><span>공개 베타 참여 데이터는 정식 17:17 A/B 비교에서 분리합니다.</span></div>
+          <div class="trust-line"><strong>돌아가기</strong><span>베타 화면의 '나' 메뉴에서 언제든 기존 화면으로 돌아갈 수 있습니다.</span></div>
+        </div>
+        <div class="admin-actions"><md-filled-tonal-button data-pincon-public-beta="join"><md-icon slot="icon">science</md-icon>새 PinCon 미리 사용</md-filled-tonal-button></div>
+      </article>`
+    : "";
   return `<section class="view-enter" aria-labelledby="more-title">
     <div class="page-head"><div class="page-head__copy">
       <p class="page-eyebrow">설정</p>
@@ -894,6 +906,7 @@ function morePage() {
           <div class="row"><div class="row__leading"><md-icon>${state.data.online ? "cloud_done" : "cloud_off"}</md-icon></div><div class="row__body"><p class="row__title">${state.data.online ? "실시간 정보 연결됨" : "저장된 정보 표시 중"}</p><p class="row__support">급식·시간표·일정은 기존 PinCon 자료를 그대로 사용합니다.</p></div></div>
         </div>
       </article>
+      ${publicBetaCard}
       <article class="surface">
         <div class="surface__header"><h2 class="surface__title">PinCon Beta 안내</h2><span class="beta-badge">읽기 전용</span></div>
         <div class="trust-grid">

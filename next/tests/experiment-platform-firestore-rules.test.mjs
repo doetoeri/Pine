@@ -61,6 +61,43 @@ test("participant assignment is self-created once and sticky", async () => {
   }));
 });
 
+test("admin can preassign before participant activation but student cannot", async () => {
+  const admin = env.authenticatedContext("admin").firestore();
+  const student = env.authenticatedContext("student").firestore();
+  const adminRef = doc(admin, `schools/${SCHOOL}/experiments/pincon-next-ui/assignments/future-student`);
+  const studentRef = doc(student, `schools/${SCHOOL}/experiments/pincon-next-ui/assignments/student`);
+
+  await assertSucceeds(setDoc(adminRef, {
+    schemaVersion: 1, variant: "next", bucket: 4321, assignedAtMs: 1,
+    experimentVersion: 1, anonymousParticipant: "", assignmentSource: "controlled",
+  }));
+
+  await assertFails(setDoc(studentRef, {
+    schemaVersion: 1, variant: "next", bucket: 4321, assignedAtMs: 1,
+    experimentVersion: 1, anonymousParticipant: "", assignmentSource: "controlled",
+  }));
+});
+
+test("public beta enrollment is allowed only while Canary beta is open", async () => {
+  const admin = env.authenticatedContext("admin").firestore();
+  const student = env.authenticatedContext("student").firestore();
+  const uiRef = doc(admin, `schools/${SCHOOL}/experiments/pincon-next-ui`);
+  const betaRef = doc(student, `schools/${SCHOOL}/experiments/pincon-next-ui/betaEnrollments/student`);
+
+  await assertSucceeds(setDoc(uiRef, config("pincon-next-ui","CANARY","admin",{ publicBetaEnabled:true, publicBetaStartedAtMs:1 })));
+  await assertSucceeds(setDoc(betaRef, {
+    schemaVersion: 1, enabled: true, experimentVersion: 1, joinedAtMs: 2, updatedAtMs: 2,
+  }));
+
+  await assertSucceeds(setDoc(uiRef, config("pincon-next-ui","ACTIVE","admin",{ publicBetaEnabled:false, activeStartedAtMs:3 })));
+  await assertFails(setDoc(betaRef, {
+    schemaVersion: 1, enabled: true, experimentVersion: 1, joinedAtMs: 2, updatedAtMs: 4,
+  }));
+  await assertSucceeds(setDoc(betaRef, {
+    schemaVersion: 1, enabled: false, experimentVersion: 1, joinedAtMs: 2, updatedAtMs: 5,
+  }));
+});
+
 test("research event accepts anonymous participant but rejects identity fields", async () => {
   const student = env.authenticatedContext("student").firestore();
   await setDoc(doc(student, `schools/${SCHOOL}/experimentParticipants/student`), {
@@ -70,7 +107,7 @@ test("research event accepts anonymous participant but rejects identity fields",
     schemaVersion: 1, eventId: "event_ok", anonymousParticipant: "participant_1234567890abcdef12345678",
     experimentId: "pincon-next-ui", experimentVersion: 1, variant: "legacy",
     eventType: "session_start", timestampMs: 10, sessionId: "session_1",
-    deviceCategory: "mobile", properties: { route: "today" },
+    deviceCategory: "mobile", properties: { route: "today", cohort: "public-beta" },
   };
   await assertSucceeds(setDoc(doc(student, `schools/${SCHOOL}/experimentEvents/event_ok`), base));
   await assertFails(setDoc(doc(student, `schools/${SCHOOL}/experimentEvents/event_bad`), {

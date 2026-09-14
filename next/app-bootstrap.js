@@ -21,7 +21,7 @@ try {
   try { localStorage.setItem("pincon-experiment-login-failure-pending-v1", "1"); } catch {}
   throw error;
 }
-const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20260914-exp1");
+const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20260914-beta1");
 const experimentPlatform = await initExperimentPlatform().catch((error) => {
   console.warn("[PinCon Experiment] bootstrap failed; using stable UI", error);
   return null;
@@ -46,7 +46,7 @@ try {
 
 if (experimentPlatform?.uiContext?.variant === "next") {
   try {
-    await import("./experiments/pincon-next-ui.js?v=20260914-exp1");
+    await import("./experiments/pincon-next-ui.js?v=20260914-beta1");
   } catch (error) {
     document.body.dataset.pinconVariant = "legacy";
     experimentPlatform?.log("js_error", { errorType: "variant_boot", source: "pincon-next-ui" });
@@ -54,6 +54,7 @@ if (experimentPlatform?.uiContext?.variant === "next") {
   }
 }
 
+await import("./experiments/public-beta.js?v=20260914-beta1").catch(() => {});
 await import("./experiments/ui-satisfaction.js?v=20260914-exp1").catch(() => {});
 await import("./experiments/notification-frequency.js?v=20260914-exp1").catch(() => {});
 await import("./readonly-notice.js?v=20260905-readonly1");

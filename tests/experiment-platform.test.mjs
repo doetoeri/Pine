@@ -47,6 +47,34 @@ test("Canary exposes Next only to explicit targets", () => {
   assert.equal(resolveUiVariant({ uid: "a", config, target: { mode: "force_legacy" } }).variant, "legacy");
 });
 
+test("Public beta stays separate from controlled A-B and respects admin fallback", () => {
+  const config = { id: "pincon-next-ui", status: "CANARY", version: 1, stableVariant: "legacy", publicBetaEnabled: true };
+  const beta = resolveUiVariant({ uid: "beta-user", config, betaEnrollment: { enabled: true } });
+  assert.equal(beta.variant, "next");
+  assert.equal(beta.source, "public-beta");
+
+  const notJoined = resolveUiVariant({ uid: "legacy-user", config, betaEnrollment: { enabled: false } });
+  assert.equal(notJoined.variant, "legacy");
+
+  const forcedBack = resolveUiVariant({
+    uid: "beta-user",
+    config,
+    betaEnrollment: { enabled: true },
+    target: { mode: "force_legacy" },
+  });
+  assert.equal(forcedBack.variant, "legacy");
+  assert.equal(forcedBack.source, "target:force_legacy");
+
+  const active = resolveUiVariant({
+    uid: "beta-user",
+    config: { ...config, status: "ACTIVE" },
+    betaEnrollment: { enabled: true },
+    assignment: { experimentVersion: 1, variant: "legacy", bucket: 1111 },
+  });
+  assert.equal(active.variant, "legacy");
+  assert.equal(active.source, "sticky");
+});
+
 test("Rollout buckets are monotonic and 100 percent promotes Next", () => {
   const base = { id: "pincon-next-ui", status: "ROLLOUT", version: 1, stableVariant: "legacy", promotedVariant: "next" };
   const at25 = resolveUiVariant({ uid: "student-a", config: { ...base, rolloutPercent: 25 } });
@@ -104,6 +132,7 @@ test("PWA and bootstrap include experiment modules and stable fallback", async (
   ]);
   assert.match(sw, /next\/experiment\/experiment-service\.js/);
   assert.match(sw, /next\/experiments\/pincon-next-ui\.js/);
+  assert.match(sw, /next\/experiments\/public-beta\.js/);
   assert.match(bootstrap, /initExperimentPlatform/);
   assert.match(bootstrap, /dataset\.pinconVariant = "legacy"/);
   assert.match(bootstrap, /experimentPlatform\?\.uiContext\?\.variant === "next"/);
