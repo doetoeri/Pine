@@ -31,32 +31,7 @@ function metric(label, value, support="") {
   return `<div class="experiment-metric"><span>${esc(label)}</span><strong>${esc(value)}</strong><small>${esc(support)}</small></div>`;
 }
 
-function uiBody() {
-  const legacy = variantMetrics("legacy");
-  const next = variantMetrics("next");
-  const counts = bundle.assignments.reduce((out,row)=>{out[row.variant]=(out[row.variant]||0)+1;return out},{});
-  return `
-    <div class="experiment-status"><b>${esc(bundle.config?.status||"설정 없음")}</b><span>Legacy ${counts.legacy||0} · Next ${counts.next||0}</span><span>Rollout ${Number(bundle.config?.rolloutPercent||0)}%</span></div>
-    <div class="experiment-grid">
-      ${metric("Participants",`A ${legacy.participants} / B ${next.participants}`)}
-      ${metric("Sessions",`A ${legacy.sessions} / B ${next.sessions}`)}
-      ${metric("핵심 정보 도달률",`A ${percent(legacy.reach)} / B ${percent(next.reach)}`)}
-      ${metric("Time to Information",`A ${Number.isFinite(legacy.tti)?Math.round(legacy.tti)+"ms":"–"} / B ${Number.isFinite(next.tti)?Math.round(next.tti)+"ms":"–"}`)}
-      ${metric("Return Rate",`A ${percent(legacy.returns)} / B ${percent(next.returns)}`)}
-      ${metric("Guardrail Error",`A ${percent(legacy.errors)} / B ${percent(next.errors)}`)}
-    </div>
-    <div class="experiment-actions">
-      <button data-exp-action="seed-ui">설정 생성</button><button class="primary" data-exp-action="canary">Canary</button>
-      <button data-exp-action="active">50:50 A/B</button><button data-exp-action="pause-ui">Pause</button>
-      ${[25,50,75,100].map((n)=>`<button data-exp-action="rollout" data-value="${n}">${n}%</button>`).join("")}
-      <button data-exp-action="complete-next">Next 승격</button><button data-exp-action="complete-legacy">Legacy 유지</button>
-      <button class="danger" data-exp-action="rollback">Rollback</button>
-    </div>
-    <div class="experiment-canary"><input id="experimentCanaryUids" placeholder="Canary UID 최대 7개, 쉼표로 구분"><button data-exp-action="set-canary">지정</button></div>
-    <p class="experiment-note">Canary는 안정성 검증용입니다. 사용자는 Variant를 직접 바꿀 수 없고, 강제 복귀는 운영센터에서만 수행합니다.</p>`;
-}
-
-function notificationBody() {
+function uiBody() {\n  const legacy = variantMetrics("legacy");\n  const next = variantMetrics("next");\n  const counts = bundle.assignments.reduce((out, row) => {\n    if (row.variant === "legacy" || row.variant === "next") out[row.variant] = (out[row.variant] || 0) + 1;\n    return out;\n  }, {});\n  return `\n    <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>Legacy ${counts.legacy || 0} · Next ${counts.next || 0}</span><span>Rollout ${Number(bundle.config?.rolloutPercent || 0)}%</span></div>\n    <div class="experiment-grid">\n      ${metric("Participants", `A ${legacy.participants} / B ${next.participants}`)}\n      ${metric("DAU", `A ${legacy.dau} / B ${next.dau}`)}\n      ${metric("Sessions", `A ${legacy.sessions} / B ${next.sessions}`)}\n      ${metric("핵심 정보 도달률", `A ${percent(legacy.reach)} / B ${percent(next.reach)}`)}\n      ${metric("주요 작업 성공률", `A ${percent(legacy.taskSuccess)} / B ${percent(next.taskSuccess)}`)}\n      ${metric("Time to Information", `A ${Number.isFinite(legacy.tti) ? Math.round(legacy.tti) + "ms" : "–"} / B ${Number.isFinite(next.tti) ? Math.round(next.tti) + "ms" : "–"}`)}\n      ${metric("Return Rate", `A ${percent(legacy.returns)} / B ${percent(next.returns)}`)}\n      ${metric("Guardrail Error", `A ${percent(legacy.errors)} / B ${percent(next.errors)}`)}\n      ${metric("Data Load Failure", `A ${percent(legacy.dataFailure)} / B ${percent(next.dataFailure)}`)}\n      ${metric("사용자 만족도", `A ${Number.isFinite(legacy.satisfaction) ? legacy.satisfaction.toFixed(2) : "–"} / B ${Number.isFinite(next.satisfaction) ? next.satisfaction.toFixed(2) : "–"}`, "1~5점")}\n    </div>\n    <div class="experiment-actions">\n      <button data-exp-action="seed-ui">설정 생성</button><button class="primary" data-exp-action="canary">Canary</button>\n      <button data-exp-action="balance-ui">34명 균형 사전배정</button><button data-exp-action="active">50:50 A/B</button><button data-exp-action="pause-ui">Pause</button>\n      ${[25,50,75,100].map((n) => `<button data-exp-action="rollout" data-value="${n}">${n}%</button>`).join("")}\n      <button data-exp-action="complete-next">Next 승격</button><button data-exp-action="complete-legacy">Legacy 유지</button>\n      <button class="danger" data-exp-action="rollback">Rollback</button>\n    </div>\n    <div class="experiment-canary"><input id="experimentTargetUids" placeholder="Canary/복귀 대상 UID, 쉼표로 구분"><span><button data-exp-action="set-canary">Canary 지정</button> <button data-exp-action="force-legacy">강제 Legacy</button></span></div>\n    <p class="experiment-note">Canary는 안정성 검증용입니다. 사용자는 Variant를 직접 바꿀 수 없고, 강제 복귀는 운영센터에서만 수행합니다.</p>`;\n}\n\nfunction currentNotificationCounts() {\n  const result = { LOW: 0, MID: 0, HIGH: 0 };\n  const periodInfo = notificationPeriodAt(bundle.config || {}, new Date());\n  if (periodInfo.phase !== "EXPERIMENT") return { ...result, periodInfo };\n  for (const assignment of bundle.assignments) {\n    const condition = assignment.sequence?.[periodInfo.period - 1];\n    if (condition in result) result[condition] += 1;\n  }\n  return { ...result, periodInfo };\n}\nfunction notificationBody() {
   const rows = ["LOW","MID","HIGH"].map((condition)=>[condition,conditionMetrics(condition)]);
   return `
     <div class="experiment-status"><b>${esc(bundle.config?.status||"설정 없음")}</b><span>참여자 ${bundle.assignments.length}</span><span>설문 ${bundle.surveys.length}</span></div>
