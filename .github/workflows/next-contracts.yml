@@ -135,6 +135,13 @@ jobs:
           --project pincon-next-rules-test
           --config next/firebase-test.json
           "node --test next/tests/firestore-rules.test.mjs"
+      - name: Run Experiment Platform rules suite
+        run: >-
+          npx firebase emulators:exec
+          --only firestore
+          --project pincon-experiment-rules-test
+          --config tests/firebase-experiment-test.json
+          "node --test tests/experiment-firestore-rules.test.mjs"
 
   responsive-smoke:
     runs-on: ubuntu-latest
