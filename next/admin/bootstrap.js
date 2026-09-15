@@ -27,7 +27,7 @@ if (!snapshot.canArchiveContent) {
   await import("./class-enrollment.js?v=20260906-enroll1");
   await import("./admin-user-access-v2.js");
   await import("./class-ops-settings-v2.js");
-  await import("./classroom-layout-v2.js?v=20260906-layout4");
+  await import("./classroom-layout-v2.js?v=20260915-seating1");
   await import("./classroom-layout-manual.js?v=20260909-manual1");
   await import("./classroom-assessment-v4.js?v=20260910-assessment4");
   await import("./classroom-group-freeform.js?v=20260909-freegroup1");

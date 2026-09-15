@@ -11,6 +11,7 @@ import {
 import { safeText } from "../../lib/class-operations.mjs";
 import { appendOpsAudit, classUsers, document } from "../../lib/class-ops-store.mjs";
 import { jsonBody, sendJson } from "../../lib/request.mjs";
+import { normalizePlanner, inspectSeating, publicSeatingView } from "../../lib/seating-planner.mjs";
 
 const SCENES = Object.freeze(["morning", "assessment", "seat-change", "history-group", "special"]);
 const TARGET_MODES = Object.freeze(["message", "general", "groups", "assessment"]);
@@ -157,12 +158,14 @@ function normalizeLayout(value, rosterUids = []) {
     general: {
       rows: integer(general.rows, 3, 10, 6),
       cols: integer(general.cols, 3, 10, 6),
+      sections: Array.isArray(general.sections) && general.sections.length === 3 ? general.sections.map(n => integer(n, 1, 10, 6)) : [],
       seats: seatList(general.seats, known),
       previousSeats: seatList(general.previousSeats, known),
       blocked: Array.isArray(general.blocked) ? [...new Set(general.blocked.map((item) => integer(item, 0, 99, -1)).filter((item) => item >= 0))].slice(0, 30) : [],
       focusStudentIds: uidList(general.focusStudentIds, known, 60),
       separationPairs,
       nominations: nominations(general.nominations, known),
+      planner: normalizePlanner(general.planner, rosterUids),
     },
     groups: { groupCount, sizes, members, deskRows: integer(groups.deskRows, 3, 10, 6), deskCols: integer(groups.deskCols, 3, 10, 6), desks },
     assessment: { lines: Number(assessment.lines) === 5 ? 5 : 6, seats: seatList(assessment.seats, known) },
@@ -188,12 +191,14 @@ async function context(actor, requestedClassKey) {
   const layout = normalizeLayout(saved.classroomLayout, roster.map((student) => student.uid));
   return { classKey, roster, saved, layout };
 }
-async function view(actor, requestedClassKey) {
+async function view(actor, requestedClassKey, projection = "") {
   assertViewer(actor);
   const { classKey, roster, saved, layout } = await context(actor, requestedClassKey);
+  if (projection === "seating-tv") return publicSeatingView({ classKey, roster, general: layout.general, updatedAtMs: Number(saved.updatedAtMs || 0) });
   return {
     classKey,
     roster,
+    capabilities: { seatingPlanner: 1 },
     classroomLayout: publicLayout(layout, actor),
     permissions: {
       canEdit: isClassOperator(actor),
@@ -217,11 +222,45 @@ async function save(actor, body) {
   const { classKey, roster, saved, layout: previousLayout } = await context(actor, body.classKey);
   const incoming = normalizeLayout(body.classroomLayout, roster.map((student) => student.uid));
   incoming.general.nominations = previousLayout.general.nominations;
+  // Older editors do not know the planner fields. Preserve them on legacy SAVE.
+  if (!body?.classroomLayout?.general?.planner) incoming.general.planner = previousLayout.general.planner;
+  if (!body?.classroomLayout?.general?.sections) incoming.general.sections = previousLayout.general.sections;
   const incomingSeats = JSON.stringify(incoming.general.seats || []);
   const currentSeats = JSON.stringify(previousLayout.general.seats || []);
   incoming.general.previousSeats = incomingSeats !== currentSeats ? previousLayout.general.seats : previousLayout.general.previousSeats;
   if (!body?.classroomLayout?.display) incoming.display = previousLayout.display;
   const after = await persist(actor, classKey, roster, saved, incoming, "CLASSROOM_LAYOUT_UPDATE");
+  return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor), updatedAtMs: after.updatedAtMs };
+}
+async function saveGeneral(actor, body) {
+  assertOperator(actor);
+  const { classKey, roster } = await context(actor, body.classKey);
+  const ids = roster.map(student => student.uid);
+  const raw = body.general;
+  if (!raw || !Array.isArray(raw.seats) || raw.seats.length > 100 || !Array.isArray(raw.blocked) || raw.blocked.length > 30) {
+    throw Object.assign(new Error("invalid-seating"), { status: 400 });
+  }
+  if (raw.rows !== 6 || raw.cols !== 6 || JSON.stringify(raw.sections) !== "[6,6,5]" || !raw.blocked.includes(34) || !raw.blocked.includes(35)) {
+    throw Object.assign(new Error("seating-shape-required"), { status: 400 });
+  }
+  const report = inspectSeating(raw, ids, raw.seats);
+  if (report.hard.length) throw Object.assign(new Error(report.hard.join(" ")), { status: 400 });
+  if (report.conflicts.length && body.acceptConflicts !== true) throw Object.assign(new Error("seating-conflicts-unconfirmed"), { status: 400 });
+  const ref = document("classroomLayouts", classKey);
+  const after = await ref.firestore.runTransaction(async transaction => {
+    const snapshot = await transaction.get(ref);
+    const saved = snapshot.exists ? snapshot.data() : {};
+    if (!Number.isFinite(body.baseUpdatedAtMs) || body.baseUpdatedAtMs !== Number(saved.updatedAtMs || 0)) {
+      throw Object.assign(new Error("seating-version-conflict"), { status: 409 });
+    }
+    const previous = normalizeLayout(saved.classroomLayout, ids);
+    const next = normalizeLayout({ ...previous, mode: "general", general: { ...raw, nominations: previous.general.nominations } }, ids);
+    next.general.previousSeats = JSON.stringify(next.general.seats) === JSON.stringify(previous.general.seats) ? previous.general.previousSeats : previous.general.seats;
+    const record = { schemaVersion: 3, classKey, classroomLayout: next, updatedAtMs: Math.max(Date.now(), Number(saved.updatedAtMs || 0) + 1), updatedByUid: actor.uid, updatedByName: safeText(actor.name, 40) };
+    transaction.set(ref, record);
+    return record;
+  });
+  await appendOpsAudit({ actor: { ...actor, classKey }, action: "CLASSROOM_SEATING_UPDATE", collectionName: "classroomLayouts", recordId: classKey, after: { classKey, updatedAtMs: after.updatedAtMs }, note: `학생 ${ids.length}명 · 조정 조건 충돌 ${report.conflicts.length}건` }).catch(() => console.warn("[PinCon] seating saved; audit write failed"));
   return { classKey, classroomLayout: publicLayout(after.classroomLayout, actor), updatedAtMs: after.updatedAtMs };
 }
 async function addNomination(actor, body) {
@@ -269,13 +308,14 @@ export default async function classroomLayout(req, res) {
     const { profile: actor } = await requireProfileOrLegacy(req);
     if (req.method === "GET") {
       const url = new URL(req.url || "/", "https://pincon.invalid");
-      return sendJson(res, 200, await view(actor, url.searchParams.get("classKey") || ""), headers);
+      return sendJson(res, 200, await view(actor, url.searchParams.get("classKey") || "", url.searchParams.get("projection") || ""), headers);
     }
     if (req.method !== "POST") return sendJson(res, 405, { error: "method-not-allowed" }, headers);
     const body = await jsonBody(req);
     const action = String(body.action || "").toUpperCase();
     let result;
     if (action === "SAVE") result = await save(actor, body);
+    else if (action === "SAVE_GENERAL") result = await saveGeneral(actor, body);
     else if (action === "ADD_NOMINATION") result = await addNomination(actor, body);
     else if (action === "REMOVE_NOMINATION") result = await removeNomination(actor, body);
     else if (action === "SET_DISPLAY") result = await setDisplay(actor, body);
