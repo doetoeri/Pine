@@ -85,11 +85,15 @@ export function createSeatingCeremony({
   }
 
   function shuffleNames() {
-    const names = rosterNames();
-    if (!names.length) return;
-    const desks = [...(root?.querySelectorAll(".planner-room .desk:not(.is-blocked) strong") || [])];
-    desks.forEach((name, index) => {
-      name.textContent = names[(index * 7 + shuffleTick * 5 + Math.floor(index / 3)) % names.length];
+    const students = currentView?.roster || [];
+    if (!students.length) return;
+    const desks = [...(root?.querySelectorAll(".planner-room .desk:not(.is-blocked)") || [])];
+    desks.forEach((desk, index) => {
+      const student = students[(index * 7 + shuffleTick * 5 + Math.floor(index / 3)) % students.length];
+      const name = desk.querySelector("strong");
+      const number = desk.querySelector(".desk-number");
+      if (name) name.textContent = student.name;
+      if (number) number.textContent = `${student.number}번`;
     });
     shuffleTick += 1;
   }
@@ -112,7 +116,7 @@ export function createSeatingCeremony({
         <div class="ceremony-copy">
           <span>PINCON CEREMONY</span>
           <h2>새로운 자리 배치를 공개합니다</h2>
-          <p>배치 결과는 그대로 유지한 채, 공개 순간만 PinCon이 진행합니다.</p>
+          <p>잠시 후 세 분단의 새로운 자리가 차례로 공개됩니다.</p>
         </div>
       </section>
       <section class="ceremony-finale" aria-label="자리 배치 완료">
