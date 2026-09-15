@@ -1,13 +1,14 @@
 const PHASES = Object.freeze(["idle", "intro", "zones", "shuffle", "settle", "finale", "stable"]);
 
 export const CEREMONY_TIMING = Object.freeze({
-  intro: 2400,
+  intro: 2100,
   zones: 2100,
-  shuffle: 3300,
-  settle: 1300,
-  finale: 2400,
+  shuffle: 2600,
+  settle: 1000,
+  finale: 1500,
 });
 
+const SHUFFLE_DELAYS = Object.freeze([150, 170, 190, 220, 250, 290, 340, 390, 450]);
 const phaseClass = phase => `ceremony-phase-${phase}`;
 
 function seatingStats(view) {
@@ -49,11 +50,10 @@ export function createSeatingCeremony({
   const clearTimers = () => {
     phaseTimers.forEach(clearTimeout);
     phaseTimers = [];
-    if (shuffleTimer) clearInterval(shuffleTimer);
+    if (shuffleTimer) clearTimeout(shuffleTimer);
     shuffleTimer = 0;
   };
 
-  const rosterNames = () => (currentView?.roster || []).map(student => student.name).filter(Boolean);
   const byId = () => new Map((currentView?.roster || []).map(student => [student.uid, student]));
 
   function restoreNames() {
@@ -74,13 +74,14 @@ export function createSeatingCeremony({
     root?.querySelectorAll(".planner-room .desk[data-seat-index]").forEach(desk => {
       const index = Number(desk.dataset.seatIndex);
       const row = Math.floor(index / 6);
-      const zone = Math.floor((index % 6) / 2);
-      const zoneOrder = zone;
+      const zone = Number(desk.dataset.seatZone || Math.floor((index % 6) / 2) + 1) - 1;
       const settleOrder = row * 6 + (index % 6);
-      desk.style.setProperty("--ceremony-zone-delay", `${zoneOrder * 310 + row * 34}ms`);
-      desk.style.setProperty("--ceremony-settle-delay", `${Math.min(settleOrder, 33) * 14}ms`);
-      desk.style.setProperty("--ceremony-shift-x", `${(zone - 1) * 12}px`);
-      desk.style.setProperty("--ceremony-shift-y", `${((row % 3) - 1) * 7}px`);
+      const direction = zone === 0 ? -1 : zone === 2 ? 1 : row % 2 ? -1 : 1;
+      desk.style.setProperty("--ceremony-zone-delay", `${zone * 560 + row * 28}ms`);
+      desk.style.setProperty("--ceremony-settle-delay", `${Math.min(settleOrder, 33) * 8}ms`);
+      desk.style.setProperty("--ceremony-shift-x", `${direction * (7 + (row % 2) * 2)}px`);
+      desk.style.setProperty("--ceremony-shift-y", `${((row % 3) - 1) * 4}px`);
+      desk.style.setProperty("--ceremony-name-shift", `${direction * 8}px`);
     });
   }
 
@@ -98,6 +99,12 @@ export function createSeatingCeremony({
     shuffleTick += 1;
   }
 
+  function runShuffleStep(step = 0) {
+    if (phase !== "shuffle" || step >= SHUFFLE_DELAYS.length) return;
+    shuffleNames();
+    shuffleTimer = window.setTimeout(() => runShuffleStep(step + 1), SHUFFLE_DELAYS[step]);
+  }
+
   function ensureOverlay() {
     if (overlay?.isConnected) return overlay;
     overlay = document.createElement("div");
@@ -107,6 +114,7 @@ export function createSeatingCeremony({
       <div class="ceremony-watermark" aria-hidden="true"><img src="${logoUrl}" alt=""></div>
       <div class="ceremony-light ceremony-light-a" aria-hidden="true"></div>
       <div class="ceremony-light ceremony-light-b" aria-hidden="true"></div>
+
       <section class="ceremony-stage" aria-label="PinCon 자리 배치 공개">
         <div class="ceremony-emblem" aria-hidden="true">
           <span class="ceremony-orbit"></span>
@@ -119,6 +127,13 @@ export function createSeatingCeremony({
           <p>잠시 후 세 분단의 새로운 자리가 차례로 공개됩니다.</p>
         </div>
       </section>
+
+      <div class="ceremony-zone-rhythm" aria-hidden="true">
+        <span data-zone="1"><b>01</b> 1분단</span>
+        <span data-zone="2"><b>02</b> 2분단</span>
+        <span data-zone="3"><b>03</b> 3분단</span>
+      </div>
+
       <section class="ceremony-finale" aria-label="자리 배치 완료">
         <img src="${logoUrl}" alt="">
         <div>
@@ -127,6 +142,7 @@ export function createSeatingCeremony({
           <p data-ceremony-stats></p>
         </div>
       </section>
+
       <div class="ceremony-signature" aria-hidden="true"><img src="${logoUrl}" alt=""><span>Powered by PinCon</span></div>
     `;
     document.body.appendChild(overlay);
@@ -145,6 +161,7 @@ export function createSeatingCeremony({
     document.body.classList.remove(...PHASES.map(phaseClass));
     phase = nextPhase;
     document.body.dataset.ceremonyPhase = phase;
+
     if (phase !== "stable" && phase !== "idle") {
       document.body.classList.add("is-ceremony", phaseClass(phase));
       root?.setAttribute("data-ceremony-phase", phase);
@@ -155,10 +172,9 @@ export function createSeatingCeremony({
 
     if (phase === "shuffle") {
       shuffleTick = 0;
-      shuffleNames();
-      shuffleTimer = window.setInterval(shuffleNames, 125);
+      runShuffleStep();
     } else if (shuffleTimer) {
-      clearInterval(shuffleTimer);
+      clearTimeout(shuffleTimer);
       shuffleTimer = 0;
     }
 
@@ -170,9 +186,10 @@ export function createSeatingCeremony({
         overlay?.remove();
         overlay = null;
         document.body.classList.remove("is-ceremony", ...PHASES.map(phaseClass));
+        document.body.classList.add("ceremony-complete");
         document.body.removeAttribute("data-ceremony-phase");
         root?.removeAttribute("data-ceremony-phase");
-      }, reducedMotion ? 80 : 720);
+      }, reducedMotion ? 80 : 520);
       phaseTimers.push(cleanup);
     }
   }
@@ -180,9 +197,10 @@ export function createSeatingCeremony({
   function schedule() {
     if (reducedMotion) {
       applyPhase("finale");
-      phaseTimers.push(window.setTimeout(() => applyPhase("stable"), 900));
+      phaseTimers.push(window.setTimeout(() => applyPhase("stable"), 750));
       return;
     }
+
     let elapsed = CEREMONY_TIMING.intro;
     phaseTimers.push(window.setTimeout(() => applyPhase("zones"), elapsed));
     elapsed += CEREMONY_TIMING.zones;
@@ -199,6 +217,7 @@ export function createSeatingCeremony({
     if (!enabled || started || !currentView?.general?.seats?.some(Boolean)) return;
     started = true;
     clearTimers();
+    document.body.classList.remove("ceremony-complete");
     ensureOverlay();
     updateOverlay();
     applySeatTiming();
@@ -218,8 +237,10 @@ export function createSeatingCeremony({
   function replay() {
     if (!enabled || !currentView?.general?.seats?.some(Boolean)) return;
     clearTimers();
+    restoreNames();
     overlay?.remove();
     overlay = null;
+    document.body.classList.remove("ceremony-complete", "is-ceremony", ...PHASES.map(phaseClass));
     started = false;
     phase = "idle";
     start();
@@ -230,7 +251,7 @@ export function createSeatingCeremony({
     restoreNames();
     overlay?.remove();
     overlay = null;
-    document.body.classList.remove("is-ceremony", ...PHASES.map(phaseClass));
+    document.body.classList.remove("ceremony-complete", "is-ceremony", ...PHASES.map(phaseClass));
     document.body.removeAttribute("data-ceremony-phase");
     root?.removeAttribute("data-ceremony-phase");
   }

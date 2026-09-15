@@ -20,7 +20,7 @@ function render() {
       const s = byId.get(g.seats[index]), blocked = g.blocked.includes(index);
       return `<div class="desk ${blocked || !s ? "is-blocked" : ""}" data-seat-index="${index}" data-seat-zone="${Math.floor((index % 6) / 2) + 1}"><small>${Math.floor(index / 6) + 1}–${index % 6 + 1}</small><strong>${esc(blocked ? "―" : s?.name || "빈자리")}</strong><span class="desk-number">${s && !blocked ? `${s.number}번` : ""}</span></div>`;
     }).join("")}</div></div>` : `<section class="tv-empty"><h2>아직 저장된 자리표가 없습니다.</h2><p>자리 설계에서 배치를 만들고 저장해주세요.</p></section>`}
-    <footer class="tv-footer"><span>${flipped ? "화면 아래쪽이 교실 앞" : "화면 위쪽이 교실 앞"}</span><span id="tvStatus" role="status" class="${liveError ? "tv-error" : ""}">${esc(liveError || `${time} 기준`)}</span></footer></div>`;
+    <footer class="tv-footer"><span>${flipped ? "화면 아래쪽이 교실 앞" : "화면 위쪽이 교실 앞"}</span><span class="tv-brand-signature"><img src="../assets/pincon-icon.svg" alt=""><b>PinCon</b></span><span id="tvStatus" role="status" class="${liveError ? "tv-error" : ""}">${esc(liveError || `${time} 기준`)}</span></footer></div>`;
   document.getElementById("flip").addEventListener("click", () => { flipped = !flipped; render(); });
   document.getElementById("replayCeremony")?.addEventListener("click", () => ceremony.replay());
   document.getElementById("print").addEventListener("click", () => window.print());

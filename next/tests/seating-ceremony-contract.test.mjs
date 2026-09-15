@@ -28,7 +28,7 @@ test("seating TV exposes a query-controlled PinCon ceremony without changing sea
   assert.match(ceremony, /restoreNames/);
 });
 
-test("ceremony uses the real PinCon asset, branded motion, reduced motion and stable handoff", async () => {
+test("ceremony v2 keeps the reveal crisp, paced and reduced-motion safe", async () => {
   const [ceremony, css, html] = await Promise.all([
     read("next/classroom/seating-ceremony.js"),
     read("next/classroom/seating.css"),
@@ -37,18 +37,38 @@ test("ceremony uses the real PinCon asset, branded motion, reduced motion and st
 
   assert.match(ceremony, /\.\.\/assets\/pincon-icon\.svg/);
   assert.match(ceremony, /CEREMONY_TIMING/);
-  assert.match(ceremony, /intro:\s*2400/);
-  assert.match(ceremony, /shuffle:\s*3300/);
+  assert.match(ceremony, /intro:\s*2100/);
+  assert.match(ceremony, /zones:\s*2100/);
+  assert.match(ceremony, /shuffle:\s*2600/);
+  assert.match(ceremony, /settle:\s*900/);
+  assert.match(ceremony, /finale:\s*1500/);
+  assert.match(ceremony, /SHUFFLE_DELAYS/);
+  assert.match(ceremony, /ceremony-complete/);
   assert.match(ceremony, /prefers-reduced-motion:\s*reduce/);
+
   assert.match(css, /PinCon Seating Ceremony TV/);
   assert.match(css, /ceremony-phase-intro/);
   assert.match(css, /ceremony-phase-zones/);
   assert.match(css, /ceremony-phase-shuffle/);
   assert.match(css, /ceremony-phase-settle/);
   assert.match(css, /ceremony-phase-finale/);
+  assert.match(css, /ceremony-zone-rhythm/);
+  assert.match(css, /ceremony-complete/);
+  assert.match(css, /:fullscreen \.tv-controls/);
+  assert.doesNotMatch(css, /ceremony-phase-zones \.ceremony-layer::before\{opacity:\.72\}/);
   assert.match(css, /linear-gradient\(90deg,transparent,#2daa00/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html, /ceremony1/);
+  assert.match(html, /ceremony2/);
+});
+
+test("stable TV view keeps a restrained PinCon signature", async () => {
+  const [tv, css] = await Promise.all([
+    read("next/classroom/seating-tv.js"),
+    read("next/classroom/seating.css"),
+  ]);
+  assert.match(tv, /tv-brand-signature/);
+  assert.match(tv, /pincon-icon\.svg/);
+  assert.match(css, /tv-brand-signature/);
 });
 
 test("seat planner offers separate normal and ceremony TV launch links", async () => {
