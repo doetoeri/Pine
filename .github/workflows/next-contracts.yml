@@ -122,6 +122,9 @@ jobs:
           next/tests/experiment-admin-navigation.test.mjs
           next/tests/flux-presence-contract.test.mjs
 
+      - name: Exercise seating HTTP handler with isolated storage
+        run: node --experimental-vm-modules --test next/tests/seating-api.test.mjs
+
   firestore-rules:
     runs-on: ubuntu-latest
     needs: contracts
