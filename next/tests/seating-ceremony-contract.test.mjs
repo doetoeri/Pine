@@ -45,10 +45,10 @@ test("ceremony uses the real PinCon asset, branded motion, reduced motion and st
   assert.match(css, /ceremony-phase-zones/);
   assert.match(css, /ceremony-phase-shuffle/);
   assert.match(css, /ceremony-phase-settle/);
-  assert.match(css, /ceremony-phase-finale/);
+  assert.match(css, /ceremony-phase-finale/);\n  assert.match(css, /ceremony-zone-rhythm/);\n  assert.match(css, /ceremony-complete/);\n  assert.match(css, /:fullscreen \\.tv-controls/);\n  assert.match(ceremony, /SHUFFLE_DELAYS/);\n  assert.match(ceremony, /finale:\\s*1500/);
   assert.match(css, /linear-gradient\(90deg,transparent,#2daa00/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html, /ceremony1/);
+  assert.match(html, /ceremony2/);
 });
 
 test("seat planner offers separate normal and ceremony TV launch links", async () => {
