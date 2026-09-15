@@ -1,0 +1,242 @@
+const PHASES = Object.freeze(["idle", "intro", "zones", "shuffle", "settle", "finale", "stable"]);
+
+export const CEREMONY_TIMING = Object.freeze({
+  intro: 2400,
+  zones: 2100,
+  shuffle: 3300,
+  settle: 1300,
+  finale: 2400,
+});
+
+const phaseClass = phase => `ceremony-phase-${phase}`;
+
+function seatingStats(view) {
+  const seats = view?.general?.seats || [];
+  const blocked = new Set(view?.general?.blocked || []);
+  const rosterIds = new Set((view?.roster || []).map(student => student.uid));
+  const assigned = seats.filter((uid, index) => uid && !blocked.has(index) && rosterIds.has(uid));
+  const unique = new Set(assigned);
+  return {
+    assigned: assigned.length,
+    duplicates: Math.max(0, assigned.length - unique.size),
+    missing: Math.max(0, rosterIds.size - unique.size),
+  };
+}
+
+function ceremonyRequested(params = new URL(location.href).searchParams) {
+  const ceremony = params.get("ceremony");
+  return ceremony === "1" || ceremony === "true" || ceremony === "ceremony" || params.get("reveal") === "ceremony";
+}
+
+export function isCeremonyRequested(params) {
+  return ceremonyRequested(params);
+}
+
+export function createSeatingCeremony({
+  root,
+  enabled = ceremonyRequested(),
+  logoUrl = "../assets/pincon-icon.svg",
+} = {}) {
+  let phase = "idle";
+  let started = false;
+  let currentView = null;
+  let overlay = null;
+  let shuffleTimer = 0;
+  let phaseTimers = [];
+  let shuffleTick = 0;
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+
+  const clearTimers = () => {
+    phaseTimers.forEach(clearTimeout);
+    phaseTimers = [];
+    if (shuffleTimer) clearInterval(shuffleTimer);
+    shuffleTimer = 0;
+  };
+
+  const rosterNames = () => (currentView?.roster || []).map(student => student.name).filter(Boolean);
+  const byId = () => new Map((currentView?.roster || []).map(student => [student.uid, student]));
+
+  function restoreNames() {
+    const students = byId();
+    root?.querySelectorAll(".planner-room .desk[data-seat-index]").forEach(desk => {
+      const index = Number(desk.dataset.seatIndex);
+      const uid = currentView?.general?.seats?.[index] || "";
+      const student = students.get(uid);
+      const name = desk.querySelector("strong");
+      const number = desk.querySelector(".desk-number");
+      const blocked = currentView?.general?.blocked?.includes(index);
+      if (name) name.textContent = blocked ? "―" : student?.name || "빈자리";
+      if (number) number.textContent = student && !blocked ? `${student.number}번` : "";
+    });
+  }
+
+  function applySeatTiming() {
+    root?.querySelectorAll(".planner-room .desk[data-seat-index]").forEach(desk => {
+      const index = Number(desk.dataset.seatIndex);
+      const row = Math.floor(index / 6);
+      const zone = Math.floor((index % 6) / 2);
+      const zoneOrder = zone;
+      const settleOrder = row * 6 + (index % 6);
+      desk.style.setProperty("--ceremony-zone-delay", `${zoneOrder * 310 + row * 34}ms`);
+      desk.style.setProperty("--ceremony-settle-delay", `${Math.min(settleOrder, 33) * 14}ms`);
+      desk.style.setProperty("--ceremony-shift-x", `${(zone - 1) * 12}px`);
+      desk.style.setProperty("--ceremony-shift-y", `${((row % 3) - 1) * 7}px`);
+    });
+  }
+
+  function shuffleNames() {
+    const names = rosterNames();
+    if (!names.length) return;
+    const desks = [...(root?.querySelectorAll(".planner-room .desk:not(.is-blocked) strong") || [])];
+    desks.forEach((name, index) => {
+      name.textContent = names[(index * 7 + shuffleTick * 5 + Math.floor(index / 3)) % names.length];
+    });
+    shuffleTick += 1;
+  }
+
+  function ensureOverlay() {
+    if (overlay?.isConnected) return overlay;
+    overlay = document.createElement("div");
+    overlay.className = "ceremony-layer";
+    overlay.setAttribute("aria-live", "polite");
+    overlay.innerHTML = `
+      <div class="ceremony-watermark" aria-hidden="true"><img src="${logoUrl}" alt=""></div>
+      <div class="ceremony-light ceremony-light-a" aria-hidden="true"></div>
+      <div class="ceremony-light ceremony-light-b" aria-hidden="true"></div>
+      <section class="ceremony-stage" aria-label="PinCon 자리 배치 공개">
+        <div class="ceremony-emblem" aria-hidden="true">
+          <span class="ceremony-orbit"></span>
+          <span class="ceremony-orbit ceremony-orbit-secondary"></span>
+          <img src="${logoUrl}" alt="">
+        </div>
+        <div class="ceremony-copy">
+          <span>PINCON CEREMONY</span>
+          <h2>새로운 자리 배치를 공개합니다</h2>
+          <p>배치 결과는 그대로 유지한 채, 공개 순간만 PinCon이 진행합니다.</p>
+        </div>
+      </section>
+      <section class="ceremony-finale" aria-label="자리 배치 완료">
+        <img src="${logoUrl}" alt="">
+        <div>
+          <span>PINCON · CLASSROOM</span>
+          <h2>배치 완료</h2>
+          <p data-ceremony-stats></p>
+        </div>
+      </section>
+      <div class="ceremony-signature" aria-hidden="true"><img src="${logoUrl}" alt=""><span>Powered by PinCon</span></div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function updateOverlay() {
+    if (!overlay) return;
+    const stats = seatingStats(currentView);
+    const statsNode = overlay.querySelector("[data-ceremony-stats]");
+    if (statsNode) statsNode.textContent = `${stats.assigned}명 · 중복 ${stats.duplicates} · 누락 ${stats.missing}`;
+  }
+
+  function applyPhase(nextPhase) {
+    if (!PHASES.includes(nextPhase)) return;
+    document.body.classList.remove(...PHASES.map(phaseClass));
+    phase = nextPhase;
+    document.body.dataset.ceremonyPhase = phase;
+    if (phase !== "stable" && phase !== "idle") {
+      document.body.classList.add("is-ceremony", phaseClass(phase));
+      root?.setAttribute("data-ceremony-phase", phase);
+    } else {
+      document.body.classList.add(phaseClass(phase));
+      root?.setAttribute("data-ceremony-phase", phase);
+    }
+
+    if (phase === "shuffle") {
+      shuffleTick = 0;
+      shuffleNames();
+      shuffleTimer = window.setInterval(shuffleNames, 125);
+    } else if (shuffleTimer) {
+      clearInterval(shuffleTimer);
+      shuffleTimer = 0;
+    }
+
+    if (phase === "settle" || phase === "finale" || phase === "stable") restoreNames();
+
+    if (phase === "stable") {
+      overlay?.classList.add("is-leaving");
+      const cleanup = window.setTimeout(() => {
+        overlay?.remove();
+        overlay = null;
+        document.body.classList.remove("is-ceremony", ...PHASES.map(phaseClass));
+        document.body.removeAttribute("data-ceremony-phase");
+        root?.removeAttribute("data-ceremony-phase");
+      }, reducedMotion ? 80 : 720);
+      phaseTimers.push(cleanup);
+    }
+  }
+
+  function schedule() {
+    if (reducedMotion) {
+      applyPhase("finale");
+      phaseTimers.push(window.setTimeout(() => applyPhase("stable"), 900));
+      return;
+    }
+    let elapsed = CEREMONY_TIMING.intro;
+    phaseTimers.push(window.setTimeout(() => applyPhase("zones"), elapsed));
+    elapsed += CEREMONY_TIMING.zones;
+    phaseTimers.push(window.setTimeout(() => applyPhase("shuffle"), elapsed));
+    elapsed += CEREMONY_TIMING.shuffle;
+    phaseTimers.push(window.setTimeout(() => applyPhase("settle"), elapsed));
+    elapsed += CEREMONY_TIMING.settle;
+    phaseTimers.push(window.setTimeout(() => applyPhase("finale"), elapsed));
+    elapsed += CEREMONY_TIMING.finale;
+    phaseTimers.push(window.setTimeout(() => applyPhase("stable"), elapsed));
+  }
+
+  function start() {
+    if (!enabled || started || !currentView?.general?.seats?.some(Boolean)) return;
+    started = true;
+    clearTimers();
+    ensureOverlay();
+    updateOverlay();
+    applySeatTiming();
+    applyPhase("intro");
+    schedule();
+  }
+
+  function onRender(view) {
+    currentView = view;
+    if (!enabled || !view?.general?.seats?.some(Boolean)) return;
+    applySeatTiming();
+    updateOverlay();
+    if (!started) start();
+    else if (phase === "settle" || phase === "finale" || phase === "stable") restoreNames();
+  }
+
+  function replay() {
+    if (!enabled || !currentView?.general?.seats?.some(Boolean)) return;
+    clearTimers();
+    overlay?.remove();
+    overlay = null;
+    started = false;
+    phase = "idle";
+    start();
+  }
+
+  function destroy() {
+    clearTimers();
+    restoreNames();
+    overlay?.remove();
+    overlay = null;
+    document.body.classList.remove("is-ceremony", ...PHASES.map(phaseClass));
+    document.body.removeAttribute("data-ceremony-phase");
+    root?.removeAttribute("data-ceremony-phase");
+  }
+
+  return {
+    get enabled() { return enabled; },
+    get phase() { return phase; },
+    get running() { return enabled && started && !["idle", "stable"].includes(phase); },
+    onRender,
+    replay,
+    destroy,
+  };
+}
