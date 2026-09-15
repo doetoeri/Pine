@@ -68,7 +68,8 @@ async function load() {
 }
 
 document.addEventListener("fullscreenchange", () => {
-  if (!document.fullscreenElement) { wakeLock?.release().catch(() => {}); wakeLock = null; }
+  if (document.fullscreenElement) keepAwake();
+  else { wakeLock?.release().catch(() => {}); wakeLock = null; }
   const button = document.getElementById("fullscreen"); if (button) button.textContent = document.fullscreenElement ? "전체화면 종료" : "전체화면";
 });
 document.addEventListener("visibilitychange", () => {
