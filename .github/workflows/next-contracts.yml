@@ -72,6 +72,10 @@ jobs:
             next/classroom-entry.js \
             next/classroom/classroom.js \
             next/classroom/tv.js \
+            next/classroom/seating.js \
+            next/classroom/seating-tv.js \
+            next/classroom/seating-worker.js \
+            integrations/pincon-ai/lib/seating-planner.mjs \
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
@@ -112,6 +116,7 @@ jobs:
           next/tests/account-create-service.test.mjs
           next/tests/class-duty-manager-contract.test.mjs
           next/tests/classroom-layout-contract.test.mjs
+          next/tests/seating-planner.test.mjs
           next/tests/classroom-officer-tv-contract.test.mjs
           next/tests/e2e-firestore-isolation-contract.test.mjs
           next/tests/experiment-admin-navigation.test.mjs
