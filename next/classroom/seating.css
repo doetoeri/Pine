@@ -78,7 +78,7 @@
 @keyframes ceremony-orbit-breathe{0%,100%{transform:scale(.96);opacity:.42}50%{transform:scale(1.035);opacity:.82}}
 @keyframes ceremony-light-pass{0%{transform:translate3d(-18vw,0,0);opacity:0}18%{opacity:.8}82%{opacity:.8}100%{transform:translate3d(142vw,0,0);opacity:0}}
 @keyframes ceremony-zone-wake{0%{opacity:.08;transform:translate3d(0,10px,0)}55%{opacity:1;transform:translate3d(0,-2px,0)}100%{opacity:1;transform:none}}
-@keyframes ceremony-shuffle-drift{from{transform:translate3d(var(--ceremony-shift-x,0),var(--ceremony-shift-y,0),0)}to{transform:translate3d(calc(var(--ceremony-shift-x,0) * -.35),calc(var(--ceremony-shift-y,0) * -.35),0)}}
+@keyframes ceremony-shuffle-drift{from{transform:translate3d(var(--ceremony-shift-x,0),var(--ceremony-shift-y,0),0)}to{transform:translate3d(0,0,0)}}
 @keyframes ceremony-card-scan{to{transform:translate3d(115%,0,0)}}
 @keyframes ceremony-seat-lock{0%{transform:scale(.965);opacity:.76}62%{transform:scale(1.018);opacity:1}100%{transform:scale(1);opacity:1}}
 @keyframes ceremony-final-sweep{to{transform:translate3d(130%,0,0)}}
