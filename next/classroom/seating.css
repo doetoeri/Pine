@@ -9,3 +9,80 @@
 @media(max-width:450px){:root{--aisle:.35rem;--gap:.3rem}.planner-shell{padding:0 .75rem 1rem}.planner-header nav>a:first-child{display:none}.desk{min-height:68px;padding:.35rem .25rem}.desk-top{font-size:.7rem}.desk strong{font-size:.9rem}.desk-number{font-size:.75rem}.planner-toolbar button{font-size:.875rem;padding:.6rem .7rem}.room-direction,.room-bottom{font-size:.8rem}.seating-report>div{flex-direction:column;gap:.3rem}.student-picker{grid-template-columns:repeat(3,minmax(0,1fr))}.demo-banner{flex-wrap:wrap}.tv-shell{padding:.6rem;gap:.6rem}.tv-controls button{padding:.5rem;font-size:.8rem}.tv-room-wrap .desk{padding:.3rem}.tv-room-wrap .desk strong{font-size:.95rem}.tv-room-wrap .section-labels{font-size:.9rem}.tv-room-wrap .desk-number{font-size:.75rem}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{@page{size:A4 landscape;margin:12mm}.planner-header,.planner-toolbar,.planner-status,.planner-settings,.seating-report,.search-note,.demo-banner,.tv-controls,.tv-footer{display:none!important}.planner-workspace{display:block;border:0}.planner-shell{padding:0}.planner-floor{padding:0}.desk{break-inside:avoid;box-shadow:none}.seating-tv .tv-shell{height:180mm;min-height:0;padding:0}.seat-board{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+
+/* PinCon Seating Ceremony TV */
+.seating-tv{overflow:hidden}
+.ceremony-layer{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;color:#f7fff5;isolation:isolate}
+.ceremony-layer::before{content:"";position:absolute;inset:0;background:rgba(5,17,11,.94);opacity:1;transition:opacity .75s ease}
+.ceremony-watermark{position:absolute;inset:0;display:grid;place-items:center;opacity:.035;transform:scale(.72);transition:opacity .8s ease,transform 1.2s cubic-bezier(.2,.8,.2,1)}
+.ceremony-watermark img{width:min(58vw,680px);height:auto;border-radius:22%;display:block}
+.ceremony-light{position:absolute;left:-18vw;width:54vw;height:2px;background:linear-gradient(90deg,transparent,#2daa00 26%,#73e12d 58%,#ffe62b 82%,transparent);opacity:0;box-shadow:0 0 24px rgba(113,225,45,.34);transform:translate3d(-18vw,0,0)}
+.ceremony-light-a{top:34%}.ceremony-light-b{top:67%;transition-delay:.16s}
+.ceremony-stage,.ceremony-finale{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;text-align:center;padding:6vh 8vw;transition:opacity .55s ease,transform .75s cubic-bezier(.2,.8,.2,1)}
+.ceremony-stage{gap:clamp(1.2rem,3vh,2.3rem);opacity:0;transform:translate3d(0,18px,0)}
+.ceremony-emblem{width:clamp(118px,12vw,184px);aspect-ratio:1;position:relative;display:grid;place-items:center}
+.ceremony-emblem img{width:68%;height:auto;border-radius:24%;position:relative;z-index:2;box-shadow:0 14px 42px rgba(0,0,0,.28)}
+.ceremony-orbit{position:absolute;inset:0;border:1px solid rgba(113,225,45,.34);border-radius:50%;opacity:.65}
+.ceremony-orbit::after{content:"";position:absolute;left:50%;top:-2px;width:24%;height:3px;transform:translateX(-50%);border-radius:99px;background:linear-gradient(90deg,#2daa00,#ffe62b);box-shadow:0 0 18px rgba(255,230,43,.36)}
+.ceremony-orbit-secondary{inset:12%;opacity:.42}
+.ceremony-copy{max-width:900px}
+.ceremony-copy>span,.ceremony-finale span{display:block;font-size:clamp(.78rem,1.15vw,1.05rem);font-weight:800;letter-spacing:.2em;color:#cbeaa9}
+.ceremony-copy h2,.ceremony-finale h2{margin:.42rem 0 .4rem;font-size:clamp(2.2rem,5vw,5.4rem);line-height:1.06;letter-spacing:-.055em}
+.ceremony-copy p,.ceremony-finale p{margin:0;color:rgba(241,255,237,.72);font-size:clamp(.95rem,1.5vw,1.35rem);letter-spacing:-.02em}
+.ceremony-finale{grid-template-columns:auto auto;gap:clamp(1rem,2.3vw,2rem);align-items:center;text-align:left;opacity:0;transform:translate3d(0,20px,0)}
+.ceremony-finale img{width:clamp(82px,8vw,126px);height:auto;border-radius:24%;box-shadow:0 14px 42px rgba(0,0,0,.22)}
+.ceremony-finale h2{font-size:clamp(2.5rem,5.3vw,5.8rem)}
+.ceremony-signature{position:absolute;right:clamp(1rem,3vw,3rem);bottom:clamp(1rem,2.5vh,2rem);display:flex;align-items:center;gap:.6rem;font-size:clamp(.72rem,1vw,.9rem);font-weight:750;letter-spacing:.05em;color:rgba(242,255,238,.72);opacity:0;transition:opacity .45s ease}
+.ceremony-signature img{width:28px;height:28px;border-radius:8px}
+.seating-tv.is-ceremony .tv-shell{position:relative;z-index:2;transition:opacity .8s ease,transform .9s cubic-bezier(.2,.8,.2,1)}
+.seating-tv.is-ceremony .tv-header,.seating-tv.is-ceremony .tv-footer{transition:opacity .55s ease}
+.seating-tv.is-ceremony .tv-room-wrap .desk{will-change:transform,opacity}
+.seating-tv.ceremony-phase-intro .tv-shell{opacity:.12;transform:scale(.985)}
+.seating-tv.ceremony-phase-intro .tv-header,.seating-tv.ceremony-phase-intro .tv-footer{opacity:0}
+.seating-tv.ceremony-phase-intro .ceremony-stage{opacity:1;transform:translate3d(0,0,0)}
+.seating-tv.ceremony-phase-intro .ceremony-emblem{animation:ceremony-logo-arrive 1.25s cubic-bezier(.2,.8,.2,1) both}
+.seating-tv.ceremony-phase-intro .ceremony-orbit{animation:ceremony-orbit-breathe 2.15s ease-in-out infinite}
+.seating-tv.ceremony-phase-zones .ceremony-layer::before{opacity:.72}
+.seating-tv.ceremony-phase-zones .ceremony-stage{opacity:.14;transform:translate3d(0,-10px,0)}
+.seating-tv.ceremony-phase-zones .ceremony-watermark{opacity:.055;transform:scale(.88)}
+.seating-tv.ceremony-phase-zones .tv-shell{opacity:1;transform:none}
+.seating-tv.ceremony-phase-zones .tv-header,.seating-tv.ceremony-phase-zones .tv-footer{opacity:.28}
+.seating-tv.ceremony-phase-zones .tv-room-wrap .desk{animation:ceremony-zone-wake .95s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--ceremony-zone-delay,0ms);background:linear-gradient(#fff,#fff) padding-box,linear-gradient(108deg,#2daa00,#8ee53f 58%,#ffe62b) border-box;border-color:transparent}
+.seating-tv.ceremony-phase-zones .ceremony-light{opacity:.8;animation:ceremony-light-pass 1.55s cubic-bezier(.18,.75,.2,1) both}
+.seating-tv.ceremony-phase-shuffle .ceremony-layer::before{opacity:.34}
+.seating-tv.ceremony-phase-shuffle .ceremony-watermark{opacity:.04;transform:scale(.94)}
+.seating-tv.ceremony-phase-shuffle .tv-shell{opacity:1;transform:none}
+.seating-tv.ceremony-phase-shuffle .tv-header,.seating-tv.ceremony-phase-shuffle .tv-footer{opacity:.45}
+.seating-tv.ceremony-phase-shuffle .tv-room-wrap .desk{opacity:1;border-color:#a8c9a8;transform:translate3d(var(--ceremony-shift-x,0),var(--ceremony-shift-y,0),0);animation:ceremony-shuffle-drift .72s ease-in-out infinite alternate}
+.seating-tv.ceremony-phase-shuffle .tv-room-wrap .desk strong{color:#173d27;text-shadow:0 0 18px rgba(90,209,46,.18)}
+.seating-tv.ceremony-phase-shuffle .tv-room-wrap .desk::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(105deg,transparent 28%,rgba(70,203,24,.08) 43%,rgba(255,230,43,.22) 50%,rgba(70,203,24,.08) 57%,transparent 72%);transform:translate3d(-115%,0,0);animation:ceremony-card-scan 1.05s linear infinite;pointer-events:none}
+.seating-tv.ceremony-phase-settle .ceremony-layer::before{opacity:.16}
+.seating-tv.ceremony-phase-settle .ceremony-watermark{opacity:.055;transform:scale(1)}
+.seating-tv.ceremony-phase-settle .tv-shell{opacity:1;transform:none}
+.seating-tv.ceremony-phase-settle .tv-header,.seating-tv.ceremony-phase-settle .tv-footer{opacity:.75}
+.seating-tv.ceremony-phase-settle .tv-room-wrap .desk{opacity:1;animation:ceremony-seat-lock .58s cubic-bezier(.2,.85,.2,1) both;animation-delay:var(--ceremony-settle-delay,0ms);background:linear-gradient(#fff,#fff) padding-box,linear-gradient(100deg,#2daa00,#75dc31 52%,#ffe62b) border-box;border-color:transparent}
+.seating-tv.ceremony-phase-settle .tv-room-wrap .desk::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(102deg,transparent 33%,rgba(255,255,255,.1) 43%,rgba(255,230,43,.42) 50%,rgba(255,255,255,.12) 57%,transparent 67%);transform:translate3d(-130%,0,0);animation:ceremony-final-sweep .72s ease-out both;animation-delay:calc(var(--ceremony-settle-delay,0ms) + 90ms);pointer-events:none}
+.seating-tv.ceremony-phase-settle .ceremony-signature{opacity:.8}
+.seating-tv.ceremony-phase-finale .ceremony-layer::before{opacity:.24}
+.seating-tv.ceremony-phase-finale .ceremony-watermark{opacity:.11;transform:scale(1.05)}
+.seating-tv.ceremony-phase-finale .tv-shell{opacity:.96;transform:none}
+.seating-tv.ceremony-phase-finale .tv-header,.seating-tv.ceremony-phase-finale .tv-footer{opacity:.55}
+.seating-tv.ceremony-phase-finale .ceremony-finale{opacity:1;transform:translate3d(0,0,0)}
+.seating-tv.ceremony-phase-finale .ceremony-finale img{animation:ceremony-finale-mark .9s cubic-bezier(.2,.8,.2,1) both}
+.seating-tv.ceremony-phase-finale .ceremony-signature{opacity:1}
+.seating-tv.ceremony-phase-stable .ceremony-layer{opacity:0;transition:opacity .68s ease}
+.seating-tv.ceremony-phase-stable .tv-shell{opacity:1;transform:none}
+.seating-tv.ceremony-phase-stable .tv-header,.seating-tv.ceremony-phase-stable .tv-footer{opacity:1}
+@keyframes ceremony-logo-arrive{0%{opacity:0;transform:scale(.82)}58%{opacity:1;transform:scale(1.035)}100%{opacity:1;transform:scale(1)}}
+@keyframes ceremony-orbit-breathe{0%,100%{transform:scale(.96);opacity:.42}50%{transform:scale(1.035);opacity:.82}}
+@keyframes ceremony-light-pass{0%{transform:translate3d(-18vw,0,0);opacity:0}18%{opacity:.8}82%{opacity:.8}100%{transform:translate3d(142vw,0,0);opacity:0}}
+@keyframes ceremony-zone-wake{0%{opacity:.08;transform:translate3d(0,10px,0)}55%{opacity:1;transform:translate3d(0,-2px,0)}100%{opacity:1;transform:none}}
+@keyframes ceremony-shuffle-drift{from{transform:translate3d(var(--ceremony-shift-x,0),var(--ceremony-shift-y,0),0)}to{transform:translate3d(0,0,0)}}
+@keyframes ceremony-card-scan{to{transform:translate3d(115%,0,0)}}
+@keyframes ceremony-seat-lock{0%{transform:scale(.965);opacity:.76}62%{transform:scale(1.018);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes ceremony-final-sweep{to{transform:translate3d(130%,0,0)}}
+@keyframes ceremony-finale-mark{0%{opacity:0;transform:scale(.82)}65%{opacity:1;transform:scale(1.045)}100%{opacity:1;transform:scale(1)}}
+@media(max-width:900px){.ceremony-finale{grid-template-columns:1fr;text-align:center}.ceremony-finale img{margin:auto}.ceremony-copy p{max-width:34rem}.ceremony-light{width:70vw}.seating-tv.ceremony-phase-shuffle .tv-room-wrap .desk{animation:none;transform:none}}
+@media(prefers-reduced-motion:reduce){.ceremony-layer *, .seating-tv.is-ceremony .tv-shell,.seating-tv.is-ceremony .tv-header,.seating-tv.is-ceremony .tv-footer{animation:none!important;transition-duration:.08s!important}.seating-tv.ceremony-phase-finale .ceremony-finale{opacity:1;transform:none}.seating-tv.ceremony-phase-finale .tv-shell{opacity:1}.seating-tv.ceremony-phase-finale .ceremony-layer::before{opacity:.18}}
+@media print{.ceremony-layer{display:none!important}.seating-tv.is-ceremony .tv-shell{opacity:1!important;transform:none!important}.seating-tv.is-ceremony .tv-header,.seating-tv.is-ceremony .tv-footer{opacity:1!important}}

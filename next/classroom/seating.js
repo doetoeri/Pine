@@ -12,7 +12,13 @@ const person = uid => view.roster.find(s => s.uid === uid);
 const label = uid => { const s = person(uid); return s ? `${s.number}번 ${s.name}` : "빈자리"; };
 const dirty = () => general && JSON.stringify(general) !== baseline;
 const readReport = () => inspectSeating({ ...general, seats: baseSeats }, ids(), general.seats);
-const tvURL = () => demo ? "./seating-tv.html?demo=1" : `./seating-tv.html?classKey=${encodeURIComponent(view.classKey)}`;
+const tvURL = (ceremony = false) => {
+  const query = new URLSearchParams();
+  if (demo) query.set("demo", "1");
+  else query.set("classKey", view.classKey);
+  if (ceremony) query.set("ceremony", "1");
+  return `./seating-tv.html?${query.toString()}`;
+};
 
 function room() {
   const g = general, locks = new Set(g.planner.lockedSeats.map(l => l.index)), blocked = new Set(g.blocked);
@@ -43,7 +49,7 @@ function render() {
   const scroll = root.querySelector(".planner-settings")?.scrollTop || 0, focus = document.activeElement?.id;
   const open = new Set([...root.querySelectorAll("details[open]")].map(el => el.id));
   const r = readReport();
-  root.innerHTML = `<div class="planner-shell"><header class="planner-header"><div class="brand"><a class="wordmark" href="../">PinCon</a><span class="brand-divider"></span><h1>자리 설계</h1><span class="class-label">${esc(view.classKey)} · ${view.roster.length}명</span></div><nav><a href="./">교실 배치</a><a class="tv-link" href="${tvURL()}" target="_blank" rel="noopener">TV 자리표 ↗</a></nav></header>
+  root.innerHTML = `<div class="planner-shell"><header class="planner-header"><div class="brand"><a class="wordmark" href="../">PinCon</a><span class="brand-divider"></span><h1>자리 설계</h1><span class="class-label">${esc(view.classKey)} · ${view.roster.length}명</span></div><nav><a href="./">교실 배치</a><a class="tv-link" href="${tvURL()}" target="_blank" rel="noopener">TV 자리표 ↗</a><a class="tv-link" href="${tvURL(true)}" target="_blank" rel="noopener">세레머니 공개 ↗</a></nav></header>
     ${demo ? `<div class="demo-banner">예시 34명으로 체험 중 · 실제 학급 데이터가 아닙니다. <a href="./seating.html">내 학급 연결</a></div>` : ""}
     ${!view.capabilities?.seatingPlanner ? `<div class="demo-banner">자리 설계 서버가 아직 업데이트되지 않아 저장할 수 없습니다.</div>` : ""}
     <div class="planner-toolbar"><div><span class="eyebrow">우리 반의 다음 자리</span><p>조건을 정하고, 배치를 만든 뒤 확인하세요.</p></div><div class="toolbar-actions"><button id="undo" ${!history.length || busy || saving ? "disabled" : ""}>되돌리기</button><button id="reload" ${busy || saving ? "disabled" : ""}>다시 불러오기</button><button id="generate" class="primary" ${busy || saving ? "disabled" : ""}>배치 ${general.seats.some(Boolean) ? "다시 " : ""}만들기</button><button id="save" class="save-button" ${busy || saving || r.hard.length || !view.capabilities?.seatingPlanner ? "disabled" : ""}>${saving ? "저장 중…" : demo ? "예시 자리표 저장" : "자리표 저장"}</button></div></div>
