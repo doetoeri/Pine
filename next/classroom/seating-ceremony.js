@@ -4,7 +4,7 @@ export const CEREMONY_TIMING = Object.freeze({
   intro: 2100,
   zones: 2100,
   shuffle: 2600,
-  settle: 900,
+  settle: 1000,
   finale: 1500,
 });
 
@@ -78,7 +78,7 @@ export function createSeatingCeremony({
       const settleOrder = row * 6 + (index % 6);
       const direction = zone === 0 ? -1 : zone === 2 ? 1 : row % 2 ? -1 : 1;
       desk.style.setProperty("--ceremony-zone-delay", `${zone * 560 + row * 28}ms`);
-      desk.style.setProperty("--ceremony-settle-delay", `${Math.min(settleOrder, 33) * 12}ms`);
+      desk.style.setProperty("--ceremony-settle-delay", `${Math.min(settleOrder, 33) * 8}ms`);
       desk.style.setProperty("--ceremony-shift-x", `${direction * (7 + (row % 2) * 2)}px`);
       desk.style.setProperty("--ceremony-shift-y", `${((row % 3) - 1) * 4}px`);
       desk.style.setProperty("--ceremony-name-shift", `${direction * 8}px`);
