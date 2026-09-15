@@ -28,7 +28,24 @@ test("seating TV exposes a query-controlled PinCon ceremony without changing sea
   assert.match(ceremony, /restoreNames/);
 });
 
-test("ceremony v2 keeps the reveal crisp, paced and reduced-motion safe", async () => {
+test("ceremony v3 offers a user-gesture fullscreen launch gate", async () => {
+  const [ceremony, css, tv] = await Promise.all([
+    read("next/classroom/seating-ceremony.js"),
+    read("next/classroom/seating.css"),
+    read("next/classroom/seating-tv.js"),
+  ]);
+
+  assert.match(ceremony, /data-launch-fullscreen/);
+  assert.match(ceremony, /전체화면으로 공개/);
+  assert.match(ceremony, /document\.documentElement\.requestFullscreen/);
+  assert.match(ceremony, /navigationUI:\s*"hide"/);
+  assert.match(ceremony, /data-launch-window/);
+  assert.match(css, /ceremony-launch-layer/);
+  assert.match(css, /:fullscreen \.tv-controls\{opacity:\.22/);
+  assert.match(tv, /if \(document\.fullscreenElement\) keepAwake\(\)/);
+});
+
+test("ceremony v3 is cinematic but keeps seating readable and motion-safe", async () => {
   const [ceremony, css, html] = await Promise.all([
     read("next/classroom/seating-ceremony.js"),
     read("next/classroom/seating.css"),
@@ -37,16 +54,18 @@ test("ceremony v2 keeps the reveal crisp, paced and reduced-motion safe", async 
 
   assert.match(ceremony, /\.\.\/assets\/pincon-icon\.svg/);
   assert.match(ceremony, /CEREMONY_TIMING/);
-  assert.match(ceremony, /intro:\s*2100/);
-  assert.match(ceremony, /zones:\s*2100/);
-  assert.match(ceremony, /shuffle:\s*2600/);
-  assert.match(ceremony, /settle:\s*900/);
-  assert.match(ceremony, /finale:\s*1500/);
+  assert.match(ceremony, /intro:\s*2300/);
+  assert.match(ceremony, /zones:\s*2300/);
+  assert.match(ceremony, /shuffle:\s*2800/);
+  assert.match(ceremony, /settle:\s*1100/);
+  assert.match(ceremony, /finale:\s*1700/);
   assert.match(ceremony, /SHUFFLE_DELAYS/);
-  assert.match(ceremony, /ceremony-complete/);
+  assert.match(ceremony, /ceremony-curtain/);
+  assert.match(ceremony, /ceremony-zone-glow/);
+  assert.match(ceremony, /ceremony-shuffle-scan/);
+  assert.match(ceremony, /ceremony-lock-wave/);
   assert.match(ceremony, /prefers-reduced-motion:\s*reduce/);
 
-  assert.match(css, /PinCon Seating Ceremony TV/);
   assert.match(css, /ceremony-phase-intro/);
   assert.match(css, /ceremony-phase-zones/);
   assert.match(css, /ceremony-phase-shuffle/);
@@ -54,14 +73,11 @@ test("ceremony v2 keeps the reveal crisp, paced and reduced-motion safe", async 
   assert.match(css, /ceremony-phase-finale/);
   assert.match(css, /ceremony-zone-rhythm/);
   assert.match(css, /ceremony-complete/);
-  assert.match(css, /:fullscreen \.tv-controls/);
-  assert.doesNotMatch(css, /ceremony-phase-zones \.ceremony-layer::before\{opacity:\.72\}/);
-  assert.match(css, /linear-gradient\(90deg,transparent,#2daa00/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/);
-  assert.match(html, /ceremony2/);
+  assert.match(html, /ceremony3/);
 });
 
-test("stable TV view keeps a restrained PinCon signature", async () => {
+test("stable TV view keeps PinCon branding and leaves fullscreen controls usable", async () => {
   const [tv, css] = await Promise.all([
     read("next/classroom/seating-tv.js"),
     read("next/classroom/seating.css"),
@@ -69,6 +85,8 @@ test("stable TV view keeps a restrained PinCon signature", async () => {
   assert.match(tv, /tv-brand-signature/);
   assert.match(tv, /pincon-icon\.svg/);
   assert.match(css, /tv-brand-signature/);
+  assert.match(css, /:fullscreen \.tv-controls:hover/);
+  assert.doesNotMatch(css, /:fullscreen \.tv-controls\{opacity:0;pointer-events:none\}/);
 });
 
 test("seat planner offers separate normal and ceremony TV launch links", async () => {
