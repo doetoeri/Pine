@@ -1,14 +1,15 @@
-const PHASES = Object.freeze(["idle", "intro", "zones", "shuffle", "settle", "finale", "stable"]);
+const PHASES = Object.freeze(["idle", "intro", "countdown", "zones", "shuffle", "settle", "finale", "stable"]);
 
 export const CEREMONY_TIMING = Object.freeze({
-  intro: 2300,
-  zones: 2300,
+  intro: 1800,
+  countdown: 3000,
+  zones: 2400,
   shuffle: 2800,
-  settle: 1100,
-  finale: 1700,
+  settle: 1050,
+  finale: 1800,
 });
 
-const SHUFFLE_DELAYS = Object.freeze([120, 135, 155, 180, 210, 245, 290, 350, 420, 500]);
+const SHUFFLE_DELAYS = Object.freeze([115, 130, 150, 175, 205, 240, 285, 340, 410, 490]);
 const phaseClass = phase => `ceremony-phase-${phase}`;
 
 function seatingStats(view) {
@@ -81,13 +82,11 @@ export function createSeatingCeremony({
       const zone = Number(desk.dataset.seatZone || Math.floor(col / 2) + 1) - 1;
       const settleOrder = row * 6 + col;
       const direction = zone === 0 ? -1 : zone === 2 ? 1 : row % 2 ? -1 : 1;
-      const depth = 1 + row / 5;
-      desk.style.setProperty("--ceremony-zone-delay", `${zone * 610 + row * 30}ms`);
+      desk.style.setProperty("--ceremony-zone-delay", `${zone * 640 + row * 28}ms`);
       desk.style.setProperty("--ceremony-settle-delay", `${Math.min(settleOrder, 33) * 8}ms`);
       desk.style.setProperty("--ceremony-shift-x", `${direction * (9 + (row % 2) * 3)}px`);
       desk.style.setProperty("--ceremony-shift-y", `${((row % 3) - 1) * 5}px`);
       desk.style.setProperty("--ceremony-name-shift", `${direction * 10}px`);
-      desk.style.setProperty("--ceremony-depth", depth.toFixed(2));
     });
   }
 
@@ -148,7 +147,7 @@ export function createSeatingCeremony({
         <div class="ceremony-launch-copy">
           <span>PINCON · CLASSROOM CEREMONY</span>
           <h1>새 자리 공개 준비 완료</h1>
-          <p>전체화면으로 시작하면 교실 TV에 맞춘 연출로 바로 이어집니다.</p>
+          <p>전체화면으로 시작하면 카운트다운 뒤 새로운 자리가 공개됩니다.</p>
         </div>
         <div class="ceremony-launch-actions">
           <button class="ceremony-launch-primary" type="button" data-launch-fullscreen>전체화면으로 공개</button>
@@ -169,8 +168,9 @@ export function createSeatingCeremony({
     overlay.className = "ceremony-layer";
     overlay.setAttribute("aria-live", "polite");
     overlay.innerHTML = `
-      <div class="ceremony-curtain ceremony-curtain-left" aria-hidden="true"></div>
-      <div class="ceremony-curtain ceremony-curtain-right" aria-hidden="true"></div>
+      <div class="ceremony-blackout" aria-hidden="true"></div>
+      <div class="ceremony-curtain ceremony-curtain-left" aria-hidden="true"><span></span></div>
+      <div class="ceremony-curtain ceremony-curtain-right" aria-hidden="true"><span></span></div>
       <div class="ceremony-watermark" aria-hidden="true"><img src="${logoUrl}" alt=""></div>
       <div class="ceremony-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       <div class="ceremony-ribbon ceremony-ribbon-a" aria-hidden="true"></div>
@@ -193,8 +193,22 @@ export function createSeatingCeremony({
         <div class="ceremony-copy">
           <span>PINCON CEREMONY</span>
           <h2>새로운 자리 배치를 공개합니다</h2>
-          <p>세 분단의 자리가 순서대로 열리고, 마지막에 최종 배치가 고정됩니다.</p>
+          <p>공개까지 잠시만 기다려주세요.</p>
         </div>
+      </section>
+
+      <section class="ceremony-countdown" aria-label="자리 공개 카운트다운">
+        <span class="ceremony-countdown-kicker">SEATING REVEAL</span>
+        <div class="ceremony-countdown-core">
+          <span class="ceremony-countdown-halo"></span>
+          <span class="ceremony-countdown-ring ceremony-countdown-ring-a"></span>
+          <span class="ceremony-countdown-ring ceremony-countdown-ring-b"></span>
+          <b data-count="3">3</b>
+          <b data-count="2">2</b>
+          <b data-count="1">1</b>
+        </div>
+        <div class="ceremony-countdown-progress" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p>잠시 후 새로운 자리가 공개됩니다</p>
       </section>
 
       <div class="ceremony-zone-rhythm" aria-hidden="true">
@@ -267,11 +281,13 @@ export function createSeatingCeremony({
   function schedule() {
     if (reducedMotion) {
       applyPhase("finale");
-      phaseTimers.push(window.setTimeout(() => applyPhase("stable"), 800));
+      phaseTimers.push(window.setTimeout(() => applyPhase("stable"), 850));
       return;
     }
 
     let elapsed = CEREMONY_TIMING.intro;
+    phaseTimers.push(window.setTimeout(() => applyPhase("countdown"), elapsed));
+    elapsed += CEREMONY_TIMING.countdown;
     phaseTimers.push(window.setTimeout(() => applyPhase("zones"), elapsed));
     elapsed += CEREMONY_TIMING.zones;
     phaseTimers.push(window.setTimeout(() => applyPhase("shuffle"), elapsed));
