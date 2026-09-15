@@ -63,8 +63,8 @@
 .ceremony-frame i:nth-child(4){right:0;bottom:0;border-right:1px solid;border-bottom:1px solid}
 
 .ceremony-ribbon{position:absolute;z-index:1;width:78vw;height:1px;left:11vw;background:linear-gradient(90deg,transparent,#2daa00 22%,#63dd2b 50%,#ffe62b 78%,transparent);opacity:0;transform-origin:center;box-shadow:0 0 20px rgba(94,220,45,.28)}
-.ceremony-ribbon-a{top:32%;transform:rotate(-8deg) scaleX(.12)}
-.ceremony-ribbon-b{top:66%;transform:rotate(7deg) scaleX(.12)}
+.ceremony-ribbon-a{--ribbon-angle:-8deg;top:32%;transform:rotate(var(--ribbon-angle)) scaleX(.12)}
+.ceremony-ribbon-b{--ribbon-angle:7deg;top:66%;transform:rotate(var(--ribbon-angle)) scaleX(.12)}
 .ceremony-light{position:absolute;z-index:3;left:-22vw;width:46vw;height:2px;background:linear-gradient(90deg,transparent,#2daa00 24%,#72df2e 58%,#ffe62b 84%,transparent);opacity:0;box-shadow:0 0 16px rgba(113,225,45,.26);transform:translate3d(-18vw,0,0)}
 .ceremony-light-a{top:32%}.ceremony-light-b{top:69%;transition-delay:.12s}
 
@@ -192,7 +192,7 @@
 @keyframes ceremony-logo-arrive{0%{opacity:0;transform:scale(.82) translate3d(0,14px,0)}56%{opacity:1;transform:scale(1.04) translate3d(0,-2px,0)}100%{opacity:1;transform:scale(1)}}
 @keyframes ceremony-flare{0%{opacity:0;transform:scale(.5)}48%{opacity:.95;transform:scale(1.25)}100%{opacity:.18;transform:scale(1)}}
 @keyframes ceremony-orbit-breathe{0%,100%{transform:scale(.97);opacity:.38}50%{transform:scale(1.03);opacity:.74}}
-@keyframes ceremony-ribbon-open{0%{transform:rotate(-8deg) scaleX(.08);opacity:0}.ceremony-ribbon-b{transform:rotate(7deg)}100%{transform:rotate(-8deg) scaleX(1);opacity:.72}}
+@keyframes ceremony-ribbon-open{0%{transform:rotate(var(--ribbon-angle)) scaleX(.08);opacity:0}100%{transform:rotate(var(--ribbon-angle)) scaleX(1);opacity:.72}}
 @keyframes ceremony-light-pass{0%{transform:translate3d(-18vw,0,0);opacity:0}20%{opacity:.64}80%{opacity:.64}100%{transform:translate3d(150vw,0,0);opacity:0}}
 @keyframes ceremony-zone-wake{0%{opacity:.08;transform:translate3d(0,9px,0) scale(.978)}55%{opacity:1;transform:translate3d(0,-2px,0) scale(1.01)}100%{opacity:1;transform:none}}
 @keyframes ceremony-zone-ring{0%{opacity:0;border-color:rgba(45,170,0,0);box-shadow:0 0 0 rgba(255,230,43,0)}44%{opacity:1;border-color:rgba(67,190,29,.72);box-shadow:0 0 16px rgba(102,218,48,.14)}100%{opacity:0;border-color:rgba(255,230,43,.32);box-shadow:0 0 0 rgba(255,230,43,0)}}
