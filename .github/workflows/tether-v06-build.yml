@@ -98,7 +98,17 @@ jobs:
       - name: Reconstruct and verify 0.6 patch
         shell: bash
         run: |
-          cat .tether-v06/patch.part-* > /tmp/tether06.patch.b64
+          cat \
+            .tether-v06/patch.part-00 \
+            .tether-v06/patch.part-00a \
+            .tether-v06/patch.part-01 \
+            .tether-v06/fix02.part-0 \
+            .tether-v06/fix02.part-1 \
+            .tether-v06/fix02.part-2 \
+            .tether-v06/fix02.part-3 \
+            .tether-v06/patch.part-02a \
+            .tether-v06/patch.part-03 \
+            .tether-v06/patch.part-04 > /tmp/tether06.patch.b64
           base64 -d /tmp/tether06.patch.b64 > /tmp/tether05-to-06.patch
           echo "ab59e79d0030c5b613b0ef554d05c867b7e395ea25a4c40c33edc4a00713e7d8  /tmp/tether05-to-06.patch" | sha256sum -c -
           cd /tmp/tether/Tether
