@@ -59,6 +59,10 @@ jobs:
           cp .tether-ai/app-build.gradle.kts "$ROOT/app/build.gradle.kts"
           cp .tether-ai/AndroidManifest.xml "$ROOT/app/src/main/AndroidManifest.xml"
 
+          sed -i '/import androidx.compose.foundation.layout.weight/d' "$PKG/MainActivity.kt"
+          sed -i 's/setDraft/updateDraft/g' "$PKG/TetherViewModel.kt"
+          sed -i 's/setAnchorEnabled/updateAnchorEnabled/g' "$PKG/TetherViewModel.kt"
+
           python3 - <<'PY'
           from pathlib import Path
           p = Path("/tmp/tether/Tether/app/src/main/java/com/tether/focus/TetherViewModel.kt")
@@ -93,7 +97,7 @@ jobs:
           PY
 
           grep -n "versionName\|compileSdk\|targetSdk" "$ROOT/app/build.gradle.kts"
-          grep -n "addAiPlan" "$PKG/TetherViewModel.kt"
+          grep -n "addAiPlan\|updateDraft\|updateAnchorEnabled" "$PKG/TetherViewModel.kt" | head -20
           grep -n "INTERNET" "$ROOT/app/src/main/AndroidManifest.xml"
 
       - name: Run unit tests and build APK
