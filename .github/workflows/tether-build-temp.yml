@@ -1,0 +1,66 @@
+name: Tether Temporary APK Build
+
+on:
+  push:
+    branches:
+      - tether-apk-build-20260916
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Reconstruct project
+        shell: bash
+        run: |
+          cat .tether-build/part-* > /tmp/tether.b64
+          base64 -d /tmp/tether.b64 > /tmp/Tether-0.4.zip
+          unzip -q /tmp/Tether-0.4.zip -d /tmp/tether
+          ls -la /tmp/tether/Tether
+
+      - name: Run tests and build APK
+        shell: bash
+        run: |
+          gradle -p /tmp/tether/Tether :app:testDebugUnitTest :app:assembleDebug --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          APK=/tmp/tether/Tether/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          sha256sum "$APK"
+          cp "$APK" "$GITHUB_WORKSPACE/Tether-0.4-debug.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tether-0.4-debug-apk
+          path: Tether-0.4-debug.apk
+          if-no-files-found: error
+          retention-days: 1
