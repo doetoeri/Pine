@@ -1,0 +1,119 @@
+name: Tether 0.5 AI APK Build
+
+on:
+  push:
+    branches:
+      - tether-ai-build2-20260916
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Reconstruct verified 0.4 base
+        shell: bash
+        run: |
+          cat .tether-build/part-* > /tmp/tether.b64
+          base64 -d /tmp/tether.b64 > /tmp/Tether-0.4.zip
+          mkdir -p /tmp/tether
+          unzip -q /tmp/Tether-0.4.zip -d /tmp/tether
+          test -f /tmp/tether/Tether/app/build.gradle.kts
+
+      - name: Apply Tether 0.5 AI layer
+        shell: bash
+        run: |
+          ROOT=/tmp/tether/Tether
+          PKG="$ROOT/app/src/main/java/com/tether/focus"
+
+          cp .tether-ai/ApiKeyVault.kt "$PKG/ApiKeyVault.kt"
+          cp .tether-ai/GeminiTaskPlanner.kt "$PKG/GeminiTaskPlanner.kt"
+          cp .tether-ai/MainActivity.kt "$PKG/MainActivity.kt"
+          cp .tether-ai/app-build.gradle.kts "$ROOT/app/build.gradle.kts"
+          cp .tether-ai/AndroidManifest.xml "$ROOT/app/src/main/AndroidManifest.xml"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("/tmp/tether/Tether/app/src/main/java/com/tether/focus/TetherViewModel.kt")
+          s = p.read_text()
+          marker = "    fun addDraftToQueue() {"
+          addition = """    fun addAiPlan(plan: AtomicPlan) {
+              if (plan.actions.isEmpty()) return
+              val seed = System.currentTimeMillis()
+              val units = plan.actions.mapIndexed { index, step ->
+                  WorkUnit(
+                      id = "ai-" + seed + "-" + index,
+                      source = plan.source,
+                      action = step.action,
+                      estimatedMinutes = step.estimatedMinutes.coerceIn(3, 8),
+                      kind = AttentionModel.classifyTask(plan.source),
+                      atomic = true
+                  )
+              }
+              val wasEmpty = queue.isEmpty()
+              queue.addAll(units)
+              store.saveQueue(queue)
+              if (wasEmpty) durationMinutes = units.first().estimatedMinutes
+              updateDraft("")
+          }
+
+          """
+          if "fun addAiPlan(plan: AtomicPlan)" not in s:
+              if marker not in s:
+                  raise SystemExit("ViewModel patch marker not found")
+              s = s.replace(marker, addition + marker, 1)
+          p.write_text(s)
+          PY
+
+          grep -n "versionName\|compileSdk\|targetSdk" "$ROOT/app/build.gradle.kts"
+          grep -n "addAiPlan" "$PKG/TetherViewModel.kt"
+          grep -n "INTERNET" "$ROOT/app/src/main/AndroidManifest.xml"
+
+      - name: Run unit tests and build APK
+        shell: bash
+        run: |
+          gradle -p /tmp/tether/Tether :app:testDebugUnitTest :app:assembleDebug --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          APK=/tmp/tether/Tether/app/build/outputs/apk/debug/app-debug.apk
+          test -f "$APK"
+          unzip -t "$APK" >/dev/null
+          sha256sum "$APK"
+          cp "$APK" "$GITHUB_WORKSPACE/Tether-0.5-debug.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tether-0.5-debug-apk
+          path: Tether-0.5-debug.apk
+          if-no-files-found: error
+          retention-days: 1
