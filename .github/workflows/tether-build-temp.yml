@@ -32,20 +32,22 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Install Android SDK
+      - name: Install Android SDK 36
         shell: bash
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-37" "build-tools;36.0.0"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Reconstruct project
+      - name: Reconstruct and patch project
         shell: bash
         run: |
           cat .tether-build/part-* > /tmp/tether.b64
           base64 -d /tmp/tether.b64 > /tmp/Tether-0.4.zip
           unzip -q /tmp/Tether-0.4.zip -d /tmp/tether
-          sed -i 's/compileSdk = 36/compileSdk = 37/' /tmp/tether/Tether/app/build.gradle.kts
-          grep -n "compileSdk\|targetSdk" /tmp/tether/Tether/app/build.gradle.kts
+          APP=/tmp/tether/Tether/app/build.gradle.kts
+          sed -i 's/compose-bom:2026.08.00/compose-bom:2026.06.00/' "$APP"
+          sed -i 's/lifecycle-viewmodel-compose:2.11.0/lifecycle-viewmodel-compose:2.10.0/' "$APP"
+          grep -n "compileSdk\|targetSdk\|compose-bom\|lifecycle-viewmodel" "$APP"
 
       - name: Run tests and build APK
         shell: bash
