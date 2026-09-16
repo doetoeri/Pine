@@ -44,10 +44,19 @@ jobs:
           cat .tether-build/part-* > /tmp/tether.b64
           base64 -d /tmp/tether.b64 > /tmp/Tether-0.4.zip
           unzip -q /tmp/Tether-0.4.zip -d /tmp/tether
+
           APP=/tmp/tether/Tether/app/build.gradle.kts
+          VM=/tmp/tether/Tether/app/src/main/java/com/tether/focus/TetherViewModel.kt
+          UI=/tmp/tether/Tether/app/src/main/java/com/tether/focus/MainActivity.kt
+
           sed -i 's/compose-bom:2026.08.00/compose-bom:2026.06.00/' "$APP"
           sed -i 's/lifecycle-viewmodel-compose:2.11.0/lifecycle-viewmodel-compose:2.10.0/' "$APP"
+
+          sed -i 's/setDraft/updateDraft/g' "$VM" "$UI"
+          sed -i 's/setAnchorEnabled/updateAnchorEnabled/g' "$VM" "$UI"
+
           grep -n "compileSdk\|targetSdk\|compose-bom\|lifecycle-viewmodel" "$APP"
+          grep -R -n "updateDraft\|updateAnchorEnabled" "$VM" "$UI"
 
       - name: Run tests and build APK
         shell: bash
