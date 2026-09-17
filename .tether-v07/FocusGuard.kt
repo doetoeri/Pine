@@ -89,7 +89,7 @@ object FocusShield {
                 .apply()
         }
         return runCatching {
-            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
+            nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY)
             true
         }.getOrDefault(false)
     }
