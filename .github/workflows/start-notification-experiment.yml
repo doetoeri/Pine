@@ -1,0 +1,30 @@
+name: Start notification experiment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/start-notification-experiment.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: automation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: automation/package-lock.json
+      - run: npm ci
+      - name: Verify production state and activate baseline
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: node start-notification-experiment.mjs
