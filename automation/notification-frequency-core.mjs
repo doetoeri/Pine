@@ -58,10 +58,10 @@ export function dailyBudget(condition, config = {}) {
 }
 
 export const SLOTS = Object.freeze([
-  Object.freeze({ index: 0, hour: 7, categoryHint: "daily_summary" }),
+  Object.freeze({ index: 0, hour: 8, categoryHint: "daily_summary" }),
   Object.freeze({ index: 1, hour: 12, categoryHint: "schedule" }),
   Object.freeze({ index: 2, hour: 16, categoryHint: "assignment" }),
-  Object.freeze({ index: 3, hour: 20, categoryHint: "materials" }),
+  Object.freeze({ index: 3, hour: 19, categoryHint: "materials" }),
 ]);
 
 export function currentSlot(now = new Date()) {
@@ -70,9 +70,67 @@ export function currentSlot(now = new Date()) {
   return SLOTS.find((slot) => slot.hour === clock.hour) || null;
 }
 
-export function eligibleForSlot(condition, slot, config = {}) {
+const SLOT_PLANS = Object.freeze({
+  0: Object.freeze([Object.freeze([])]),
+  1: Object.freeze([
+    Object.freeze([0]), Object.freeze([1]), Object.freeze([2]), Object.freeze([3]),
+  ]),
+  2: Object.freeze([
+    Object.freeze([0,2]), Object.freeze([1,3]), Object.freeze([0,3]), Object.freeze([1,2]),
+  ]),
+  3: Object.freeze([
+    Object.freeze([0,1,2]), Object.freeze([1,2,3]), Object.freeze([0,2,3]), Object.freeze([0,1,3]),
+  ]),
+  4: Object.freeze([Object.freeze([0,1,2,3])]),
+});
+
+export function plannedSlotIndexes({
+  anonymousParticipant = "",
+  date = "",
+  period = 0,
+  condition = "",
+  config = {},
+} = {}) {
+  const budget = dailyBudget(condition, config);
+  const plans = SLOT_PLANS[budget] || SLOT_PLANS[0];
+  if (plans.length === 1) return [...plans[0]];
+  const seed = digest(`${anonymousParticipant}:${date}:p${period}:${condition}:slot-plan`, 8);
+  const index = Number.parseInt(seed, 16) % plans.length;
+  return [...plans[index]];
+}
+
+export function eligibleForSlot(condition, slot, config = {}, context = null) {
   if (!slot) return false;
+  if (context?.anonymousParticipant && context?.date) {
+    return plannedSlotIndexes({
+      anonymousParticipant: context.anonymousParticipant,
+      date: context.date,
+      period: context.period || 0,
+      condition,
+      config,
+    }).includes(slot.index);
+  }
+  // Backward-compatible fallback for callers that do not yet supply participant/day context.
   return slot.index < dailyBudget(condition, config);
+}
+
+export function candidateIndexForSlot({
+  anonymousParticipant = "",
+  date = "",
+  period = 0,
+  condition = "",
+  slotIndex = 0,
+  candidateCount = 0,
+  config = {},
+} = {}) {
+  const count = Math.max(0, Math.trunc(Number(candidateCount || 0)));
+  if (!count) return -1;
+  const plan = plannedSlotIndexes({ anonymousParticipant, date, period, condition, config });
+  const ordinal = plan.indexOf(Number(slotIndex));
+  if (ordinal < 0 || ordinal >= count) return -1;
+  const offsetSeed = digest(`${anonymousParticipant}:${date}:p${period}:${condition}:candidate-order`, 8);
+  const offset = Number.parseInt(offsetSeed, 16) % count;
+  return (offset + ordinal) % count;
 }
 
 export function notificationId({ anonymousParticipant, date, period, slotIndex, candidateKey }) {
