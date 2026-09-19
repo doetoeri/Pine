@@ -76,12 +76,14 @@ async function drainReceivedReceipts() {
     const tx = db.transaction(TELEMETRY_STORE, "readwrite");
     const store = tx.objectStore(TELEMETRY_STORE);
     const request = store.getAll();
+    let rows = [];
     request.onsuccess = () => {
-      const rows = Array.isArray(request.result) ? request.result : [];
+      rows = Array.isArray(request.result) ? request.result : [];
       store.clear();
-      resolve(rows);
     };
     request.onerror = () => reject(request.error);
+    tx.oncomplete = () => resolve(rows);
+    tx.onerror = () => reject(tx.error);
   });
   db.close();
   return receipts;
@@ -106,9 +108,12 @@ if (globalThis.PINCON_FIREBASE_CONFIG) {
         sentAtMs: options.data.sentAtMs,
         receivedAtMs: Date.now(),
       };
-      await persistReceivedReceipt(receipt).catch(() => {});
       const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      clients.forEach((client) => client.postMessage(receipt));
+      if (clients.length) {
+        clients.forEach((client) => client.postMessage(receipt));
+      } else {
+        await persistReceivedReceipt(receipt).catch(() => {});
+      }
     }
     return self.registration.showNotification(title, options);
   });
