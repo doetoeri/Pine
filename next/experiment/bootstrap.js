@@ -142,17 +142,42 @@ function installNotificationAttribution() {
 export async function initExperimentPlatform() {
   platform = await getExperimentPlatform();
 
-  navigator.serviceWorker?.addEventListener?.("message", (event) => {
-    const message = event.data || {};
-    if (message.type !== "pincon-experiment-notification-received") return;
+  const logReceivedNotification = (message = {}) => {
+    const notificationId = String(message.notificationId || "");
+    if (!notificationId) return;
+    const sentAtMs = Number(message.sentAtMs || 0);
+    const receivedAtMs = Number(message.receivedAtMs || Date.now());
     platform?.log("notification_received", {
-      notificationId: message.notificationId || "",
+      notificationId,
       condition: message.condition || "",
       period: Number(message.period || 0),
       category: message.category || "",
       route: message.targetRoute || "",
+      slotIndex: Number(message.slotIndex ?? -1),
+      sentAtMs,
+      receivedAtMs,
+      deliveryLatencyMs: sentAtMs > 0 ? Math.max(0, receivedAtMs - sentAtMs) : null,
+    }, {
+      dedupeKey: `notification_received:${notificationId}`,
+      dedupeMs: 7 * 24 * 60 * 60_000,
     });
+  };
+
+  navigator.serviceWorker?.addEventListener?.("message", (event) => {
+    const message = event.data || {};
+    if (message.type === "pincon-experiment-notification-received") {
+      logReceivedNotification(message);
+      return;
+    }
+    if (message.type === "pincon-experiment-notification-received-batch") {
+      (Array.isArray(message.receipts) ? message.receipts : []).forEach(logReceivedNotification);
+    }
   });
+
+  navigator.serviceWorker?.ready?.then((registration) => {
+    const worker = navigator.serviceWorker.controller || registration.active;
+    worker?.postMessage?.({ type: "pincon-experiment-drain-received" });
+  }).catch(() => {});
 
   globalThis.PinConExperiment = Object.freeze({
     get context() { return platform.context; },
