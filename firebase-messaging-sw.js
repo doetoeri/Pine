@@ -35,8 +35,58 @@ function notificationOptions(payload = {}) {
       category: data.category || "",
       targetRoute: data.targetRoute || data.route || "today",
       scheduledAtMs: Number(data.scheduledAtMs || timestamp || Date.now()),
+      sentAtMs: Number(data.sentAtMs || data.scheduledAtMs || timestamp || Date.now()),
+      slotIndex: Number(data.slotIndex || -1),
     },
   };
+}
+
+const TELEMETRY_DB = "pincon-notification-telemetry-v1";
+const TELEMETRY_STORE = "received";
+
+function openTelemetryDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(TELEMETRY_DB, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(TELEMETRY_STORE)) {
+        db.createObjectStore(TELEMETRY_STORE, { keyPath: "notificationId" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function persistReceivedReceipt(receipt) {
+  if (!receipt?.notificationId) return;
+  const db = await openTelemetryDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(TELEMETRY_STORE, "readwrite");
+    tx.objectStore(TELEMETRY_STORE).put(receipt);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function drainReceivedReceipts() {
+  const db = await openTelemetryDb();
+  const receipts = await new Promise((resolve, reject) => {
+    const tx = db.transaction(TELEMETRY_STORE, "readwrite");
+    const store = tx.objectStore(TELEMETRY_STORE);
+    const request = store.getAll();
+    let rows = [];
+    request.onsuccess = () => {
+      rows = Array.isArray(request.result) ? request.result : [];
+      store.clear();
+    };
+    request.onerror = () => reject(request.error);
+    tx.oncomplete = () => resolve(rows);
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  return receipts;
 }
 
 if (globalThis.PINCON_FIREBASE_CONFIG) {
@@ -46,8 +96,7 @@ if (globalThis.PINCON_FIREBASE_CONFIG) {
     const title = payload.data?.title || "PinCon 알림";
     const options = notificationOptions(payload);
     if (options.data?.experimentId) {
-      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      clients.forEach((client) => client.postMessage({
+      const receipt = {
         type: "pincon-experiment-notification-received",
         notificationId: options.data.notificationId,
         experimentId: options.data.experimentId,
@@ -55,11 +104,32 @@ if (globalThis.PINCON_FIREBASE_CONFIG) {
         period: options.data.period,
         category: options.data.category,
         targetRoute: options.data.targetRoute,
-      }));
+        slotIndex: options.data.slotIndex,
+        sentAtMs: options.data.sentAtMs,
+        receivedAtMs: Date.now(),
+      };
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      if (clients.length) {
+        clients.forEach((client) => client.postMessage(receipt));
+      } else {
+        await persistReceivedReceipt(receipt).catch(() => {});
+      }
     }
     return self.registration.showNotification(title, options);
   });
 }
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type !== "pincon-experiment-drain-received") return;
+  event.waitUntil((async () => {
+    const receipts = await drainReceivedReceipts().catch(() => []);
+    if (!receipts.length) return;
+    event.source?.postMessage?.({
+      type: "pincon-experiment-notification-received-batch",
+      receipts,
+    });
+  })());
+});
 
 self.addEventListener("notificationclick", (event) => {
   if (event.action === "dismiss") {
@@ -77,7 +147,7 @@ self.addEventListener("notificationclick", (event) => {
     target.searchParams.set("pinconPeriod", data.period || "");
     target.searchParams.set("pinconCategory", data.category || "");
     target.searchParams.set("pinconTargetRoute", data.targetRoute || data.route || "today");
-    target.searchParams.set("pinconSentAt", String(Number(data.scheduledAtMs || Date.now())));
+    target.searchParams.set("pinconSentAt", String(Number(data.sentAtMs || data.scheduledAtMs || Date.now())));
   }
   const link = target.href;
   event.notification.close();

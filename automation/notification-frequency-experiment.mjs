@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import {
+  candidateIndexForSlot,
   conditionFor,
   currentSlot,
   dailyBudget,
@@ -8,12 +9,14 @@ import {
   eligibleForSlot,
   kstDate,
   notificationId,
+  plannedSlotIndexes,
   sequenceFor,
 } from "./notification-frequency-core.mjs";
 
 const SCHOOL_ID = "gochon-high";
 const EXPERIMENT_ID = "notification-frequency";
 const UI_EXPERIMENT_ID = "pincon-next-ui";
+const MAX_SEND_ATTEMPTS = 3;
 
 function addDays(date, amount) {
   const d = new Date(`${date}T00:00:00Z`);
@@ -125,7 +128,9 @@ async function classCandidates(root, classKey, date) {
   return rows.sort((a,b) => String(a.due).localeCompare(String(b.due)) || a.key.localeCompare(b.key));
 }
 
-function eventRecord({ anonymousParticipant, config, condition, period, type, notificationId: id, category, now }) {
+function eventRecord({
+  anonymousParticipant, config, condition, period, type, notificationId: id, category, targetRoute = "", slotIndex = -1, now,
+}) {
   return {
     schemaVersion: 1,
     eventId: `server_${digest(`${type}:${id}`,28)}`,
@@ -137,8 +142,43 @@ function eventRecord({ anonymousParticipant, config, condition, period, type, no
     timestampMs: now.getTime(),
     sessionId: "server-notification",
     deviceCategory: "server",
-    properties: { notificationId: id, condition, category, period: Number(period || 0) },
+    properties: {
+      notificationId: id,
+      condition,
+      category,
+      period: Number(period || 0),
+      targetRoute,
+      slotIndex: Number(slotIndex),
+    },
   };
+}
+
+function canonicalSubscriptions(documents = []) {
+  const byOwner = new Map();
+  for (const document of documents) {
+    const data = document.data();
+    const uid = String(data?.ownerUid || "");
+    if (!uid || data?.enabled !== true || data?.preferences?.notificationExperiment === false) continue;
+    const current = byOwner.get(uid);
+    const currentMs = Number(current?.data()?.updatedAtMs || 0);
+    const nextMs = Number(data?.updatedAtMs || 0);
+    if (!current || nextMs > currentMs || (nextMs === currentMs && document.id > current.id)) {
+      byOwner.set(uid, document);
+    }
+  }
+  return [...byOwner.values()];
+}
+
+function isInvalidTokenError(error) {
+  const code = String(error?.code || "");
+  return code.includes("registration-token-not-registered")
+    || code.includes("invalid-registration-token");
+}
+
+function canRetryReceipt(data = {}) {
+  if (!data || !Object.keys(data).length) return true;
+  if (data.status === "fcm-accepted" || data.status === "permanent-failure") return false;
+  return Number(data.attemptCount || 0) < MAX_SEND_ATTEMPTS;
 }
 
 export async function dispatchNotificationFrequencyExperiment({ db, messaging, now = new Date() }) {
@@ -155,108 +195,224 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
   }
 
   const subscriptions = await root.collection("pushSubscriptions").where("enabled","==",true).get();
-  const owned = subscriptions.docs.filter((doc) => Boolean(doc.data()?.ownerUid));
-  const byClass = new Map();
-  for (const doc of owned) {
-    const classKey = String(doc.data()?.classKey || "");
-    const list = byClass.get(classKey) || [];
-    list.push(doc);
-    byClass.set(classKey, list);
-  }
-
+  const eligibleSubscriptions = canonicalSubscriptions(subscriptions.docs);
   const date = kstDate(now);
+  const candidateCache = new Map();
   let sent = 0;
   let scheduled = 0;
-  const candidateCache = new Map();
+  let retried = 0;
+  let failed = 0;
+  let invalidTokens = 0;
+  let skippedNoCandidate = 0;
 
-  for (const [classKey, docs] of byClass) {
-    const candidates = candidateCache.get(classKey) || await classCandidates(root, classKey, date);
-    candidateCache.set(classKey, candidates);
-    if (!candidates.length) continue;
+  for (const subscription of eligibleSubscriptions) {
+    const sub = subscription.data();
+    const uid = String(sub.ownerUid || "");
+    const classKey = String(sub.classKey || "");
+    if (!uid || !classKey || !sub.token) continue;
 
-    for (const subscription of docs) {
-      const uid = subscription.data().ownerUid;
-      const participant = await ensureParticipant(root, uid);
-      const assignment = await ensureAssignment(root, uid, participant, ready.config);
-      const state = conditionFor(assignment.sequence, ready.config, now);
-      const condition = state.condition;
-      if (!condition || !eligibleForSlot(condition, slot, ready.config)) continue;
+    const participant = await ensureParticipant(root, uid);
+    const assignment = await ensureAssignment(root, uid, participant, ready.config);
+    const state = conditionFor(assignment.sequence, ready.config, now);
+    const condition = state.condition;
+    if (!condition || !eligibleForSlot(condition, slot, ready.config, {
+      anonymousParticipant: participant,
+      date,
+      period: state.period,
+    })) continue;
 
-      const budget = dailyBudget(condition, ready.config);
-      const candidate = candidates[Math.min(slot.index, candidates.length - 1)];
-      if (!candidate) continue;
+    let candidates = candidateCache.get(classKey);
+    if (!candidates) {
+      candidates = await classCandidates(root, classKey, date);
+      candidateCache.set(classKey, candidates);
+    }
+    const candidateIndex = candidateIndexForSlot({
+      anonymousParticipant: participant,
+      date,
+      period: state.period,
+      condition,
+      slotIndex: slot.index,
+      candidateCount: candidates.length,
+      config: ready.config,
+    });
+    if (candidateIndex < 0) {
+      skippedNoCandidate += 1;
+      continue;
+    }
+    const candidate = candidates[candidateIndex];
+    if (!candidate) {
+      skippedNoCandidate += 1;
+      continue;
+    }
 
-      const id = notificationId({
-        anonymousParticipant: participant,
-        date,
-        period: state.period,
-        slotIndex: slot.index,
-        candidateKey: candidate.key,
-      });
-      const receipt = root.collection("notificationExperimentReceipts").doc(id);
-      if ((await receipt.get()).exists) continue;
+    const id = notificationId({
+      anonymousParticipant: participant,
+      date,
+      period: state.period,
+      slotIndex: slot.index,
+      candidateKey: candidate.key,
+    });
+    const receipt = root.collection("notificationExperimentReceipts").doc(id);
+    const receiptSnap = await receipt.get();
+    const priorReceipt = receiptSnap.exists ? receiptSnap.data() : null;
+    if (!canRetryReceipt(priorReceipt)) continue;
 
-      const scheduledAtMs = now.getTime();
-      const metadata = {
-        notificationId: id,
-        anonymousParticipant: participant,
-        experimentId: EXPERIMENT_ID,
-        experimentVersion: Number(ready.config.version || 1),
-        period: state.period,
-        condition,
-        category: candidate.category,
-        priority: "normal",
-        experimentEligible: true,
-        targetRoute: candidate.targetRoute,
-        createdAtMs: scheduledAtMs,
-        scheduledAtMs,
-        dailyBudget: budget,
-      };
+    const scheduledAtMs = Number(priorReceipt?.scheduledAtMs || now.getTime());
+    const attemptCount = Number(priorReceipt?.attemptCount || 0) + 1;
+    const budget = dailyBudget(condition, ready.config);
+    const plannedSlots = plannedSlotIndexes({
+      anonymousParticipant: participant,
+      date,
+      period: state.period,
+      condition,
+      config: ready.config,
+    });
+    const metadata = {
+      notificationId: id,
+      anonymousParticipant: participant,
+      experimentId: EXPERIMENT_ID,
+      experimentVersion: Number(ready.config.version || 1),
+      period: state.period,
+      condition,
+      category: candidate.category,
+      priority: "normal",
+      experimentEligible: true,
+      targetRoute: candidate.targetRoute,
+      createdAtMs: scheduledAtMs,
+      scheduledAtMs,
+      slotIndex: slot.index,
+      plannedSlots,
+      dailyBudget: budget,
+      candidateKey: candidate.key,
+    };
 
+    if (!receiptSnap.exists) {
       const batch = db.batch();
       batch.set(root.collection("experimentNotifications").doc(id), metadata);
-      batch.set(root.collection("experimentEvents").doc(`server_${digest(`notification_scheduled:${id}`,28)}`),
-        eventRecord({ anonymousParticipant: participant, config: ready.config, condition, period: state.period, type: "notification_scheduled", notificationId: id, category: candidate.category, now }));
-      batch.set(receipt, { ...metadata, status: "scheduled", createdAt: FieldValue.serverTimestamp() });
+      batch.set(
+        root.collection("experimentEvents").doc(`server_${digest(`notification_scheduled:${id}`,28)}`),
+        eventRecord({
+          anonymousParticipant: participant,
+          config: ready.config,
+          condition,
+          period: state.period,
+          type: "notification_scheduled",
+          notificationId: id,
+          category: candidate.category,
+          targetRoute: candidate.targetRoute,
+          slotIndex: slot.index,
+          now,
+        }),
+      );
+      batch.set(receipt, {
+        ...metadata,
+        status: "scheduled",
+        attemptCount: 0,
+        createdAt: FieldValue.serverTimestamp(),
+      });
       await batch.commit();
       scheduled += 1;
+    } else {
+      retried += 1;
+    }
 
-      try {
-        await messaging.send({
-          token: subscription.data().token,
-          data: {
-            title: candidate.title,
-            body: candidate.body || "PinCon에서 확인해 주세요.",
-            tag: id,
-            link: `https://pincon.app/next/#${candidate.targetRoute}`,
-            route: candidate.targetRoute,
-            notificationId: id,
-            experimentId: EXPERIMENT_ID,
+    const attemptedAtMs = Date.now();
+    await receipt.set({
+      status: "sending",
+      attemptCount,
+      lastAttemptAtMs: attemptedAtMs,
+    }, { merge: true });
+
+    try {
+      await messaging.send({
+        token: sub.token,
+        data: {
+          title: candidate.title,
+          body: candidate.body || "PinCon에서 확인해 주세요.",
+          tag: id,
+          link: `https://pincon.app/next/#${candidate.targetRoute}`,
+          route: candidate.targetRoute,
+          notificationId: id,
+          experimentId: EXPERIMENT_ID,
+          condition,
+          period: String(state.period),
+          category: candidate.category,
+          targetRoute: candidate.targetRoute,
+          scheduledAtMs: String(scheduledAtMs),
+          sentAtMs: String(attemptedAtMs),
+          slotIndex: String(slot.index),
+        },
+        webpush: { headers: { Urgency: "normal", TTL: "3600" } },
+      });
+      sent += 1;
+      const acceptedAt = new Date();
+      await Promise.all([
+        receipt.set({
+          status: "fcm-accepted",
+          sentAtMs: attemptedAtMs,
+          acceptedAtMs: acceptedAt.getTime(),
+          errorCode: FieldValue.delete(),
+        }, { merge: true }),
+        root.collection("experimentEvents").doc(`server_${digest(`notification_sent:${id}`,28)}`).set(
+          eventRecord({
+            anonymousParticipant: participant,
+            config: ready.config,
             condition,
-            period: String(state.period),
+            period: state.period,
+            type: "notification_sent",
+            notificationId: id,
             category: candidate.category,
             targetRoute: candidate.targetRoute,
-            scheduledAtMs: String(scheduledAtMs),
-          },
-          webpush: { headers: { Urgency: "normal" } },
-        });
-        sent += 1;
-        await Promise.all([
-          receipt.set({ status: "fcm-accepted", sentAtMs: Date.now() }, { merge: true }),
-          root.collection("experimentEvents").doc(`server_${digest(`notification_sent:${id}`,28)}`).set(
-            eventRecord({ anonymousParticipant: participant, config: ready.config, condition, period: state.period, type: "notification_sent", notificationId: id, category: candidate.category, now: new Date() }),
-          ),
-        ]);
-      } catch (error) {
-        await Promise.all([
-          receipt.set({ status: "send-failed", errorCode: String(error?.code || "unknown").slice(0,80), failedAtMs: Date.now() }, { merge: true }),
-          root.collection("experimentEvents").doc(`server_${digest(`fcm_failure:${id}`,28)}`).set(
-            eventRecord({ anonymousParticipant: participant, config: ready.config, condition, period: state.period, type: "fcm_failure", notificationId: id, category: candidate.category, now: new Date() }),
-          ),
-        ]);
+            slotIndex: slot.index,
+            now: acceptedAt,
+          }),
+        ),
+      ]);
+    } catch (error) {
+      failed += 1;
+      const errorCode = String(error?.code || "unknown").slice(0,80);
+      const permanent = isInvalidTokenError(error);
+      if (permanent) {
+        invalidTokens += 1;
+        await subscription.ref.delete().catch(() => {});
       }
+      await Promise.all([
+        receipt.set({
+          status: permanent ? "permanent-failure" : "send-failed",
+          errorCode,
+          failedAtMs: Date.now(),
+          attemptCount,
+        }, { merge: true }),
+        root.collection("experimentEvents").doc(`server_${digest(`fcm_failure:${id}:a${attemptCount}`,28)}`).set(
+          eventRecord({
+            anonymousParticipant: participant,
+            config: ready.config,
+            condition,
+            period: state.period,
+            type: "fcm_failure",
+            notificationId: id,
+            category: candidate.category,
+            targetRoute: candidate.targetRoute,
+            slotIndex: slot.index,
+            now: new Date(),
+          }),
+        ),
+      ]);
     }
   }
 
-  return { active: true, phase: period.phase, period: period.period, slot: slot.index, participants: owned.length, scheduled, sent };
+  return {
+    active: true,
+    phase: period.phase,
+    period: period.period,
+    slot: slot.index,
+    rawSubscriptions: subscriptions.size,
+    participants: eligibleSubscriptions.length,
+    scheduled,
+    sent,
+    retried,
+    failed,
+    invalidTokens,
+    skippedNoCandidate,
+  };
 }

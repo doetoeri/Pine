@@ -10,10 +10,12 @@ import {
   resolveUiVariant,
 } from "../next/experiment/assignment-service.js";
 import {
+  candidateIndexForSlot,
   currentSlot,
   dailyBudget,
   eligibleForSlot,
   periodFor,
+  plannedSlotIndexes,
   sequenceFor,
 } from "../automation/notification-frequency-core.mjs";
 
@@ -113,6 +115,34 @@ test("Notification experiment honors baseline, periods, and frequency budgets", 
     now: new Date("2026-09-03T03:00:00Z"),
   });
   assert.equal(condition.condition, "HIGH");
+});
+
+test("Notification frequency rotates time slots and never repeats a candidate within a day plan", () => {
+  const config = { frequency: { lowPerDay: 1, midPerDay: 3, highPerDay: 4 } };
+  const base = { anonymousParticipant: "participant_test", date: "2026-09-21", period: 1, config };
+
+  const low = plannedSlotIndexes({ ...base, condition: "LOW" });
+  const mid = plannedSlotIndexes({ ...base, condition: "MID" });
+  const high = plannedSlotIndexes({ ...base, condition: "HIGH" });
+  assert.equal(low.length, 1);
+  assert.equal(mid.length, 3);
+  assert.deepEqual(high, [0, 1, 2, 3]);
+
+  const candidateIndexes = mid.map((slotIndex) => candidateIndexForSlot({
+    ...base,
+    condition: "MID",
+    slotIndex,
+    candidateCount: 4,
+  }));
+  assert.equal(new Set(candidateIndexes).size, candidateIndexes.length);
+
+  const slotCoverage = new Set();
+  for (let day = 1; day <= 12; day += 1) {
+    const date = `2026-09-${String(day).padStart(2, "0")}`;
+    plannedSlotIndexes({ anonymousParticipant: "participant_test", date, period: 1, condition: "LOW", config })
+      .forEach((slotIndex) => slotCoverage.add(slotIndex));
+  }
+  assert.ok(slotCoverage.size >= 3);
 });
 
 test("Firestore contract keeps experiment settings admin-only and raw events anonymous", async () => {
