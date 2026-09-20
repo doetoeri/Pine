@@ -35,7 +35,7 @@ document.body.dataset.pinconVariant = "legacy";
 await import("./route-focus-stability.js?v=20260903-route2");
 await import("./core/evaluation-plan-media.js?v=20260831-media2");
 await import("./personal-notification-filter.js?v=20260830-personal1");
-await import("./app.js?v=20260905-readonly1");
+await import("./app.js?v=20260920-todayfocus1");
 
 try {
   const { NextDataGateway } = await import("./core/data-gateway.js");
