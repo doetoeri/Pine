@@ -115,7 +115,7 @@ function fail(m){A.innerHTML='<main class="app"><div class="shell"><div class="p
 if(!cfg){fail('Firebase 설정을 찾지 못했습니다.');throw 0}
 const fa=initializeApp(cfg,'sidedesk-v2'),auth=getAuth(fa),db=getFirestore(fa);
 
-function minutesOf(h){return Math.max(1,Math.round(((h.endedAt||Date.now())-h.startedAt)/60000))}
+function minutesOf(h){return Math.max(1,Math.round(((h.endedAt||h.lastSeenAt||Date.now())-h.startedAt)/60000))}
 function weeklyStats(){
   const since=Date.now()-7*86400000,hs=local.history.filter(h=>h.startedAt>=since);
   return{
@@ -361,7 +361,7 @@ const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',
 function updateStudy(){
   let m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(!m||!f)return;
   fill('m',m);fill('x',f);
-  let a=P(m),b=P(f);pace.textContent=a===b?'거의 같은 속도':a>b?'내가 '+(a-b)+'% 앞서는 중':'친구가 '+(b-a)+'% 앞서는 중';
+  let a=SESSIONP(m),b=SESSIONP(f);pace.textContent=a===b?'이번 세션은 거의 같은 속도':a>b?'이번 세션 내가 '+(a-b)+'% 앞서는 중':'이번 세션 친구가 '+(b-a)+'% 앞서는 중';
   pause.textContent=m.status==='paused'?'다시 시작':'잠깐 멈춤';
   let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;
   if(document.querySelector('#finish')){
@@ -378,7 +378,7 @@ function updateStudy(){
 function fill(p,d){
   document.querySelector('#'+p+'n').textContent=d.nickname;
   document.querySelector('#'+p+'d').textContent=d.done||0;document.querySelector('#'+p+'t').textContent=d.total;
-  document.querySelector('#'+p+'p').textContent=P(d)+'%';let a=ACC(d);document.querySelector('#'+p+'a').textContent=a==null?'정확도 -':'정확도 '+a+'%';
+  document.querySelector('#'+p+'p').textContent='전체 '+P(d)+'% · 오늘 +'+Math.max(0,(d.done||0)-(d.startDone||0));let a=ACC(d);document.querySelector('#'+p+'a').textContent=a==null?'정확도 -':'정확도 '+a+'%';
   document.querySelector('#'+p+'b').style.width=P(d)+'%';document.querySelector('#'+p+'s').textContent=d.status==='paused'?'잠깐 멈춤':d.status==='done'?'완료':'풀이 중';
   const cur=document.querySelector('#'+p+'current');if(cur)cur.textContent=d.status==='done'?'✓':Math.min((d.done||0)+1,d.total);
   const age=document.querySelector('#'+p+'age');if(age){const sec=Math.max(0,Math.floor((Date.now()-(d.problemAtMs||d.updatedAtMs||started))/1000));age.textContent=d.status==='done'?'완료':d.status==='paused'?'멈춤':sec<5?'방금 넘김':sec<60?sec+'초째':Math.floor(sec/60)+'분째'}
