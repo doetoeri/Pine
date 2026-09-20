@@ -354,12 +354,12 @@ function periodPhase(period, index, date, now = new Date()) {
 function todaySpine(periods, date) {
   if (!periods.length) return missing("neisTimetables", "오늘 시간표가 아직 등록되지 않았어요.");
   const live = lessonState(periods, date);
-  return `<div class="flow-spine" role="list" aria-label="오늘 수업 흐름">
+  return `<div class="flow-spine" role="group" aria-label="오늘 수업 흐름">
     ${periods.map((period, index) => {
       const phase = periodPhase(period, index, date);
       const current = live.current && live.index === index;
       const next = !live.current && live.index === index;
-      return `<button class="spine-stop ${phase} ${current ? "is-current" : ""} ${next ? "is-next" : ""}" role="listitem"
+      return `<button class="spine-stop ${phase} ${current ? "is-current" : ""} ${next ? "is-next" : ""}"
         data-lesson="${index}" data-lesson-date="${date}" aria-haspopup="dialog"
         aria-label="${esc(`${period.period || index + 1}교시 ${periodTitle(period)} ${periodTime(period)}`)}">
         <span class="spine-dot" aria-hidden="true"></span>
