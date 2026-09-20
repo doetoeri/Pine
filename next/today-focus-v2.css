@@ -1,0 +1,165 @@
+/* PinCon Next Today Focus v2 */
+.today-view{
+  --today-accent:#2f8f22;
+  --today-accent-2:#9fcb22;
+  --today-text:#18251c;
+  --today-muted:#59675d;
+}
+.today-hero{
+  position:relative;
+  overflow:hidden;
+  padding:clamp(24px,4.2vw,38px);
+  background:
+    radial-gradient(circle at 92% -8%,rgba(255,230,43,.33),transparent 33%),
+    linear-gradient(132deg,#dff4cf 0%,#eaf8dc 52%,#fff7c9 100%);
+  border:1px solid rgba(80,130,58,.12);
+  box-shadow:0 18px 52px rgba(39,75,31,.09),inset 0 1px 0 rgba(255,255,255,.72);
+}
+.today-hero:before{
+  content:"";position:absolute;inset:0 0 auto;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);
+}
+.today-hero__main{
+  position:relative;z-index:1;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+}
+.today-hero .hero-kicker{
+  color:#2a6928;font-weight:750;letter-spacing:-.01em;
+}
+.today-hero .hero-title{
+  max-width:760px;
+  font-size:clamp(32px,6.3vw,56px);
+  line-height:1.05;
+  color:#173d1c;
+}
+.today-hero__copy{
+  max-width:720px;
+  margin:12px 0 0;
+  color:#47604a;
+  font-size:clamp(.9rem,1.4vw,1rem);
+  line-height:1.65;
+}
+.today-hero__actions{
+  flex:0 0 auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;
+}
+.today-glance{
+  position:relative;z-index:1;
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+  margin-top:26px;
+  border-top:1px solid rgba(74,118,57,.18);
+}
+.today-glance button{
+  min-width:0;min-height:76px;
+  display:grid;grid-template-columns:auto auto;grid-template-rows:auto auto;
+  align-content:center;justify-content:center;column-gap:5px;
+  padding:12px 10px;border:0;border-right:1px solid rgba(74,118,57,.18);
+  background:transparent;color:#244728;text-align:center;cursor:pointer;
+}
+.today-glance button:last-child{border-right:0}
+.today-glance small{grid-column:1/-1;font-size:.72rem;color:#57715a;margin-bottom:3px}
+.today-glance strong{font-size:1.45rem;line-height:1;font-weight:800;font-variant-numeric:tabular-nums}
+.today-glance span{font-size:.72rem;align-self:end;color:#5c705f}
+
+.today-flow{
+  position:relative;z-index:1;
+  display:flex;gap:0;overflow-x:auto;overscroll-behavior-x:contain;
+  margin-top:8px;padding:15px 2px 2px;scrollbar-width:none;
+}
+.today-flow::-webkit-scrollbar{display:none}
+.today-flow:before{
+  content:"";position:absolute;top:28px;left:48px;right:48px;height:2px;
+  background:rgba(66,104,56,.18);border-radius:2px;
+}
+.today-flow__stop{
+  position:relative;z-index:1;flex:1 0 96px;min-width:96px;
+  padding:0 6px 10px;border:0;border-radius:14px;
+  background:transparent;color:#58705b;text-align:center;cursor:pointer;
+}
+.today-flow__dot{
+  display:block;width:11px;height:11px;margin:8px auto 10px;border-radius:50%;
+  background:#f4f8ef;border:2px solid #92aa8a;box-shadow:0 0 0 4px rgba(233,245,226,.92);
+}
+.today-flow__period{display:block;font-size:.67rem;font-weight:700;margin-bottom:3px}
+.today-flow__stop strong{
+  display:block;font-size:.78rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.today-flow__stop.is-done{opacity:.53}
+.today-flow__stop.is-done .today-flow__dot{background:#9aac96;border-color:#9aac96}
+.today-flow__stop.is-current .today-flow__dot{
+  width:15px;height:15px;margin-top:6px;margin-bottom:8px;
+  background:#35b80d;border-color:#35b80d;
+  box-shadow:0 0 0 4px #edf7e8,0 0 0 7px rgba(53,184,13,.14),0 5px 14px rgba(53,184,13,.22);
+}
+.today-flow__stop.is-current strong,.today-flow__stop.is-current .today-flow__period{color:#225b27;font-weight:800}
+.today-flow__stop.is-next .today-flow__dot{
+  background:#fff;border-color:#56a842;box-shadow:0 0 0 4px #edf7e8,0 0 0 6px rgba(86,168,66,.11);
+}
+.today-flow__stop.is-next strong{color:#315b36}
+
+.today-dashboard-grid{align-items:start;margin-top:14px}
+.today-card{
+  box-shadow:0 8px 28px rgba(37,64,33,.045);
+  border-color:color-mix(in srgb,var(--md-sys-color-outline-variant) 60%,transparent);
+}
+.today-card .page-eyebrow{margin:0 0 4px;font-size:.72rem}
+.today-card .surface__title{font-size:1.03rem}
+.today-card--schedule{
+  background:linear-gradient(180deg,#fff,#fbfcf8);
+  border-color:rgba(69,117,51,.16);
+}
+.today-card--timetable{background:linear-gradient(180deg,#f8fbf5,#f2f6ee)}
+.today-card--meal,.today-card--notice{background:#fff}
+.today-view .sync-line{
+  min-height:34px;margin:10px 2px 12px;font-size:.72rem;opacity:.78;
+}
+.today-view .season-dashboard{margin-top:24px}
+.today-view .season-dashboard .section-heading{margin-top:0}
+
+@media (min-width:840px){
+  .today-dashboard-grid{
+    grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+    grid-template-areas:"schedule timetable" "meal notice";
+  }
+  .today-card--schedule{grid-area:schedule}
+  .today-card--timetable{grid-area:timetable}
+  .today-card--meal{grid-area:meal}
+  .today-card--notice{grid-area:notice}
+}
+
+@media (max-width:699px){
+  .today-hero{padding:23px 18px 18px;border-radius:28px}
+  .today-hero__main{display:grid;gap:17px}
+  .today-hero__actions{justify-content:flex-start}
+  .today-hero .hero-title{font-size:clamp(2rem,10.5vw,2.75rem);line-height:1.08}
+  .today-hero__copy{font-size:.88rem;line-height:1.62}
+  .today-glance{margin-top:21px}
+  .today-glance button{min-height:69px;padding-inline:4px}
+  .today-glance strong{font-size:1.28rem}
+  .today-flow{margin-inline:-8px;padding-inline:2px}
+  .today-flow__stop{flex-basis:91px;min-width:91px}
+  .today-dashboard-grid{gap:12px}
+  .today-card--schedule{order:1}
+  .today-card--timetable{order:2}
+  .today-card--meal{order:3}
+  .today-card--notice{order:4}
+}
+
+@media (hover:hover) and (pointer:fine){
+  .today-glance button,.today-flow__stop{transition:background-color 150ms ease,transform 120ms ease}
+  .today-glance button:hover,.today-flow__stop:hover{background:rgba(255,255,255,.25)}
+  .today-flow__stop:hover{transform:translateY(-1px)}
+}
+@media (prefers-reduced-motion:no-preference){
+  .today-hero{animation:todayHeroIn 300ms cubic-bezier(.2,.8,.2,1) both}
+  .today-card{animation:todayCardIn 260ms cubic-bezier(.2,.8,.2,1) both}
+  .today-card:nth-child(2){animation-delay:35ms}
+  .today-card:nth-child(3){animation-delay:60ms}
+  .today-card:nth-child(4){animation-delay:85ms}
+  .today-flow__stop.is-current .today-flow__dot{animation:todayPulse 2.8s ease-in-out infinite}
+}
+@keyframes todayHeroIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes todayCardIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes todayPulse{
+  0%,100%{box-shadow:0 0 0 4px #edf7e8,0 0 0 7px rgba(53,184,13,.10),0 5px 14px rgba(53,184,13,.18)}
+  50%{box-shadow:0 0 0 4px #edf7e8,0 0 0 9px rgba(53,184,13,.16),0 7px 18px rgba(53,184,13,.24)}
+}
