@@ -5,7 +5,7 @@ import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,collection,addDoc,ser
 const A=document.querySelector('#app'),cfg=globalThis.PINCON_FIREBASE_CONFIG;
 const LS='sidedesk.v2';
 let authUid='',room='',role='',name='',R=null,unsub,eu,timer,presenceTimer,started=0,cut=Date.now(),ownAt=0,historyId='',audioCtx=null,endArm=0;
-let activity={m:[],x:[]};
+let activity={m:[],x:[]},eventsHydrated=false;
 let local=loadLocal();
 
 const E=s=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -254,6 +254,7 @@ function renderWorkbookExtras(w){
   resumeNo.onclick=()=>applyStartPoint(w,0,false);
 }
 async function applyStartPoint(w,done,isResume){
+  if(!R){const s=await getDoc(doc(db,'sidedeskRooms',room));if(s.exists())R=s.data()}
   if(!R)return;
   const p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,startDone:done,done,correct:0,wrong:0,skipped:0,status:'ready',problemAtMs:Date.now(),updatedAtMs:Date.now()};
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()});
@@ -280,7 +281,9 @@ async function renderLobbyLibrary(){
   await selectWorkbook(w.id);
 }
 async function selectWorkbook(id){
-  const w=local.workbooks.find(x=>x.id===id);if(!w||!R)return;
+  const w=local.workbooks.find(x=>x.id===id);if(!w)return;
+  if(!R){const s=await getDoc(doc(db,'sidedeskRooms',room));if(s.exists())R=s.data()}
+  if(!R)return;
   local.lastWorkbookId=id;saveLocal();
   let p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,startDone:0,done:0,correct:0,wrong:0,skipped:0,status:'ready',problemAtMs:Date.now(),updatedAtMs:Date.now()};
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()});renderWorkbookExtras(w)
@@ -309,8 +312,16 @@ function bind(){
     if(document.querySelector('#lobbyScreen'))updateLobby();
     if(document.querySelector('#study'))updateStudy();
   });
-  let q=query(collection(db,'sidedeskRooms',room,'events'),orderBy('clientTs','desc'),limit(25));
-  eu=onSnapshot(q,s=>s.docChanges().forEach(c=>{let e=c.doc.data();if(c.type==='added'&&e.uid!==authUid&&(e.clientTs||0)>=cut)remote(e)}))
+  let q=query(collection(db,'sidedeskRooms',room,'events'),orderBy('clientTs','desc'),limit(25));eventsHydrated=false;
+  eu=onSnapshot(q,s=>{
+    if(!eventsHydrated){
+      const rows=s.docs.map(d=>d.data()).filter(e=>['correct','wrong','skip'].includes(e.type)).reverse();
+      activity.m=rows.filter(e=>e.uid===authUid).slice(-12).map(e=>({type:e.type,at:e.clientTs||0}));
+      activity.x=rows.filter(e=>e.uid!==authUid).slice(-12).map(e=>({type:e.type,at:e.clientTs||0}));
+      renderRail('m');renderRail('x');eventsHydrated=true
+    }
+    s.docChanges().forEach(ch=>{let e=ch.doc.data();if(ch.type==='added'&&e.uid!==authUid&&(e.clientTs||0)>=cut)remote(e)})
+  })
 }
 function updateLobby(){
   let m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(!m)return;
