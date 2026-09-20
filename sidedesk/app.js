@@ -4,7 +4,8 @@ import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,collection,addDoc,ser
 
 const A=document.querySelector('#app'),cfg=globalThis.PINCON_FIREBASE_CONFIG;
 const LS='sidedesk.v2';
-let authUid='',room='',role='',name='',R=null,unsub,eu,timer,started=0,cut=Date.now(),ownAt=0,historyId='';
+let authUid='',room='',role='',name='',R=null,unsub,eu,timer,started=0,cut=Date.now(),ownAt=0,historyId='',audioCtx=null,endArm=0;
+let activity={m:[],x:[]};
 let local=loadLocal();
 
 const E=s=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -20,10 +21,33 @@ function loadLocal(){
     const x=JSON.parse(localStorage.getItem(LS)||'{}');
     x.workbooks=Array.isArray(x.workbooks)?x.workbooks:[];
     x.history=Array.isArray(x.history)?x.history:[];
+    if(typeof x.sound!=='boolean')x.sound=true;
     return x;
-  }catch{return{workbooks:[],history:[]}}
+  }catch{return{workbooks:[],history:[],sound:true}}
 }
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(local))}catch{}}
+function audio(){
+  if(!local.sound)return null;
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    return audioCtx
+  }catch{return null}
+}
+function sound(type){
+  const a=audio();if(!a)return;
+  const now=a.currentTime;
+  if(type==='page'){
+    const n=a.createBufferSource(),buf=a.createBuffer(1,Math.floor(a.sampleRate*.09),a.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length)*.11;
+    const f=a.createBiquadFilter(),g=a.createGain();f.type='highpass';f.frequency.value=900;g.gain.setValueAtTime(.45,now);g.gain.exponentialRampToValueAtTime(.01,now+.1);
+    n.buffer=buf;n.connect(f).connect(g).connect(a.destination);n.start(now)
+  }else if(type==='tap'){
+    const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.setValueAtTime(120,now);o.frequency.exponentialRampToValueAtTime(72,now+.055);g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.07);o.connect(g).connect(a.destination);o.start(now);o.stop(now+.08)
+  }else if(type==='sync'){
+    [0,0.08].forEach((x,i)=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=i?660:520;g.gain.setValueAtTime(.055,now+x);g.gain.exponentialRampToValueAtTime(.001,now+x+.11);o.connect(g).connect(a.destination);o.start(now+x);o.stop(now+x+.12)})
+  }
+}
 function rememberRoom(){local.activeRoom={room,role,name,at:Date.now()};saveLocal()}
 function forgetRoom(){delete local.activeRoom;saveLocal()}
 async function resumeOrLanding(){
@@ -257,15 +281,17 @@ function updateLobby(){
 }
 function study(){
   started=R.startedAtMs||Date.now();beginHistory();
-  A.innerHTML='<main class="app study-open" id="study"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">Shared Desk</h1><div class="muted">각자 다른 문제집, 같은 공부 시간.</div></div></div><span id="rs" class="badge">● 같이 공부 중</span></header>'+
-  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div></div>'+
+  A.innerHTML='<main class="app study-open" id="study"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">Shared Desk</h1><div class="muted">각자 다른 문제집, 같은 공부 시간.</div></div></div><div class="row"><button id="soundToggle" class="sound-toggle" type="button">'+(local.sound?'소리 켬':'소리 끔')+'</button><span id="rs" class="badge">● 같이 공부 중</span></div></header>'+
+  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="desk-tool"><span class="pencil" id="mpencil"></span><span class="eraser"></span></div><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div><div class="activity-rail" id="mrail" aria-label="최근 풀이 리듬"></div></div>'+
   '<div class="timer"><div><span class="muted" style="color:#9fb49a">STUDY TIME</span><strong id="clock">00:00</strong><span id="pace" class="muted" style="color:#aabca6">같이 시작함</span></div></div>'+
-  '<div class="paper player" id="friend"><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div></div></div>'+
+  '<div class="paper player" id="friend"><div class="desk-tool friend-tool"><span class="pencil" id="xpencil"></span><span class="eraser"></span></div><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div><div class="activity-rail" id="xrail" aria-label="친구의 최근 풀이 리듬"></div></div></div>'+
   '<div class="actions"><button id="ok" class="btn action">✓ 정답</button><button id="no" class="btn action">× 오답</button><button id="sk" class="btn action">→ 보류</button></div>'+
-  '<div class="secondary"><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div><section id="summary" class="session-summary hidden"></section></section></div></main>';
+  '<div class="secondary secondary-three"><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button><button id="finish" class="btn ghost">공부 마치기</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div><section id="summary" class="session-summary hidden"></section></section></div></main>';
   ok.onclick=()=>mark('correct');no.onclick=()=>mark('wrong');sk.onclick=()=>mark('skip');
-  tap.onclick=async()=>{await event('tap');msg('친구 책상을 톡 건드렸습니다.');tr(name+' · 책상 톡');navigator.vibrate?.(18)};
-  pause.onclick=togglePause;ticker();updateStudy()
+  tap.onclick=async()=>{sound('tap');await event('tap');msg('친구 책상을 톡 건드렸습니다.');tr(name+' · 책상 톡');navigator.vibrate?.(18)};
+  pause.onclick=togglePause;finish.onclick=finishStudy;
+  soundToggle.onclick=()=>{local.sound=!local.sound;saveLocal();soundToggle.textContent=local.sound?'소리 켬':'소리 끔';if(local.sound)audio()};
+  ticker();updateStudy()
 }
 async function mark(type){
   let ref=doc(db,'sidedeskRooms',room),done=0;
@@ -275,20 +301,27 @@ async function mark(type){
     if(type==='correct')n.correct=(m.correct||0)+1;if(type==='wrong')n.wrong=(m.wrong||0)+1;if(type==='skip')n.skipped=(m.skipped||0)+1;
     if(n.done>=n.total)n.status='done';done=n.done;t.update(ref,{[role]:n,updatedAt:serverTimestamp()})
   });
-  if(done){ownAt=Date.now();animatePage('m',type);await event(type,{done});msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
+  if(done){ownAt=Date.now();pushActivity('m',type);animatePage('m',type);sound('page');await event(type,{done});msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
+}
+async function finishStudy(){
+  const now=Date.now();
+  if(now>endArm){endArm=now+3200;finish.textContent='한 번 더 눌러 종료';setTimeout(()=>{if(Date.now()>endArm&&document.querySelector('#finish'))finish.textContent='공부 마치기'},3300);return}
+  const m=R?.[role];if(!m)return;
+  await updateDoc(doc(db,'sidedeskRooms',room),{[role]:{...m,status:'done',updatedAtMs:Date.now()},updatedAt:serverTimestamp()});
+  await event('finish',{done:m.done||0});finish.textContent='종료됨';msg('내 공부를 여기서 마쳤습니다. 기록은 저장되었습니다.')
 }
 async function togglePause(){
   let m=R?.[role];if(!m||m.status==='done')return;let x=m.status==='paused';
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:{...m,status:x?'solving':'paused',updatedAtMs:Date.now()},updatedAt:serverTimestamp()});event(x?'resume':'pause')
 }
 async function event(type,x={}){await addDoc(collection(db,'sidedeskRooms',room,'events'),{uid:authUid,nickname:name,type,clientTs:Date.now(),...x,createdAt:serverTimestamp()})}
-const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',pause:'잠깐 멈춤',resume:'다시 시작',start:'시작'})[t]||t;
+const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',pause:'잠깐 멈춤',resume:'다시 시작',start:'시작',finish:'공부 종료'})[t]||t;
 function updateStudy(){
   let m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(!m||!f)return;
   fill('m',m);fill('x',f);
   let a=P(m),b=P(f);pace.textContent=a===b?'거의 같은 속도':a>b?'내가 '+(a-b)+'% 앞서는 중':'친구가 '+(b-a)+'% 앞서는 중';
   pause.textContent=m.status==='paused'?'다시 시작':'잠깐 멈춤';
-  let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;
+  let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;if(document.querySelector('#finish'))finish.disabled=m.status==='done';
   syncHistory(m,f);
   if(m.status==='done'&&f.status==='done'){
     rs.textContent='● 세션 완료';ok.disabled=no.disabled=sk.disabled=tap.disabled=pause.disabled=true;
@@ -307,17 +340,28 @@ function fill(p,d){
 }
 function remote(e){
   let c=document.querySelector('#friend');c?.classList.remove('flash');void c?.offsetWidth;c?.classList.add('flash');let w=e.nickname||'친구';
-  if(e.type==='tap'){msg(w+'가 책상을 톡 건드렸습니다.');navigator.vibrate?.([20,30,20])}
+  if(e.type==='tap'){sound('tap');wigglePencil('x');msg(w+'가 책상을 톡 건드렸습니다.');navigator.vibrate?.([20,30,20])}
   else if(e.type==='pause')msg(w+'가 잠깐 멈췄습니다.');
   else if(e.type==='resume')msg(w+'가 다시 시작했습니다.');
+  else if(e.type==='finish'){msg(w+'가 오늘 공부를 마쳤습니다.');wigglePencil('x')}
   else if(['correct','wrong','skip'].includes(e.type)){
-    animatePage('x',e.type);
+    pushActivity('x',e.type);wigglePencil('x');animatePage('x',e.type);sound('page');
     msg(w+'가 방금 '+label(e.type)+' 처리했습니다.');
-    if(Date.now()-ownAt<=3000){desk.classList.add('sync');setTimeout(()=>desk.classList.remove('sync'),700);msg('SYNC · 거의 동시에 한 문제를 끝냈습니다.')}
+    if(Date.now()-ownAt<=3000){sound('sync');desk.classList.add('sync');setTimeout(()=>desk.classList.remove('sync'),700);msg('SYNC · 거의 동시에 한 문제를 끝냈습니다.')}
   }tr(w+' · '+label(e.type))
 }
+function pushActivity(prefix,type){
+  activity[prefix].push({type,at:Date.now()});activity[prefix]=activity[prefix].slice(-12);renderRail(prefix)
+}
+function renderRail(prefix){
+  const rail=document.querySelector('#'+prefix+'rail');if(!rail)return;
+  rail.innerHTML=activity[prefix].map(x=>'<i class="'+x.type+'" title="'+label(x.type)+'"></i>').join('')
+}
+function wigglePencil(prefix){
+  const p=document.querySelector('#'+prefix+'pencil');if(!p)return;p.classList.remove('write');void p.offsetWidth;p.classList.add('write');setTimeout(()=>p.classList.remove('write'),650)
+}
 function animatePage(prefix,type){
-  const el=document.querySelector('#'+prefix+'slip');if(!el)return;
+  const el=document.querySelector('#'+prefix+'slip');if(!el)return;wigglePencil(prefix);
   el.dataset.result=type;el.classList.remove('turn');void el.offsetWidth;el.classList.add('turn');
   setTimeout(()=>el.classList.remove('turn'),650);
 }
@@ -325,7 +369,7 @@ function showSummary(m,f){
   const box=document.querySelector('#summary');if(!box||!box.classList.contains('hidden'))return;
   const secs=Math.max(1,Math.floor((Date.now()-started)/1000)),mins=Math.max(1,Math.round(secs/60));
   const ma=ACC(m),fa=ACC(f);
-  box.innerHTML='<div class="kicker">SESSION COMPLETE</div><h2>두 권 모두 여기까지</h2><div class="summary-grid">'+
+  box.innerHTML='<div class="kicker">SESSION COMPLETE</div><h2>오늘은 여기까지</h2><div class="summary-grid">'+
     '<div><span>내 기록</span><b>'+m.done+'/'+m.total+'</b><em>'+(ma==null?'정확도 -':ma+'%')+'</em></div>'+
     '<div><span>함께 공부</span><b>'+mins+'분</b><em>'+E(f.nickname)+'와 함께</em></div>'+
     '<div><span>'+E(f.nickname)+'</span><b>'+f.done+'/'+f.total+'</b><em>'+(fa==null?'정확도 -':fa+'%')+'</em></div>'+
