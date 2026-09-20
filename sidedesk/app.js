@@ -53,12 +53,35 @@ function fail(m){A.innerHTML='<main class="app"><div class="shell"><div class="p
 if(!cfg){fail('Firebase 설정을 찾지 못했습니다.');throw 0}
 const fa=initializeApp(cfg,'sidedesk-v2'),auth=getAuth(fa),db=getFirestore(fa);
 
+function minutesOf(h){return Math.max(1,Math.round(((h.endedAt||Date.now())-h.startedAt)/60000))}
+function weeklyStats(){
+  const since=Date.now()-7*86400000,hs=local.history.filter(h=>h.startedAt>=since);
+  return{
+    sessions:hs.length,
+    problems:hs.reduce((a,h)=>a+(h.done||0),0),
+    minutes:hs.reduce((a,h)=>a+minutesOf(h),0)
+  };
+}
 function recentHistory(){
   return local.history.slice(0,4).map(h=>{
-    const min=Math.max(1,Math.round(((h.endedAt||Date.now())-h.startedAt)/60000));
+    const min=minutesOf(h);
     const acc=(h.correct+h.wrong)?Math.round(h.correct/(h.correct+h.wrong)*100):null;
-    return '<div class="history-item"><div class="history-title">'+E(h.workbookTitle)+'</div><div class="small">'+E(h.subject)+' · '+E(D(h.difficulty))+' · '+h.done+'/'+h.total+'문항'+(acc==null?'':' · '+acc+'%')+' · '+min+'분</div></div>'
+    const pct=h.total?Math.min(100,Math.round((h.done||0)/h.total*100)):0;
+    return '<button type="button" class="history-item history-click" data-history="'+E(h.id)+'"><span class="history-bookmark"></span><div><div class="history-title">'+E(h.workbookTitle)+'</div><div class="small">'+E(h.subject)+' · '+h.done+'/'+h.total+'문항'+(acc==null?'':' · '+acc+'%')+' · '+min+'분</div><div class="history-progress"><i style="width:'+pct+'%"></i></div></div></button>'
   }).join('')||'<div class="small">아직 공부 기록이 없습니다.</div>';
+}
+function historyPanel(){
+  document.querySelector('#historyPanel')?.remove();
+  const host=document.querySelector('.shell');if(!host)return;
+  const panel=document.createElement('section');panel.id='historyPanel';panel.className='paper history-panel';
+  panel.innerHTML='<div class="section-title"><div><div class="kicker">LOCAL ARCHIVE</div><h2>내 공부 책장</h2></div><button id="historyClose" class="btn ghost" style="min-height:38px">닫기</button></div>'+
+    '<div class="bookcase">'+(local.history.length?local.history.map((h,i)=>{
+      const pct=h.total?Math.min(100,Math.round((h.done||0)/h.total*100)):0;
+      const acc=(h.correct+h.wrong)?Math.round(h.correct/(h.correct+h.wrong)*100):null;
+      const date=new Date(h.startedAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'});
+      return '<article class="archive-book" style="--book-i:'+(i%6)+'"><div class="archive-spine"></div><div class="archive-body"><div class="kicker">'+E(date)+' · '+E(h.subject)+'</div><b>'+E(h.workbookTitle)+'</b><div class="small">'+h.done+'/'+h.total+'문항 · '+minutesOf(h)+'분'+(acc==null?'':' · '+acc+'%')+'</div><div class="history-progress"><i style="width:'+pct+'%"></i></div></div></article>'
+    }).join(''):'<div class="small">기록이 쌓이면 여기에 책처럼 꽂힙니다.</div>')+'</div>';
+  host.appendChild(panel);historyClose.onclick=()=>panel.remove();panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function landing(){
   ensureWorkbook();
@@ -70,14 +93,21 @@ function landing(){
   '<div class="field"><label>친구 방 코드</label><input id="jc" class="input" maxlength="6" style="text-transform:uppercase;letter-spacing:.14em" placeholder="6자리"></div>'+
   '<button id="jn" class="btn" style="width:100%;margin-top:12px">친구 방 들어가기</button><div id="err" class="error hidden"></div></div>'+
   '<div class="paper"><div class="section-title"><h2>내 문제집</h2><button id="newwb" class="btn ghost" style="min-height:40px;padding:7px 10px">+ 만들기</button></div>'+
-  '<div id="landingShelf" class="shelf"></div><div class="section-title" style="margin-top:18px"><h3>최근 공부</h3></div><div class="history">'+recentHistory()+'</div></div></section></div></main>';
+  '<div id="landingShelf" class="shelf"></div><div class="weekly-strip" id="weeklyStrip"></div><div class="section-title" style="margin-top:18px"><h3>최근 공부</h3><button id="historyAll" class="btn ghost" style="min-height:38px;padding:6px 10px">책장 보기</button></div><div class="history">'+recentHistory()+'</div></div></section></div></main>';
   renderLandingShelf();
-  mk.onclick=create;jn.onclick=join;newwb.onclick=()=>workbookEditor(null,renderLandingShelf);
+  const ws=weeklyStats();
+  weeklyStrip.innerHTML='<div><b>'+ws.sessions+'</b><span>세션</span></div><div><b>'+ws.problems+'</b><span>문항</span></div><div><b>'+ws.minutes+'</b><span>분</span></div>';
+  mk.onclick=create;jn.onclick=join;newwb.onclick=()=>workbookEditor(null,renderLandingShelf);historyAll.onclick=historyPanel;
+  document.querySelectorAll('.history-click').forEach(b=>b.onclick=historyPanel);
   jc.oninput=e=>e.target.value=C(e.target.value);
 }
 function renderLandingShelf(){
   const box=document.querySelector('#landingShelf');if(!box)return;
-  box.innerHTML=local.workbooks.slice(0,4).map(w=>'<div class="shelf-item"><div class="book-spine"></div><div><b>'+E(w.title)+'</b><div class="small">'+E(w.subject)+' · '+w.total+'문항 · '+E(D(w.difficulty))+'</div></div><button class="btn ghost" data-wb="'+E(w.id)+'" style="min-height:38px;padding:6px 9px">'+(w.id===local.lastWorkbookId?'선택됨':'선택')+'</button></div>').join('');
+  box.innerHTML=local.workbooks.slice(0,4).map(w=>{
+    const last=local.history.find(h=>h.workbookTitle===w.title&&h.subject===w.subject);
+    const lastText=last?' · 최근 '+last.done+'/'+last.total:'';
+    return '<div class="shelf-item"><div class="book-spine"></div><div><b>'+E(w.title)+'</b><div class="small">'+E(w.subject)+' · '+w.total+'문항 · '+E(D(w.difficulty))+lastText+'</div></div><button class="btn ghost" data-wb="'+E(w.id)+'" style="min-height:38px;padding:6px 9px">'+(w.id===local.lastWorkbookId?'선택됨':'선택')+'</button></div>'
+  }).join('');
   box.querySelectorAll('[data-wb]').forEach(b=>b.onclick=()=>{local.lastWorkbookId=b.dataset.wb;saveLocal();renderLandingShelf()});
 }
 function workbookEditor(existing,after){
@@ -199,11 +229,11 @@ function updateLobby(){
 function study(){
   started=R.startedAtMs||Date.now();beginHistory();
   A.innerHTML='<main class="app study-open" id="study"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">Shared Desk</h1><div class="muted">각자 다른 문제집, 같은 공부 시간.</div></div></div><span id="rs" class="badge">● 같이 공부 중</span></header>'+
-  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div></div>'+
+  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div></div>'+
   '<div class="timer"><div><span class="muted" style="color:#9fb49a">STUDY TIME</span><strong id="clock">00:00</strong><span id="pace" class="muted" style="color:#aabca6">같이 시작함</span></div></div>'+
-  '<div class="paper player" id="friend"><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div></div></div>'+
+  '<div class="paper player" id="friend"><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div></div></div>'+
   '<div class="actions"><button id="ok" class="btn action">✓ 정답</button><button id="no" class="btn action">× 오답</button><button id="sk" class="btn action">→ 보류</button></div>'+
-  '<div class="secondary"><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div></section></div></main>';
+  '<div class="secondary"><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div><section id="summary" class="session-summary hidden"></section></section></div></main>';
   ok.onclick=()=>mark('correct');no.onclick=()=>mark('wrong');sk.onclick=()=>mark('skip');
   tap.onclick=async()=>{await event('tap');msg('친구 책상을 톡 건드렸습니다.');tr(name+' · 책상 톡');navigator.vibrate?.(18)};
   pause.onclick=togglePause;ticker();updateStudy()
@@ -216,7 +246,7 @@ async function mark(type){
     if(type==='correct')n.correct=(m.correct||0)+1;if(type==='wrong')n.wrong=(m.wrong||0)+1;if(type==='skip')n.skipped=(m.skipped||0)+1;
     if(n.done>=n.total)n.status='done';done=n.done;t.update(ref,{[role]:n,updatedAt:serverTimestamp()})
   });
-  if(done){ownAt=Date.now();await event(type,{done});msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
+  if(done){ownAt=Date.now();animatePage('m',type);await event(type,{done});msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
 }
 async function togglePause(){
   let m=R?.[role];if(!m||m.status==='done')return;let x=m.status==='paused';
@@ -231,13 +261,18 @@ function updateStudy(){
   pause.textContent=m.status==='paused'?'다시 시작':'잠깐 멈춤';
   let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;
   syncHistory(m,f);
-  if(m.status==='done'&&f.status==='done'){rs.textContent='● 세션 완료';ok.disabled=no.disabled=sk.disabled=tap.disabled=pause.disabled=true;msg('둘 다 완료했습니다. 오늘 공부 기록도 이 기기에 저장했습니다.')}
+  if(m.status==='done'&&f.status==='done'){
+    rs.textContent='● 세션 완료';ok.disabled=no.disabled=sk.disabled=tap.disabled=pause.disabled=true;
+    msg('둘 다 완료했습니다. 오늘 공부 기록도 이 기기에 저장했습니다.');showSummary(m,f)
+  }
 }
 function fill(p,d){
   document.querySelector('#'+p+'n').textContent=d.nickname;
   document.querySelector('#'+p+'d').textContent=d.done||0;document.querySelector('#'+p+'t').textContent=d.total;
   document.querySelector('#'+p+'p').textContent=P(d)+'%';let a=ACC(d);document.querySelector('#'+p+'a').textContent=a==null?'정확도 -':'정확도 '+a+'%';
   document.querySelector('#'+p+'b').style.width=P(d)+'%';document.querySelector('#'+p+'s').textContent=d.status==='paused'?'잠깐 멈춤':d.status==='done'?'완료':'풀이 중';
+  const cur=document.querySelector('#'+p+'current');if(cur)cur.textContent=d.status==='done'?'✓':Math.min((d.done||0)+1,d.total);
+  const age=document.querySelector('#'+p+'age');if(age){const sec=Math.max(0,Math.floor((Date.now()-(d.updatedAtMs||started))/1000));age.textContent=d.status==='done'?'완료':d.status==='paused'?'멈춤':sec<5?'방금 넘김':sec<60?sec+'초째':Math.floor(sec/60)+'분째'}
   const w=d.workbook||{title:'문제집',subject:'기타',difficulty:d.difficulty,total:d.total};
   document.querySelector('#'+p+'book').innerHTML='<b>'+E(w.title)+'</b><span>'+E(w.subject)+' · '+E(D(w.difficulty))+'</span>'
 }
@@ -247,9 +282,26 @@ function remote(e){
   else if(e.type==='pause')msg(w+'가 잠깐 멈췄습니다.');
   else if(e.type==='resume')msg(w+'가 다시 시작했습니다.');
   else if(['correct','wrong','skip'].includes(e.type)){
+    animatePage('x',e.type);
     msg(w+'가 방금 '+label(e.type)+' 처리했습니다.');
     if(Date.now()-ownAt<=3000){desk.classList.add('sync');setTimeout(()=>desk.classList.remove('sync'),700);msg('SYNC · 거의 동시에 한 문제를 끝냈습니다.')}
   }tr(w+' · '+label(e.type))
+}
+function animatePage(prefix,type){
+  const el=document.querySelector('#'+prefix+'slip');if(!el)return;
+  el.dataset.result=type;el.classList.remove('turn');void el.offsetWidth;el.classList.add('turn');
+  setTimeout(()=>el.classList.remove('turn'),650);
+}
+function showSummary(m,f){
+  const box=document.querySelector('#summary');if(!box||!box.classList.contains('hidden'))return;
+  const secs=Math.max(1,Math.floor((Date.now()-started)/1000)),mins=Math.max(1,Math.round(secs/60));
+  const ma=ACC(m),fa=ACC(f);
+  box.innerHTML='<div class="kicker">SESSION COMPLETE</div><h2>두 권 모두 여기까지</h2><div class="summary-grid">'+
+    '<div><span>내 기록</span><b>'+m.done+'/'+m.total+'</b><em>'+(ma==null?'정확도 -':ma+'%')+'</em></div>'+
+    '<div><span>함께 공부</span><b>'+mins+'분</b><em>'+E(f.nickname)+'와 함께</em></div>'+
+    '<div><span>'+E(f.nickname)+'</span><b>'+f.done+'/'+f.total+'</b><em>'+(fa==null?'정확도 -':fa+'%')+'</em></div>'+
+    '</div><button id="backHome" class="btn primary" style="width:100%;margin-top:14px">책상 정리하고 홈으로</button>';
+  box.classList.remove('hidden');backHome.onclick=()=>location.reload();box.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function beginHistory(){
   const m=R?.[role];if(!m)return;
@@ -268,6 +320,6 @@ function syncHistory(m,f){
 }
 function msg(t){let e=document.querySelector('#live');if(e)e.textContent=t}
 function tr(t){let l=document.querySelector('#trace');if(!l)return;let e=document.createElement('div');e.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' · '+t;l.prepend(e);while(l.children.length>5)l.lastElementChild.remove()}
-function ticker(){clearInterval(timer);timer=setInterval(()=>{let c=document.querySelector('#clock');if(!c)return;let s=Math.max(0,((Date.now()-started)/1000)|0);c.textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},250)}
+function ticker(){clearInterval(timer);timer=setInterval(()=>{let c=document.querySelector('#clock');if(!c)return;let s=Math.max(0,((Date.now()-started)/1000)|0);c.textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(R){const m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(m&&f){fill('m',m);fill('x',f)}}},1000)}
 
 try{let c=await signInAnonymously(auth);authUid=c.user.uid;landing()}catch(e){console.error(e);fail('실시간 연결용 익명 로그인을 시작하지 못했습니다.')}
