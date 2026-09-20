@@ -246,7 +246,7 @@ function openBook(id){requestAnimationFrame(()=>setTimeout(()=>document.querySel
 function lobby(){
   const w=activeWorkbook();
   A.innerHTML='<main class="app" id="lobbyScreen"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">SideDesk</h1><div class="muted">문제집을 고르고 친구를 기다리세요.</div></div></div><span class="badge">ROOM '+room+'</span></header>'+
-  '<section class="desk lobby"><div class="paper"><div class="kicker">ROOM CODE</div><div class="analog-module"><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i><div class="code analog-code tuning" id="roomCode" aria-label="참여 코드">'+room+'</div><div class="analog-caption"><span>LINK / 01</span><span id="signalText">TUNING</span></div></div><button id="shareInvite" class="btn ghost" style="width:100%;margin-top:10px">초대 링크 공유</button>'+
+  '<section class="desk lobby"><div class="paper"><div class="kicker">ROOM CODE</div><div class="analog-module"><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i><div class="code analog-code tuning" id="roomCode" role="button" tabindex="0" aria-label="참여 코드, 눌러서 복사">'+room+'</div><div class="analog-caption"><span>LINK / 01</span><span id="signalText">TUNING</span></div></div><button id="shareInvite" class="btn ghost" style="width:100%;margin-top:10px">초대 링크 공유</button>'+
   '<div class="status" style="margin-top:14px"><span><i class="dot on"></i> <b>'+E(name)+'</b></span><span>준비됨</span></div>'+
   '<div class="status" style="margin-top:8px"><span><i id="fd" class="dot"></i> <b id="fn">친구 기다리는 중</b></span><span id="fr">대기</span></div>'+
   '<div class="section-title" style="margin-top:18px"><h3>친구 문제집</h3><button id="copywb" class="btn ghost hidden" style="min-height:38px;padding:6px 9px">내 목록에 저장</button></div><div id="friendBook" class="small">친구가 들어오면 여기에 표시됩니다.</div>'+
@@ -260,7 +260,7 @@ function lobby(){
   leave.onclick=leaveRoom;shareInvite.onclick=shareRoom;newwb.onclick=()=>workbookEditor(null,renderLobbyLibrary);editwb.onclick=()=>workbookEditor(activeWorkbook(),renderLobbyLibrary);
   wbselect.onchange=()=>selectWorkbook(wbselect.value);if(role==='host')go.onclick=start;copywb.onclick=copyFriendWorkbook;openBook('myBook');renderWorkbookExtras(w);
   analogCodeReveal(document.querySelector('#roomCode'),room);
-  roomCode.onclick=copyRoomCode;roomCode.title='눌러서 코드 복사';
+  roomCode.onclick=copyRoomCode;roomCode.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();copyRoomCode()}};roomCode.title='눌러서 코드 복사';
 }
 function renderWorkbookExtras(w){
   const rb=document.querySelector('#resumeBox'),sb=document.querySelector('#workbookStatsBox');if(!rb||!sb)return;
@@ -297,10 +297,11 @@ function analogCodeReveal(el,value){
   },55)
 }
 async function copyRoomCode(){
+  const display=document.querySelector('#roomCode'),signal=document.querySelector('#signalText');
   try{
     await navigator.clipboard?.writeText(room);
-    roomCode.classList.add('copied');signalText.textContent='COPIED';
-    setTimeout(()=>{roomCode.classList.remove('copied');signalText.textContent='LOCKED'},1100)
+    display?.classList.add('copied');if(signal)signal.textContent='COPIED';
+    setTimeout(()=>{display?.classList.remove('copied');if(signal)signal.textContent='LOCKED'},1100)
   }catch{}
 }
 async function promptInstall(){
