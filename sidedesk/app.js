@@ -69,6 +69,11 @@ function sound(type){
     const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.setValueAtTime(120,now);o.frequency.exponentialRampToValueAtTime(72,now+.055);g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.07);o.connect(g).connect(a.destination);o.start(now);o.stop(now+.08)
   }else if(type==='sync'){
     [0,0.08].forEach((x,i)=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=i?660:520;g.gain.setValueAtTime(.055,now+x);g.gain.exponentialRampToValueAtTime(.001,now+x+.11);o.connect(g).connect(a.destination);o.start(now+x);o.stop(now+x+.12)})
+  }else if(type==='static'){
+    const n=a.createBufferSource(),buf=a.createBuffer(1,Math.floor(a.sampleRate*.16),a.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(.12*(1-i/d.length));
+    const f=a.createBiquadFilter(),g=a.createGain();f.type='bandpass';f.frequency.value=1800;f.Q.value=.7;g.gain.value=.18;
+    n.buffer=buf;n.connect(f).connect(g).connect(a.destination);n.start(now)
   }
 }
 function rememberRoom(){local.activeRoom={room,role,name,at:Date.now()};saveLocal()}
@@ -153,7 +158,7 @@ function landing(){
   '<div class="field"><label>닉네임</label><input id="nick" class="input" maxlength="14" value="'+E(local.nickname||'')+'" placeholder="예: 도영"></div>'+
   '<button id="mk" class="btn primary" style="width:100%;margin-top:14px">새 방 만들기</button>'+
   '<div style="height:1px;background:#bca98f;margin:18px 0"></div>'+
-  '<div class="field"><label>친구 방 코드</label><input id="jc" class="input" maxlength="6" style="text-transform:uppercase;letter-spacing:.14em" placeholder="6자리"></div>'+
+  '<div class="field"><label>친구 방 코드</label><div class="join-code-shell"><span class="join-code-label">CHANNEL CODE</span><input id="jc" class="input join-code-input" maxlength="6" placeholder="______" inputmode="text" autocomplete="off"></div></div>'+
   '<button id="jn" class="btn" style="width:100%;margin-top:12px">친구 방 들어가기</button><div id="err" class="error hidden"></div></div>'+
   '<div class="paper"><div class="section-title"><h2>내 문제집</h2><button id="newwb" class="btn ghost" style="min-height:40px;padding:7px 10px">+ 만들기</button></div>'+
   '<div id="landingShelf" class="shelf"></div><div class="weekly-strip" id="weeklyStrip"></div><div class="section-title" style="margin-top:18px"><h3>최근 공부</h3><button id="historyAll" class="btn ghost" style="min-height:38px;padding:6px 10px">책장 보기</button></div><div class="history">'+recentHistory()+'</div></div></section></div></main>';
@@ -241,7 +246,7 @@ function openBook(id){requestAnimationFrame(()=>setTimeout(()=>document.querySel
 function lobby(){
   const w=activeWorkbook();
   A.innerHTML='<main class="app" id="lobbyScreen"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">SideDesk</h1><div class="muted">문제집을 고르고 친구를 기다리세요.</div></div></div><span class="badge">ROOM '+room+'</span></header>'+
-  '<section class="desk lobby"><div class="paper"><div class="kicker">ROOM CODE</div><div class="code" style="margin-top:8px">'+room+'</div><button id="shareInvite" class="btn ghost" style="width:100%;margin-top:10px">초대 링크 공유</button>'+
+  '<section class="desk lobby"><div class="paper"><div class="kicker">ROOM CODE</div><div class="analog-module"><i class="screw s1"></i><i class="screw s2"></i><i class="screw s3"></i><i class="screw s4"></i><div class="code analog-code tuning" id="roomCode" aria-label="참여 코드">'+room+'</div><div class="analog-caption"><span>LINK / 01</span><span id="signalText">TUNING</span></div></div><button id="shareInvite" class="btn ghost" style="width:100%;margin-top:10px">초대 링크 공유</button>'+
   '<div class="status" style="margin-top:14px"><span><i class="dot on"></i> <b>'+E(name)+'</b></span><span>준비됨</span></div>'+
   '<div class="status" style="margin-top:8px"><span><i id="fd" class="dot"></i> <b id="fn">친구 기다리는 중</b></span><span id="fr">대기</span></div>'+
   '<div class="section-title" style="margin-top:18px"><h3>친구 문제집</h3><button id="copywb" class="btn ghost hidden" style="min-height:38px;padding:6px 9px">내 목록에 저장</button></div><div id="friendBook" class="small">친구가 들어오면 여기에 표시됩니다.</div>'+
@@ -251,9 +256,11 @@ function lobby(){
   '<div id="resumeBox"></div><div id="workbookStatsBox"></div>'+
   '<div class="field"><label>문제집 선택</label><select id="wbselect" class="select">'+local.workbooks.map(x=>'<option value="'+E(x.id)+'" '+(x.id===w.id?'selected':'')+'>'+E(x.title)+' · '+E(x.subject)+'</option>').join('')+'</select></div>'+
   '<div class="row" style="margin-top:10px"><button id="editwb" class="btn ghost" style="flex:1">현재 문제집 수정</button></div>'+
-  '<button id="go" class="btn primary" style="width:100%;margin-top:14px" disabled>'+(role==='host'?'친구를 기다리는 중':'방장이 시작하면 자동 시작')+'</button></div></section></div></main>';
+  '<button id="go" class="btn primary start-lever" style="width:100%;margin-top:14px" disabled>'+(role==='host'?'친구를 기다리는 중':'방장이 시작하면 자동 시작')+'</button></div></section></div></main>';
   leave.onclick=leaveRoom;shareInvite.onclick=shareRoom;newwb.onclick=()=>workbookEditor(null,renderLobbyLibrary);editwb.onclick=()=>workbookEditor(activeWorkbook(),renderLobbyLibrary);
   wbselect.onchange=()=>selectWorkbook(wbselect.value);if(role==='host')go.onclick=start;copywb.onclick=copyFriendWorkbook;openBook('myBook');renderWorkbookExtras(w);
+  analogCodeReveal(document.querySelector('#roomCode'),room);
+  roomCode.onclick=copyRoomCode;roomCode.title='눌러서 코드 복사';
 }
 function renderWorkbookExtras(w){
   const rb=document.querySelector('#resumeBox'),sb=document.querySelector('#workbookStatsBox');if(!rb||!sb)return;
@@ -271,6 +278,30 @@ async function applyStartPoint(w,done,isResume){
   const p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,startDone:done,done,correct:0,wrong:0,skipped:0,status:'ready',problemAtMs:Date.now(),updatedAtMs:Date.now()};
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()});
   const rb=document.querySelector('#resumeBox');if(rb)rb.innerHTML='<div class="resume-applied">'+(isResume?(done+1)+'번부터 이어서 시작':'처음부터 시작')+'</div>'
+}
+function analogCodeReveal(el,value){
+  if(!el)return;
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789#%*+=';
+  let tick=0,locked=0;el.classList.add('tuning');
+  const iv=setInterval(()=>{
+    tick++;
+    if(tick%2===0&&locked<value.length)locked++;
+    let out='';
+    for(let i=0;i<value.length;i++)out+=i<locked?value[i]:chars[Math.floor(Math.random()*chars.length)];
+    el.textContent=out;
+    if(tick===1)sound('static');
+    if(locked>=value.length){
+      clearInterval(iv);el.textContent=value;
+      setTimeout(()=>{el.classList.remove('tuning');document.querySelector('#signalText')?.replaceChildren(document.createTextNode('LOCKED'))},150)
+    }
+  },55)
+}
+async function copyRoomCode(){
+  try{
+    await navigator.clipboard?.writeText(room);
+    roomCode.classList.add('copied');signalText.textContent='COPIED';
+    setTimeout(()=>{roomCode.classList.remove('copied');signalText.textContent='LOCKED'},1100)
+  }catch{}
 }
 async function promptInstall(){
   if(!deferredInstall)return;
