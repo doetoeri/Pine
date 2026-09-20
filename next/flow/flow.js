@@ -334,23 +334,176 @@ function preparationRows(date) {
   return [...periodsFor(date).map((item, index) => ({ label: `${item.period || index + 1}교시 · ${periodTitle(item)}`, text: clean(item.materials || item.preparations || ""), attrs: `data-lesson="${index}" data-lesson-date="${date}" aria-haspopup="dialog"` })),
     ...assignments().filter(item => dateOf(item) === date).map(item => ({ label: title(item), text: clean(item.materials || ""), attrs: assignmentAttrs(item) }))].filter(row => row.text);
 }
-function todayPage() {
-  const today = isoDate(new Date()), periods = periodsFor(today), tasks = upcomingAssignments(Infinity), dishes = dishList(mealFor(today));
-  const live = lessonState(periods, today), lesson = periods[live.index], prep = preparationRows(today);
-  return shell(`<main class="canvas" data-page="today">${intro(dateLabel(today), "오늘", "수업부터 마감까지, 오늘 필요한 것.")}
-    <div class="today-layout">
-      <section class="card focus-card"><div class="focus-caption">${icon("timeline")} ${esc(live.label)}</div>
-        <h2>${esc(lesson ? periodTitle(lesson) : live.finished ? "내일을 준비할 시간" : periods.length ? `${periodTitle(periods[0])}부터 ${periods.length}교시` : "오늘 시간표를 확인해요")}</h2>
-        <p>${esc(lesson ? `${lesson.period || live.index + 1}교시 · ${periodTime(lesson)}` : periods.length && !live.finished ? "수업 시각이 등록되지 않아 교시 순서로 안내해요." : "준비물과 가까운 마감을 아래에서 확인하세요.")}</p>
-        <button class="soft-button" ${lesson ? `data-lesson="${live.index}" data-lesson-date="${today}" aria-haspopup="dialog"` : 'data-route="timetable"'}>${lesson ? "수업 준비 확인" : "시간표 열기"} ${icon("arrow")}</button>
-        <div class="status-rail"><button data-route="timetable"><small>오늘 수업</small><strong>${periods.length}<span>교시</span></strong></button><button data-route="assessment"><small>오늘 마감</small><strong>${tasks.filter(x => dateOf(x) === today).length}<span>건</span></strong></button><button data-route="meal"><small>점심 메뉴</small><strong>${dishes.length || "—"}<span>${dishes.length ? "가지" : "확인"}</span></strong></button></div>
-      </section>
-      <section class="card prep-card">${sectionHead("오늘 챙길 것")}<div class="prep-list">${prep.length ? prep.map(row => `<button class="prep-row" ${row.attrs}>${icon("assignment")}<span><small>${esc(row.label)}</small><strong>${esc(row.text)}</strong></span>${icon("chevron")}</button>`).join("") : missing("neisTimetables", "등록된 준비물이 없어요. 수업별 안내도 확인해 주세요.")}</div></section>
-      <section class="card deadlines-card">${sectionHead("가까운 마감", "assessment")}<div class="task-stack">${tasks.length ? tasks.slice(0,4).map(taskRow).join("") : missing("classAssignments", "다가오는 수행평가나 숙제가 없어요.")}</div></section>
-      <section class="card today-meal">${sectionHead("오늘 점심", "meal", "급식 보기")}<ul class="menu-preview">${dishes.slice(0,6).map(dish => `<li>${esc(dish)}</li>`).join("")}</ul>${!dishes.length ? missing("meals", "오늘 식단이 아직 등록되지 않았어요.") : ""}</section>
-      <section class="card today-periods">${sectionHead("오늘 수업", "timetable")}<div class="period-track">${periods.length ? periods.map((p,i) => periodRow(p,i,today)).join("") : missing("neisTimetables", "오늘 시간표가 아직 등록되지 않았어요.")}</div></section>
-    </div></main>`);
+function periodPhase(period, index, date, now = new Date()) {
+  if (date !== isoDate(now)) return "";
+  const start = minutes(period.startTime || period.startsAt || period.start);
+  const end = minutes(period.endTime || period.endsAt || period.end);
+  const currentMinute = now.getHours() * 60 + now.getMinutes();
+  if (start !== null && end !== null && end > start) {
+    if (currentMinute >= end) return "is-done";
+    if (start <= currentMinute && currentMinute < end) return "is-live";
+    return currentMinute < start ? "is-upcoming" : "";
+  }
+  const live = lessonState(periodsFor(date), date, now);
+  if (live.index < 0) return "";
+  if (index < live.index) return "is-done";
+  if (index === live.index) return live.current ? "is-live" : "is-next";
+  return "is-upcoming";
 }
+
+function todaySpine(periods, date) {
+  if (!periods.length) return missing("neisTimetables", "오늘 시간표가 아직 등록되지 않았어요.");
+  const live = lessonState(periods, date);
+  return `<div class="flow-spine" role="list" aria-label="오늘 수업 흐름">
+    ${periods.map((period, index) => {
+      const phase = periodPhase(period, index, date);
+      const current = live.current && live.index === index;
+      const next = !live.current && live.index === index;
+      return `<button class="spine-stop ${phase} ${current ? "is-current" : ""} ${next ? "is-next" : ""}" role="listitem"
+        data-lesson="${index}" data-lesson-date="${date}" aria-haspopup="dialog"
+        aria-label="${esc(`${period.period || index + 1}교시 ${periodTitle(period)} ${periodTime(period)}`)}">
+        <span class="spine-dot" aria-hidden="true"></span>
+        <span class="spine-period">${esc(period.period || index + 1)}교시</span>
+        <strong>${esc(periodTitle(period))}</strong>
+        <small>${esc(periodTime(period) || clean(period.room || period.classroom || period.place || "") || "수업 정보")}</small>
+      </button>`;
+    }).join("")}
+  </div>`;
+}
+
+function nextActionForToday({ periods, live, tasks, prep, today }) {
+  const currentIndex = live.current ? live.index : -1;
+  const nextIndex = live.current ? currentIndex + 1 : live.index;
+  const nextLesson = nextIndex >= 0 ? periods[nextIndex] : null;
+  const nextPrep = nextLesson ? clean(nextLesson.materials || nextLesson.preparations || "") : "";
+  const urgentTask = tasks.find(item => {
+    const date = dateOf(item);
+    return date && date <= addDays(today, 1);
+  });
+
+  if (nextLesson) {
+    const room = clean(nextLesson.room || nextLesson.classroom || nextLesson.place || "");
+    return {
+      kicker: live.current ? "이 수업 다음" : "다음 행동",
+      title: `${nextLesson.period || nextIndex + 1}교시 ${periodTitle(nextLesson)}`,
+      copy: nextPrep
+        ? `준비물 · ${nextPrep}`
+        : [periodTime(nextLesson), room].filter(Boolean).join(" · ") || "수업 세부 정보를 확인해요.",
+      attrs: `data-lesson="${nextIndex}" data-lesson-date="${today}" aria-haspopup="dialog"`,
+      action: nextPrep ? "준비물 확인" : "수업 확인",
+      iconName: "timeline",
+    };
+  }
+
+  if (urgentTask) {
+    return {
+      kicker: "가장 가까운 마감",
+      title: title(urgentTask),
+      copy: `${subjectName(urgentTask.subject)} · ${assignmentLabel(urgentTask)} · ${dday(dateOf(urgentTask))}`,
+      attrs: assignmentAttrs(urgentTask),
+      action: "내용 확인",
+      iconName: "assignment",
+    };
+  }
+
+  if (prep.length) {
+    return {
+      kicker: "오늘 챙길 것",
+      title: prep[0].text,
+      copy: prep[0].label,
+      attrs: prep[0].attrs,
+      action: "확인",
+      iconName: "assignment",
+    };
+  }
+
+  return {
+    kicker: "오늘 정리",
+    title: live.finished ? "오늘 수업을 마쳤어요" : "오늘 흐름을 확인해요",
+    copy: live.finished ? "가까운 마감과 내일 준비를 확인해 두면 충분해요." : "시간표와 수행평가를 한 번 확인해 두세요.",
+    attrs: `data-route="${tasks.length ? "assessment" : "timetable"}"`,
+    action: tasks.length ? "마감 보기" : "시간표 보기",
+    iconName: tasks.length ? "assignment" : "timeline",
+  };
+}
+
+function todayPage() {
+  const today = isoDate(new Date());
+  const periods = periodsFor(today);
+  const tasks = upcomingAssignments(Infinity);
+  const dishes = dishList(mealFor(today));
+  const live = lessonState(periods, today);
+  const lesson = periods[live.index];
+  const prep = preparationRows(today);
+  const todayTasks = tasks.filter(item => dateOf(item) === today);
+  const nextAction = nextActionForToday({ periods, live, tasks, prep, today });
+
+  return shell(`<main class="canvas" data-page="today">${intro(dateLabel(today), "오늘", "지금 필요한 것부터, 오늘 남은 흐름까지.")}
+
+    <div class="today-layout today-flow-layout">
+      <section class="card focus-card flow-hero">
+        <div class="focus-caption">${icon("timeline")} ${esc(live.label)}</div>
+        <div class="flow-hero__content">
+          <div>
+            <h2>${esc(lesson ? periodTitle(lesson) : live.finished ? "오늘 수업을 마쳤어요" : periods.length ? "오늘의 흐름을 확인해요" : "오늘 시간표를 확인해요")}</h2>
+            <p>${esc(lesson
+              ? `${lesson.period || live.index + 1}교시${periodTime(lesson) ? ` · ${periodTime(lesson)}` : ""}${clean(lesson.room || lesson.classroom || lesson.place || "") ? ` · ${clean(lesson.room || lesson.classroom || lesson.place || "")}` : ""}`
+              : live.finished
+                ? "이제 가까운 마감과 내일 준비만 확인하면 돼요."
+                : periods.length
+                  ? "교시 순서와 다음 행동을 한눈에 이어서 보여줄게요."
+                  : "시간표가 등록되면 현재 수업과 다음 행동을 자동으로 연결해요.")}</p>
+          </div>
+          <button class="soft-button flow-primary-action" ${lesson ? `data-lesson="${live.index}" data-lesson-date="${today}" aria-haspopup="dialog"` : 'data-route="timetable"'}>
+            ${lesson ? "현재 수업 보기" : "시간표 열기"} ${icon("arrow")}
+          </button>
+        </div>
+        <div class="status-rail">
+          <button data-route="timetable"><small>오늘 수업</small><strong>${periods.length}<span>교시</span></strong></button>
+          <button data-route="assessment"><small>오늘 마감</small><strong>${todayTasks.length}<span>건</span></strong></button>
+          <button data-route="meal"><small>점심</small><strong>${dishes.length || "—"}<span>${dishes.length ? "가지" : "확인"}</span></strong></button>
+        </div>
+      </section>
+
+      <section class="card flow-spine-card">
+        ${sectionHead("오늘의 흐름", "timetable", "전체 시간표")}
+        <p class="section-note">교시를 누르면 장소와 준비물을 바로 확인할 수 있어요.</p>
+        ${todaySpine(periods, today)}
+      </section>
+
+      <section class="card next-action-card">
+        <div class="next-action__icon">${icon(nextAction.iconName)}</div>
+        <div class="next-action__copy">
+          <small>${esc(nextAction.kicker)}</small>
+          <h2>${esc(nextAction.title)}</h2>
+          <p>${esc(nextAction.copy)}</p>
+        </div>
+        <button class="soft-button next-action__button" ${nextAction.attrs}>${esc(nextAction.action)} ${icon("arrow")}</button>
+      </section>
+
+      <section class="card prep-card">
+        ${sectionHead("오늘 챙길 것")}
+        <div class="prep-list">${prep.length
+          ? prep.slice(0, 5).map(row => `<button class="prep-row" ${row.attrs}>${icon("assignment")}<span><small>${esc(row.label)}</small><strong>${esc(row.text)}</strong></span>${icon("chevron")}</button>`).join("")
+          : missing("neisTimetables", "등록된 준비물이 없어요. 수업별 안내도 확인해 주세요.")}</div>
+      </section>
+
+      <section class="card deadlines-card">
+        ${sectionHead("가까운 마감", "assessment")}
+        <div class="task-stack">${tasks.length
+          ? tasks.slice(0, 4).map(taskRow).join("")
+          : missing("classAssignments", "다가오는 수행평가나 숙제가 없어요.")}</div>
+      </section>
+
+      <section class="card today-meal">
+        ${sectionHead("오늘 점심", "meal", "급식 보기")}
+        <ul class="menu-preview">${dishes.slice(0, 5).map(dish => `<li>${esc(dish)}</li>`).join("")}</ul>
+        ${!dishes.length ? missing("meals", "오늘 식단이 아직 등록되지 않았어요.") : ""}
+      </section>
+    </div>
+  </main>`);
+}
+
 function dateControl(date, kind = "date") {
   const weekday = new Date(`${date}T12:00:00`).getDay();
   const monday = addDays(date, -((weekday + 6) % 7));
