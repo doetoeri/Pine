@@ -321,7 +321,12 @@ function updateStudy(){
   fill('m',m);fill('x',f);
   let a=P(m),b=P(f);pace.textContent=a===b?'거의 같은 속도':a>b?'내가 '+(a-b)+'% 앞서는 중':'친구가 '+(b-a)+'% 앞서는 중';
   pause.textContent=m.status==='paused'?'다시 시작':'잠깐 멈춤';
-  let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;if(document.querySelector('#finish'))finish.disabled=m.status==='done';
+  let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;
+  if(document.querySelector('#finish')){
+    if(m.status==='done'&&f.status!=='done'){finish.disabled=false;finish.textContent='홈으로';finish.onclick=leaveRoom}
+    else if(m.status!=='done'){finish.disabled=false;finish.onclick=finishStudy}
+    else finish.disabled=true
+  }
   syncHistory(m,f);
   if(m.status==='done'&&f.status==='done'){
     rs.textContent='● 세션 완료';ok.disabled=no.disabled=sk.disabled=tap.disabled=pause.disabled=true;
@@ -395,4 +400,5 @@ function msg(t){let e=document.querySelector('#live');if(e)e.textContent=t}
 function tr(t){let l=document.querySelector('#trace');if(!l)return;let e=document.createElement('div');e.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' · '+t;l.prepend(e);while(l.children.length>5)l.lastElementChild.remove()}
 function ticker(){clearInterval(timer);timer=setInterval(()=>{let c=document.querySelector('#clock');if(!c)return;let s=Math.max(0,((Date.now()-started)/1000)|0);c.textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(R){const m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(m&&f){fill('m',m);fill('x',f)}}},1000)}
 
+addEventListener('pointerdown',()=>{if(local.sound)audio()},{once:true,capture:true});
 try{let c=await signInAnonymously(auth);authUid=c.user.uid;await resumeOrLanding()}catch(e){console.error(e);fail('실시간 연결용 익명 로그인을 시작하지 못했습니다.')}
