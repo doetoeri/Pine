@@ -255,3 +255,57 @@ button{touch-action:manipulation}
 .activity-rail i.skip{background:#9d907b}
 .secondary-three{grid-template-columns:1fr 1fr 1fr}
 @media(max-width:650px){.secondary-three{grid-template-columns:1fr 1fr}.secondary-three #finish{grid-column:1/-1}}
+
+
+/* SideDesk v2.3 continuity + presence */
+.workbook-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0 12px;padding:9px;
+  border-radius:15px;background:linear-gradient(#e4d6c1,#cdb99d);
+  box-shadow:inset 0 2px 4px #5c43292d,inset 0 -1px #fff8
+}
+.workbook-stats>div{text-align:center;padding:7px 3px;border-right:1px solid #856e5140}
+.workbook-stats>div:last-child{border-right:0}
+.workbook-stats b{display:block;font-size:18px;line-height:1}
+.workbook-stats span{display:block;margin-top:5px;font-size:10px;color:#6f5d48}
+.resume-note{
+  margin:8px 0 12px;padding:12px;border-radius:15px;
+  background:
+    linear-gradient(90deg,#e9eadb,#d8ddc8);
+  border:1px solid #9ca58d;box-shadow:inset 0 1px #fff,0 3px 7px #4e56392b
+}
+.resume-note>div:first-child{display:grid;gap:2px;margin-bottom:9px}
+.resume-note b{font-size:14px}
+.resume-note span{font-size:12px;color:#64705a}
+.resume-applied{
+  margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:#dbe5d2;border:1px solid #98aa8c;
+  font-size:12px;font-weight:850;color:#4e6349
+}
+.presence-lamp{
+  position:absolute;left:14px;top:13px;display:flex;align-items:center;gap:6px;
+  min-height:23px;padding:4px 8px 4px 6px;border-radius:999px;
+  background:#e9dfd0cc;border:1px solid #b8a58c;font-size:10px;color:#6c5c49;
+  box-shadow:inset 0 1px #fff,0 2px 4px #4430201f;z-index:2
+}
+.presence-lamp i{
+  width:8px;height:8px;border-radius:50%;display:block;background:#7da172;
+  box-shadow:0 0 0 3px #7da17218,0 0 9px #779d6c66
+}
+.presence-lamp.active i{animation:presenceBreath 2.8s ease-in-out infinite}
+.presence-lamp.background i{background:#aa9570;box-shadow:0 0 0 3px #aa957018}
+.presence-lamp.paused i{background:#9c8d76;box-shadow:none}
+.presence-lamp.done i{background:#617c59;box-shadow:none}
+.presence-lamp.quiet i{background:#a6a097;box-shadow:none}
+@keyframes presenceBreath{
+  0%,100%{transform:scale(.9);opacity:.72}
+  50%{transform:scale(1.08);opacity:1}
+}
+.player>.head{padding-top:27px}
+.player>.desk-tool{top:37px}
+.friend-tool{top:37px}
+@media(max-width:560px){
+  .workbook-stats{grid-template-columns:repeat(2,1fr)}
+  .workbook-stats>div:nth-child(2){border-right:0}
+  .presence-lamp{position:relative;left:auto;top:auto;width:max-content;margin:0 0 8px}
+  .player>.head{padding-top:0}
+  .player>.desk-tool{top:14px}
+}
