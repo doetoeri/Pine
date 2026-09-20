@@ -995,6 +995,67 @@ service cloud.firestore {
         && request.resource.data.enabled is bool;
     }
 
+    // SideDesk: authenticated two-person realtime study rooms.
+    match /sidedeskRooms/{roomId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.version == 1
+        && request.resource.data.status == 'lobby'
+        && request.resource.data.host.uid == request.auth.uid
+        && request.resource.data.guest == null;
+
+      allow update: if signedIn() && (
+        // Host may update only their own player state.
+        (
+          resource.data.host.uid == request.auth.uid
+          && request.resource.data.host.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'host', 'updatedAt'
+          ])
+        )
+        // Host may start the room once; player identities cannot change.
+        || (
+          resource.data.host.uid == request.auth.uid
+          && resource.data.status == 'lobby'
+          && request.resource.data.status == 'studying'
+          && resource.data.guest != null
+          && request.resource.data.host.uid == resource.data.host.uid
+          && request.resource.data.guest.uid == resource.data.guest.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'host', 'guest', 'status', 'startedAtMs', 'updatedAt'
+          ])
+        )
+        // A signed-in guest may occupy an empty guest seat.
+        || (
+          resource.data.guest == null
+          && request.resource.data.guest != null
+          && request.resource.data.guest.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'guest', 'updatedAt'
+          ])
+        )
+        // Existing guest may update only their own player state.
+        || (
+          resource.data.guest != null
+          && resource.data.guest.uid == request.auth.uid
+          && request.resource.data.guest.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'guest', 'updatedAt'
+          ])
+        )
+      );
+
+      allow delete: if false;
+
+      match /events/{eventId} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.uid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
