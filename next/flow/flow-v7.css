@@ -282,3 +282,170 @@ body.flow-scrolled .topline{
   }
   .canvas.is-leaving,.flow-sheet,.flow-sheet[open].is-visible{transform:none!important}
 }
+
+
+/* v7.2 — Today information architecture */
+.today-flow-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-areas:
+    "focus"
+    "spine"
+    "action"
+    "prep"
+    "deadlines"
+    "meal";
+  gap:18px
+}
+.flow-hero{grid-area:focus}
+.flow-spine-card{grid-area:spine;overflow:hidden}
+.next-action-card{grid-area:action}
+.prep-card{grid-area:prep}
+.deadlines-card{grid-area:deadlines}
+.today-meal{grid-area:meal}
+
+.flow-hero__content{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:22px
+}
+.flow-hero__content>div{min-width:0;flex:1 1 auto}
+.flow-hero__content .flow-primary-action{flex:0 0 auto;margin-bottom:1px}
+.flow-primary-action{min-height:46px}
+.flow-spine-card>.section-note{margin-top:-2px;margin-bottom:17px}
+
+.flow-spine{
+  position:relative;display:flex;align-items:stretch;gap:0;
+  overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;
+  padding:7px 2px 5px
+}
+.flow-spine:before{
+  content:"";position:absolute;left:54px;right:54px;top:25px;height:2px;
+  background:linear-gradient(90deg,#cfd9cc,#dfe6dc);border-radius:2px;pointer-events:none
+}
+.spine-stop{
+  position:relative;z-index:1;flex:1 0 112px;min-width:112px;
+  border:0;background:transparent;padding:0 8px 9px;text-align:center;
+  border-radius:15px;color:#627066
+}
+.spine-stop .spine-dot{
+  display:block;width:13px;height:13px;margin:12px auto 13px;border-radius:50%;
+  background:#f8faf6;border:2px solid #b9c7b5;
+  box-shadow:0 0 0 4px #fff
+}
+.spine-stop .spine-period{
+  display:block;font-size:.72rem;font-weight:720;color:#78847a;margin-bottom:5px
+}
+.spine-stop strong{
+  display:block;font-size:.9rem;line-height:1.4;color:#4b5a4f;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.spine-stop small{
+  display:block;font-size:.72rem;line-height:1.4;margin-top:4px;color:#7a867d;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.spine-stop.is-done{opacity:.66}
+.spine-stop.is-done .spine-dot{background:#acb9a8;border-color:#acb9a8}
+.spine-stop.is-live,.spine-stop.is-current{
+  background:linear-gradient(180deg,rgba(235,248,229,.2),rgba(235,248,229,.75));
+  color:#24582a
+}
+.spine-stop.is-live .spine-dot,.spine-stop.is-current .spine-dot{
+  width:16px;height:16px;margin-top:10px;margin-bottom:12px;
+  background:#35bd0b;border-color:#35bd0b;
+  box-shadow:0 0 0 4px #fff,0 0 0 7px rgba(53,189,11,.13),0 5px 14px rgba(53,189,11,.22)
+}
+.spine-stop.is-live strong,.spine-stop.is-current strong{color:#204d25;font-weight:780}
+.spine-stop.is-live .spine-period,.spine-stop.is-current .spine-period{color:#2b7b30}
+.spine-stop.is-next .spine-dot{
+  border-color:#62b64f;background:#fff;
+  box-shadow:0 0 0 4px #fff,0 0 0 6px rgba(98,182,79,.11)
+}
+.spine-stop.is-next strong{color:#315a35}
+
+.next-action-card{
+  position:relative;overflow:hidden;display:grid;
+  grid-template-columns:46px minmax(0,1fr) auto;
+  align-items:center;gap:14px 16px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(255,230,43,.12),transparent 38%),
+    linear-gradient(145deg,#fff,#f8fbf5);
+  border-color:#d8e5d4
+}
+.next-action-card:before{
+  content:"";position:absolute;inset:0 0 auto;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)
+}
+.next-action__icon{
+  width:46px;height:46px;display:grid;place-items:center;border-radius:14px;
+  color:#347e31;background:linear-gradient(145deg,#eef8e9,#e5f3df);
+  box-shadow:inset 0 1px 0 #fff
+}
+.next-action__icon .ui-icon{width:23px;height:23px}
+.next-action__copy small{
+  display:block;font-size:.76rem;font-weight:730;color:#4d7550;margin-bottom:4px
+}
+.next-action__copy h2{
+  font-size:1.18rem;line-height:1.35;letter-spacing:-.032em
+}
+.next-action__copy p{
+  margin-top:5px;font-size:.83rem;line-height:1.55;color:#667269
+}
+.next-action__button{white-space:nowrap;justify-self:end}
+
+@media(hover:hover) and (pointer:fine){
+  .spine-stop:hover{background:#f5f8f3;color:#334d37}
+  .spine-stop:hover .spine-dot{transform:scale(1.08)}
+  .next-action-card:hover{border-color:#cbdcc6;box-shadow:var(--flow-shadow-raised)}
+}
+.spine-stop .spine-dot{transition:transform var(--flow-ui) var(--flow-spring),box-shadow var(--flow-ui) ease}
+@media(prefers-reduced-motion:no-preference){
+  .spine-stop.is-live .spine-dot,.spine-stop.is-current .spine-dot{
+    animation:flow-spine-live 2.6s ease-in-out infinite
+  }
+}
+@keyframes flow-spine-live{
+  0%,100%{box-shadow:0 0 0 4px #fff,0 0 0 7px rgba(53,189,11,.10),0 5px 14px rgba(53,189,11,.18)}
+  50%{box-shadow:0 0 0 4px #fff,0 0 0 9px rgba(53,189,11,.16),0 7px 18px rgba(53,189,11,.24)}
+}
+
+@media(min-width:700px){
+  .today-flow-layout{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-template-areas:
+      "focus focus"
+      "spine spine"
+      "action prep"
+      "deadlines meal";
+    gap:20px
+  }
+  .flow-spine-card{padding-inline:24px}
+}
+@media(min-width:1200px){
+  .today-flow-layout{
+    grid-template-columns:minmax(0,1.18fr) minmax(0,1fr) minmax(300px,.8fr);
+    grid-template-areas:
+      "focus focus action"
+      "spine spine spine"
+      "prep deadlines meal";
+    align-items:start
+  }
+  .next-action-card{
+    grid-template-columns:44px minmax(0,1fr);
+    align-content:start
+  }
+  .next-action__button{grid-column:1/-1;width:100%;margin-top:4px}
+}
+@media(max-width:699px){
+  .today-flow-layout{gap:14px}
+  .flow-hero__content{display:grid;gap:16px}
+  .flow-hero__content .flow-primary-action{justify-self:start}
+  .flow-spine-card{padding-inline:16px}
+  .flow-spine{margin-inline:-4px;padding-bottom:8px}
+  .flow-spine:before{left:54px;right:54px}
+  .spine-stop{flex-basis:106px;min-width:106px;padding-inline:6px}
+  .next-action-card{grid-template-columns:42px minmax(0,1fr);gap:12px}
+  .next-action__icon{width:42px;height:42px;border-radius:13px}
+  .next-action__button{grid-column:1/-1;width:100%;margin-top:3px}
+}
+@media(prefers-reduced-motion:reduce){
+  .spine-stop.is-live .spine-dot,.spine-stop.is-current .spine-dot{animation:none!important}
+}
