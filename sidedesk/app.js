@@ -12,6 +12,10 @@ const E=s=>String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt
 const C=v=>String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
 const D=v=>({1:'가벼움',2:'보통',3:'어려움',4:'매우 어려움'})[+v]||'보통';
 const P=p=>p?.total?Math.min(100,Math.round((p.done||0)/p.total*100)):0;
+const SESSIONP=p=>{
+  const start=Math.max(0,p?.startDone||0),total=Math.max(start+1,p?.total||1),fresh=Math.max(0,(p?.done||0)-start);
+  return Math.min(100,Math.round(fresh/Math.max(1,total-start)*100))
+};
 const ACC=p=>{let n=(p?.correct||0)+(p?.wrong||0);return n?Math.round((p.correct||0)/n*100):null};
 const code=()=>{let s='',c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';for(let i=0;i<6;i++)s+=c[Math.random()*c.length|0];return s};
 const wid=()=>('wb_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7));
