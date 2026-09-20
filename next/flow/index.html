@@ -34,14 +34,14 @@
 
       const v7 = document.createElement("link");
       v7.rel = "stylesheet";
-      v7.href = withShare("./flow-v7.css?v=20260920-v71");
+      v7.href = withShare("./flow-v7.css?v=20260920-v72");
       v7.dataset.pinconFlowLayer = "v7";
       document.head.appendChild(v7);
     })();
   </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body data-flow-version="7.0" data-performance-mode="lightweight" data-icon-system="local-material-svg">
+<body data-flow-version="7.2" data-performance-mode="lightweight" data-icon-system="local-material-svg">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
@@ -86,7 +86,7 @@
   <script type="module" src="../core/analytics.js?v=20260913-privacy1"></script>\n\n  <script type="module">
     const withShare = globalThis.PINCON_FLOW_WITH_SHARE || ((url) => url);
     try {
-      await import(withShare("./flow.js?v=20260909-layout1"));
+      await import(withShare("./flow.js?v=20260920-v72"));
       document.body.dataset.flowReady = "true";
     } catch (error) {
       document.body.dataset.flowReady = "failed";
