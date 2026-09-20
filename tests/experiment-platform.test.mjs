@@ -7,6 +7,7 @@ import {
   crossoverSequenceFor,
   deterministicUiVariant,
   notificationConditionFor,
+  notificationPeriodAt,
   resolveUiVariant,
 } from "../next/experiment/assignment-service.js";
 import {
@@ -115,6 +116,36 @@ test("Notification experiment honors baseline, periods, and frequency budgets", 
     now: new Date("2026-09-03T03:00:00Z"),
   });
   assert.equal(condition.condition, "HIGH");
+});
+
+test("Notification experiment counts only school days when enabled", () => {
+  const config = {
+    startDate: "2026-09-21",
+    baselineDays: 2,
+    periodDays: 4,
+    schoolDaysOnly: true,
+    excludedDates: ["2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09"],
+    frequency: { lowPerDay: 1, midPerDay: 3, highPerDay: 4 },
+  };
+
+  const cases = [
+    ["2026-09-21T03:00:00Z", "BASELINE", 0, 1],
+    ["2026-09-22T03:00:00Z", "BASELINE", 0, 2],
+    ["2026-09-23T03:00:00Z", "EXPERIMENT", 1, 1],
+    ["2026-09-24T03:00:00Z", "OFF_DAY", 0, 0],
+    ["2026-09-26T03:00:00Z", "OFF_DAY", 0, 0],
+    ["2026-09-28T03:00:00Z", "EXPERIMENT", 1, 2],
+    ["2026-09-30T03:00:00Z", "EXPERIMENT", 1, 4],
+    ["2026-10-01T03:00:00Z", "EXPERIMENT", 2, 1],
+    ["2026-10-05T03:00:00Z", "OFF_DAY", 0, 0],
+    ["2026-10-09T03:00:00Z", "OFF_DAY", 0, 0],
+  ];
+
+  for (const [iso, phase, period, periodDay] of cases) {
+    const now = new Date(iso);
+    assert.deepEqual(periodFor(config, now), { phase, period, periodDay });
+    assert.deepEqual(notificationPeriodAt(config, now), { phase, period, periodDay });
+  }
 });
 
 test("Notification frequency rotates time slots and never repeats a candidate within a day plan", () => {
