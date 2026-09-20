@@ -24,6 +24,21 @@ function loadLocal(){
   }catch{return{workbooks:[],history:[]}}
 }
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(local))}catch{}}
+function rememberRoom(){local.activeRoom={room,role,name,at:Date.now()};saveLocal()}
+function forgetRoom(){delete local.activeRoom;saveLocal()}
+async function resumeOrLanding(){
+  const a=local.activeRoom;
+  if(!a?.room||!a?.role)return landing();
+  try{
+    const snap=await getDoc(doc(db,'sidedeskRooms',a.room));
+    if(!snap.exists())throw Error('missing');
+    const d=snap.data(),p=d[a.role];
+    if(!p||p.uid!==authUid)throw Error('identity');
+    room=a.room;role=a.role;name=a.name||p.nickname;R=d;
+    if(d.status==='studying')study();else lobby();
+    bind();
+  }catch{forgetRoom();landing()}
+}
 function ensureWorkbook(){
   if(!local.workbooks.length){
     local.workbooks.push({id:wid(),title:'오늘의 문제집',subject:'수학',total:20,difficulty:2,createdAt:Date.now()});
@@ -95,6 +110,8 @@ function landing(){
   '<div class="paper"><div class="section-title"><h2>내 문제집</h2><button id="newwb" class="btn ghost" style="min-height:40px;padding:7px 10px">+ 만들기</button></div>'+
   '<div id="landingShelf" class="shelf"></div><div class="weekly-strip" id="weeklyStrip"></div><div class="section-title" style="margin-top:18px"><h3>최근 공부</h3><button id="historyAll" class="btn ghost" style="min-height:38px;padding:6px 10px">책장 보기</button></div><div class="history">'+recentHistory()+'</div></div></section></div></main>';
   renderLandingShelf();
+  const invited=C(new URLSearchParams(location.search).get('room')||'');
+  if(invited){jc.value=invited}
   const ws=weeklyStats();
   weeklyStrip.innerHTML='<div><b>'+ws.sessions+'</b><span>세션</span></div><div><b>'+ws.problems+'</b><span>문항</span></div><div><b>'+ws.minutes+'</b><span>분</span></div>';
   mk.onclick=create;jn.onclick=join;newwb.onclick=()=>workbookEditor(null,renderLandingShelf);historyAll.onclick=historyPanel;
@@ -140,7 +157,7 @@ async function create(){
   for(let i=0;i<5;i++){
     let x=code(),r=doc(db,'sidedeskRooms',x);if((await getDoc(r)).exists())continue;
     room=x;await setDoc(r,{version:2,status:'lobby',host:player(n),guest:null,createdAtMs:Date.now(),startedAtMs:null,updatedAt:serverTimestamp()});
-    lobby();bind();return
+    rememberRoom();history.replaceState(null,'',location.pathname+'?room='+room);lobby();bind();return
   }err('방 코드를 만들지 못했습니다.')
 }
 async function join(){
@@ -152,7 +169,7 @@ async function join(){
       if(d.status!=='lobby')throw Error('시작');if(d.guest)throw Error('가득');
       t.update(r,{guest:player(n),updatedAt:serverTimestamp()})
     });
-    room=x;name=n;role='guest';lobby();bind()
+    room=x;name=n;role='guest';rememberRoom();history.replaceState(null,'',location.pathname+'?room='+room);lobby();bind()
   }catch(e){err(e.message==='없음'?'방을 찾지 못했습니다.':e.message==='가득'?'이미 두 명이 들어와 있습니다.':e.message==='시작'?'이미 시작한 방입니다.':'입장하지 못했습니다.')}
 }
 function bookMarkup(w,id='book'){
@@ -163,7 +180,7 @@ function openBook(id){requestAnimationFrame(()=>setTimeout(()=>document.querySel
 function lobby(){
   const w=activeWorkbook();
   A.innerHTML='<main class="app" id="lobbyScreen"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">SideDesk</h1><div class="muted">문제집을 고르고 친구를 기다리세요.</div></div></div><span class="badge">ROOM '+room+'</span></header>'+
-  '<section class="desk lobby"><div class="paper"><div class="kicker">ROOM CODE</div><div class="code" style="margin-top:8px">'+room+'</div>'+
+  '<section class="desk lobby"><div class="paper"><div class="kicker">ROOM CODE</div><div class="code" style="margin-top:8px">'+room+'</div><button id="shareInvite" class="btn ghost" style="width:100%;margin-top:10px">초대 링크 공유</button>'+
   '<div class="status" style="margin-top:14px"><span><i class="dot on"></i> <b>'+E(name)+'</b></span><span>준비됨</span></div>'+
   '<div class="status" style="margin-top:8px"><span><i id="fd" class="dot"></i> <b id="fn">친구 기다리는 중</b></span><span id="fr">대기</span></div>'+
   '<div class="section-title" style="margin-top:18px"><h3>친구 문제집</h3><button id="copywb" class="btn ghost hidden" style="min-height:38px;padding:6px 9px">내 목록에 저장</button></div><div id="friendBook" class="small">친구가 들어오면 여기에 표시됩니다.</div>'+
@@ -173,8 +190,20 @@ function lobby(){
   '<div class="field"><label>문제집 선택</label><select id="wbselect" class="select">'+local.workbooks.map(x=>'<option value="'+E(x.id)+'" '+(x.id===w.id?'selected':'')+'>'+E(x.title)+' · '+E(x.subject)+'</option>').join('')+'</select></div>'+
   '<div class="row" style="margin-top:10px"><button id="editwb" class="btn ghost" style="flex:1">현재 문제집 수정</button></div>'+
   '<button id="go" class="btn primary" style="width:100%;margin-top:14px" disabled>'+(role==='host'?'친구를 기다리는 중':'방장이 시작하면 자동 시작')+'</button></div></section></div></main>';
-  leave.onclick=()=>location.reload();newwb.onclick=()=>workbookEditor(null,renderLobbyLibrary);editwb.onclick=()=>workbookEditor(activeWorkbook(),renderLobbyLibrary);
+  leave.onclick=leaveRoom;shareInvite.onclick=shareRoom;newwb.onclick=()=>workbookEditor(null,renderLobbyLibrary);editwb.onclick=()=>workbookEditor(activeWorkbook(),renderLobbyLibrary);
   wbselect.onchange=()=>selectWorkbook(wbselect.value);if(role==='host')go.onclick=start;copywb.onclick=copyFriendWorkbook;openBook('myBook');
+}
+async function shareRoom(){
+  const url=location.origin+location.pathname+'?room='+room;
+  const data={title:'SideDesk 공부방',text:name+'님이 SideDesk 공부방에 초대했습니다. 방 코드 '+room,url};
+  try{
+    if(navigator.share){await navigator.share(data);return}
+    if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);shareInvite.textContent='링크 복사됨';setTimeout(()=>shareInvite.textContent='초대 링크 공유',1300);return}
+  }catch(e){if(e?.name==='AbortError')return}
+  prompt('이 링크를 친구에게 보내세요.',url);
+}
+function leaveRoom(){
+  forgetRoom();unsub?.();eu?.();clearInterval(timer);history.replaceState(null,'',location.pathname);location.reload()
 }
 async function renderLobbyLibrary(){
   if(!document.querySelector('#lobbyScreen'))return;
@@ -301,7 +330,7 @@ function showSummary(m,f){
     '<div><span>함께 공부</span><b>'+mins+'분</b><em>'+E(f.nickname)+'와 함께</em></div>'+
     '<div><span>'+E(f.nickname)+'</span><b>'+f.done+'/'+f.total+'</b><em>'+(fa==null?'정확도 -':fa+'%')+'</em></div>'+
     '</div><button id="backHome" class="btn primary" style="width:100%;margin-top:14px">책상 정리하고 홈으로</button>';
-  box.classList.remove('hidden');backHome.onclick=()=>location.reload();box.scrollIntoView({behavior:'smooth',block:'center'});
+  box.classList.remove('hidden');backHome.onclick=leaveRoom;box.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function beginHistory(){
   const m=R?.[role];if(!m)return;
@@ -322,4 +351,4 @@ function msg(t){let e=document.querySelector('#live');if(e)e.textContent=t}
 function tr(t){let l=document.querySelector('#trace');if(!l)return;let e=document.createElement('div');e.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' · '+t;l.prepend(e);while(l.children.length>5)l.lastElementChild.remove()}
 function ticker(){clearInterval(timer);timer=setInterval(()=>{let c=document.querySelector('#clock');if(!c)return;let s=Math.max(0,((Date.now()-started)/1000)|0);c.textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(R){const m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(m&&f){fill('m',m);fill('x',f)}}},1000)}
 
-try{let c=await signInAnonymously(auth);authUid=c.user.uid;landing()}catch(e){console.error(e);fail('실시간 연결용 익명 로그인을 시작하지 못했습니다.')}
+try{let c=await signInAnonymously(auth);authUid=c.user.uid;await resumeOrLanding()}catch(e){console.error(e);fail('실시간 연결용 익명 로그인을 시작하지 못했습니다.')}
