@@ -29,15 +29,51 @@ export function kstClock(now = new Date()) {
   return { hour: shifted.getUTCHours(), minute: shifted.getUTCMinutes(), date: shifted.toISOString().slice(0,10) };
 }
 
+function isEligibleExperimentDay(date, config = {}) {
+  if (config.schoolDaysOnly !== true) return true;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  const weekday = parsed.getUTCDay();
+  if (weekday === 0 || weekday === 6) return false;
+  const excluded = new Set(
+    (Array.isArray(config.excludedDates) ? config.excludedDates : [])
+      .map((value) => String(value || ""))
+      .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value)),
+  );
+  return !excluded.has(date);
+}
+
+function eligibleDayCount(startDate, endDate, config = {}) {
+  let count = 0;
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = Date.parse(`${endDate}T00:00:00Z`);
+  while (cursor.getTime() <= end) {
+    const date = cursor.toISOString().slice(0, 10);
+    if (isEligibleExperimentDay(date, config)) count += 1;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return count;
+}
+
 export function periodFor(config = {}, now = new Date()) {
   const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(config.startDate || "")) ? config.startDate : "";
   if (!startDate) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
-  const day = Math.floor((Date.parse(`${kstDate(now)}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000);
+  const today = kstDate(now);
+  const day = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000);
   if (day < 0) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
+
+  if (config.schoolDaysOnly === true && !isEligibleExperimentDay(today, config)) {
+    return { phase: "OFF_DAY", period: 0, periodDay: 0 };
+  }
+
+  const ordinal = config.schoolDaysOnly === true
+    ? eligibleDayCount(startDate, today, config) - 1
+    : day;
+  if (ordinal < 0) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
+
   const baselineDays = Math.max(0, Math.trunc(Number(config.baselineDays ?? 2)));
   const periodDays = Math.max(1, Math.trunc(Number(config.periodDays ?? 4)));
-  if (day < baselineDays) return { phase: "BASELINE", period: 0, periodDay: day + 1 };
-  const elapsed = day - baselineDays;
+  if (ordinal < baselineDays) return { phase: "BASELINE", period: 0, periodDay: ordinal + 1 };
+  const elapsed = ordinal - baselineDays;
   const period = Math.floor(elapsed / periodDays) + 1;
   if (period > 3) return { phase: "COMPLETE", period: 4, periodDay: 0 };
   return { phase: "EXPERIMENT", period, periodDay: (elapsed % periodDays) + 1 };
