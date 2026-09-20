@@ -405,9 +405,10 @@ function renderPresence(prefix,d){
 }
 async function sendPresence(){
   if(!room||!role||!R||R.status!=='studying')return;
-  const m=R[role];if(!m)return;
+  if(!R[role])return;
   const now=Date.now(),visibility=document.hidden?'background':'active';
-  try{await updateDoc(doc(db,'sidedeskRooms',room),{[role]:{...m,presenceAtMs:now,visibility},updatedAt:serverTimestamp()})}catch{}
+  const patch={updatedAt:serverTimestamp()};patch[role+'.presenceAtMs']=now;patch[role+'.visibility']=visibility;
+  try{await updateDoc(doc(db,'sidedeskRooms',room),patch)}catch{}
 }
 function startPresence(){
   clearInterval(presenceTimer);sendPresence();presenceTimer=setInterval(sendPresence,25000)
