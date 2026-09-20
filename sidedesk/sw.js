@@ -1,4 +1,4 @@
-const CACHE='sidedesk-shell-v3';
+const CACHE='sidedesk-shell-v4';
 const CORE=['/sidedesk/','/sidedesk/style.css','/sidedesk/app.js','/sidedesk/manifest.webmanifest','/sidedesk/icon.svg','/firebase-config.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(xs=>Promise.all(xs.filter(x=>x!==CACHE&&x.startsWith('sidedesk-')).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));
