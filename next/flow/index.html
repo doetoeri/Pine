@@ -28,14 +28,20 @@
 
       const lite = document.createElement("link");
       lite.rel = "stylesheet";
-      lite.href = withShare("./flow-lite-v6.css?v=20260909-layout1");
+      lite.href = withShare("./flow-lite-v6.css?v=20260920-v7");
       lite.dataset.pinconFlowLayer = "lite-v6";
       document.head.appendChild(lite);
+
+      const v7 = document.createElement("link");
+      v7.rel = "stylesheet";
+      v7.href = withShare("./flow-v7.css?v=20260920-v7");
+      v7.dataset.pinconFlowLayer = "v7";
+      document.head.appendChild(v7);
     })();
   </script>
   <script src="../../firebase-config.js?v=20260903-account-fallback1"></script>
 </head>
-<body data-flow-version="6.1" data-performance-mode="lightweight" data-icon-system="local-material-svg">
+<body data-flow-version="7.0" data-performance-mode="lightweight" data-icon-system="local-material-svg">
   <div class="flow-boot" id="flowBoot" role="status" aria-live="polite">
     <img src="../assets/pincon-icon.svg" alt="" />
     <div><strong>PinCon Flow</strong><span id="flowBootText">오늘을 정리하는 중</span></div>
