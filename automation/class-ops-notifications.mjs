@@ -146,6 +146,11 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
   ]);
   const frequencyConfigData = frequencyConfig?.exists ? frequencyConfig.data() : null;
   const frequencyPhase = frequencyConfigData ? periodFor(frequencyConfigData, now).phase : "NOT_STARTED";
+  const frequencyTargetClassKeys = new Set(
+    (Array.isArray(frequencyConfigData?.targetClassKeys) ? frequencyConfigData.targetClassKeys : [])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean),
+  );
   const frequencyControlled = Boolean(
     frequencyConfigData
     && frequencyConfigData.status === "ACTIVE"
@@ -164,6 +169,8 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
   const windows = [];
 
   for (const classKey of classKeys) {
+    const classFrequencyControlled = frequencyControlled
+      && (!frequencyTargetClassKeys.size || frequencyTargetClassKeys.has(classKey));
     const [assignments, events, polls, announcements] = await Promise.all([
       queryRows(root.collection("classAssignments"), "classKey", "==", classKey),
       queryRows(root.collection("events"), "classKey", "==", classKey),
@@ -171,7 +178,7 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
       queryRows(root.collection("announcements"), "classKey", "==", classKey),
     ]);
 
-    if (morning && !frequencyControlled) {
+    if (morning && !classFrequencyControlled) {
       const items = assignments.filter((item) => !item.deleted && item.dueDate === clock.date).flatMap((item) => {
         if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentToday", line: `${item.subject ? `${item.subject} ` : ""}${item.title}`, urgent: true }];
         if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}`, urgent: true }];
@@ -182,7 +189,7 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
       if (items.length) windows.push(`${classKey}:morning`);
     }
 
-    if (evening && !frequencyControlled) {
+    if (evening && !classFrequencyControlled) {
       const items = assignments.filter((item) => !item.deleted && item.dueDate === tomorrow).flatMap((item) => {
         if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentTomorrow", line: `${item.subject ? `${item.subject} ` : ""}${item.title}` }];
         if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}` }];
@@ -207,7 +214,13 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
     }
   }
 
-  return { classes: classKeys.length, sent, windows, frequencyControlled };
+  return {
+    classes: classKeys.length,
+    sent,
+    windows,
+    frequencyControlled,
+    frequencyTargetClassKeys: [...frequencyTargetClassKeys],
+  };
 }
 
 export async function closeExpiredClassOps({ db, now = new Date() }) {
