@@ -1,0 +1,14 @@
+{
+  "name":"SideDesk",
+  "short_name":"SideDesk",
+  "description":"멀리 있어도 같은 책상처럼 공부하는 2인 실시간 공부방",
+  "start_url":"/sidedesk/",
+  "scope":"/sidedesk/",
+  "display":"standalone",
+  "background_color":"#b98050",
+  "theme_color":"#b98050",
+  "orientation":"any",
+  "icons":[
+    {"src":"/sidedesk/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
