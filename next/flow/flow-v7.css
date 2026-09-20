@@ -95,3 +95,190 @@ body{background:linear-gradient(180deg,#f9fbf7 0,#f5f8f3 320px,#f5f7f4 100%);col
 @media(prefers-reduced-motion:reduce){
   .mission,.quick-action,.meal-day,.nav-button,.prep-row,.task-row,.period,.event{transition:none!important}
 }
+
+/* v7.1 — motion, micro-detail and readability */
+:root{
+  --flow-text:#1f2d23;
+  --flow-muted-strong:#59675d;
+  --flow-fast:120ms;
+  --flow-ui:180ms;
+  --flow-page:260ms;
+  --flow-spring:cubic-bezier(.2,.82,.2,1);
+}
+body{color:var(--flow-text);font-feature-settings:"kern" 1,"tnum" 1}
+:where(p,small,.section-note,.page-intro p,.mission-copy,.event small,.task-row small,.period__body>span,.quick-action small,.sheet-meta){
+  color:var(--flow-muted-strong)
+}
+:where(.prep-row strong,.task-row strong,.period__body strong,.event strong,.quick-action strong,.menu-preview li){
+  line-height:1.55
+}
+.page-intro h1{letter-spacing:-.045em;line-height:1.12}
+.page-intro p{line-height:1.65}
+.section-head h2,.group-heading h2{letter-spacing:-.025em}
+.soft-button,.icon-button,.text-button,.nav-button,.day-chip,.chip,
+.prep-row,.task-row,.period,.event,.mission,.quick-action,.meal-day{
+  -webkit-tap-highlight-color:transparent;
+  transition:
+    transform var(--flow-fast) ease,
+    box-shadow var(--flow-ui) ease,
+    border-color var(--flow-ui) ease,
+    background-color var(--flow-ui) ease,
+    color var(--flow-ui) ease,
+    opacity var(--flow-fast) ease
+}
+.flow-pressed{transform:translateY(1px) scale(.985)!important}
+.soft-button,.icon-button{
+  position:relative;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 2px 7px rgba(30,54,30,.055)
+}
+.soft-button:before,.icon-button:before{
+  content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.45),transparent 42%);
+  opacity:.7
+}
+.topline{transition:background-color var(--flow-ui) ease,box-shadow var(--flow-ui) ease,border-color var(--flow-ui) ease}
+body.flow-scrolled .topline{
+  background:rgba(248,251,247,.975);
+  border-bottom-color:#d7e1d4;
+  box-shadow:0 8px 24px rgba(26,49,27,.055)
+}
+.nav-button .ui-icon{
+  transition:transform var(--flow-ui) var(--flow-spring),opacity var(--flow-ui) ease
+}
+.nav-button.is-active .ui-icon{transform:translateY(-2px) scale(1.06)}
+.nav-button.is-active span{font-weight:720}
+.nav-button.is-active:after{animation:flow-nav-indicator var(--flow-page) var(--flow-spring) both}
+@keyframes flow-nav-indicator{
+  from{transform:scaleX(.35);opacity:.2}
+  to{transform:scaleX(1);opacity:1}
+}
+.canvas.is-leaving{
+  opacity:0;transform:translateY(6px) scale(.996);
+  transition:opacity 100ms ease,transform 100ms ease
+}
+.canvas.is-entering{
+  animation:flow-page-enter var(--flow-page) var(--flow-spring) both
+}
+@keyframes flow-page-enter{
+  from{opacity:0;transform:translateY(8px) scale(.997)}
+  to{opacity:1;transform:none}
+}
+.canvas.is-entering .page-intro,
+.canvas.is-entering .today-layout>.card,
+.canvas.is-entering .timetable-layout>.card,
+.canvas.is-entering .agenda-day,
+.canvas.is-entering .assessment-group,
+.canvas.is-entering .meal-layout>*,
+.canvas.is-entering .hub-section{
+  animation:flow-detail-enter 300ms var(--flow-spring) both
+}
+.canvas.is-entering .page-intro{animation-delay:20ms}
+.canvas.is-entering :is(.today-layout>.card,.timetable-layout>.card,.agenda-day,.assessment-group,.meal-layout>*,.hub-section):nth-child(1){animation-delay:45ms}
+.canvas.is-entering :is(.today-layout>.card,.timetable-layout>.card,.agenda-day,.assessment-group,.meal-layout>*,.hub-section):nth-child(2){animation-delay:75ms}
+.canvas.is-entering :is(.today-layout>.card,.timetable-layout>.card,.agenda-day,.assessment-group,.meal-layout>*,.hub-section):nth-child(3){animation-delay:105ms}
+.canvas.is-entering :is(.today-layout>.card,.timetable-layout>.card,.agenda-day,.assessment-group,.meal-layout>*,.hub-section):nth-child(n+4){animation-delay:125ms}
+@keyframes flow-detail-enter{
+  from{opacity:0;transform:translateY(9px)}
+  to{opacity:1;transform:none}
+}
+.focus-card:after{
+  content:"";position:absolute;inset:-35% -20%;pointer-events:none;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.5) 49%,transparent 60%);
+  transform:translateX(-48%) rotate(4deg);opacity:0
+}
+.canvas.is-entering .focus-card:after{animation:flow-focus-sheen 700ms 90ms ease-out both}
+@keyframes flow-focus-sheen{
+  0%{transform:translateX(-48%) rotate(4deg);opacity:0}
+  24%{opacity:.65}
+  100%{transform:translateX(46%) rotate(4deg);opacity:0}
+}
+.period.is-now{
+  overflow:hidden;
+  border-color:#cfe5c7;
+  box-shadow:inset 3px 0 0 var(--flow-accent),0 4px 14px rgba(45,170,0,.055)
+}
+.period.is-now:after{
+  content:"";position:absolute;left:0;top:13px;bottom:13px;width:3px;border-radius:3px;
+  background:linear-gradient(180deg,#43d214,#a3e31a);
+  transform-origin:center
+}
+.period.is-now .period__body strong{color:#204f24;font-weight:760}
+.period.is-now .period__room{color:#355f37}
+@media(prefers-reduced-motion:no-preference){
+  .period.is-now:after{animation:flow-live-breathe 2.8s ease-in-out infinite}
+}
+@keyframes flow-live-breathe{
+  0%,100%{opacity:.72;transform:scaleY(.82)}
+  50%{opacity:1;transform:scaleY(1)}
+}
+.task-row .row-chevron,.prep-row>.ui-icon:last-child,.period__room .ui-icon,
+.event>.ui-icon,.mission__foot>.ui-icon,.quick-action>.ui-icon,.meal-day>.ui-icon,.text-button>.ui-icon{
+  transition:transform var(--flow-ui) var(--flow-spring),color var(--flow-ui) ease
+}
+@media(hover:hover) and (pointer:fine){
+  .soft-button:hover,.icon-button:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff,0 6px 16px rgba(31,64,31,.09)}
+  .mission:hover,.quick-action:hover,.meal-day:hover{transform:translateY(-2px)}
+  .task-row:hover .row-chevron,.prep-row:hover>.ui-icon:last-child,.period:hover .period__room .ui-icon,
+  .event:hover>.ui-icon,.mission:hover .mission__foot>.ui-icon,.quick-action:hover>.ui-icon,.meal-day:hover>.ui-icon,.text-button:hover>.ui-icon{
+    transform:translateX(3px)
+  }
+  .nav-button:hover:not(.is-active) .ui-icon{transform:translateY(-1px)}
+}
+.due-stamp{font-variant-numeric:tabular-nums;font-weight:760}
+.task-row:has(.due-stamp:first-child){border-radius:12px}
+.is-urgent .mission{
+  background:linear-gradient(180deg,#fff,#fffdf8);
+  box-shadow:0 10px 28px rgba(84,60,20,.055)
+}
+.is-urgent .urgency{color:#8a5a16;font-weight:780}
+.mission-copy{line-height:1.7}
+.subject-pill{font-weight:650}
+.event-type{font-weight:720}
+.day-chip strong,.week-date,.due-stamp,.urgency{font-variant-numeric:tabular-nums}
+.day-chip.is-selected{transform:translateY(-1px)}
+.day-chip.is-selected strong{color:#205d26}
+.chip.is-active{color:#214f27}
+.chip.is-active:after{
+  content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,#2daa00,#82cd20);
+  transform-origin:left;animation:flow-chip-in 220ms var(--flow-spring) both
+}
+@keyframes flow-chip-in{from{transform:scaleX(.25);opacity:.2}to{transform:scaleX(1);opacity:1}}
+.flow-sheet{
+  transform:translateY(22px) scale(.992);
+  transition:opacity 170ms ease,transform 240ms var(--flow-spring)
+}
+.flow-sheet[open].is-visible{transform:translateY(0) scale(1)}
+.flow-sheet[open].is-visible .flow-sheet__content{animation:flow-sheet-content 260ms 50ms var(--flow-spring) both}
+@keyframes flow-sheet-content{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.flow-sheet__grab{box-shadow:inset 0 1px 0 rgba(255,255,255,.65)}
+.sheet-title{line-height:1.25;letter-spacing:-.035em}
+.sheet-section p{line-height:1.72;color:#3f5042}
+.empty-state{line-height:1.72}
+.menu-preview li{color:#35453a}
+.week-table th{color:#59685d}
+.week-lesson{font-weight:620;line-height:1.45}
+.sync-status{color:#59685d}
+@media(max-width:699px){
+  body{font-size:16px}
+  .canvas{padding-inline:16px}
+  .page-intro h1{font-size:2.05rem}
+  .section-head h2{font-size:1.08rem}
+  .focus-card h2{font-size:1.78rem;line-height:1.2}
+  .focus-card p{font-size:.9rem;line-height:1.62}
+  .task-row strong,.prep-row strong,.period__body strong,.event strong{font-size:.98rem}
+  .task-row small,.prep-row small,.period__body>span,.event small{font-size:.8rem;line-height:1.55}
+  .dock{box-shadow:0 12px 34px rgba(25,52,25,.16)}
+}
+@media(max-width:359px){
+  .page-intro h1{font-size:1.82rem}
+  .focus-card h2{font-size:1.58rem}
+  .task-row{grid-template-columns:52px minmax(0,1fr) 16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .canvas.is-entering,.canvas.is-entering *,.nav-button.is-active:after,.chip.is-active:after,
+  .flow-sheet[open].is-visible .flow-sheet__content,.canvas.is-entering .focus-card:after,.period.is-now:after{
+    animation:none!important
+  }
+  .canvas.is-leaving,.flow-sheet,.flow-sheet[open].is-visible{transform:none!important}
+}
