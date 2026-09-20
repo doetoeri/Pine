@@ -1,0 +1,97 @@
+/* PinCon Flow v7 — hierarchy, navigation and responsive polish.
+   Additive layer: preserves the existing data/rendering engine. */
+:root{
+  --flow-surface:#f7f9f5;--flow-surface-2:#f0f4ed;--flow-ink:#18251c;
+  --flow-subtle:#667269;--flow-line:#dde5da;--flow-accent:#2daa00;
+  --flow-accent-soft:#eaf6e5;--flow-warm:#fff8d8;
+  --flow-shadow:0 10px 30px rgba(31,62,31,.055);
+  --flow-shadow-raised:0 14px 38px rgba(31,62,31,.085);
+}
+body{background:linear-gradient(180deg,#f9fbf7 0,#f5f8f3 320px,#f5f7f4 100%);color:var(--flow-ink)}
+.topline{
+  min-height:64px;padding-block:9px;background:rgba(249,251,247,.94);
+  border-bottom-color:rgba(210,222,207,.8);box-shadow:0 1px 0 rgba(255,255,255,.8)
+}
+.brand-lockup img{width:38px;height:38px}.brand-lockup strong{font-weight:760}
+.canvas{padding-top:28px}.page-intro{margin-bottom:30px;align-items:center}
+.page-intro small{text-transform:none;letter-spacing:.01em}.page-intro h1{font-weight:780}
+.page-intro p{max-width:390px;text-align:right}
+.card,.event-list,.mission,.quick-action,.meal-day{
+  border-color:var(--flow-line);box-shadow:var(--flow-shadow)
+}
+.card{border-radius:22px}
+.focus-card{
+  position:relative;overflow:hidden;background:
+  radial-gradient(circle at 92% 0%,rgba(255,230,43,.22),transparent 34%),
+  linear-gradient(135deg,#eaf9e4 0%,#f7fbea 72%,#fffbea 100%);
+  border-color:#d7e8d1;box-shadow:var(--flow-shadow-raised)
+}
+.focus-card:before{
+  content:"";position:absolute;left:0;right:0;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent)
+}
+.focus-card h2{font-weight:790;line-height:1.17}.focus-caption{font-weight:720}
+.status-rail{border-top-color:rgba(174,202,163,.55)}
+.status-rail button{border-right-color:rgba(174,202,163,.55)}
+.status-rail strong{font-variant-numeric:tabular-nums}
+.section-head{margin-bottom:10px}.section-head h2{font-weight:740}
+.prep-row,.task-row,.period,.event{transition:background-color .14s ease,transform .1s ease}
+@media(hover:hover) and (pointer:fine){
+  .prep-row:hover,.task-row:hover,.period:hover,.event:hover{background:#f7faf5}
+  .mission:hover,.quick-action:hover,.meal-day:hover{border-color:#cadbc5;box-shadow:var(--flow-shadow-raised)}
+}
+.period.is-now{
+  position:relative;background:linear-gradient(90deg,#e8f6e2,#f3f9ef);
+  box-shadow:inset 3px 0 0 var(--flow-accent)
+}
+.period.is-now .period__num:before{color:var(--flow-accent);font-weight:750}
+.due-stamp,.subject-pill,.event-type{border:1px solid rgba(45,170,0,.08)}
+.mission{transition:border-color .14s ease,box-shadow .14s ease,transform .1s ease}
+.mission-title{font-weight:720}.is-urgent .mission{border-top-width:1px;border-left:3px solid #d6a53a}
+.filter-row{gap:26px}.chip{padding-bottom:12px}.chip.is-active{border-bottom-width:3px}
+.day-chip.is-selected,.week-date.is-selected{box-shadow:inset 0 0 0 1px rgba(45,170,0,.06)}
+.quick-action{transition:border-color .14s ease,box-shadow .14s ease,transform .1s ease}
+.quick-action em{background:linear-gradient(145deg,#f4f9f0,#e8f4e2);box-shadow:inset 0 1px 0 #fff}
+.dock{
+  bottom:max(12px,var(--safe));padding:6px;border-color:rgba(207,219,203,.92);
+  background:rgba(252,253,251,.97);box-shadow:0 14px 40px rgba(25,52,25,.14);
+  border-radius:24px
+}
+.nav-button{min-height:60px;border-radius:16px;transition:background-color .14s ease,color .14s ease,transform .1s ease}
+.nav-button.is-active{
+  background:linear-gradient(180deg,#f1faed,#e9f6e4);border-color:#d8ead1;
+  box-shadow:inset 0 1px 0 #fff,0 3px 9px rgba(45,120,32,.06)
+}
+.nav-button.is-active .ui-icon{transform:translateY(-1px)}
+.nav-button.is-active:after{width:18px;height:3px;bottom:2px}
+.flow-sheet{border-color:#d9e2d6;box-shadow:0 26px 80px rgba(19,42,26,.24)}
+.flow-sheet__chrome{border-radius:26px 26px 0 0}
+.empty-state{border:1px dashed #d8e1d5;background:#f7f9f5}
+@media(min-width:700px){
+  .today-layout{gap:20px}.card{padding:22px}
+}
+@media(min-width:1024px){
+  .app-shell{grid-template-columns:92px minmax(0,1fr)}
+  .desktop-rail{
+    background:linear-gradient(180deg,#f2f6ef,#edf3ea);border-right-color:#dce5d9;
+    padding-inline:10px
+  }
+  .desktop-rail .nav-button{min-height:66px}
+  .desktop-rail .nav-button.is-active{box-shadow:inset 3px 0 0 var(--flow-accent),inset 0 1px 0 #fff}
+  .desktop-rail .nav-button.is-active:after{display:none}
+}
+@media(max-width:699px){
+  .canvas{padding-top:20px}.page-intro{margin-bottom:20px}
+  .page-intro h1{font-size:2rem}.card{box-shadow:0 5px 18px rgba(31,62,31,.045)}
+  .focus-card{padding-top:22px}.focus-card h2{font-size:1.72rem}
+  .dock{left:8px;right:8px;gap:1px}.nav-button{font-size:.7rem;gap:4px}
+  .nav-button .ui-icon{width:21px;height:21px}
+  .status-rail strong{font-size:1.35rem}
+}
+@media(max-width:390px){
+  .nav-button{font-size:.65rem}.dock{left:5px;right:5px;padding:4px}
+  .brand-lockup span{display:none}.topline__actions{gap:5px}
+}
+@media(prefers-reduced-motion:reduce){
+  .mission,.quick-action,.meal-day,.nav-button,.prep-row,.task-row,.period,.event{transition:none!important}
+}
