@@ -309,3 +309,230 @@ button{touch-action:manipulation}
   .player>.head{padding-top:0}
   .player>.desk-tool{top:14px}
 }
+
+
+/* SideDesk v2.4 analog polish */
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(255,255,255,.14),transparent 32%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px);
+  mix-blend-mode:soft-light;opacity:.7
+}
+.desk{
+  background-image:
+    radial-gradient(ellipse at 11% 32%,transparent 0 13%,rgba(67,34,14,.19) 14% 14.6%,transparent 15.2% 23%,rgba(255,235,205,.09) 24% 24.6%,transparent 25.1%),
+    radial-gradient(ellipse at 74% 68%,transparent 0 11%,rgba(75,40,18,.14) 12% 12.7%,transparent 13.4% 23%),
+    repeating-linear-gradient(1.2deg,rgba(65,33,13,.15) 0 1px,transparent 1px 5px,rgba(255,231,195,.05) 6px 7px,transparent 7px 16px),
+    linear-gradient(92deg,#ca925c 0%,#a96d43 19%,#cf9964 41%,#a56840 65%,#c78f5c 100%)
+}
+.desk .paper:before,.desk .paper:after{
+  content:"";position:absolute;width:7px;height:7px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#e7dfd2 0 18%,#9a8c7a 22% 47%,#5e5449 50% 58%,#b3a797 62% 100%);
+  box-shadow:0 1px 2px #0004;opacity:.7
+}
+.desk .paper{position:relative}
+.desk .paper:before{left:9px;top:9px}
+.desk .paper:after{right:9px;bottom:9px}
+
+/* Analog room code receiver */
+.analog-module{
+  position:relative;margin-top:9px;padding:18px 18px 11px;border-radius:14px;
+  background:
+    linear-gradient(180deg,#716b62 0,#4c4943 8%,#777269 9%,#5a5650 100%);
+  border:1px solid #3e3a35;
+  box-shadow:
+    inset 0 1px #aaa39a,
+    inset 0 -2px 4px #19181699,
+    0 3px 0 #38342f,
+    0 8px 15px #3a281b38
+}
+.analog-module:before{
+  content:"";position:absolute;inset:6px;border-radius:10px;pointer-events:none;
+  border:1px solid #aba49a2b
+}
+.screw{position:absolute;width:7px;height:7px;border-radius:50%;z-index:3;background:radial-gradient(circle at 35% 32%,#eee9df,#8e8980 42%,#48443f 68%,#b4aea4 72%);box-shadow:0 1px 2px #0008}
+.screw:after{content:"";position:absolute;left:1px;right:1px;top:3px;height:1px;background:#4d4841;transform:rotate(-18deg)}
+.s1{left:7px;top:7px}.s2{right:7px;top:7px}.s3{left:7px;bottom:7px}.s4{right:7px;bottom:7px}
+.analog-code{
+  position:relative;overflow:hidden;cursor:pointer;user-select:none;
+  padding:18px 13px 15px;border-radius:7px;
+  font:800 clamp(31px,7vw,52px)/1 "Courier New",ui-monospace,monospace;
+  letter-spacing:.18em;text-indent:.18em;
+  color:#d9f4c8;
+  background:
+    radial-gradient(circle at 50% 50%,#24352a 0,#15231b 68%,#0a120e 100%);
+  border:1px solid #090d0a;
+  text-shadow:
+    0 0 2px #d7ffc4,
+    0 0 7px #9ad980aa,
+    0 0 18px #73b75d55;
+  box-shadow:
+    inset 0 0 0 2px #405047,
+    inset 0 0 26px #000d,
+    0 1px #9d968b55
+}
+.analog-code:before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,rgba(0,0,0,.07) 2px 3px),
+    linear-gradient(90deg,transparent,rgba(211,255,202,.04),transparent);
+  mix-blend-mode:screen
+}
+.analog-code:after{
+  content:"";position:absolute;left:-25%;top:0;width:22%;height:100%;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(219,255,211,.22),transparent);
+  transform:skewX(-14deg);opacity:0
+}
+.analog-code.tuning{
+  animation:receiverFlicker .11s steps(2,end) infinite;
+  filter:contrast(1.1) brightness(1.04)
+}
+.analog-code.tuning:after{opacity:1;animation:scanSweep .52s linear infinite}
+.analog-code.copied{animation:receiverLock .35s ease}
+@keyframes receiverFlicker{
+  0%{opacity:.93;transform:translateX(0)}
+  35%{opacity:.76;transform:translateX(.4px)}
+  62%{opacity:1;transform:translateX(-.35px)}
+  100%{opacity:.9}
+}
+@keyframes scanSweep{from{left:-25%}to{left:105%}}
+@keyframes receiverLock{50%{filter:brightness(1.4);box-shadow:inset 0 0 30px #9fd68c77,0 0 13px #9fd68c44}}
+.analog-caption{
+  display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:0 3px;
+  color:#d2c9bb;font:700 9px/1.2 ui-monospace,monospace;letter-spacing:.16em
+}
+.analog-caption span:last-child{color:#b5d59c;text-shadow:0 0 7px #8fc36e55}
+
+/* Analog code entry */
+.join-code-shell{
+  position:relative;padding:17px 11px 9px;border-radius:12px;
+  background:linear-gradient(#645f56,#4b4741);border:1px solid #393632;
+  box-shadow:inset 0 1px #9f988e,0 3px 0 #3d382f,0 7px 12px #3c291c2f
+}
+.join-code-label{
+  position:absolute;top:5px;left:12px;color:#d4cabd;font:700 8px/1 ui-monospace,monospace;letter-spacing:.14em
+}
+.join-code-input{
+  min-height:54px!important;border-radius:6px!important;border:1px solid #121813!important;
+  background:radial-gradient(circle at 50% 50%,#213128,#111d17)!important;
+  color:#d4f0c3!important;text-align:center;font:800 25px/1 ui-monospace,monospace!important;
+  letter-spacing:.22em!important;text-indent:.22em;text-transform:uppercase;
+  text-shadow:0 0 8px #8cc87399;box-shadow:inset 0 0 18px #000b!important
+}
+.join-code-input::placeholder{color:#79907388}
+
+/* VFD timer */
+.timer{
+  position:relative;overflow:hidden;border-radius:14px;
+  background:
+    radial-gradient(circle at 50% 40%,#15231d,#0b1410 72%);
+  border:1px solid #080e0a;
+  box-shadow:
+    inset 0 0 0 2px #3c4941,
+    inset 0 0 30px #000d,
+    0 3px 0 #655e54,
+    0 8px 16px #3e2b1d38
+}
+.timer:before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(180deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
+    linear-gradient(115deg,rgba(255,255,255,.09) 0 11%,transparent 12% 68%,rgba(255,255,255,.025) 69% 80%,transparent 81%);
+}
+.timer strong{
+  color:#d8efca;text-shadow:0 0 3px #d2ffc2,0 0 14px #85c66c77;
+  font-family:"Courier New",ui-monospace,monospace;
+  font-weight:800
+}
+
+/* More distinct tactile controls */
+.actions .btn{
+  border-radius:12px;
+  box-shadow:inset 0 2px #fff9,inset 0 -3px #5c4a3740,0 5px #705a43,0 9px 13px #3f2b1d32
+}
+.actions .btn:nth-child(1){
+  background:linear-gradient(#e4eadb,#aebfa2);
+  border-color:#6f8466
+}
+.actions .btn:nth-child(2){
+  background:linear-gradient(#eee4df,#c5aba1);
+  border-color:#92746c
+}
+.actions .btn:nth-child(3){
+  background:linear-gradient(#eee9df,#c7bda9);
+  border-color:#8f8371
+}
+.actions .btn:active:not(:disabled){
+  transform:translateY(5px);
+  box-shadow:inset 0 3px 7px #0002,0 1px #66503b
+}
+.start-lever{
+  position:relative;letter-spacing:.02em;
+  background:linear-gradient(#dce9cf,#93af80);
+  box-shadow:inset 0 2px #f8fff2,inset 0 -4px #61775355,0 6px #5d744f,0 11px 18px #31402a38
+}
+.start-lever:before{
+  content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;
+  background:#4f7347;box-shadow:0 0 0 3px #4f73471c,0 0 8px #689d5b55
+}
+.start-lever:disabled:before{background:#8f948a;box-shadow:none}
+
+/* Labels and lamps */
+.status{
+  border:1px solid #c2af95;
+  background:linear-gradient(180deg,#eee3d3,#dacbb7);
+  box-shadow:inset 0 1px #fff,0 2px 0 #9a8064
+}
+.dot{
+  border:1px solid #6f6c65;
+  box-shadow:inset 0 1px 2px #0005,0 1px #fff8
+}
+.dot.on{
+  background:radial-gradient(circle at 40% 35%,#d7f2c7 0 16%,#78a66d 23% 58%,#4c7046 65%);
+  box-shadow:0 0 0 2px #698d5f22,0 0 9px #74a56877
+}
+.badge{
+  border-radius:7px;text-transform:uppercase;letter-spacing:.05em;
+  background:linear-gradient(#ede3d6,#d5c5b0);
+  box-shadow:inset 0 1px #fff,0 2px #8c755d
+}
+.kicker{font-family:ui-monospace,monospace;letter-spacing:.18em}
+
+/* Paper and books: less app-card, more object */
+.paper{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.28),transparent 12%),
+    repeating-linear-gradient(0deg,rgba(105,76,45,.018) 0 1px,transparent 1px 4px),
+    linear-gradient(#f9f1e5,#dfd0ba);
+  border-radius:10px 17px 14px 11px
+}
+.workbook-chip{
+  border-radius:5px 11px 9px 5px;
+  background:
+    linear-gradient(90deg,#ded0bb 0 6px,#f4eadb 6px 100%);
+  box-shadow:inset 0 1px #fff,0 3px 5px #4c342126
+}
+.resume-note,.history-item,.shelf-item{border-radius:7px 13px 11px 7px}
+.book-spine{transform:rotate(-1deg)}
+.shelf-item:nth-child(even) .book-spine{transform:rotate(1.2deg)}
+
+/* Small analog wear, not fake-dirty */
+.btn,.analog-module,.paper,.timer{
+  background-blend-mode:normal
+}
+.btn:focus-visible,.analog-code:focus-visible,.join-code-input:focus-visible{
+  outline:3px solid #d3e4c6;outline-offset:3px
+}
+
+@media(max-width:560px){
+  .analog-code{font-size:31px;letter-spacing:.12em;text-indent:.12em;padding:16px 8px}
+  .analog-module{padding:17px 13px 10px}
+  .timer{border-radius:12px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .analog-code.tuning{animation:none}
+  .analog-code.tuning:after{animation:none;display:none}
+  .presence-lamp.active i{animation:none}
+}
