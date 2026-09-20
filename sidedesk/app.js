@@ -448,13 +448,13 @@ function beginHistory(){
   historyId=room+'_'+started+'_'+authUid;
   if(local.history.some(h=>h.id===historyId))return;
   const w=m.workbook||activeWorkbook(),f=R?.[role==='host'?'guest':'host'];
-  local.history.unshift({id:historyId,room,workbookId:workbookKey(w),workbookTitle:w.title,subject:w.subject,difficulty:w.difficulty,total:m.total,startDone:m.startDone||0,done:m.done||0,correct:m.correct||0,wrong:m.wrong||0,skipped:m.skipped||0,friend:f?.nickname||'',startedAt:started,endedAt:null});
+  local.history.unshift({id:historyId,room,workbookId:workbookKey(w),workbookTitle:w.title,subject:w.subject,difficulty:w.difficulty,total:m.total,startDone:m.startDone||0,done:m.done||0,correct:m.correct||0,wrong:m.wrong||0,skipped:m.skipped||0,friend:f?.nickname||'',startedAt:started,lastSeenAt:Date.now(),endedAt:null});
   local.history=local.history.slice(0,60);saveLocal()
 }
 function syncHistory(m,f){
   if(!historyId)beginHistory();
   const h=local.history.find(x=>x.id===historyId);if(!h)return;
-  h.done=m.done||0;h.correct=m.correct||0;h.wrong=m.wrong||0;h.skipped=m.skipped||0;h.friend=f?.nickname||h.friend;
+  h.done=m.done||0;h.correct=m.correct||0;h.wrong=m.wrong||0;h.skipped=m.skipped||0;h.friend=f?.nickname||h.friend;h.lastSeenAt=Date.now();
   if(m.status==='done'||(m.status==='done'&&f?.status==='done'))h.endedAt=Date.now();
   saveLocal()
 }
