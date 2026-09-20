@@ -4,7 +4,7 @@ import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,collection,addDoc,ser
 
 const A=document.querySelector('#app'),cfg=globalThis.PINCON_FIREBASE_CONFIG;
 const LS='sidedesk.v2';
-let authUid='',room='',role='',name='',R=null,unsub,eu,timer,presenceTimer,started=0,cut=Date.now(),ownAt=0,historyId='',audioCtx=null,endArm=0;
+let authUid='',room='',role='',name='',R=null,unsub,eu,timer,presenceTimer,started=0,cut=Date.now(),ownAt=0,historyId='',audioCtx=null,endArm=0,deferredInstall=null;
 let activity={m:[],x:[]},eventsHydrated=false;
 let local=loadLocal();
 
@@ -148,7 +148,7 @@ function historyPanel(){
 }
 function landing(){
   ensureWorkbook();
-  A.innerHTML='<main class="app"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">SideDesk</h1><div class="muted">멀리 있어도 같은 책상처럼.</div></div></div><span class="badge">● 실시간 연결됨</span></header>'+
+  A.innerHTML='<main class="app"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">SideDesk</h1><div class="muted">멀리 있어도 같은 책상처럼.</div></div></div><div class="row"><button id="installApp" class="btn ghost hidden" style="min-height:36px;padding:6px 10px">앱 설치</button><span class="badge">● 실시간 연결됨</span></div></header>'+
   '<section class="desk lobby"><div class="paper"><h2 style="margin-top:0">공부방</h2><p class="muted">각자 실제 문제집을 펴고, 진행과 손짓만 연결합니다.</p>'+
   '<div class="field"><label>닉네임</label><input id="nick" class="input" maxlength="14" value="'+E(local.nickname||'')+'" placeholder="예: 도영"></div>'+
   '<button id="mk" class="btn primary" style="width:100%;margin-top:14px">새 방 만들기</button>'+
@@ -163,6 +163,7 @@ function landing(){
   const ws=weeklyStats();
   weeklyStrip.innerHTML='<div><b>'+ws.sessions+'</b><span>세션</span></div><div><b>'+ws.problems+'</b><span>문항</span></div><div><b>'+ws.minutes+'</b><span>분</span></div>';
   mk.onclick=create;jn.onclick=join;newwb.onclick=()=>workbookEditor(null,renderLandingShelf);historyAll.onclick=historyPanel;
+  if(deferredInstall&&!matchMedia('(display-mode: standalone)').matches){installApp.classList.remove('hidden');installApp.onclick=promptInstall}
   document.querySelectorAll('.history-click').forEach(b=>b.onclick=historyPanel);
   jc.oninput=e=>e.target.value=C(e.target.value);
 }
@@ -186,8 +187,9 @@ function workbookEditor(existing,after){
   '<div class="field"><label>과목</label><input id="wbs" class="input" maxlength="20" value="'+E(w.subject)+'" placeholder="예: 수학"></div>'+
   '<div class="field"><label>문항 수</label><input id="wbn" class="input" type="number" min="1" max="300" value="'+w.total+'"></div>'+
   '<div class="field"><label>난이도</label><select id="wbd" class="select"><option value="1">가벼움</option><option value="2">보통</option><option value="3">어려움</option><option value="4">매우 어려움</option></select></div></div>'+
-  '<button id="eds" class="btn primary" style="width:100%;margin-top:14px">문제집 저장</button>';
+  '<button id="eds" class="btn primary" style="width:100%;margin-top:14px">문제집 저장</button>'+(existing?'<button id="edd" class="btn danger" style="width:100%;margin-top:10px">이 문제집 삭제</button>':'');
   host.appendChild(el);wbd.value=String(w.difficulty);edx.onclick=()=>el.remove();
+  if(existing&&document.querySelector('#edd'))edd.onclick=()=>deleteWorkbook(w.id,el,after);
   eds.onclick=async()=>{
     const nw=normalizeWorkbook({id:w.id,title:wbt.value,subject:wbs.value,total:wbn.value,difficulty:wbd.value,createdAt:w.createdAt});
     if(!wbt.value.trim())return wbt.focus();
@@ -197,6 +199,16 @@ function workbookEditor(existing,after){
     if(R&&document.querySelector('#lobbyScreen'))await selectWorkbook(nw.id);
   };
   el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function deleteWorkbook(id,editor,after){
+  if(local.workbooks.length<=1){
+    editor.querySelector('#edd').textContent='문제집은 최소 1개 필요해요';setTimeout(()=>{const b=editor.querySelector('#edd');if(b)b.textContent='이 문제집 삭제'},1600);return
+  }
+  const b=editor.querySelector('#edd'),armed=b.dataset.armed==='1';
+  if(!armed){b.dataset.armed='1';b.textContent='한 번 더 눌러 삭제';setTimeout(()=>{if(b){b.dataset.armed='0';b.textContent='이 문제집 삭제'}},2800);return}
+  local.workbooks=local.workbooks.filter(x=>x.id!==id);
+  if(local.lastWorkbookId===id)local.lastWorkbookId=local.workbooks[0]?.id||'';
+  saveLocal();editor.remove();after?.()
 }
 const err=m=>{let e=document.querySelector('#err');if(e){e.textContent=m;e.classList.remove('hidden')}};
 function setNick(){const n=document.querySelector('#nick')?.value.trim();if(n){local.nickname=n;saveLocal()}return n}
@@ -259,6 +271,12 @@ async function applyStartPoint(w,done,isResume){
   const p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,startDone:done,done,correct:0,wrong:0,skipped:0,status:'ready',problemAtMs:Date.now(),updatedAtMs:Date.now()};
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()});
   const rb=document.querySelector('#resumeBox');if(rb)rb.innerHTML='<div class="resume-applied">'+(isResume?(done+1)+'번부터 이어서 시작':'처음부터 시작')+'</div>'
+}
+async function promptInstall(){
+  if(!deferredInstall)return;
+  deferredInstall.prompt();
+  try{await deferredInstall.userChoice}catch{}
+  deferredInstall=null;document.querySelector('#installApp')?.classList.add('hidden')
 }
 async function shareRoom(){
   const url=location.origin+location.pathname+'?room='+room;
@@ -473,6 +491,8 @@ function msg(t){let e=document.querySelector('#live');if(e)e.textContent=t}
 function tr(t){let l=document.querySelector('#trace');if(!l)return;let e=document.createElement('div');e.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' · '+t;l.prepend(e);while(l.children.length>5)l.lastElementChild.remove()}
 function ticker(){clearInterval(timer);timer=setInterval(()=>{let c=document.querySelector('#clock');if(!c)return;let s=Math.max(0,((Date.now()-started)/1000)|0);c.textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(R){const m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(m&&f){fill('m',m);fill('x',f)}}},1000)}
 
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;const b=document.querySelector('#installApp');if(b&&!matchMedia('(display-mode: standalone)').matches){b.classList.remove('hidden');b.onclick=promptInstall}});
+addEventListener('appinstalled',()=>{deferredInstall=null;document.querySelector('#installApp')?.classList.add('hidden')});
 addEventListener('visibilitychange',()=>{if(room)sendPresence()});addEventListener('focus',()=>{if(room)sendPresence()});addEventListener('online',()=>{if(room)sendPresence()});
 addEventListener('pointerdown',()=>{if(local.sound)audio()},{once:true,capture:true});
 try{let c=await signInAnonymously(auth);authUid=c.user.uid;await resumeOrLanding()}catch(e){console.error(e);fail('실시간 연결용 익명 로그인을 시작하지 못했습니다.')}
