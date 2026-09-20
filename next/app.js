@@ -631,6 +631,66 @@ function seasonDashboardMarkup() {
   </section>`;
 }
 
+function todayClockMinutes(value) {
+  const match = String(value || "").match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+function todayLessonMoment(periods, now = new Date()) {
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const rows = periods.map((item, index) => ({
+    item,
+    index,
+    start: todayClockMinutes(item.startTime || item.startsAt || item.start),
+    end: todayClockMinutes(item.endTime || item.endsAt || item.end),
+  })).filter((row) => row.start !== null && row.end !== null && row.end > row.start);
+
+  const current = rows.find((row) => row.start <= nowMinutes && nowMinutes < row.end);
+  if (current) return { mode: "current", ...current };
+
+  const next = rows.find((row) => row.start > nowMinutes);
+  if (next) return { mode: "next", ...next };
+
+  if (rows.length && rows.every((row) => row.end <= nowMinutes)) {
+    return { mode: "done", item: null, index: -1, start: null, end: null };
+  }
+
+  return { mode: "overview", item: periods[0] || null, index: periods.length ? 0 : -1, start: null, end: null };
+}
+
+function todayPeriodPhase(item, index, moment, now = new Date()) {
+  const start = todayClockMinutes(item.startTime || item.startsAt || item.start);
+  const end = todayClockMinutes(item.endTime || item.endsAt || item.end);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  if (start !== null && end !== null && end > start) {
+    if (end <= nowMinutes) return "is-done";
+    if (start <= nowMinutes && nowMinutes < end) return "is-current";
+    if (start > nowMinutes) return moment.mode === "next" && moment.index === index ? "is-next" : "is-upcoming";
+  }
+  if (moment.mode === "current" && moment.index === index) return "is-current";
+  if (moment.mode === "next" && moment.index === index) return "is-next";
+  return "";
+}
+
+function todayFlowMarkup(periods, moment) {
+  if (!periods.length) return "";
+  return `<div class="today-flow" aria-label="오늘 수업 흐름">
+    ${periods.slice(0, 8).map((item, index) => {
+      const period = item.period || index + 1;
+      const phase = todayPeriodPhase(item, index, moment);
+      return `<button type="button" class="today-flow__stop ${phase}" data-route="timetable" aria-label="${escapeHtml(`${period}교시 ${fullSubjectName(item.subject)} 시간표 보기`)}">
+        <span class="today-flow__dot" aria-hidden="true"></span>
+        <span class="today-flow__period">${escapeHtml(period)}교시</span>
+        <strong>${escapeHtml(fullSubjectName(item.subject))}</strong>
+      </button>`;
+    }).join("")}
+  </div>`;
+}
+
 function todayPage() {
   const today = localIsoDate(new Date());
   const document = timetableDocument(today);
@@ -645,30 +705,80 @@ function todayPage() {
     route: notice.category === "수업 변경" ? "timetable" : "today",
   }) : "";
 
-  return `<section class="view-enter" aria-labelledby="today-title">
-    <div class="surface surface--hero">
-      <p class="hero-kicker">${escapeHtml(dateLabel(today))}</p>
-      <h1 class="hero-title" id="today-title">오늘 필요한 것부터.</h1>
-      <div class="hero-meta">
-        <span class="meta-pill"><md-icon>school</md-icon>${escapeHtml(profile ? `${profile.grade}학년 ${profile.classNumber}반` : "학급 미선택")}</span>
-        <span class="meta-pill"><md-icon>schedule</md-icon>${!periods.length && collectionLoading(["neisTimetables"]) ? "시간표 확인 중" : !periods.length && collectionFailed(["neisTimetables"]) ? "시간표 연결 오류" : periods.length ? `${periods.length}개 수업` : "등록된 수업 없음"}</span>
-        <span class="meta-pill"><md-icon>task_alt</md-icon>${!tasks.length && collectionLoading(["classAssignments", "events", "academicSchedules"]) ? "일정 확인 중" : !tasks.length && collectionFailed(["classAssignments", "events", "academicSchedules"]) ? "일정 연결 오류" : tasks.length ? `예정 ${tasks.length}건` : "예정된 일정 없음"}</span>
+  const moment = todayLessonMoment(periods);
+  const focusPeriod = moment.item;
+  const todayTasks = tasks.filter((item) => item.date === today);
+  const urgentTask = todayTasks[0] || tasks[0] || null;
+  const focusSubject = focusPeriod ? fullSubjectName(focusPeriod.subject) : "";
+  const focusPeriodNumber = focusPeriod ? (focusPeriod.period || moment.index + 1) : "";
+  const focusRoom = focusPeriod ? cleanText(focusPeriod.room || focusPeriod.classroom || "") : "";
+  const focusTeacher = focusPeriod ? cleanText(focusPeriod.teacher || focusPeriod.teacherName || "") : "";
+  const focusTime = focusPeriod
+    ? [focusPeriod.startTime || focusPeriod.startsAt || focusPeriod.start, focusPeriod.endTime || focusPeriod.endsAt || focusPeriod.end].filter(Boolean).join("–")
+    : "";
+
+  let heroKicker = dateLabel(today);
+  let heroTitle = "오늘 필요한 것부터.";
+  let heroCopy = "시간표와 마감, 변경사항을 한 화면에서 빠르게 확인하세요.";
+  if (moment.mode === "current" && focusPeriod) {
+    heroKicker = "지금 수업";
+    heroTitle = `지금 ${focusPeriodNumber}교시 · ${focusSubject}`;
+    heroCopy = [focusTime, focusRoom, focusTeacher].filter(Boolean).join(" · ") || "수업 세부 정보와 준비물을 확인할 수 있습니다.";
+  } else if (moment.mode === "next" && focusPeriod) {
+    heroKicker = "다음 수업";
+    heroTitle = `다음은 ${focusPeriodNumber}교시 · ${focusSubject}`;
+    heroCopy = [focusTime, focusRoom, focusTeacher].filter(Boolean).join(" · ") || "다음 수업의 장소와 준비물을 미리 확인하세요.";
+  } else if (moment.mode === "done") {
+    heroKicker = "오늘 수업 종료";
+    heroTitle = urgentTask ? "이제 가까운 마감부터." : "오늘 수업은 마쳤어요.";
+    heroCopy = urgentTask
+      ? `${urgentTask.title}${urgentTask.date ? ` · ${timeDistance(urgentTask.date)}` : ""}`
+      : "남은 공지와 내일 일정을 가볍게 확인해 두면 됩니다.";
+  } else if (periods.length) {
+    heroKicker = dateLabel(today);
+    heroTitle = `${periods.length}개 수업 · ${tasks.length}개 일정`;
+    heroCopy = "수업 시각 정보가 완전하지 않아 오늘 전체 흐름을 기준으로 보여줍니다.";
+  }
+
+  return `<section class="view-enter today-view" aria-labelledby="today-title">
+    <div class="surface surface--hero today-hero">
+      <div class="today-hero__main">
+        <div>
+          <p class="hero-kicker">${escapeHtml(heroKicker)}</p>
+          <h1 class="hero-title" id="today-title">${escapeHtml(heroTitle)}</h1>
+          <p class="today-hero__copy">${escapeHtml(heroCopy)}</p>
+        </div>
+        <div class="today-hero__actions">
+          <md-filled-button data-route="timetable"><md-icon slot="icon">calendar_view_week</md-icon>시간표</md-filled-button>
+          ${urgentTask ? `<md-text-button data-detail-key="${escapeHtml(urgentTask.detailKey)}" data-detail-route="${escapeHtml(urgentTask.filter === "event" ? "classroom" : "schedule")}"><md-icon slot="icon">task_alt</md-icon>가까운 일정</md-text-button>` : ""}
+        </div>
       </div>
+
+      <div class="today-glance" aria-label="오늘 요약">
+        <button type="button" data-route="timetable"><small>수업</small><strong>${periods.length}</strong><span>교시</span></button>
+        <button type="button" data-route="schedule"><small>오늘 마감</small><strong>${todayTasks.length}</strong><span>건</span></button>
+        <button type="button" data-route="today"><small>급식</small><strong>${meal ? "확인" : "—"}</strong><span>${meal?.mealType || "점심"}</span></button>
+      </div>
+
+      ${todayFlowMarkup(periods, moment)}
     </div>
+
     ${syncMarkup()}
     ${state.data.error ? `<div class="surface surface--error notice-banner" role="alert"><md-icon>error</md-icon><p>${escapeHtml(state.data.error)}</p><md-text-button data-action="retry-data">다시 시도</md-text-button></div>` : ""}
-    ${seasonDashboardMarkup()}
-    <div class="grid grid--2 dashboard-grid">
-      <article class="surface">
-        <div class="surface__header"><h2 class="surface__title">오늘 시간표</h2><span class="surface__meta">컴시간</span></div>
-        ${periodRows(periods.slice(0, 8), document)}
-      </article>
-      <article class="surface">
-        <div class="surface__header"><h2 class="surface__title">다가오는 일정</h2><span class="surface__meta">${tasks.length ? `${tasks.length}건` : ""}</span></div>
+
+    <div class="grid grid--2 dashboard-grid today-dashboard-grid">
+      <article class="surface today-card today-card--schedule">
+        <div class="surface__header"><div><p class="page-eyebrow">우선 확인</p><h2 class="surface__title">다가오는 일정</h2></div><span class="surface__meta">${tasks.length ? `${tasks.length}건` : ""}</span></div>
         ${scheduleRows(tasks)}
       </article>
-      <article class="surface surface--lowest">
-        <div class="surface__header"><h2 class="surface__title">오늘 급식</h2><span class="surface__meta">NEIS</span></div>
+
+      <article class="surface today-card today-card--timetable">
+        <div class="surface__header"><div><p class="page-eyebrow">오늘 흐름</p><h2 class="surface__title">오늘 시간표</h2></div><span class="surface__meta">컴시간</span></div>
+        ${periodRows(periods.slice(0, 8), document)}
+      </article>
+
+      <article class="surface surface--lowest today-card today-card--meal">
+        <div class="surface__header"><div><p class="page-eyebrow">점심</p><h2 class="surface__title">오늘 급식</h2></div><span class="surface__meta">NEIS</span></div>
         ${!meal && collectionLoading(["meals"]) ? skeletonMarkup(1, "급식 불러오는 중") : !meal && collectionFailed(["meals"]) ? errorMarkup("급식을 불러오지 못했습니다") : meal
           ? `<md-list class="interactive-list">${interactiveListItem({
             key: mealKey,
@@ -681,8 +791,9 @@ function todayPage() {
           })}</md-list>`
           : emptyMarkup("restaurant", "급식 정보가 없습니다", "NEIS에 식단이 등록되면 표시됩니다.")}
       </article>
-      <article class="surface surface--lowest">
-        <div class="surface__header"><h2 class="surface__title">중요 공지</h2><span class="surface__meta">최신</span></div>
+
+      <article class="surface surface--lowest today-card today-card--notice">
+        <div class="surface__header"><div><p class="page-eyebrow">최근 정보</p><h2 class="surface__title">중요 공지</h2></div><span class="surface__meta">최신</span></div>
         ${!notice && collectionLoading(["announcements", "content"]) ? skeletonMarkup(1, "공지 불러오는 중") : !notice && collectionFailed(["announcements", "content"]) ? errorMarkup("공지를 불러오지 못했습니다") : notice
           ? `<md-list class="interactive-list">${interactiveListItem({
             key: noticeKey,
@@ -695,6 +806,8 @@ function todayPage() {
           : emptyMarkup("notifications_none", "새 공지가 없습니다", "새 공지가 등록되면 알림함에도 남습니다.")}
       </article>
     </div>
+
+    ${seasonDashboardMarkup()}
   </section>`;
 }
 
