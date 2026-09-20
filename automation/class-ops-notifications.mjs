@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { periodFor } from "./notification-frequency-core.mjs";
 
 const SCHOOL_ID = "gochon-high";
 const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || "studio-2803086992-2d4cf.firebasestorage.app";
@@ -143,11 +144,14 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
     root.collection("experiments").doc("notification-frequency").get().catch(() => null),
     root.collection("experimentFlags").doc("notification_experiment").get().catch(() => null),
   ]);
+  const frequencyConfigData = frequencyConfig?.exists ? frequencyConfig.data() : null;
+  const frequencyPhase = frequencyConfigData ? periodFor(frequencyConfigData, now).phase : "NOT_STARTED";
   const frequencyControlled = Boolean(
-    frequencyConfig?.exists
-    && frequencyConfig.data()?.status === "ACTIVE"
+    frequencyConfigData
+    && frequencyConfigData.status === "ACTIVE"
     && frequencyFlag?.exists
     && frequencyFlag.data()?.enabled !== false
+    && frequencyPhase === "EXPERIMENT"
   );
   const { documents: subscriptionDocs, classKeys } = await classKeysWithSubscriptions(root);
   if (!classKeys.length) return { classes: 0, sent: 0, windows: [] };
