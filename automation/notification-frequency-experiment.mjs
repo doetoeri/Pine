@@ -195,7 +195,13 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
   }
 
   const subscriptions = await root.collection("pushSubscriptions").where("enabled","==",true).get();
-  const eligibleSubscriptions = canonicalSubscriptions(subscriptions.docs);
+  const targetClassKeys = new Set(
+    (Array.isArray(ready.config.targetClassKeys) ? ready.config.targetClassKeys : [])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean),
+  );
+  const eligibleSubscriptions = canonicalSubscriptions(subscriptions.docs)
+    .filter((document) => !targetClassKeys.size || targetClassKeys.has(String(document.data()?.classKey || "")));
   const date = kstDate(now);
   const candidateCache = new Map();
   let sent = 0;
@@ -407,6 +413,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     period: period.period,
     slot: slot.index,
     rawSubscriptions: subscriptions.size,
+    targetClassKeys: [...targetClassKeys],
     participants: eligibleSubscriptions.length,
     scheduled,
     sent,
