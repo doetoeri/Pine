@@ -582,11 +582,11 @@ body:before{
 .problem-slip{
   box-shadow:inset 6px 0 #e2d1b8,0 3px 0 #9b7e5f,0 8px 12px #4b321f28
 }
-.problem-slip:after{
+.problem-slip b:after{
   content:"";position:absolute;right:12px;top:-1px;width:17px;height:31px;
   background:linear-gradient(90deg,#566b4e,#78906c);
   clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%);
-  opacity:.78;box-shadow:0 2px 3px #0003
+  opacity:.78;filter:drop-shadow(0 2px 2px #0003)
 }
 
 .live{
