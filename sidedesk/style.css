@@ -214,3 +214,44 @@ button{touch-action:manipulation}
   .summary-grid{grid-template-columns:1fr}
   .bookcase{grid-template-columns:1fr}
 }
+
+
+/* SideDesk v2.2 presence */
+.sound-toggle{
+  min-height:36px;padding:7px 10px;border-radius:999px;border:1px solid #aa967d;
+  background:linear-gradient(#f5ecdf,#d8c9b5);color:#5f503e;font-weight:800;font-size:12px;
+  box-shadow:inset 0 1px #fff,0 2px #846d55
+}
+.player{position:relative;overflow:hidden}
+.desk-tool{
+  position:absolute;right:13px;top:13px;width:58px;height:18px;pointer-events:none;opacity:.72
+}
+.friend-tool{transform:scaleX(-1)}
+.pencil{
+  position:absolute;left:0;top:6px;width:48px;height:7px;border-radius:5px;
+  background:linear-gradient(180deg,#d8b45b,#b88d36 54%,#d4a84c 55%);
+  border:1px solid #8d6b28;transform:rotate(-8deg);transform-origin:70% 50%;
+  box-shadow:0 2px 3px #3b291927
+}
+.pencil:before{content:"";position:absolute;left:-8px;top:-1px;border-top:4px solid transparent;border-bottom:4px solid transparent;border-right:9px solid #c7a47a}
+.pencil:after{content:"";position:absolute;right:-7px;top:-1px;width:8px;height:7px;border-radius:0 4px 4px 0;background:#bb7771;border:1px solid #8f5d58}
+.eraser{position:absolute;right:0;bottom:0;width:20px;height:9px;border-radius:3px;background:linear-gradient(#dba49d,#bd7e78);border:1px solid #97625e;box-shadow:0 2px 2px #0002}
+.pencil.write{animation:pencilWrite .62s ease}
+@keyframes pencilWrite{
+  0%{transform:translateX(0) rotate(-8deg)}
+  20%{transform:translateX(-9px) translateY(2px) rotate(-13deg)}
+  45%{transform:translateX(4px) translateY(-1px) rotate(-5deg)}
+  70%{transform:translateX(-5px) translateY(2px) rotate(-12deg)}
+  100%{transform:translateX(0) rotate(-8deg)}
+}
+.activity-rail{
+  display:flex;align-items:center;gap:5px;min-height:21px;margin-top:10px;padding:5px 7px;
+  border-radius:999px;background:#d4c4ad;box-shadow:inset 0 2px 4px #5e45252b
+}
+.activity-rail:empty:before{content:"최근 풀이 리듬";font-size:10px;color:#7a6854}
+.activity-rail i{width:9px;height:9px;border-radius:50%;display:block;background:#8e8273;box-shadow:inset 0 1px #fff6,0 1px 1px #0002}
+.activity-rail i.correct{background:#647f5b}
+.activity-rail i.wrong{background:#a67568}
+.activity-rail i.skip{background:#9d907b}
+.secondary-three{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:650px){.secondary-three{grid-template-columns:1fr 1fr}.secondary-three #finish{grid-column:1/-1}}
