@@ -4,7 +4,7 @@ import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,collection,addDoc,ser
 
 const A=document.querySelector('#app'),cfg=globalThis.PINCON_FIREBASE_CONFIG;
 const LS='sidedesk.v2';
-let authUid='',room='',role='',name='',R=null,unsub,eu,timer,started=0,cut=Date.now(),ownAt=0,historyId='',audioCtx=null,endArm=0;
+let authUid='',room='',role='',name='',R=null,unsub,eu,timer,presenceTimer,started=0,cut=Date.now(),ownAt=0,historyId='',audioCtx=null,endArm=0;
 let activity={m:[],x:[]};
 let local=loadLocal();
 
@@ -15,6 +15,25 @@ const P=p=>p?.total?Math.min(100,Math.round((p.done||0)/p.total*100)):0;
 const ACC=p=>{let n=(p?.correct||0)+(p?.wrong||0);return n?Math.round((p.correct||0)/n*100):null};
 const code=()=>{let s='',c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';for(let i=0;i<6;i++)s+=c[Math.random()*c.length|0];return s};
 const wid=()=>('wb_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7));
+const workbookKey=w=>String(w?.id||'')||[w?.title||'',w?.subject||'',w?.total||0].join('|');
+function historyFor(w){
+  const key=workbookKey(w);
+  return local.history.filter(h=>(h.workbookId&&h.workbookId===key)||(!h.workbookId&&h.workbookTitle===w.title&&h.subject===w.subject));
+}
+function continuationFor(w){
+  return historyFor(w).find(h=>(h.done||0)>0&&(h.done||0)<(h.total||w.total));
+}
+function workbookStats(w){
+  const hs=historyFor(w);
+  const answered=hs.reduce((a,h)=>a+(h.correct||0)+(h.wrong||0),0);
+  const correct=hs.reduce((a,h)=>a+(h.correct||0),0);
+  return{
+    sessions:hs.length,
+    problems:hs.reduce((a,h)=>a+Math.max(0,(h.done||0)-(h.startDone||0)),0),
+    minutes:hs.reduce((a,h)=>a+minutesOf(h),0),
+    accuracy:answered?Math.round(correct/answered*100):null
+  };
+}
 
 function loadLocal(){
   try{
@@ -85,7 +104,7 @@ function normalizeWorkbook(w={}){
 }
 function player(n){
   let w=normalizeWorkbook(activeWorkbook());
-  return{uid:authUid,nickname:n,workbook:w,total:w.total,difficulty:w.difficulty,done:0,correct:0,wrong:0,skipped:0,status:'ready',updatedAtMs:Date.now()};
+  return{uid:authUid,nickname:n,workbook:w,total:w.total,difficulty:w.difficulty,startDone:0,done:0,correct:0,wrong:0,skipped:0,status:'ready',presenceAtMs:Date.now(),visibility:'active',problemAtMs:Date.now(),updatedAtMs:Date.now()};
 }
 function fail(m){A.innerHTML='<main class="app"><div class="shell"><div class="paper error" style="max-width:520px;margin:20vh auto">'+E(m)+'</div></div></main>'}
 
@@ -106,7 +125,8 @@ function recentHistory(){
     const min=minutesOf(h);
     const acc=(h.correct+h.wrong)?Math.round(h.correct/(h.correct+h.wrong)*100):null;
     const pct=h.total?Math.min(100,Math.round((h.done||0)/h.total*100)):0;
-    return '<button type="button" class="history-item history-click" data-history="'+E(h.id)+'"><span class="history-bookmark"></span><div><div class="history-title">'+E(h.workbookTitle)+'</div><div class="small">'+E(h.subject)+' · '+h.done+'/'+h.total+'문항'+(acc==null?'':' · '+acc+'%')+' · '+min+'분</div><div class="history-progress"><i style="width:'+pct+'%"></i></div></div></button>'
+    const fresh=Math.max(0,(h.done||0)-(h.startDone||0));
+    return '<button type="button" class="history-item history-click" data-history="'+E(h.id)+'"><span class="history-bookmark"></span><div><div class="history-title">'+E(h.workbookTitle)+'</div><div class="small">'+E(h.subject)+' · 이번 +'+fresh+'문항 · 전체 '+h.done+'/'+h.total+(acc==null?'':' · '+acc+'%')+' · '+min+'분</div><div class="history-progress"><i style="width:'+pct+'%"></i></div></div></button>'
   }).join('')||'<div class="small">아직 공부 기록이 없습니다.</div>';
 }
 function historyPanel(){
@@ -145,9 +165,10 @@ function landing(){
 function renderLandingShelf(){
   const box=document.querySelector('#landingShelf');if(!box)return;
   box.innerHTML=local.workbooks.slice(0,4).map(w=>{
-    const last=local.history.find(h=>h.workbookTitle===w.title&&h.subject===w.subject);
+    const last=historyFor(w)[0],st=workbookStats(w);
     const lastText=last?' · 최근 '+last.done+'/'+last.total:'';
-    return '<div class="shelf-item"><div class="book-spine"></div><div><b>'+E(w.title)+'</b><div class="small">'+E(w.subject)+' · '+w.total+'문항 · '+E(D(w.difficulty))+lastText+'</div></div><button class="btn ghost" data-wb="'+E(w.id)+'" style="min-height:38px;padding:6px 9px">'+(w.id===local.lastWorkbookId?'선택됨':'선택')+'</button></div>'
+    const statsText=st.sessions?' · 누적 '+st.problems+'문항/'+st.minutes+'분':'';
+    return '<div class="shelf-item"><div class="book-spine"></div><div><b>'+E(w.title)+'</b><div class="small">'+E(w.subject)+' · '+w.total+'문항 · '+E(D(w.difficulty))+lastText+statsText+'</div></div><button class="btn ghost" data-wb="'+E(w.id)+'" style="min-height:38px;padding:6px 9px">'+(w.id===local.lastWorkbookId?'선택됨':'선택')+'</button></div>'
   }).join('');
   box.querySelectorAll('[data-wb]').forEach(b=>b.onclick=()=>{local.lastWorkbookId=b.dataset.wb;saveLocal();renderLandingShelf()});
 }
@@ -211,11 +232,28 @@ function lobby(){
   '<button class="btn" id="leave" style="width:100%;margin-top:16px">나가기</button></div>'+
   '<div class="paper"><div class="section-title"><h2>내 문제집</h2><button id="newwb" class="btn ghost" style="min-height:40px;padding:7px 10px">+ 새 문제집</button></div>'+
   bookMarkup(w,'myBook')+
+  '<div id="resumeBox"></div><div id="workbookStatsBox"></div>'+
   '<div class="field"><label>문제집 선택</label><select id="wbselect" class="select">'+local.workbooks.map(x=>'<option value="'+E(x.id)+'" '+(x.id===w.id?'selected':'')+'>'+E(x.title)+' · '+E(x.subject)+'</option>').join('')+'</select></div>'+
   '<div class="row" style="margin-top:10px"><button id="editwb" class="btn ghost" style="flex:1">현재 문제집 수정</button></div>'+
   '<button id="go" class="btn primary" style="width:100%;margin-top:14px" disabled>'+(role==='host'?'친구를 기다리는 중':'방장이 시작하면 자동 시작')+'</button></div></section></div></main>';
   leave.onclick=leaveRoom;shareInvite.onclick=shareRoom;newwb.onclick=()=>workbookEditor(null,renderLobbyLibrary);editwb.onclick=()=>workbookEditor(activeWorkbook(),renderLobbyLibrary);
-  wbselect.onchange=()=>selectWorkbook(wbselect.value);if(role==='host')go.onclick=start;copywb.onclick=copyFriendWorkbook;openBook('myBook');
+  wbselect.onchange=()=>selectWorkbook(wbselect.value);if(role==='host')go.onclick=start;copywb.onclick=copyFriendWorkbook;openBook('myBook');renderWorkbookExtras(w);
+}
+function renderWorkbookExtras(w){
+  const rb=document.querySelector('#resumeBox'),sb=document.querySelector('#workbookStatsBox');if(!rb||!sb)return;
+  const h=continuationFor(w),st=workbookStats(w);
+  sb.innerHTML='<div class="workbook-stats"><div><b>'+st.sessions+'</b><span>세션</span></div><div><b>'+st.problems+'</b><span>누적 문항</span></div><div><b>'+st.minutes+'</b><span>누적 분</span></div><div><b>'+(st.accuracy==null?'–':st.accuracy+'%')+'</b><span>누적 정확도</span></div></div>';
+  if(!h){rb.innerHTML='';return}
+  const next=Math.min((h.done||0)+1,w.total);
+  rb.innerHTML='<div class="resume-note"><div><div class="kicker">CONTINUE</div><b>지난번 '+h.done+'/'+h.total+'까지</b><span>'+next+'번부터 이어서 풀 수 있어요.</span></div><div class="row"><button id="resumeYes" class="btn primary">이어하기</button><button id="resumeNo" class="btn ghost">처음부터</button></div></div>';
+  resumeYes.onclick=()=>applyStartPoint(w,h.done||0,true);
+  resumeNo.onclick=()=>applyStartPoint(w,0,false);
+}
+async function applyStartPoint(w,done,isResume){
+  if(!R)return;
+  const p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,startDone:done,done,correct:0,wrong:0,skipped:0,status:'ready',problemAtMs:Date.now(),updatedAtMs:Date.now()};
+  await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()});
+  const rb=document.querySelector('#resumeBox');if(rb)rb.innerHTML='<div class="resume-applied">'+(isResume?(done+1)+'번부터 이어서 시작':'처음부터 시작')+'</div>'
 }
 async function shareRoom(){
   const url=location.origin+location.pathname+'?room='+room;
@@ -227,7 +265,7 @@ async function shareRoom(){
   prompt('이 링크를 친구에게 보내세요.',url);
 }
 function leaveRoom(){
-  forgetRoom();unsub?.();eu?.();clearInterval(timer);history.replaceState(null,'',location.pathname);location.reload()
+  forgetRoom();unsub?.();eu?.();clearInterval(timer);clearInterval(presenceTimer);history.replaceState(null,'',location.pathname);location.reload()
 }
 async function renderLobbyLibrary(){
   if(!document.querySelector('#lobbyScreen'))return;
@@ -240,8 +278,8 @@ async function renderLobbyLibrary(){
 async function selectWorkbook(id){
   const w=local.workbooks.find(x=>x.id===id);if(!w||!R)return;
   local.lastWorkbookId=id;saveLocal();
-  let p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,updatedAtMs:Date.now()};
-  await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()})
+  let p={...R[role],workbook:normalizeWorkbook(w),total:w.total,difficulty:w.difficulty,startDone:0,done:0,correct:0,wrong:0,skipped:0,status:'ready',problemAtMs:Date.now(),updatedAtMs:Date.now()};
+  await updateDoc(doc(db,'sidedeskRooms',room),{[role]:p,updatedAt:serverTimestamp()});renderWorkbookExtras(w)
 }
 function copyFriendWorkbook(){
   const f=R?.[role==='host'?'guest':'host'];if(!f?.workbook)return;
@@ -254,7 +292,7 @@ async function start(){
   if(role!=='host'||!R?.guest)return;
   let t=Date.now();
   await updateDoc(doc(db,'sidedeskRooms',room),{
-    host:{...R.host,status:'solving',updatedAtMs:t},guest:{...R.guest,status:'solving',updatedAtMs:t},
+    host:{...R.host,status:'solving',presenceAtMs:t,visibility:'active',problemAtMs:R.host.problemAtMs||t,updatedAtMs:t},guest:{...R.guest,status:'solving',presenceAtMs:t,visibility:'active',problemAtMs:R.guest.problemAtMs||t,updatedAtMs:t},
     status:'studying',startedAtMs:t,updatedAt:serverTimestamp()
   });event('start')
 }
@@ -282,22 +320,22 @@ function updateLobby(){
 function study(){
   started=R.startedAtMs||Date.now();beginHistory();
   A.innerHTML='<main class="app study-open" id="study"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">Shared Desk</h1><div class="muted">각자 다른 문제집, 같은 공부 시간.</div></div></div><div class="row"><button id="soundToggle" class="sound-toggle" type="button">'+(local.sound?'소리 켬':'소리 끔')+'</button><span id="rs" class="badge">● 같이 공부 중</span></div></header>'+
-  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="desk-tool"><span class="pencil" id="mpencil"></span><span class="eraser"></span></div><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div><div class="activity-rail" id="mrail" aria-label="최근 풀이 리듬"></div></div>'+
+  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="presence-lamp" id="mpresence"><i></i><span>함께 있음</span></div><div class="desk-tool"><span class="pencil" id="mpencil"></span><span class="eraser"></span></div><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div><div class="activity-rail" id="mrail" aria-label="최근 풀이 리듬"></div></div>'+
   '<div class="timer"><div><span class="muted" style="color:#9fb49a">STUDY TIME</span><strong id="clock">00:00</strong><span id="pace" class="muted" style="color:#aabca6">같이 시작함</span></div></div>'+
-  '<div class="paper player" id="friend"><div class="desk-tool friend-tool"><span class="pencil" id="xpencil"></span><span class="eraser"></span></div><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div><div class="activity-rail" id="xrail" aria-label="친구의 최근 풀이 리듬"></div></div></div>'+
+  '<div class="paper player" id="friend"><div class="presence-lamp" id="xpresence"><i></i><span>연결 확인</span></div><div class="desk-tool friend-tool"><span class="pencil" id="xpencil"></span><span class="eraser"></span></div><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div><div class="activity-rail" id="xrail" aria-label="친구의 최근 풀이 리듬"></div></div></div>'+
   '<div class="actions"><button id="ok" class="btn action">✓ 정답</button><button id="no" class="btn action">× 오답</button><button id="sk" class="btn action">→ 보류</button></div>'+
   '<div class="secondary secondary-three"><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button><button id="finish" class="btn ghost">공부 마치기</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div><section id="summary" class="session-summary hidden"></section></section></div></main>';
   ok.onclick=()=>mark('correct');no.onclick=()=>mark('wrong');sk.onclick=()=>mark('skip');
   tap.onclick=async()=>{sound('tap');await event('tap');msg('친구 책상을 톡 건드렸습니다.');tr(name+' · 책상 톡');navigator.vibrate?.(18)};
   pause.onclick=togglePause;finish.onclick=finishStudy;
   soundToggle.onclick=()=>{local.sound=!local.sound;saveLocal();soundToggle.textContent=local.sound?'소리 켬':'소리 끔';if(local.sound)audio()};
-  ticker();updateStudy()
+  ticker();startPresence();updateStudy()
 }
 async function mark(type){
   let ref=doc(db,'sidedeskRooms',room),done=0;
   await runTransaction(db,async t=>{
     let s=await t.get(ref),d=s.data(),m=d[role];if(!m||m.status==='paused'||m.done>=m.total)return;
-    let n={...m,done:m.done+1,updatedAtMs:Date.now()};
+    let now=Date.now(),n={...m,done:m.done+1,problemAtMs:now,presenceAtMs:now,visibility:'active',updatedAtMs:now};
     if(type==='correct')n.correct=(m.correct||0)+1;if(type==='wrong')n.wrong=(m.wrong||0)+1;if(type==='skip')n.skipped=(m.skipped||0)+1;
     if(n.done>=n.total)n.status='done';done=n.done;t.update(ref,{[role]:n,updatedAt:serverTimestamp()})
   });
@@ -339,9 +377,9 @@ function fill(p,d){
   document.querySelector('#'+p+'p').textContent=P(d)+'%';let a=ACC(d);document.querySelector('#'+p+'a').textContent=a==null?'정확도 -':'정확도 '+a+'%';
   document.querySelector('#'+p+'b').style.width=P(d)+'%';document.querySelector('#'+p+'s').textContent=d.status==='paused'?'잠깐 멈춤':d.status==='done'?'완료':'풀이 중';
   const cur=document.querySelector('#'+p+'current');if(cur)cur.textContent=d.status==='done'?'✓':Math.min((d.done||0)+1,d.total);
-  const age=document.querySelector('#'+p+'age');if(age){const sec=Math.max(0,Math.floor((Date.now()-(d.updatedAtMs||started))/1000));age.textContent=d.status==='done'?'완료':d.status==='paused'?'멈춤':sec<5?'방금 넘김':sec<60?sec+'초째':Math.floor(sec/60)+'분째'}
+  const age=document.querySelector('#'+p+'age');if(age){const sec=Math.max(0,Math.floor((Date.now()-(d.problemAtMs||d.updatedAtMs||started))/1000));age.textContent=d.status==='done'?'완료':d.status==='paused'?'멈춤':sec<5?'방금 넘김':sec<60?sec+'초째':Math.floor(sec/60)+'분째'}
   const w=d.workbook||{title:'문제집',subject:'기타',difficulty:d.difficulty,total:d.total};
-  document.querySelector('#'+p+'book').innerHTML='<b>'+E(w.title)+'</b><span>'+E(w.subject)+' · '+E(D(w.difficulty))+'</span>'
+  document.querySelector('#'+p+'book').innerHTML='<b>'+E(w.title)+'</b><span>'+E(w.subject)+' · '+E(D(w.difficulty))+'</span>';renderPresence(p,d)
 }
 function remote(e){
   let c=document.querySelector('#friend');c?.classList.remove('flash');void c?.offsetWidth;c?.classList.add('flash');let w=e.nickname||'친구';
@@ -354,6 +392,25 @@ function remote(e){
     msg(w+'가 방금 '+label(e.type)+' 처리했습니다.');
     if(Date.now()-ownAt<=3000){sound('sync');desk.classList.add('sync');setTimeout(()=>desk.classList.remove('sync'),700);msg('SYNC · 거의 동시에 한 문제를 끝냈습니다.')}
   }tr(w+' · '+label(e.type))
+}
+function renderPresence(prefix,d){
+  const el=document.querySelector('#'+prefix+'presence');if(!el)return;
+  const lag=Date.now()-(d.presenceAtMs||d.updatedAtMs||0);
+  let cls='active',text='함께 있음';
+  if(lag>70000){cls='quiet';text='연결 확인 중'}
+  else if(d.visibility==='background'){cls='background';text='다른 화면 열어둠'}
+  else if(d.status==='paused'){cls='paused';text='잠깐 멈춤'}
+  else if(d.status==='done'){cls='done';text='오늘 공부 끝'}
+  el.className='presence-lamp '+cls;el.querySelector('span').textContent=text
+}
+async function sendPresence(){
+  if(!room||!role||!R||R.status!=='studying')return;
+  const m=R[role];if(!m)return;
+  const now=Date.now(),visibility=document.hidden?'background':'active';
+  try{await updateDoc(doc(db,'sidedeskRooms',room),{[role]:{...m,presenceAtMs:now,visibility},updatedAt:serverTimestamp()})}catch{}
+}
+function startPresence(){
+  clearInterval(presenceTimer);sendPresence();presenceTimer=setInterval(sendPresence,25000)
 }
 function pushActivity(prefix,type){
   activity[prefix].push({type,at:Date.now()});activity[prefix]=activity[prefix].slice(-12);renderRail(prefix)
@@ -386,7 +443,7 @@ function beginHistory(){
   historyId=room+'_'+started+'_'+authUid;
   if(local.history.some(h=>h.id===historyId))return;
   const w=m.workbook||activeWorkbook(),f=R?.[role==='host'?'guest':'host'];
-  local.history.unshift({id:historyId,room,workbookTitle:w.title,subject:w.subject,difficulty:w.difficulty,total:m.total,done:m.done||0,correct:m.correct||0,wrong:m.wrong||0,skipped:m.skipped||0,friend:f?.nickname||'',startedAt:started,endedAt:null});
+  local.history.unshift({id:historyId,room,workbookId:workbookKey(w),workbookTitle:w.title,subject:w.subject,difficulty:w.difficulty,total:m.total,startDone:m.startDone||0,done:m.done||0,correct:m.correct||0,wrong:m.wrong||0,skipped:m.skipped||0,friend:f?.nickname||'',startedAt:started,endedAt:null});
   local.history=local.history.slice(0,60);saveLocal()
 }
 function syncHistory(m,f){
@@ -400,5 +457,6 @@ function msg(t){let e=document.querySelector('#live');if(e)e.textContent=t}
 function tr(t){let l=document.querySelector('#trace');if(!l)return;let e=document.createElement('div');e.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' · '+t;l.prepend(e);while(l.children.length>5)l.lastElementChild.remove()}
 function ticker(){clearInterval(timer);timer=setInterval(()=>{let c=document.querySelector('#clock');if(!c)return;let s=Math.max(0,((Date.now()-started)/1000)|0);c.textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');if(R){const m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(m&&f){fill('m',m);fill('x',f)}}},1000)}
 
+addEventListener('visibilitychange',()=>{if(room)sendPresence()});addEventListener('focus',()=>{if(room)sendPresence()});addEventListener('online',()=>{if(room)sendPresence()});
 addEventListener('pointerdown',()=>{if(local.sound)audio()},{once:true,capture:true});
 try{let c=await signInAnonymously(auth);authUid=c.user.uid;await resumeOrLanding()}catch(e){console.error(e);fail('실시간 연결용 익명 로그인을 시작하지 못했습니다.')}
