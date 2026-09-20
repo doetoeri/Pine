@@ -1000,7 +1000,7 @@ service cloud.firestore {
       allow read: if signedIn();
 
       allow create: if signedIn()
-        && request.resource.data.version == 1
+        && request.resource.data.version in [1, 2]
         && request.resource.data.status == 'lobby'
         && request.resource.data.host.uid == request.auth.uid
         && request.resource.data.guest == null;
