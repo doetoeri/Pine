@@ -136,6 +136,31 @@ export function crossoverSequenceFor(uid, experimentId = "notification-frequency
   return { index, sequence: [...CROSSOVER_SEQUENCES[index]] };
 }
 
+function notificationDayEligible(date, config = {}) {
+  if (config.schoolDaysOnly !== true) return true;
+  const parsed = new Date(`${date}T00:00:00Z`);
+  const weekday = parsed.getUTCDay();
+  if (weekday === 0 || weekday === 6) return false;
+  const excluded = new Set(
+    (Array.isArray(config.excludedDates) ? config.excludedDates : [])
+      .map((value) => String(value || ""))
+      .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value)),
+  );
+  return !excluded.has(date);
+}
+
+function notificationEligibleDayCount(startDate, endDate, config = {}) {
+  let count = 0;
+  const cursor = new Date(`${startDate}T00:00:00Z`);
+  const end = Date.parse(`${endDate}T00:00:00Z`);
+  while (cursor.getTime() <= end) {
+    const date = cursor.toISOString().slice(0, 10);
+    if (notificationDayEligible(date, config)) count += 1;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return count;
+}
+
 export function notificationPeriodAt(config = {}, now = new Date()) {
   const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(config.startDate || ""))
     ? String(config.startDate)
@@ -148,11 +173,20 @@ export function notificationPeriodAt(config = {}, now = new Date()) {
   const day = Math.floor((current - start) / 86_400_000);
   if (day < 0) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
 
+  if (config.schoolDaysOnly === true && !notificationDayEligible(today, config)) {
+    return { phase: "OFF_DAY", period: 0, periodDay: 0 };
+  }
+
+  const ordinal = config.schoolDaysOnly === true
+    ? notificationEligibleDayCount(startDate, today, config) - 1
+    : day;
+  if (ordinal < 0) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
+
   const baselineDays = Math.max(0, Math.trunc(Number(config.baselineDays ?? 2)));
   const periodDays = Math.max(1, Math.trunc(Number(config.periodDays ?? 4)));
-  if (day < baselineDays) return { phase: "BASELINE", period: 0, periodDay: day + 1 };
+  if (ordinal < baselineDays) return { phase: "BASELINE", period: 0, periodDay: ordinal + 1 };
 
-  const afterBaseline = day - baselineDays;
+  const afterBaseline = ordinal - baselineDays;
   const period = Math.floor(afterBaseline / periodDays) + 1;
   if (period > 3) return { phase: "COMPLETE", period: 4, periodDay: 0 };
   return {
