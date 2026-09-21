@@ -193,10 +193,11 @@ function landing(){
 function renderLandingShelf(){
   const box=document.querySelector('#landingShelf');if(!box)return;
   box.innerHTML=local.workbooks.slice(0,4).map(w=>{
-    const last=historyFor(w)[0],st=workbookStats(w);
+    const last=historyFor(w)[0],st=workbookStats(w),wc=wrongsFor(w).length;
     const lastText=last?' · 최근 '+last.done+'/'+last.total:'';
     const statsText=st.sessions?' · 누적 '+st.problems+'문항/'+st.minutes+'분':'';
-    return '<div class="shelf-item"><div class="book-spine"></div><div><b>'+E(w.title)+'</b><div class="small">'+E(w.subject)+' · '+w.total+'문항 · '+E(D(w.difficulty))+lastText+statsText+'</div></div><button class="btn ghost" data-wb="'+E(w.id)+'" style="min-height:38px;padding:6px 9px">'+(w.id===local.lastWorkbookId?'선택됨':'선택')+'</button></div>'
+    const wrongText=wc?' · 오답 '+wc:'';
+    return '<div class="shelf-item"><div class="book-spine"></div><div><b>'+E(w.title)+'</b><div class="small">'+E(w.subject)+' · '+w.total+'문항 · '+E(D(w.difficulty))+lastText+statsText+wrongText+'</div></div><button class="btn ghost" data-wb="'+E(w.id)+'" style="min-height:38px;padding:6px 9px">'+(w.id===local.lastWorkbookId?'선택됨':'선택')+'</button></div>'
   }).join('');
   box.querySelectorAll('[data-wb]').forEach(b=>b.onclick=()=>{local.lastWorkbookId=b.dataset.wb;saveLocal();renderLandingShelf()});
 }
@@ -285,8 +286,8 @@ function lobby(){
 }
 function renderWorkbookExtras(w){
   const rb=document.querySelector('#resumeBox'),sb=document.querySelector('#workbookStatsBox');if(!rb||!sb)return;
-  const h=continuationFor(w),st=workbookStats(w);
-  sb.innerHTML='<div class="workbook-stats"><div><b>'+st.sessions+'</b><span>세션</span></div><div><b>'+st.problems+'</b><span>누적 문항</span></div><div><b>'+st.minutes+'</b><span>누적 분</span></div><div><b>'+(st.accuracy==null?'–':st.accuracy+'%')+'</b><span>누적 정확도</span></div></div>';
+  const h=continuationFor(w),st=workbookStats(w),wc=wrongsFor(w).length;
+  sb.innerHTML='<div class="workbook-stats"><div><b>'+st.sessions+'</b><span>세션</span></div><div><b>'+st.problems+'</b><span>누적 문항</span></div><div><b>'+st.minutes+'</b><span>누적 분</span></div><div><b>'+(st.accuracy==null?'–':st.accuracy+'%')+'</b><span>정확도</span></div></div>'+(wc?'<div class="wrong-summary">지난 오답 '+wc+'개 · '+wrongsFor(w).slice(0,12).join(', ')+'번'+(wc>12?' 외':'')+'</div>':'');
   if(!h){rb.innerHTML='';return}
   const next=Math.min((h.done||0)+1,w.total);
   rb.innerHTML='<div class="resume-note"><div><div class="kicker">CONTINUE</div><b>지난번 '+h.done+'/'+h.total+'까지</b><span>'+next+'번부터 이어서 풀 수 있어요.</span></div><div class="row"><button id="resumeYes" class="btn primary">이어하기</button><button id="resumeNo" class="btn ghost">처음부터</button></div></div>';
@@ -505,13 +506,14 @@ async function queueWorkbook(id,resume,goalStart,goalEnd){
   let gs=Math.max(1,Math.min(w.total,+goalStart||continued+1||1)),ge=Math.max(gs,Math.min(w.total,+goalEnd||w.total));
   const startDone=Math.max(continued,gs-1),entry={workbook:normalizeWorkbook(w),startDone,goalStart:gs,goalEnd:ge};
   const now=Date.now(),ref=doc(db,'sidedeskRooms',room);
+  let next;
   if(m.status==='done'){
-    const next={...m,workbook:entry.workbook,total:w.total,difficulty:w.difficulty,goalStart:gs,goalEnd:ge,startDone,done:startDone,correct:0,wrong:0,skipped:0,status:'solving',workbookStartedAtMs:now,problemAtMs:now,presenceAtMs:now,workbookQueue:m.workbookQueue||[],updatedAtMs:now};
-    await updateDoc(ref,{[role]:next,updatedAt:serverTimestamp()})
+    next={...m,workbook:entry.workbook,total:w.total,difficulty:w.difficulty,goalStart:gs,goalEnd:ge,startDone,done:startDone,correct:0,wrong:0,skipped:0,status:'solving',workbookStartedAtMs:now,problemAtMs:now,presenceAtMs:now,workbookQueue:m.workbookQueue||[],updatedAtMs:now};
+    await updateDoc(ref,{[role]:next,updatedAt:serverTimestamp()});R={...R,[role]:next};await event('workbookSwitch',{title:w.title});document.querySelector('#studyWorkbookPanel')?.remove();msg(w.title+' 문제집을 바로 펼쳤습니다.')
   }else{
-    await updateDoc(ref,{[role]:{...m,workbookQueue:[...(m.workbookQueue||[]),entry],updatedAtMs:now},updatedAt:serverTimestamp()})
+    next={...m,workbookQueue:[...(m.workbookQueue||[]),entry],updatedAtMs:now};
+    await updateDoc(ref,{[role]:next,updatedAt:serverTimestamp()});R={...R,[role]:next};await event('queueWorkbook',{title:w.title});renderQueueManager();msg(w.title+'을(를) 다음 문제집으로 추가했습니다.')
   }
-  await event('queueWorkbook',{title:w.title});const panel=document.querySelector('#studyWorkbookPanel');if(panel){R={...R,[role]:{...m,workbookQueue:[...(m.workbookQueue||[]),entry]}};renderQueueManager()}msg(w.title+'을(를) 다음 문제집으로 추가했습니다.')
 }
 function renderQueueManager(){
   const box=document.querySelector('#queueManager'),m=R?.[role];if(!box||!m)return;
