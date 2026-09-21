@@ -238,7 +238,7 @@ async function join(){
       t.update(r,{guest:g,updatedAt:serverTimestamp()})
     });
     room=x;name=n;role='guest';rememberRoom();history.replaceState(null,'',location.pathname+'?room='+room);
-    const fresh=await getDoc(r);R=fresh.data();if(R.status==='studying'){study()}else{lobby()}bind()
+    const fresh=await getDoc(r);R=fresh.data();if(R.status==='studying'){study();await event('lateJoin',{joinedAt:Date.now()})}else{lobby()}bind()
   }catch(e){err(e.message==='없음'?'방을 찾지 못했습니다.':e.message==='가득'?'이미 두 명이 들어와 있습니다.':e.message==='종료'?'이미 종료된 방입니다.':'입장하지 못했습니다.')}
 }
 function bookMarkup(w,id='book'){
@@ -401,7 +401,7 @@ function study(){
   ticker();startPresence();updateStudy()
 }
 async function mark(type){
-  let ref=doc(db,'sidedeskRooms',room),done=0,switchedTitle='';
+  let ref=doc(db,'sidedeskRooms',room),done=0,switchedTitle='',completedRecord=null;
   await runTransaction(db,async t=>{
     let s=await t.get(ref),d=s.data(),m=d[role];if(!m||m.status==='paused'||m.done>=m.total)return;
     let now=Date.now(),n={...m,done:m.done+1,problemAtMs:now,presenceAtMs:now,visibility:'active',updatedAtMs:now};
@@ -409,6 +409,7 @@ async function mark(type){
     if(n.done>=n.total){
       const q=[...(m.workbookQueue||[])];
       if(q.length){
+        completedRecord={...n};
         const nxt=q.shift(),w=nxt.workbook,start=nxt.startDone||0;
         n={...n,workbook:w,workbookQueue:q,total:w.total,difficulty:w.difficulty,startDone:start,done:start,correct:0,wrong:0,skipped:0,status:'solving',workbookStartedAtMs:now,problemAtMs:now,updatedAtMs:now};
         switchedTitle=w.title
@@ -416,6 +417,10 @@ async function mark(type){
     }
     done=n.done;t.update(ref,{[role]:n,updatedAt:serverTimestamp()})
   });
+  if(completedRecord&&historyId){
+    const h=local.history.find(x=>x.id===historyId);
+    if(h){h.done=completedRecord.done||0;h.correct=completedRecord.correct||0;h.wrong=completedRecord.wrong||0;h.skipped=completedRecord.skipped||0;h.lastSeenAt=Date.now();h.endedAt=Date.now();saveLocal()}
+  }
   if(done||switchedTitle){ownAt=Date.now();pushActivity('m',type);animatePage('m',type);sound('page');await event(type,{done});if(switchedTitle){await event('workbookSwitch',{title:switchedTitle});msg(switchedTitle+' 문제집을 새로 펼쳤습니다.')}else msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
 }
 function openStudyWorkbookPanel(){
@@ -459,7 +464,7 @@ async function togglePause(){
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:{...m,status:x?'solving':'paused',updatedAtMs:Date.now()},updatedAt:serverTimestamp()});event(x?'resume':'pause')
 }
 async function event(type,x={}){await addDoc(collection(db,'sidedeskRooms',room,'events'),{uid:authUid,nickname:name,type,clientTs:Date.now(),...x,createdAt:serverTimestamp()})}
-const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',pause:'잠깐 멈춤',resume:'다시 시작',start:'시작',finish:'공부 종료',queueWorkbook:'문제집 추가',workbookSwitch:'문제집 전환'})[t]||t;
+const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',pause:'잠깐 멈춤',resume:'다시 시작',start:'시작',finish:'공부 종료',queueWorkbook:'문제집 추가',workbookSwitch:'문제집 전환',lateJoin:'중도 참여'})[t]||t;
 function updateStudy(){
   let m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(!m)return;
   fill('m',m);
@@ -468,12 +473,12 @@ function updateStudy(){
   pause.textContent=m.status==='paused'?'다시 시작':'잠깐 멈춤';
   let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;
   if(document.querySelector('#finish')){
-    if(m.status==='done'&&f.status!=='done'){finish.disabled=false;finish.textContent='홈으로';finish.onclick=leaveRoom}
+    if(m.status==='done'&&(!f||f.status!=='done')){finish.disabled=false;finish.textContent='홈으로';finish.onclick=leaveRoom}
     else if(m.status!=='done'){finish.disabled=false;finish.onclick=finishStudy}
     else finish.disabled=true
   }
   syncHistory(m,f);
-  if(m.status==='done'&&f.status==='done'){
+  if(m.status==='done'&&f?.status==='done'){
     rs.textContent='● 세션 완료';ok.disabled=no.disabled=sk.disabled=tap.disabled=pause.disabled=true;
     msg('둘 다 완료했습니다. 오늘 공부 기록도 이 기기에 저장했습니다.');showSummary(m,f)
   }
@@ -507,6 +512,7 @@ function remote(e){
   else if(e.type==='finish'){msg(w+'가 오늘 공부를 마쳤습니다.');wigglePencil('x')}
   else if(e.type==='queueWorkbook')msg(w+'가 '+(e.title||'새 문제집')+'을(를) 다음에 풀 책으로 올렸습니다.');
   else if(e.type==='workbookSwitch'){msg(w+'가 '+(e.title||'다음 문제집')+'을(를) 펼쳤습니다.');wigglePencil('x')}
+  else if(e.type==='lateJoin'){msg(w+'가 공부 중간에 자리에 앉았습니다.');sound('static')}
   else if(['correct','wrong','skip'].includes(e.type)){
     pushActivity('x',e.type);wigglePencil('x');animatePage('x',e.type);sound('page');
     msg(w+'가 방금 '+label(e.type)+' 처리했습니다.');
