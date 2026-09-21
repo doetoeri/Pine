@@ -1019,9 +1019,15 @@ service cloud.firestore {
           resource.data.host.uid == request.auth.uid
           && resource.data.status == 'lobby'
           && request.resource.data.status == 'studying'
-          && resource.data.guest != null
           && request.resource.data.host.uid == resource.data.host.uid
-          && request.resource.data.guest.uid == resource.data.guest.uid
+          && (
+            (resource.data.guest == null && request.resource.data.guest == null)
+            || (
+              resource.data.guest != null
+              && request.resource.data.guest != null
+              && request.resource.data.guest.uid == resource.data.guest.uid
+            )
+          )
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'host', 'guest', 'status', 'startedAtMs', 'updatedAt'
           ])
