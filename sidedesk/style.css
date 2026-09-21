@@ -743,3 +743,8 @@ body:before{
   .queue-row>div:last-child{justify-content:flex-end}
   .sticky-note{width:min(175px,62vw)}
 }
+
+.wrong-summary{
+  margin:8px 0 11px;padding:8px 10px;border-radius:7px;
+  background:#ead9c5;border:1px dashed #aa8c6c;color:#725640;font-size:11px;line-height:1.45
+}
