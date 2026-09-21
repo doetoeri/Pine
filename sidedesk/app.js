@@ -113,7 +113,7 @@ function normalizeWorkbook(w={}){
 }
 function player(n){
   let w=normalizeWorkbook(activeWorkbook());
-  return{uid:authUid,nickname:n,workbook:w,total:w.total,difficulty:w.difficulty,startDone:0,done:0,correct:0,wrong:0,skipped:0,status:'ready',presenceAtMs:Date.now(),visibility:'active',problemAtMs:Date.now(),updatedAtMs:Date.now()};
+  return{uid:authUid,nickname:n,workbook:w,workbookQueue:[],total:w.total,difficulty:w.difficulty,startDone:0,done:0,correct:0,wrong:0,skipped:0,status:'ready',joinedAtMs:Date.now(),workbookStartedAtMs:Date.now(),presenceAtMs:Date.now(),visibility:'active',problemAtMs:Date.now(),updatedAtMs:Date.now()};
 }
 function fail(m){A.innerHTML='<main class="app"><div class="shell"><div class="paper error" style="max-width:520px;margin:20vh auto">'+E(m)+'</div></div></main>'}
 
@@ -232,11 +232,14 @@ async function join(){
     let r=doc(db,'sidedeskRooms',x);
     await runTransaction(db,async t=>{
       let s=await t.get(r);if(!s.exists())throw Error('없음');let d=s.data();
-      if(d.status!=='lobby')throw Error('시작');if(d.guest)throw Error('가득');
-      t.update(r,{guest:player(n),updatedAt:serverTimestamp()})
+      if(!['lobby','studying'].includes(d.status))throw Error('종료');if(d.guest)throw Error('가득');
+      const g=player(n),now=Date.now();
+      if(d.status==='studying'){g.status='solving';g.joinedAtMs=now;g.workbookStartedAtMs=now;g.problemAtMs=now}
+      t.update(r,{guest:g,updatedAt:serverTimestamp()})
     });
-    room=x;name=n;role='guest';rememberRoom();history.replaceState(null,'',location.pathname+'?room='+room);lobby();bind()
-  }catch(e){err(e.message==='없음'?'방을 찾지 못했습니다.':e.message==='가득'?'이미 두 명이 들어와 있습니다.':e.message==='시작'?'이미 시작한 방입니다.':'입장하지 못했습니다.')}
+    room=x;name=n;role='guest';rememberRoom();history.replaceState(null,'',location.pathname+'?room='+room);
+    const fresh=await getDoc(r);R=fresh.data();if(R.status==='studying'){study()}else{lobby()}bind()
+  }catch(e){err(e.message==='없음'?'방을 찾지 못했습니다.':e.message==='가득'?'이미 두 명이 들어와 있습니다.':e.message==='종료'?'이미 종료된 방입니다.':'입장하지 못했습니다.')}
 }
 function bookMarkup(w,id='book'){
   w=normalizeWorkbook(w);
@@ -256,7 +259,7 @@ function lobby(){
   '<div id="resumeBox"></div><div id="workbookStatsBox"></div>'+
   '<div class="field"><label>문제집 선택</label><select id="wbselect" class="select">'+local.workbooks.map(x=>'<option value="'+E(x.id)+'" '+(x.id===w.id?'selected':'')+'>'+E(x.title)+' · '+E(x.subject)+'</option>').join('')+'</select></div>'+
   '<div class="row" style="margin-top:10px"><button id="editwb" class="btn ghost" style="flex:1">현재 문제집 수정</button></div>'+
-  '<button id="go" class="btn primary start-lever" style="width:100%;margin-top:14px" disabled>'+(role==='host'?'친구를 기다리는 중':'방장이 시작하면 자동 시작')+'</button></div></section></div></main>';
+  '<button id="go" class="btn primary start-lever" style="width:100%;margin-top:14px" '+(role==='host'?'':'disabled')+'>'+(role==='host'?'혼자 먼저 시작':'방장이 시작하면 자동 시작')+'</button></div></section></div></main>';
   leave.onclick=leaveRoom;shareInvite.onclick=shareRoom;newwb.onclick=()=>workbookEditor(null,renderLobbyLibrary);editwb.onclick=()=>workbookEditor(activeWorkbook(),renderLobbyLibrary);
   wbselect.onchange=()=>selectWorkbook(wbselect.value);if(role==='host')go.onclick=start;copywb.onclick=copyFriendWorkbook;openBook('myBook');renderWorkbookExtras(w);
   analogCodeReveal(document.querySelector('#roomCode'),room);
@@ -346,12 +349,13 @@ function copyFriendWorkbook(){
   saveLocal();renderLobbyLibrary();
 }
 async function start(){
-  if(role!=='host'||!R?.guest)return;
-  let t=Date.now();
-  await updateDoc(doc(db,'sidedeskRooms',room),{
-    host:{...R.host,status:'solving',presenceAtMs:t,visibility:'active',problemAtMs:R.host.problemAtMs||t,updatedAtMs:t},guest:{...R.guest,status:'solving',presenceAtMs:t,visibility:'active',problemAtMs:R.guest.problemAtMs||t,updatedAtMs:t},
+  if(role!=='host'||!R)return;
+  let t=Date.now(),patch={
+    host:{...R.host,status:'solving',joinedAtMs:R.host.joinedAtMs||t,workbookStartedAtMs:t,presenceAtMs:t,visibility:'active',problemAtMs:R.host.problemAtMs||t,updatedAtMs:t},
     status:'studying',startedAtMs:t,updatedAt:serverTimestamp()
-  });event('start')
+  };
+  if(R.guest)patch.guest={...R.guest,status:'solving',joinedAtMs:R.guest.joinedAtMs||t,workbookStartedAtMs:t,presenceAtMs:t,visibility:'active',problemAtMs:R.guest.problemAtMs||t,updatedAtMs:t};
+  await updateDoc(doc(db,'sidedeskRooms',room),patch);event('start')
 }
 function bind(){
   unsub?.();eu?.();cut=Date.now();
@@ -385,26 +389,63 @@ function updateLobby(){
 function study(){
   started=R.startedAtMs||Date.now();beginHistory();
   A.innerHTML='<main class="app study-open" id="study"><div class="shell"><header class="top"><div class="brand"><div class="logo">SD</div><div><h1 class="title">Shared Desk</h1><div class="muted">각자 다른 문제집, 같은 공부 시간.</div></div></div><div class="row"><button id="soundToggle" class="sound-toggle" type="button">'+(local.sound?'소리 켬':'소리 끔')+'</button><span id="rs" class="badge">● 같이 공부 중</span></div></header>'+
-  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="presence-lamp" id="mpresence"><i></i><span>함께 있음</span></div><div class="desk-tool"><span class="pencil" id="mpencil"></span><span class="eraser"></span></div><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div><div class="activity-rail" id="mrail" aria-label="최근 풀이 리듬"></div></div>'+
+  '<section id="desk" class="desk"><div class="study"><div class="paper player" id="me"><div class="presence-lamp" id="mpresence"><i></i><span>함께 있음</span></div><div class="desk-tool"><span class="pencil" id="mpencil"></span><span class="eraser"></span></div><div class="head"><b id="mn">나</b><span id="ms" class="muted">풀이 중</span></div><div id="mbook" class="workbook-chip"></div><div id="mqueue" class="queue-strip"></div><div class="problem-slip" id="mslip"><span>현재 문항</span><b id="mcurrent">1</b><em id="mage">시작함</em></div><div style="margin:15px 0 10px"><span id="md" class="num">0</span><span class="muted"> / <span id="mt">20</span></span></div><div class="progress"><div id="mb" class="bar"></div></div><div class="head" style="margin-top:10px"><span id="mp" class="muted">0%</span><span id="ma" class="muted">정확도 -</span></div><div class="activity-rail" id="mrail" aria-label="최근 풀이 리듬"></div></div>'+
   '<div class="timer"><div><span class="muted" style="color:#9fb49a">STUDY TIME</span><strong id="clock">00:00</strong><span id="pace" class="muted" style="color:#aabca6">같이 시작함</span></div></div>'+
-  '<div class="paper player" id="friend"><div class="presence-lamp" id="xpresence"><i></i><span>연결 확인</span></div><div class="desk-tool friend-tool"><span class="pencil" id="xpencil"></span><span class="eraser"></span></div><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div><div class="activity-rail" id="xrail" aria-label="친구의 최근 풀이 리듬"></div></div></div>'+
+  '<div class="paper player" id="friend"><div class="presence-lamp" id="xpresence"><i></i><span>연결 확인</span></div><div class="desk-tool friend-tool"><span class="pencil" id="xpencil"></span><span class="eraser"></span></div><div class="head"><b id="xn">친구</b><span id="xs" class="muted">풀이 중</span></div><div id="xbook" class="workbook-chip"></div><div id="xqueue" class="queue-strip"></div><div class="problem-slip" id="xslip"><span>현재 문항</span><b id="xcurrent">1</b><em id="xage">시작함</em></div><div style="margin:15px 0 10px"><span id="xd" class="num">0</span><span class="muted"> / <span id="xt">20</span></span></div><div class="progress"><div id="xb" class="bar friendbar"></div></div><div class="head" style="margin-top:10px"><span id="xp" class="muted">0%</span><span id="xa" class="muted">정확도 -</span></div><div class="activity-rail" id="xrail" aria-label="친구의 최근 풀이 리듬"></div></div></div>'+
   '<div class="actions"><button id="ok" class="btn action">✓ 정답</button><button id="no" class="btn action">× 오답</button><button id="sk" class="btn action">→ 보류</button></div>'+
-  '<div class="secondary secondary-three"><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button><button id="finish" class="btn ghost">공부 마치기</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div><section id="summary" class="session-summary hidden"></section></section></div></main>';
+  '<div class="secondary secondary-four"><button id="addWorkbook" class="btn">+ 문제집 추가</button><button id="tap" class="btn">책상 톡</button><button id="pause" class="btn">잠깐 멈춤</button><button id="finish" class="btn ghost">공부 마치기</button></div><div id="live" class="live">친구의 행동이 여기에 바로 나타납니다.</div><div id="trace" class="trace"></div><section id="summary" class="session-summary hidden"></section></section></div></main>';
   ok.onclick=()=>mark('correct');no.onclick=()=>mark('wrong');sk.onclick=()=>mark('skip');
   tap.onclick=async()=>{sound('tap');await event('tap');msg('친구 책상을 톡 건드렸습니다.');tr(name+' · 책상 톡');navigator.vibrate?.(18)};
-  pause.onclick=togglePause;finish.onclick=finishStudy;
+  addWorkbook.onclick=openStudyWorkbookPanel;pause.onclick=togglePause;finish.onclick=finishStudy;
   soundToggle.onclick=()=>{local.sound=!local.sound;saveLocal();soundToggle.textContent=local.sound?'소리 켬':'소리 끔';if(local.sound)audio()};
   ticker();startPresence();updateStudy()
 }
 async function mark(type){
-  let ref=doc(db,'sidedeskRooms',room),done=0;
+  let ref=doc(db,'sidedeskRooms',room),done=0,switchedTitle='';
   await runTransaction(db,async t=>{
     let s=await t.get(ref),d=s.data(),m=d[role];if(!m||m.status==='paused'||m.done>=m.total)return;
     let now=Date.now(),n={...m,done:m.done+1,problemAtMs:now,presenceAtMs:now,visibility:'active',updatedAtMs:now};
     if(type==='correct')n.correct=(m.correct||0)+1;if(type==='wrong')n.wrong=(m.wrong||0)+1;if(type==='skip')n.skipped=(m.skipped||0)+1;
-    if(n.done>=n.total)n.status='done';done=n.done;t.update(ref,{[role]:n,updatedAt:serverTimestamp()})
+    if(n.done>=n.total){
+      const q=[...(m.workbookQueue||[])];
+      if(q.length){
+        const nxt=q.shift(),w=nxt.workbook,start=nxt.startDone||0;
+        n={...n,workbook:w,workbookQueue:q,total:w.total,difficulty:w.difficulty,startDone:start,done:start,correct:0,wrong:0,skipped:0,status:'solving',workbookStartedAtMs:now,problemAtMs:now,updatedAtMs:now};
+        switchedTitle=w.title
+      }else n.status='done'
+    }
+    done=n.done;t.update(ref,{[role]:n,updatedAt:serverTimestamp()})
   });
-  if(done){ownAt=Date.now();pushActivity('m',type);animatePage('m',type);sound('page');await event(type,{done});msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
+  if(done||switchedTitle){ownAt=Date.now();pushActivity('m',type);animatePage('m',type);sound('page');await event(type,{done});if(switchedTitle){await event('workbookSwitch',{title:switchedTitle});msg(switchedTitle+' 문제집을 새로 펼쳤습니다.')}else msg('내 '+label(type)+' 기록이 친구 화면에 전달됐습니다.');tr(name+' · '+label(type));navigator.vibrate?.(12)}
+}
+function openStudyWorkbookPanel(){
+  document.querySelector('#studyWorkbookPanel')?.remove();
+  const host=document.querySelector('#desk');if(!host)return;
+  const panel=document.createElement('section');panel.id='studyWorkbookPanel';panel.className='study-workbook-panel';
+  const options=local.workbooks.map(w=>'<option value="'+E(w.id)+'">'+E(w.title)+' · '+E(w.subject)+' · '+w.total+'문항</option>').join('');
+  panel.innerHTML='<div class="section-title"><div><div class="kicker">ADD WORKBOOK</div><h3>다음 문제집 놓기</h3></div><button id="swClose" class="btn ghost">닫기</button></div>'+
+    '<div class="field"><label>내 문제집</label><select id="swSelect" class="select">'+options+'</select></div>'+
+    '<div id="swContinue" class="queue-continue"></div>'+
+    '<div class="row" style="margin-top:12px"><button id="swAdd" class="btn primary" style="flex:1">대기열에 추가</button><button id="swNew" class="btn ghost">새 문제집 만들기</button></div>';
+  host.appendChild(panel);
+  const refresh=()=>{const w=local.workbooks.find(x=>x.id===swSelect.value),h=w&&continuationFor(w);swContinue.innerHTML=h?'<label class="continue-check"><input id="swResume" type="checkbox" checked> 지난 기록 '+h.done+'/'+h.total+'에서 이어서 시작</label>':'<span class="small">이 문제집은 처음부터 시작합니다.</span>'};
+  swSelect.onchange=refresh;refresh();
+  swClose.onclick=()=>panel.remove();
+  swNew.onclick=()=>workbookEditor(null,()=>{panel.remove();openStudyWorkbookPanel()});
+  swAdd.onclick=()=>queueWorkbook(swSelect.value,!!document.querySelector('#swResume')?.checked);
+  panel.scrollIntoView({behavior:'smooth',block:'center'})
+}
+async function queueWorkbook(id,resume){
+  const w=local.workbooks.find(x=>x.id===id),m=R?.[role];if(!w||!m)return;
+  const h=resume?continuationFor(w):null,startDone=h?.done||0,entry={workbook:normalizeWorkbook(w),startDone};
+  const now=Date.now(),ref=doc(db,'sidedeskRooms',room);
+  if(m.status==='done'){
+    const next={...m,workbook:entry.workbook,total:w.total,difficulty:w.difficulty,startDone,done:startDone,correct:0,wrong:0,skipped:0,status:'solving',workbookStartedAtMs:now,problemAtMs:now,presenceAtMs:now,workbookQueue:m.workbookQueue||[],updatedAtMs:now};
+    await updateDoc(ref,{[role]:next,updatedAt:serverTimestamp()})
+  }else{
+    await updateDoc(ref,{[role]:{...m,workbookQueue:[...(m.workbookQueue||[]),entry],updatedAtMs:now},updatedAt:serverTimestamp()})
+  }
+  await event('queueWorkbook',{title:w.title});document.querySelector('#studyWorkbookPanel')?.remove();msg(w.title+'을(를) 다음 문제집으로 추가했습니다.')
 }
 async function finishStudy(){
   const now=Date.now();
@@ -418,11 +459,12 @@ async function togglePause(){
   await updateDoc(doc(db,'sidedeskRooms',room),{[role]:{...m,status:x?'solving':'paused',updatedAtMs:Date.now()},updatedAt:serverTimestamp()});event(x?'resume':'pause')
 }
 async function event(type,x={}){await addDoc(collection(db,'sidedeskRooms',room,'events'),{uid:authUid,nickname:name,type,clientTs:Date.now(),...x,createdAt:serverTimestamp()})}
-const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',pause:'잠깐 멈춤',resume:'다시 시작',start:'시작',finish:'공부 종료'})[t]||t;
+const label=t=>({correct:'정답',wrong:'오답',skip:'보류',tap:'책상 톡',pause:'잠깐 멈춤',resume:'다시 시작',start:'시작',finish:'공부 종료',queueWorkbook:'문제집 추가',workbookSwitch:'문제집 전환'})[t]||t;
 function updateStudy(){
-  let m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(!m||!f)return;
-  fill('m',m);fill('x',f);
-  let a=SESSIONP(m),b=SESSIONP(f);pace.textContent=a===b?'이번 세션은 거의 같은 속도':a>b?'이번 세션 내가 '+(a-b)+'% 앞서는 중':'이번 세션 친구가 '+(b-a)+'% 앞서는 중';
+  let m=R?.[role],f=R?.[role==='host'?'guest':'host'];if(!m)return;
+  fill('m',m);
+  if(f){fill('x',f);let a=SESSIONP(m),b=SESSIONP(f);pace.textContent=a===b?'이번 세션은 거의 같은 속도':a>b?'이번 세션 내가 '+(a-b)+'% 앞서는 중':'이번 세션 친구가 '+(b-a)+'% 앞서는 중'}
+  else{renderWaitingFriend();pace.textContent='친구가 같은 코드로 중도 참여할 수 있어요'}
   pause.textContent=m.status==='paused'?'다시 시작':'잠깐 멈춤';
   let dis=m.status==='paused'||m.status==='done';ok.disabled=no.disabled=sk.disabled=dis;
   if(document.querySelector('#finish')){
@@ -436,6 +478,15 @@ function updateStudy(){
     msg('둘 다 완료했습니다. 오늘 공부 기록도 이 기기에 저장했습니다.');showSummary(m,f)
   }
 }
+function renderWaitingFriend(){
+  const card=document.querySelector('#friend');if(!card)return;
+  document.querySelector('#xn').textContent='친구 자리 비어 있음';document.querySelector('#xs').textContent='중도 참여 가능';
+  document.querySelector('#xbook').innerHTML='<b>같은 참여 코드를 보내세요</b><span>공부 중에도 바로 들어올 수 있습니다.</span>';
+  document.querySelector('#xqueue').innerHTML='';document.querySelector('#xd').textContent='—';document.querySelector('#xt').textContent='—';
+  document.querySelector('#xp').textContent='참여 대기';document.querySelector('#xa').textContent='';document.querySelector('#xb').style.width='0%';
+  document.querySelector('#xcurrent').textContent='·';document.querySelector('#xage').textContent='자리 비움';
+  const pr=document.querySelector('#xpresence');if(pr){pr.className='presence-lamp quiet';pr.querySelector('span').textContent='참여 대기'}
+}
 function fill(p,d){
   document.querySelector('#'+p+'n').textContent=d.nickname;
   document.querySelector('#'+p+'d').textContent=d.done||0;document.querySelector('#'+p+'t').textContent=d.total;
@@ -444,7 +495,9 @@ function fill(p,d){
   const cur=document.querySelector('#'+p+'current');if(cur)cur.textContent=d.status==='done'?'✓':Math.min((d.done||0)+1,d.total);
   const age=document.querySelector('#'+p+'age');if(age){const sec=Math.max(0,Math.floor((Date.now()-(d.problemAtMs||d.updatedAtMs||started))/1000));age.textContent=d.status==='done'?'완료':d.status==='paused'?'멈춤':sec<5?'방금 넘김':sec<60?sec+'초째':Math.floor(sec/60)+'분째'}
   const w=d.workbook||{title:'문제집',subject:'기타',difficulty:d.difficulty,total:d.total};
-  document.querySelector('#'+p+'book').innerHTML='<b>'+E(w.title)+'</b><span>'+E(w.subject)+' · '+E(D(w.difficulty))+'</span>';renderPresence(p,d)
+  document.querySelector('#'+p+'book').innerHTML='<b>'+E(w.title)+'</b><span>'+E(w.subject)+' · '+E(D(w.difficulty))+'</span>';
+  const q=document.querySelector('#'+p+'queue');if(q){const items=d.workbookQueue||[];q.innerHTML=items.length?'<span>다음</span>'+items.slice(0,3).map(x=>'<i>'+E(x.workbook?.title||'문제집')+'</i>').join('')+(items.length>3?'<i>+'+(items.length-3)+'</i>':''):''}
+  renderPresence(p,d)
 }
 function remote(e){
   let c=document.querySelector('#friend');c?.classList.remove('flash');void c?.offsetWidth;c?.classList.add('flash');let w=e.nickname||'친구';
@@ -452,6 +505,8 @@ function remote(e){
   else if(e.type==='pause')msg(w+'가 잠깐 멈췄습니다.');
   else if(e.type==='resume')msg(w+'가 다시 시작했습니다.');
   else if(e.type==='finish'){msg(w+'가 오늘 공부를 마쳤습니다.');wigglePencil('x')}
+  else if(e.type==='queueWorkbook')msg(w+'가 '+(e.title||'새 문제집')+'을(를) 다음에 풀 책으로 올렸습니다.');
+  else if(e.type==='workbookSwitch'){msg(w+'가 '+(e.title||'다음 문제집')+'을(를) 펼쳤습니다.');wigglePencil('x')}
   else if(['correct','wrong','skip'].includes(e.type)){
     pushActivity('x',e.type);wigglePencil('x');animatePage('x',e.type);sound('page');
     msg(w+'가 방금 '+label(e.type)+' 처리했습니다.');
@@ -506,14 +561,17 @@ function showSummary(m,f){
 }
 function beginHistory(){
   const m=R?.[role];if(!m)return;
-  historyId=room+'_'+started+'_'+authUid;
+  const w=m.workbook||activeWorkbook(),f=R?.[role==='host'?'guest':'host'],segmentStart=m.workbookStartedAtMs||started;
+  const nextId=room+'_'+segmentStart+'_'+authUid+'_'+workbookKey(w);
+  if(historyId&&historyId!==nextId){const old=local.history.find(h=>h.id===historyId);if(old&&!old.endedAt)old.endedAt=Date.now()}
+  historyId=nextId;
   if(local.history.some(h=>h.id===historyId))return;
-  const w=m.workbook||activeWorkbook(),f=R?.[role==='host'?'guest':'host'];
-  local.history.unshift({id:historyId,room,workbookId:workbookKey(w),workbookTitle:w.title,subject:w.subject,difficulty:w.difficulty,total:m.total,startDone:m.startDone||0,done:m.done||0,correct:m.correct||0,wrong:m.wrong||0,skipped:m.skipped||0,friend:f?.nickname||'',startedAt:started,lastSeenAt:Date.now(),endedAt:null});
+  local.history.unshift({id:historyId,room,workbookId:workbookKey(w),workbookTitle:w.title,subject:w.subject,difficulty:w.difficulty,total:m.total,startDone:m.startDone||0,done:m.done||0,correct:m.correct||0,wrong:m.wrong||0,skipped:m.skipped||0,friend:f?.nickname||'',startedAt:segmentStart,lastSeenAt:Date.now(),endedAt:null});
   local.history=local.history.slice(0,60);saveLocal()
 }
 function syncHistory(m,f){
-  if(!historyId)beginHistory();
+  const expected=room+'_'+(m.workbookStartedAtMs||started)+'_'+authUid+'_'+workbookKey(m.workbook||activeWorkbook());
+  if(!historyId||historyId!==expected)beginHistory();
   const h=local.history.find(x=>x.id===historyId);if(!h)return;
   h.done=m.done||0;h.correct=m.correct||0;h.wrong=m.wrong||0;h.skipped=m.skipped||0;h.friend=f?.nickname||h.friend;h.lastSeenAt=Date.now();
   if(m.status==='done'||(m.status==='done'&&f?.status==='done'))h.endedAt=Date.now();
