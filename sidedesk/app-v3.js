@@ -4,8 +4,8 @@ import{getFirestore,doc,getDoc,setDoc,updateDoc,onSnapshot,collection,addDoc,ser
 
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const A=$('#app'),cfg=globalThis.PINCON_FIREBASE_CONFIG;
-const LS='sidedesk.v3',LEGACY='sidedesk.v2',MAX_ACTIVE_MS=24*60*60*1000;
-let uid='',roomId='',room=null,me=null,participants=[],assignments=new Map(),unsubs=[],clockTimer=0,presenceTimer=0,eventCut=0,finishArm=0;
+const LS='sidedesk.v3',LEGACY='sidedesk.v2',REVIEW_ACTIVE_MS=12*60*60*1000,MAX_ACTIVE_MS=24*60*60*1000;
+let uid='',roomId='',room=null,me=null,participants=[],assignments=new Map(),unsubs=[],clockTimer=0,presenceTimer=0,eventCut=0,finishArm=0,timerReviewOpen=false;
 let local=loadLocal();
 
 const E=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -24,7 +24,7 @@ function loadLocal(){
   x.workbooks=Array.isArray(x.workbooks)?x.workbooks:[];x.archive=Array.isArray(x.archive)?x.archive:[];x.progress=x.progress&&typeof x.progress==='object'?x.progress:{};
   x.invalidLegacy=Array.isArray(x.invalidLegacy)?x.invalidLegacy:[];
   if(!x.workbooks.length)x.workbooks=[{id:id('wb'),title:'오늘의 문제집',subject:'수학',total:80,goal:80,shared:true,createdAtMs:now()}];
-  if(!x.legacyChecked){migrateLegacy(x);x.legacyChecked=true}
+  if(!x.legacyChecked){migrateLegacy(x);x.legacyChecked=true;try{localStorage.setItem(LS,JSON.stringify(x))}catch{}}
   return x
 }
 function migrateLegacy(x){
@@ -172,8 +172,17 @@ function renderMetrics(){
   if($('#greenTime'))$('#greenTime').textContent=fmtShort(gt);if($('#goldTime'))$('#goldTime').textContent=fmtShort(ot);if($('#greenProblems'))$('#greenProblems').textContent=gp+'문제';if($('#goldProblems'))$('#goldProblems').textContent=op+'문제';if($('#sharedProgress'))$('#sharedProgress').textContent=`${total} / ${room.sharedGoal||500}`;if($('#sharedBar'))$('#sharedBar').style.width=clamp(total/Math.max(1,room.sharedGoal||500)*100,0,100)+'%';
   if(total>=(room.sharedGoal||500)&&!local['goalCelebrated_'+roomId+'_'+room.sessionId]){local['goalCelebrated_'+roomId+'_'+room.sessionId]=true;save();document.querySelector('.common-board')?.classList.add('goal-complete');toast('SESSION COMPLETE · 공동 목표 달성')}
 }
-function updateConsole(){if(!me||!$('#myCurrentBook'))return;const w=me.workbook||{};$('#myCurrentBook').innerHTML=`<span>${E(w.subject||'')}</span><b>${E(w.title||'문제집')}</b><em>${w.done||0} / ${w.goal||w.total||0}문제</em>`;$('#directDone').value=w.done||0;$('#directDone').max=w.goal||w.total||0;$('#grading').textContent=me.status==='grading'?'채점 완료':'채점 시작';$('#breakBtn').textContent=me.status==='break'?'공부 재개':'BREAK';$('#pauseBtn').textContent=me.status==='paused'?'RESUME':'PAUSE';updateClocks()}
-function updateClocks(){if(!me)return;const c=$('#studyClock');if(c)c.textContent=fmt(activeStudyMs(me));const sub=$('#timerSub');if(sub)sub.textContent=`BREAK ${fmt(breakMs(me))} · GRADING ${fmt(gradingMs(me))}`;const mode=$('#timerMode');if(mode)mode.textContent=(me.status||'idle').toUpperCase();$$('[data-clock]').forEach(x=>{const p=participants.find(p=>p.uid===x.dataset.clock);if(p)x.textContent=fmtShort(activeStudyMs(p))})}
+function updateConsole(){if(!me||!$('#myCurrentBook'))return;reviewLongTimer();const w=me.workbook||{};$('#myCurrentBook').innerHTML=`<span>${E(w.subject||'')}</span><b>${E(w.title||'문제집')}</b><em>${w.done||0} / ${w.goal||w.total||0}문제</em>`;$('#directDone').value=w.done||0;$('#directDone').max=w.goal||w.total||0;$('#grading').textContent=me.status==='grading'?'채점 완료':'채점 시작';$('#breakBtn').textContent=me.status==='break'?'공부 재개':'BREAK';$('#pauseBtn').textContent=me.status==='paused'?'RESUME':'PAUSE';updateClocks()}
+function updateClocks(){if(!me)return;const c=$('#studyClock');if(c)c.textContent=fmt(activeStudyMs(me));const sub=$('#timerSub');if(sub)sub.textContent=`BREAK ${fmt(breakMs(me))} · GRADING ${fmt(gradingMs(me))}`;const mode=$('#timerMode');if(mode)mode.textContent=(me.status||'idle').toUpperCase();$('[data-clock]').forEach(x=>{const p=participants.find(p=>p.uid===x.dataset.clock);if(p)x.textContent=fmtShort(activeStudyMs(p))})}
+function reviewLongTimer(){
+  if(timerReviewOpen||!me||!['studying','grading'].includes(me.status))return;
+  const started=me.timer?.startedAtMs,d=started?now()-started:0,key='timerReviewed_'+roomId+'_'+room.sessionId;
+  if(d<REVIEW_ACTIVE_MS||d>=MAX_ACTIVE_MS||local[key])return;
+  timerReviewOpen=true;
+  const box=document.createElement('div');box.className='modal-backdrop';box.innerHTML=`<section class="paper modal"><h2>긴 세션 확인</h2><p>이 공부 구간이 12시간을 넘었습니다. 실제로 계속 공부한 기록이면 유지하고, 방치된 타이머라면 원본을 격리한 뒤 지금부터 다시 시작할 수 있습니다.</p><div class="two"><button id="keepLongTimer" class="mechanical">기록 유지</button><button id="resetLongTimer" class="mechanical primary">지금부터 복구</button></div></section>`;document.body.appendChild(box);
+  $('#keepLongTimer').onclick=()=>{local[key]=true;save();timerReviewOpen=false;box.remove()};
+  $('#resetLongTimer').onclick=async()=>{local.invalidLegacy.push({source:'v3-long-session',roomId,raw:me.timer,invalid:true,at:now()});save();const t={...timerBase(room.sessionId),state:'studying',startedAtMs:now()};await updateDoc(partRef(),{status:'studying',timer:t,updatedAtMs:now(),presenceAtMs:now()});timerReviewOpen=false;box.remove()}
+}
 async function addProblems(n){if(!me||!['studying','grading'].includes(me.status))return toast('공부 또는 채점 상태에서만 문제 수를 올릴 수 있습니다.');return setProblems((me.workbook?.done||0)+n)}
 async function setProblems(v){
   if(!me||me.status==='finished')return;const w=me.workbook||{},next=clamp(Number.isFinite(v)?v:+v||0,0,w.goal||w.total||0),old=w.done||0,delta=next-old;if(!delta)return;
@@ -192,9 +201,9 @@ function openSwitchBook(){
 async function switchWorkbook(bookId,emit=true){const w=local.workbooks.find(x=>x.id===bookId);if(!w)return;const nw={...normalizeBook(w),done:currentProgress(w)};local.lastWorkbookId=w.id;save();if(roomId&&me){await updateDoc(partRef(),{workbook:nw,updatedAtMs:now(),presenceAtMs:now()});if(emit)await sendEvent('workbookSwitch',{title:w.title})}}
 function copyBookFrom(otherUid){const p=participants.find(x=>x.uid===otherUid),w=p?.workbook;if(!w||!w.shared)return;const same=local.workbooks.find(x=>x.title===w.title&&x.subject===w.subject&&x.total===w.total);if(same)local.lastWorkbookId=same.id;else{const nw=normalizeBook({...w,id:id('wb'),createdAtMs:now()});local.workbooks.unshift(nw);local.lastWorkbookId=nw.id}save();toast('친구 문제집을 내 책장에 복사했습니다.')}
 async function finishStudy(){
-  if(!me)return;const at=now();if(at>finishArm){finishArm=at+2600;$('#finishStudy').textContent='한 번 더 눌러 FINISH';setTimeout(()=>{if($('#finishStudy')&&now()>finishArm)$('#finishStudy').textContent='FINISH'},2700);return}
+  if(!me||me.status==='finished')return;const at=now();if(at>finishArm){finishArm=at+2600;$('#finishStudy').textContent='한 번 더 눌러 FINISH';setTimeout(()=>{if($('#finishStudy')&&now()>finishArm)$('#finishStudy').textContent='FINISH'},2700);return}
   let t;try{t=timerTransition(me,'finished')}catch{return timerRecovery()};const finalStudy=t.accumulatedMs,finalGrade=t.gradingAccumulatedMs,finalBreak=t.breakAccumulatedMs;
-  await updateDoc(partRef(),{status:'finished',timer:t,updatedAtMs:at,presenceAtMs:at});await sendEvent('finish');
+  await updateDoc(partRef(),{status:'finished',timer:t,updatedAtMs:at,presenceAtMs:at});me={...me,status:'finished',timer:t};await sendEvent('finish');
   const w=me.workbook||{};local.archive.unshift({id:id('arc'),roomId,sessionId:room.sessionId,bookTitle:w.title||'문제집',subject:w.subject||'',studyMs:finalStudy,gradingMs:finalGrade,breakMs:finalBreak,problems:me.problemsSolved||0,team:assignments.get(uid)||'',campDay:room.campDay||1,finishedAtMs:at});local.archive=local.archive.slice(0,60);save();showReceipt(finalStudy,finalGrade)
 }
 function showReceipt(studyMs,gradeMs){
