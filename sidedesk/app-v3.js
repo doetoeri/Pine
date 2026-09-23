@@ -71,6 +71,16 @@ const roomRef=()=>doc(db,'sidedeskRooms',roomId),partRef=(idv=uid)=>doc(db,'side
 function clearSubs(){unsubs.forEach(f=>{try{f()}catch{}});unsubs=[];clearInterval(clockTimer);clearInterval(presenceTimer)}
 function rememberRoom(){local.activeRoom={roomId,nickname:me?.nickname||local.nickname||'',at:now()};save()}
 function forgetRoom(){delete local.activeRoom;save()}
+function campStats(){
+  const since=now()-7*86400000,rows=local.archive.filter(a=>(a.finishedAtMs||0)>=since&&a.campDay>=1&&a.campDay<=4);
+  return{studyMs:rows.reduce((n,a)=>n+(a.studyMs||0),0),problems:rows.reduce((n,a)=>n+(a.problems||0),0),books:new Set(rows.map(a=>(a.subject||'')+'|'+(a.bookTitle||''))).size,days:new Set(rows.map(a=>a.campDay)).size}
+}
+function openArchive(){
+  const box=document.createElement('div');box.className='modal-backdrop';box.id='archiveModal';
+  const rows=local.archive,cs=campStats();
+  box.innerHTML=`<section class="paper modal archive-modal"><div class="section-head"><div><span>LOCAL ARCHIVE</span><h2>내 공부 책장</h2></div><button id="archiveClose">닫기</button></div><div class="camp-slip"><span>SIDE DESK STUDY CAMP</span><b>${cs.days} / 4 DAYS</b><em>함께 공부 ${fmtShort(cs.studyMs)} · 문제 ${cs.problems}개 · 문제집 ${cs.books}권</em></div><div class="archive-shelf">${rows.length?rows.map(a=>`<article class="archive-book"><i></i><div><span>DAY ${a.campDay||'-'} · ${new Date(a.finishedAtMs||0).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</span><b>${E(a.bookTitle)}</b><em>${E(a.subject)} · ${fmtShort(a.studyMs)} · ${a.problems}문제</em><strong>FINISHED</strong></div></article>`).join(''):'<p class="muted">완료한 공부 기록이 아직 없습니다.</p>'}</div></section>`;
+  document.body.appendChild(box);$('#archiveClose').onclick=()=>box.remove()
+}
 
 async function boot(){
   const c=await signInAnonymously(auth);uid=c.user.uid;
@@ -85,8 +95,8 @@ function landing(invited=''){
   const invalid=local.invalidLegacy.length;
   A.innerHTML=`<main class="v3"><div class="room-shell"><header class="brandbar"><div class="brandmark">SD</div><div><h1>SideDesk</h1><p>친구들이 지금 저 책상에서 같이 공부하고 있다.</p></div><span class="signal">LINK READY</span></header>
   <section class="landing-grid"><article class="wood-panel join-panel"><div class="metal-label">STUDY ROOM TERMINAL</div><label>닉네임<input id="nickname" maxlength="14" value="${E(local.nickname||'')}"></label><button id="createRoom" class="mechanical primary">새 공부방 만들기</button><div class="divider"></div><label>참여 코드<div class="vfd-input"><input id="joinCode" maxlength="6" placeholder="______" autocomplete="off" value="${E(invited)}"></div></label><button id="joinRoom" class="mechanical">공부방 들어가기</button><p id="landingError" class="error-line"></p></article>
-  <article class="paper shelf-card"><div class="section-head"><div><span>MY SHELF</span><h2>오늘 펼칠 문제집</h2></div><button id="newBook" class="small-button">+ 문제집</button></div><div id="landingBook"></div><div class="legacy-note ${invalid?'':'hidden'}">비정상적인 과거 기록 ${invalid}건을 통계에서 격리했습니다.</div><div class="receipt-stack">${local.archive.slice(0,3).map(a=>`<div class="mini-receipt"><b>${E(a.bookTitle)}</b><span>${fmtShort(a.studyMs)} · ${a.problems}문제</span></div>`).join('')||'<span class="muted">공부를 마치면 기록지가 여기에 쌓입니다.</span>'}</div></article></section></div></main>`;
-  renderLandingBook();$('#joinCode').oninput=e=>e.target.value=C(e.target.value);$('#createRoom').onclick=createRoom;$('#joinRoom').onclick=joinRoom;$('#newBook').onclick=()=>bookEditor(null,renderLandingBook)
+  <article class="paper shelf-card"><div class="section-head"><div><span>MY SHELF</span><h2>오늘 펼칠 문제집</h2></div><div class="head-buttons"><button id="openShelf" class="small-button">책장</button><button id="newBook" class="small-button">+ 문제집</button></div></div><div id="landingBook"></div><div class="legacy-note ${invalid?'':'hidden'}">비정상적인 과거 기록 ${invalid}건을 통계에서 격리했습니다.</div><div class="receipt-stack">${local.archive.slice(0,3).map(a=>`<div class="mini-receipt"><b>${E(a.bookTitle)}</b><span>${fmtShort(a.studyMs)} · ${a.problems}문제</span></div>`).join('')||'<span class="muted">공부를 마치면 기록지가 여기에 쌓입니다.</span>'}</div></article></section></div></main>`;
+  renderLandingBook();$('#joinCode').oninput=e=>e.target.value=C(e.target.value);$('#createRoom').onclick=createRoom;$('#joinRoom').onclick=joinRoom;$('#newBook').onclick=()=>bookEditor(null,renderLandingBook);$('#openShelf').onclick=openArchive
 }
 function renderLandingBook(){
   const box=$('#landingBook');if(!box)return;const w=activeWorkbook();
