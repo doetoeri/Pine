@@ -995,69 +995,186 @@ service cloud.firestore {
         && request.resource.data.enabled is bool;
     }
 
-    // SideDesk: authenticated two-person realtime study rooms.
+    // SideDesk: legacy v1/v2 rooms plus participant-based v3 study rooms.
     match /sidedeskRooms/{roomId} {
       allow read: if signedIn();
 
-      allow create: if signedIn()
-        && request.resource.data.version in [1, 2]
-        && request.resource.data.status == 'lobby'
-        && request.resource.data.host.uid == request.auth.uid
-        && request.resource.data.guest == null;
+      allow create: if signedIn() && (
+        (
+          request.resource.data.version in [1, 2]
+          && request.resource.data.status == 'lobby'
+          && request.resource.data.host.uid == request.auth.uid
+          && request.resource.data.guest == null
+        )
+        || (
+          request.resource.data.version == 3
+          && request.resource.data.status == 'lobby'
+          && request.resource.data.hostUid == request.auth.uid
+          && request.resource.data.createdAtMs is int
+          && request.resource.data.sessionId is string
+          && request.resource.data.sessionId.size() <= 100
+          && request.resource.data.sharedGoal is int
+          && request.resource.data.sharedGoal >= 1
+          && request.resource.data.sharedGoal <= 99999
+          && request.resource.data.campDay in [1, 2, 3, 4]
+        )
+      );
 
       allow update: if signedIn() && (
-        // Host may update only their own player state.
+        // Legacy v1/v2 host/guest room behavior remains available for rollback.
         (
-          resource.data.host.uid == request.auth.uid
-          && request.resource.data.host.uid == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'host', 'updatedAt'
-          ])
-        )
-        // Host may start the room once; player identities cannot change.
-        || (
-          resource.data.host.uid == request.auth.uid
-          && resource.data.status == 'lobby'
-          && request.resource.data.status == 'studying'
-          && request.resource.data.host.uid == resource.data.host.uid
+          resource.data.version in [1, 2]
           && (
-            (resource.data.guest == null && request.resource.data.guest == null)
+            (
+              resource.data.host.uid == request.auth.uid
+              && request.resource.data.host.uid == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'host', 'updatedAt'
+              ])
+            )
+            || (
+              resource.data.host.uid == request.auth.uid
+              && resource.data.status == 'lobby'
+              && request.resource.data.status == 'studying'
+              && request.resource.data.host.uid == resource.data.host.uid
+              && (
+                (resource.data.guest == null && request.resource.data.guest == null)
+                || (
+                  resource.data.guest != null
+                  && request.resource.data.guest != null
+                  && request.resource.data.guest.uid == resource.data.guest.uid
+                )
+              )
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'host', 'guest', 'status', 'startedAtMs', 'updatedAt'
+              ])
+            )
+            || (
+              resource.data.guest == null
+              && request.resource.data.guest != null
+              && request.resource.data.guest.uid == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'guest', 'updatedAt'
+              ])
+            )
             || (
               resource.data.guest != null
-              && request.resource.data.guest != null
-              && request.resource.data.guest.uid == resource.data.guest.uid
+              && resource.data.guest.uid == request.auth.uid
+              && request.resource.data.guest.uid == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'guest', 'updatedAt'
+              ])
             )
           )
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'host', 'guest', 'status', 'startedAtMs', 'updatedAt'
-          ])
         )
-        // A signed-in guest may occupy an empty guest seat.
+        // v3 room-level state is controlled by the room host.
         || (
-          resource.data.guest == null
-          && request.resource.data.guest != null
-          && request.resource.data.guest.uid == request.auth.uid
+          resource.data.version == 3
+          && request.resource.data.version == 3
+          && resource.data.hostUid == request.auth.uid
+          && request.resource.data.hostUid == resource.data.hostUid
+          && request.resource.data.createdAtMs == resource.data.createdAtMs
+          && request.resource.data.status in ['lobby', 'studying', 'finished']
+          && request.resource.data.sharedGoal is int
+          && request.resource.data.sharedGoal >= 1
+          && request.resource.data.sharedGoal <= 99999
+          && request.resource.data.campDay in [1, 2, 3, 4]
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'guest', 'updatedAt'
-          ])
-        )
-        // Existing guest may update only their own player state.
-        || (
-          resource.data.guest != null
-          && resource.data.guest.uid == request.auth.uid
-          && request.resource.data.guest.uid == request.auth.uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'guest', 'updatedAt'
+            'status', 'startedAtMs', 'finishedAtMs', 'sessionId', 'teamSeed',
+            'sharedGoal', 'campDay', 'updatedAtMs', 'updatedAt'
           ])
         )
       );
 
       allow delete: if false;
 
+      match /participants/{participantId} {
+        allow read: if signedIn();
+
+        allow create: if signedIn()
+          && participantId == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.nickname is string
+          && request.resource.data.nickname.size() > 0
+          && request.resource.data.nickname.size() <= 14
+          && request.resource.data.status in ['idle', 'studying', 'grading', 'break', 'paused', 'finished']
+          && request.resource.data.problemsSolved is int
+          && request.resource.data.problemsSolved >= 0
+          && request.resource.data.timer is map
+          && request.resource.data.workbook is map
+          && request.resource.data.joinedAtMs is int
+          && request.resource.data.updatedAtMs is int
+          && request.resource.data.presenceAtMs is int;
+
+        allow update: if signedIn() && (
+          (
+            participantId == request.auth.uid
+            && resource.data.uid == request.auth.uid
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.joinedAtMs == resource.data.joinedAtMs
+            && request.resource.data.status in ['idle', 'studying', 'grading', 'break', 'paused', 'finished']
+            && request.resource.data.problemsSolved is int
+            && request.resource.data.problemsSolved >= 0
+            && request.resource.data.timer is map
+            && request.resource.data.workbook is map
+            && request.resource.data.updatedAtMs is int
+            && request.resource.data.presenceAtMs is int
+          )
+          || (
+            get(/databases/$(database)/documents/sidedeskRooms/$(roomId)).data.version == 3
+            && get(/databases/$(database)/documents/sidedeskRooms/$(roomId)).data.hostUid == request.auth.uid
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.joinedAtMs == resource.data.joinedAtMs
+            && request.resource.data.status in ['studying']
+            && request.resource.data.problemsSolved is int
+            && request.resource.data.problemsSolved >= 0
+            && request.resource.data.timer is map
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'timer', 'problemsSolved', 'updatedAtMs', 'presenceAtMs'
+            ])
+          )
+        );
+
+        allow delete: if false;
+      }
+
+      match /assignments/{participantId} {
+        allow read: if signedIn();
+
+        allow create: if signedIn()
+          && request.resource.data.uid == participantId
+          && request.resource.data.team in ['green', 'gold']
+          && request.resource.data.assignedAtMs is int
+          && request.resource.data.sessionId is string
+          && (
+            participantId == request.auth.uid
+            || (
+              get(/databases/$(database)/documents/sidedeskRooms/$(roomId)).data.version == 3
+              && get(/databases/$(database)/documents/sidedeskRooms/$(roomId)).data.hostUid == request.auth.uid
+            )
+          );
+
+        allow update: if signedIn()
+          && get(/databases/$(database)/documents/sidedeskRooms/$(roomId)).data.version == 3
+          && get(/databases/$(database)/documents/sidedeskRooms/$(roomId)).data.hostUid == request.auth.uid
+          && request.resource.data.uid == participantId
+          && resource.data.uid == participantId
+          && request.resource.data.team in ['green', 'gold']
+          && request.resource.data.assignedAtMs is int
+          && request.resource.data.sessionId is string;
+
+        allow delete: if false;
+      }
+
       match /events/{eventId} {
         allow read: if signedIn();
         allow create: if signedIn()
-          && request.resource.data.uid == request.auth.uid;
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.type in [
+            'start', 'studying', 'grading', 'break', 'paused', 'finished',
+            'problems', 'workbookSwitch', 'knock', 'note', 'finish'
+          ]
+          && request.resource.data.clientTs is int;
         allow update, delete: if false;
       }
     }

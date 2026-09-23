@@ -3,31 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#b98050">
+  <meta name="theme-color" content="#8b5e3c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="SideDesk">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <meta name="description" content="멀리 있어도 같은 책상처럼 공부하는 실시간 2인 공부방">
+  <meta name="description" content="친구들과 실제 같은 책상에서 함께 공부하는 온라인 자습실">
   <title>SideDesk</title>
   <script src="../firebase-config.js"></script>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style-v3.css">
 </head>
 <body>
   <div id="app">
-    <main class="app">
-      <div class="shell">
-        <div class="boot-console" aria-label="SideDesk 연결 중">
-          <i class="boot-screw b1"></i><i class="boot-screw b2"></i><i class="boot-screw b3"></i><i class="boot-screw b4"></i>
-          <div class="boot-brand"><div class="logo">SD</div><div><b>SideDesk</b><span>REMOTE STUDY TERMINAL</span></div></div>
-          <div class="boot-display"><span class="boot-scan"></span><strong>LINK</strong><em>SEARCHING SIGNAL...</em></div>
-          <div class="boot-meter"><span></span><i></i></div>
-        </div>
+    <main class="v3">
+      <div class="room-shell">
+        <section class="paper" style="max-width:520px;margin:24vh auto;text-align:center">
+          <div class="brandmark" style="margin:0 auto 12px">SD</div>
+          <strong>SideDesk 연결 중</strong>
+          <p class="muted">공동 책상을 준비하고 있습니다.</p>
+        </section>
       </div>
     </main>
   </div>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app-v3.js"></script>
   <script>
     if('serviceWorker' in navigator){
       addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
