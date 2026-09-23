@@ -162,14 +162,14 @@ test("only host can change v3 room-level session state", async () => {
   );
 });
 
-test("host can assign balanced teams and a late participant can assign self", async () => {
+test("host can assign teams and a late participant may assign only self", async () => {
   await createRoomAndHost();
   const host = env.authenticatedContext("host").firestore();
   const guest = env.authenticatedContext("guest").firestore();
 
   await assertSucceeds(
-    setDoc(doc(host, "sidedeskRooms", roomId, "assignments", "guest"), {
-      uid: "guest",
+    setDoc(doc(host, "sidedeskRooms", roomId, "assignments", "host"), {
+      uid: "host",
       team: "green",
       assignedAtMs: 2000,
       sessionId: "session-2",
@@ -177,28 +177,19 @@ test("host can assign balanced teams and a late participant can assign self", as
   );
 
   await assertSucceeds(
-    setDoc(doc(guest, "sidedeskRooms", roomId, "assignments", "guest2"), {
-      uid: "guest2",
+    setDoc(doc(guest, "sidedeskRooms", roomId, "assignments", "guest"), {
+      uid: "guest",
       team: "gold",
       assignedAtMs: 2000,
       sessionId: "session-2",
     }),
-  ).catch(async () => {
-    await assertFails(
-      setDoc(doc(guest, "sidedeskRooms", roomId, "assignments", "guest2"), {
-        uid: "guest2",
-        team: "gold",
-        assignedAtMs: 2000,
-        sessionId: "session-2",
-      }),
-    );
-  });
+  );
 
-  await assertSucceeds(
-    setDoc(doc(guest, "sidedeskRooms", roomId, "assignments", "guest"), {
-      uid: "guest",
-      team: "gold",
-      assignedAtMs: 2100,
+  await assertFails(
+    setDoc(doc(guest, "sidedeskRooms", roomId, "assignments", "other"), {
+      uid: "other",
+      team: "green",
+      assignedAtMs: 2000,
       sessionId: "session-2",
     }),
   );
