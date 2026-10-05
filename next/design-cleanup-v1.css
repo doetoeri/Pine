@@ -1,0 +1,286 @@
+/* PinCon design cleanup v1
+ * Final cascade layer for predictable width, lower visual noise, and calmer density.
+ * Loaded after the existing theme/compatibility styles so it can retire old layout conflicts
+ * without changing the route or data model.
+ */
+:root {
+  --pincon-layout-max: 1088px;
+  --pincon-edge: clamp(14px, 3vw, 28px);
+  --pincon-card-radius: 22px;
+  --pincon-hero-radius: 26px;
+  --pincon-clean-shadow: 0 8px 24px rgb(24 38 20 / .055);
+}
+
+html,
+body {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html,
+  body { overflow-x: hidden; }
+}
+
+#app,
+.shell,
+.app-frame,
+.content-wrap,
+.view-enter,
+.view-enter > *,
+.grid,
+.grid > *,
+.section-stack,
+.section-stack > *,
+.surface,
+.surface > *,
+.page-head,
+.page-head > *,
+.row,
+.row > *,
+md-dialog,
+dialog {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+img,
+svg,
+canvas,
+video,
+iframe,
+table {
+  max-inline-size: 100%;
+}
+
+/* Use the containing block instead of 100vw. 100vw includes scrollbar width on
+ * some browsers and was the main source of the subtle right-side drift. */
+.topbar {
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  min-block-size: 64px !important;
+  padding-block: 8px !important;
+  padding-inline: max(14px, calc((100% - var(--pincon-layout-max)) / 2 + 20px)) !important;
+  gap: 8px !important;
+}
+
+.topbar__actions {
+  min-inline-size: 0;
+  flex: 0 0 auto;
+  gap: 1px !important;
+}
+
+.brand {
+  min-inline-size: 0;
+  max-inline-size: min(62vw, 460px);
+}
+
+.brand__mark {
+  inline-size: 38px !important;
+  block-size: 38px !important;
+  border-radius: 13px !important;
+}
+
+.content-wrap {
+  inline-size: 100% !important;
+  max-inline-size: var(--pincon-layout-max) !important;
+  margin-inline: auto !important;
+  padding: 24px var(--pincon-edge) calc(var(--pincon-soft-dock-clearance, 112px) + env(safe-area-inset-bottom)) !important;
+}
+
+.page-head {
+  align-items: flex-end;
+  gap: 12px;
+  margin-block-end: 18px;
+}
+
+.page-eyebrow { margin-block-end: 5px; }
+.page-title {
+  font-size: clamp(28px, 5vw, 40px) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -.04em !important;
+}
+.page-subtitle {
+  margin-block-start: 8px !important;
+  max-inline-size: 650px !important;
+  line-height: 1.55 !important;
+}
+
+.grid,
+.section-stack { gap: 12px !important; }
+
+/* Cards should separate information, not compete with it. */
+.surface,
+.schedule-group,
+.lesson-list,
+.notice,
+.pincon-effects-settings {
+  border-radius: var(--pincon-card-radius) !important;
+  border-color: color-mix(in srgb, var(--pc-line, #d8e1d3) 88%, transparent) !important;
+  background-color: color-mix(in srgb, var(--pc-surface, #fff) 92%, var(--pc-bg, #f2f5ef)) !important;
+  background-image: none !important;
+  box-shadow: var(--pincon-clean-shadow) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.surface { padding: 18px !important; }
+.surface--hero {
+  border-radius: var(--pincon-hero-radius) !important;
+  padding: clamp(21px, 4vw, 30px) !important;
+  border-color: color-mix(in srgb, var(--pc-primary, #2daa00) 15%, var(--pc-line, #d8e1d3)) !important;
+  background-color: color-mix(in srgb, var(--pc-surface, #fff) 88%, var(--pc-primary-soft, #e8f8df)) !important;
+}
+
+.hero-title {
+  max-inline-size: 620px !important;
+  font-size: clamp(30px, 6vw, 46px) !important;
+  line-height: 1.08 !important;
+}
+.hero-meta { margin-block-start: 18px !important; gap: 6px !important; }
+.meta-pill { min-block-size: 31px !important; padding: 5px 9px !important; }
+
+.surface__header {
+  min-inline-size: 0;
+  gap: 10px !important;
+  margin-block-end: 12px !important;
+}
+.surface__title { min-inline-size: 0; }
+.surface__meta { flex: 0 1 auto; }
+
+.row {
+  max-inline-size: 100%;
+  min-block-size: 56px;
+  padding: 9px 10px !important;
+  gap: 10px !important;
+  border-radius: 15px !important;
+}
+.row__title,
+.row__support,
+.row__trailing,
+.surface__title,
+.surface__meta,
+.page-subtitle,
+.notice-banner p {
+  overflow-wrap: anywhere;
+}
+.row__support { line-height: 1.4 !important; }
+
+/* One navigation geometry everywhere. Using left/right inset instead of a
+ * translateX + viewport-width calculation keeps the dock inside tiny screens. */
+.bottom-nav {
+  left: max(8px, env(safe-area-inset-left)) !important;
+  right: max(8px, env(safe-area-inset-right)) !important;
+  width: auto !important;
+  max-width: 460px !important;
+  margin-inline: auto !important;
+  transform: none !important;
+  gap: 2px !important;
+  padding: 5px !important;
+  border-radius: 24px !important;
+}
+
+.bottom-nav > *,
+.bottom-nav md-text-button,
+.bottom-nav md-filled-tonal-button {
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+}
+
+.bottom-nav md-text-button,
+.bottom-nav md-filled-tonal-button {
+  border-radius: 18px !important;
+  font-size: 10.5px !important;
+  --md-text-button-container-height: 50px;
+  --md-filled-tonal-button-container-height: 50px;
+  --md-text-button-leading-space: 3px;
+  --md-text-button-trailing-space: 3px;
+  --md-text-button-with-leading-icon-leading-space: 3px;
+  --md-text-button-with-leading-icon-trailing-space: 3px;
+  --md-text-button-icon-spacing: 3px;
+  --md-filled-tonal-button-leading-space: 3px;
+  --md-filled-tonal-button-trailing-space: 3px;
+  --md-filled-tonal-button-with-leading-icon-leading-space: 3px;
+  --md-filled-tonal-button-with-leading-icon-trailing-space: 3px;
+  --md-filled-tonal-button-icon-spacing: 3px;
+}
+.bottom-nav md-icon { font-size: 20px !important; }
+
+/* Dialogs and sheets can otherwise become wider than the visual viewport on
+ * Android when the keyboard or browser UI changes the viewport. */
+dialog,
+md-dialog {
+  max-inline-size: min(560px, calc(100% - 24px)) !important;
+  max-block-size: calc(100dvh - 24px) !important;
+}
+
+@media (min-width: 840px) and (max-width: 1099px) {
+  .grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@media (min-width: 1100px) {
+  .grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 599px) {
+  :root { --pincon-edge: 14px; --pincon-card-radius: 19px; --pincon-hero-radius: 22px; }
+
+  .topbar {
+    padding-inline: 12px !important;
+    min-block-size: 60px !important;
+  }
+
+  .brand { max-inline-size: calc(100% - 150px); }
+  .brand__mark { inline-size: 36px !important; block-size: 36px !important; }
+  .brand__title { font-size: 15px !important; }
+  .brand__meta { font-size: 10.5px !important; }
+
+  .content-wrap {
+    padding-block-start: 18px !important;
+    padding-inline: 14px !important;
+  }
+
+  .page-head {
+    align-items: flex-start !important;
+    margin-block-end: 15px !important;
+  }
+  .page-title { font-size: clamp(27px, 8vw, 34px) !important; }
+  .page-subtitle { font-size: 13px !important; }
+
+  .surface { padding: 15px !important; }
+  .surface--hero { padding: 20px 17px !important; }
+  .hero-title { font-size: clamp(29px, 9vw, 39px) !important; }
+
+  .surface__header { align-items: flex-start !important; }
+  .surface__meta { white-space: normal !important; text-align: end; }
+
+  .bottom-nav {
+    left: max(6px, env(safe-area-inset-left)) !important;
+    right: max(6px, env(safe-area-inset-right)) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .brand__meta { display: none !important; }
+  .brand { max-inline-size: calc(100% - 138px); }
+
+  .row {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+  .row__trailing {
+    grid-column: 2;
+    white-space: normal !important;
+    text-align: start;
+  }
+
+  .surface__header {
+    flex-wrap: wrap !important;
+  }
+  .surface__meta {
+    inline-size: 100%;
+    text-align: start;
+  }
+}
