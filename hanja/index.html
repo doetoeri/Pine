@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f2ec">
+  <meta name="description" content="한자를 렌즈처럼 관찰하고, 구조·획순·유래·쓰임을 익힌 뒤 직접 써보는 Pincon 한자 학습 프로토타입">
+  <title>한자 · Pincon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.7.3/dist/hanzi-writer.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#lens">한자 렌즈로 건너뛰기</a>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Pincon 홈">
+      <span class="brand-word">pincon</span><span class="brand-dot" aria-hidden="true"></span><span class="brand-slash">/</span><span>한자</span>
+    </a>
+
+    <nav class="topnav" aria-label="한자 메뉴">
+      <button class="topnav-item is-active" type="button" data-view="today">오늘의 학습</button>
+      <button class="topnav-item" type="button" data-view="dictionary">한자 사전</button>
+      <button class="topnav-item" type="button" data-view="record">학습 기록</button>
+    </nav>
+
+    <button class="icon-button" id="searchButton" type="button" aria-label="한자 검색">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.2 4.2"></path></svg>
+    </button>
+  </header>
+
+  <main class="page-shell">
+    <section class="study-meta" aria-label="오늘의 학습 정보">
+      <div class="study-copy">
+        <span class="meta-icon" aria-hidden="true">字</span>
+        <div>
+          <p class="eyebrow">오늘의 한자 공부</p>
+          <p class="muted">한 글자씩 보고, 뜯고, 다시 써봅니다.</p>
+        </div>
+      </div>
+      <div class="progress-box">
+        <div class="progress-line"><strong id="progressText">1 / 18</strong><span id="setName">핵심 학습지</span></div>
+        <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
+      </div>
+    </section>
+
+    <section class="lens-stage" aria-label="한자 렌즈">
+      <button class="nav-arrow left" id="prevButton" type="button" aria-label="이전 한자">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7"></path></svg>
+      </button>
+
+      <button class="side-preview side-left" id="prevPreview" type="button" aria-label="이전 한자로 이동">
+        <span class="hanja" id="prevChar">義</span>
+        <span>이전 한자</span>
+      </button>
+
+      <div class="lens-column">
+        <div class="lens-wrap" id="lens" tabindex="0" role="group" aria-roledescription="가로로 넘기는 한자 렌즈" aria-label="현재 한자">
+          <div class="lens-aura" aria-hidden="true"></div>
+          <div class="lens-disc">
+            <span class="hanja lens-char" id="mainChar" aria-live="polite">體</span>
+            <div class="stroke-layer" id="strokeLayer" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="reading-block">
+          <div class="reading-main"><span id="hunText">몸</span> <strong id="eumText">체</strong></div>
+          <div class="reading-tags">
+            <span>훈 <b id="hunTag">몸</b></span>
+            <span>음 <b id="eumTag">체</b></span>
+            <span><b id="strokeCount">23</b>획</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="side-preview side-right" id="nextPreview" type="button" aria-label="다음 한자로 이동">
+        <span class="hanja" id="nextChar">智</span>
+        <span>다음 한자</span>
+      </button>
+
+      <button class="nav-arrow right" id="nextButton" type="button" aria-label="다음 한자">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7"></path></svg>
+      </button>
+    </section>
+
+    <p class="swipe-hint" id="swipeHint"><span aria-hidden="true">←</span> 좌우로 넘겨 한자를 갈아끼우세요 <span aria-hidden="true">→</span></p>
+
+    <section class="lens-controls" aria-label="한자 렌즈 종류">
+      <div class="mode-tabs" role="tablist" aria-label="한자 보는 방법">
+        <button class="mode-tab is-active" type="button" role="tab" aria-selected="true" data-mode="structure">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="m7.8 7.2 3.2 8M16.2 7.2 13 15.2"></path></svg>
+          구조
+        </button>
+        <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="strokes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18.5c4-1.5 9-6.5 13-13l2 2c-5 7-9 11-15 13z"></path></svg>
+          획순
+        </button>
+        <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="origin">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h10a4 4 0 0 1 4 4V20H8a3 3 0 0 1-3-3z"></path><path d="M8 4.5V17a3 3 0 0 0 3 3"></path></svg>
+          유래
+        </button>
+        <button class="mode-tab" type="button" role="tab" aria-selected="false" data-mode="usage">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20.5H6z"></path><path d="M14 3.5v4h4M9 12h6M9 15.5h6"></path></svg>
+          쓰임
+        </button>
+      </div>
+
+      <article class="detail-panel" id="detailPanel" aria-live="polite"></article>
+
+      <button class="write-button" id="writeButton" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5 5.2 15 16.8 3.4l3.8 3.8L9 18.8z"></path><path d="m14.8 5.4 3.8 3.8"></path></svg>
+        직접 써보기
+        <span aria-hidden="true">→</span>
+      </button>
+    </section>
+
+    <section class="weak-section" aria-labelledby="weakTitle">
+      <div class="weak-heading">
+        <span class="target-icon" aria-hidden="true">◎</span>
+        <div><h2 id="weakTitle">오늘의 약점</h2><p>형태가 복잡한 글자를 먼저 다시 봅니다.</p></div>
+      </div>
+      <div class="weak-list" id="weakList"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="모바일 메뉴">
+    <button type="button" data-view="today"><span aria-hidden="true">⌂</span>오늘</button>
+    <button type="button" class="is-active" data-view="dictionary"><span aria-hidden="true">字</span>한자</button>
+    <button type="button" data-view="record"><span aria-hidden="true">▥</span>기록</button>
+  </nav>
+
+  <dialog class="write-dialog" id="writeDialog">
+    <div class="dialog-head">
+      <div><p class="eyebrow">직접 써보기</p><h2><span id="writeHun">몸</span> <span id="writeEum">체</span></h2></div>
+      <button class="icon-button" id="closeWrite" type="button" aria-label="쓰기 닫기">×</button>
+    </div>
+    <p class="dialog-guide">정답을 가린 채 써보세요. 필요하면 윤곽을 켤 수 있습니다.</p>
+    <div class="writing-board" id="writingBoard">
+      <div class="grid-line vertical" aria-hidden="true"></div><div class="grid-line horizontal" aria-hidden="true"></div>
+      <span class="hanja writing-guide" id="writingGuide" aria-hidden="true">體</span>
+      <canvas id="writingCanvas" aria-label="한자 쓰기 영역"></canvas>
+    </div>
+    <div class="dialog-actions">
+      <button class="secondary-button" id="toggleGuide" type="button">윤곽 보기</button>
+      <button class="secondary-button" id="clearCanvas" type="button">다시 쓰기</button>
+      <button class="primary-button" id="revealAnswer" type="button">정답 확인</button>
+    </div>
+    <div class="self-check" id="selfCheck" hidden>
+      <p>기억 상태를 표시해 두면 약점 목록에 반영됩니다.</p>
+      <div>
+        <button type="button" data-grade="again">다시</button>
+        <button type="button" data-grade="hard">애매</button>
+        <button type="button" data-grade="good">확실</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="search-dialog" id="searchDialog">
+    <form method="dialog" class="search-box" id="searchForm">
+      <label for="searchInput">한자 검색</label>
+      <div class="search-row"><input id="searchInput" type="search" placeholder="한자 · 뜻 · 음" autocomplete="off"><button value="cancel" aria-label="검색 닫기">×</button></div>
+      <div class="search-results" id="searchResults"></div>
+    </form>
+  </dialog>
+</body>
+</html>
