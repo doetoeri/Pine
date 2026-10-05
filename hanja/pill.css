@@ -1,0 +1,367 @@
+/* Pill UI refinement for /hanja */
+:root {
+  --paper: #f6f4ef;
+  --paper-2: #f0eee8;
+  --surface: rgba(255,255,255,.78);
+  --surface-solid: #fcfbf8;
+  --ink: #171714;
+  --muted: #777772;
+  --line: rgba(55,54,49,.12);
+  --line-strong: rgba(55,54,49,.18);
+  --accent: #c93430;
+  --accent-soft: #f8e7e4;
+  --accent-faint: #fdf4f2;
+  --pill-shadow: 0 8px 24px rgba(37,35,30,.055);
+  --pill-shadow-soft: 0 4px 14px rgba(37,35,30,.04);
+  --radius-pill: 999px;
+  --radius-card: 28px;
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% 8%, rgba(255,255,255,.88), transparent 30rem),
+    linear-gradient(180deg, #faf8f4 0%, var(--paper) 54%, #f2efe9 100%);
+}
+
+/* Korean UI typography stays modern and deliberately non-calligraphic. */
+body,
+button,
+input,
+.topbar,
+.study-meta,
+.mode-tabs,
+.detail-panel,
+.bottom-nav,
+.write-dialog,
+.search-dialog {
+  font-family: var(--ui);
+}
+
+h1,h2,h3,strong,.brand,.eyebrow,.reading-main,.mode-tab.is-active {
+  font-family: var(--ui-strong);
+}
+
+/* Header becomes a floating pill instead of a hard bar. */
+.topbar {
+  position: sticky;
+  top: max(10px, env(safe-area-inset-top));
+  width: min(1120px, calc(100% - 28px));
+  height: 64px;
+  margin: 10px auto 0;
+  padding: 0 14px 0 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: rgba(252,251,248,.88);
+  box-shadow: var(--pill-shadow-soft);
+  backdrop-filter: blur(18px) saturate(1.05);
+}
+
+.brand { gap: 9px; }
+.brand-word { font-size: 24px; }
+.brand-dot { width: 7px; height: 7px; }
+.brand-slash { margin: 0 2px; }
+
+.topnav {
+  height: auto;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  border-radius: var(--radius-pill);
+  background: #efede8;
+}
+.topnav-item {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  color: #676862;
+}
+.topnav-item.is-active {
+  color: var(--accent);
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 2px 9px rgba(30,29,26,.04);
+}
+.topnav-item.is-active::after { display: none; }
+
+.icon-button {
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+}
+.icon-button:hover { background: #f0eee9; }
+
+.page-shell {
+  width: min(1120px, calc(100% - 28px));
+  padding-top: 22px;
+}
+
+/* One unified pill for title + progress. */
+.study-meta {
+  min-height: 82px;
+  margin-bottom: 8px;
+  padding: 14px 18px 14px 20px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: rgba(252,251,248,.78);
+  box-shadow: var(--pill-shadow-soft);
+}
+.study-copy { gap: 10px; }
+.meta-icon { display: none; }
+.eyebrow { font-size: 17px; letter-spacing: -.02em; }
+.study-copy .muted { font-size: 12px; }
+.progress-box {
+  width: min(330px, 42vw);
+  padding: 9px 12px 8px;
+  border-radius: 22px;
+  background: #f0eee9;
+}
+.progress-line { padding: 0 2px; }
+.progress-line strong { font-size: 20px; }
+.progress-track { height: 7px; margin-top: 8px; background: #dcdad4; }
+.progress-track span { box-shadow: 0 0 0 1px rgba(201,52,48,.04); }
+
+/* Lens remains circular, but softer and more coherent with pill surfaces. */
+.lens-stage { min-height: 500px; gap: 14px; }
+.nav-arrow {
+  width: 42px;
+  height: 42px;
+  border-color: var(--line);
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,.75);
+  box-shadow: var(--pill-shadow-soft);
+}
+.side-preview .hanja {
+  border: 1px solid rgba(55,54,49,.07);
+  background: rgba(251,250,247,.74);
+  box-shadow: 0 10px 30px rgba(37,35,30,.035);
+}
+.lens-aura {
+  inset: -13px;
+  background: radial-gradient(circle, rgba(255,255,255,.72) 0 59%, rgba(202,200,193,.22) 60%, transparent 69%);
+}
+.lens-disc {
+  border-color: rgba(58,57,52,.16);
+  background: rgba(255,254,250,.9);
+  box-shadow:
+    inset 0 0 0 9px rgba(255,255,255,.48),
+    0 18px 48px rgba(37,35,30,.075);
+  backdrop-filter: blur(4px);
+}
+.lens-disc::before { inset: 12px; border-color: rgba(255,255,255,.95); }
+
+.reading-block { margin-top: 15px; }
+.reading-main { font-size: 36px; }
+.reading-tags { gap: 8px; }
+.reading-tags span,
+.swipe-hint {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: rgba(255,255,255,.63);
+  box-shadow: var(--pill-shadow-soft);
+}
+.reading-tags span { padding: 8px 13px; }
+.swipe-hint {
+  width: max-content;
+  max-width: 100%;
+  margin: 4px auto 18px;
+  padding: 8px 15px;
+}
+
+/* Segmented control becomes the main pill language. */
+.mode-tabs {
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid rgba(55,54,49,.07);
+  border-radius: var(--radius-pill);
+  background: rgba(234,232,226,.78);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+}
+.mode-tab {
+  min-height: 50px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  transition: background .18s ease, color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.mode-tab:hover { background: rgba(255,255,255,.45); }
+.mode-tab:active { transform: scale(.985); }
+.mode-tab.is-active {
+  border-color: rgba(201,52,48,.13);
+  background: #fffaf9;
+  box-shadow: 0 4px 15px rgba(201,52,48,.07);
+}
+
+.detail-panel {
+  margin-top: 14px;
+  padding: 25px 26px;
+  border-color: var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255,255,255,.72);
+  box-shadow: var(--pill-shadow-soft);
+}
+
+.part-card,
+.result-card,
+.usage-card,
+.stroke-preview {
+  border-radius: 24px;
+  box-shadow: 0 3px 12px rgba(37,35,30,.025);
+}
+.origin-callout {
+  border-left: 0;
+  border: 1px solid rgba(201,52,48,.12);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+.mini-button,
+.secondary-button,
+.primary-button,
+.self-check button {
+  border-radius: var(--radius-pill);
+}
+
+.write-button {
+  width: min(530px, 82%);
+  min-height: 56px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 10px 22px rgba(201,52,48,.16);
+}
+
+.weak-section {
+  border-radius: var(--radius-card);
+}
+.weak-list > *,
+.weak-card {
+  border-radius: 24px !important;
+}
+
+/* Dialogs follow the same rounded language. */
+.write-dialog,
+.search-dialog {
+  border: 1px solid var(--line);
+  border-radius: 32px;
+  box-shadow: 0 28px 80px rgba(28,27,24,.16);
+}
+.search-row,
+.search-row input,
+.search-row button {
+  border-radius: var(--radius-pill);
+}
+.writing-board { border-radius: 28px; }
+.dialog-actions { gap: 8px; }
+
+/* Bottom nav: one floating pill, with a nested active pill. */
+.bottom-nav {
+  left: 50%;
+  right: auto;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  width: min(540px, calc(100% - 28px));
+  min-height: 68px;
+  padding: 6px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: rgba(252,251,248,.92);
+  box-shadow: 0 12px 34px rgba(36,34,30,.10);
+  backdrop-filter: blur(18px) saturate(1.04);
+}
+.bottom-nav button {
+  min-height: 56px;
+  border-radius: var(--radius-pill);
+}
+.bottom-nav button.is-active {
+  color: var(--accent);
+  background: var(--accent-faint);
+  box-shadow: inset 0 0 0 1px rgba(201,52,48,.06);
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    top: max(7px, env(safe-area-inset-top));
+    width: calc(100% - 20px);
+    height: 58px;
+    margin-top: 7px;
+    padding: 0 9px 0 17px;
+  }
+  .brand { font-size: 16px; }
+  .brand-word { font-size: 22px; }
+  .topnav { display: none; }
+  .icon-button { width: 42px; height: 42px; background: rgba(244,242,236,.82); }
+
+  .page-shell {
+    width: calc(100% - 20px);
+    padding-top: 14px;
+    padding-bottom: 110px;
+  }
+  .study-meta {
+    min-height: 72px;
+    padding: 12px 14px;
+    border-radius: 26px;
+    gap: 14px;
+  }
+  .study-copy .muted { display: none; }
+  .eyebrow { margin: 0; font-size: 17px; }
+  .progress-box { width: min(46%, 190px); padding: 8px 10px; }
+  .progress-line span { display: none; }
+
+  .lens-stage {
+    grid-template-columns: minmax(34px,.3fr) minmax(250px, 1fr) minmax(34px,.3fr);
+    gap: 0;
+    min-height: 470px;
+    overflow: hidden;
+    margin-inline: -10px;
+  }
+  .nav-arrow { display: none; }
+  .side-preview {
+    min-width: 118px;
+    overflow: visible;
+    opacity: .68;
+  }
+  .side-preview .hanja {
+    width: 116px;
+    font-size: 72px;
+  }
+  .side-preview > span:last-child { display: none; }
+  .side-left { transform: translateX(-58px); }
+  .side-right { transform: translateX(58px); }
+  .lens-column { z-index: 2; }
+  .lens-wrap {
+    width: min(78vw, 360px);
+    min-width: 260px;
+  }
+  .lens-char { font-size: clamp(132px, 37vw, 190px); }
+  .stroke-layer { inset: 42px; }
+  .reading-main { font-size: 31px; }
+  .reading-tags span { padding: 7px 12px; }
+  .swipe-hint { font-size: 11px; }
+
+  .mode-tabs { gap: 3px; padding: 5px; }
+  .mode-tab {
+    min-height: 50px;
+    padding: 0 8px;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .mode-tab svg { width: 18px; height: 18px; }
+  .detail-panel { padding: 20px 18px; border-radius: 26px; }
+  .structure-flow { gap: 8px; }
+  .part-card, .result-card { border-radius: 20px; padding: 14px 10px; }
+  .usage-grid { gap: 8px; }
+  .usage-card { border-radius: 20px; padding: 16px 9px; }
+  .write-button { width: 100%; }
+  .weak-section { border-radius: 26px; }
+
+  .bottom-nav { display: grid; }
+}
+
+@media (max-width: 430px) {
+  .study-meta { border-radius: 24px; }
+  .progress-line strong { font-size: 18px; }
+  .lens-stage { min-height: 430px; }
+  .lens-wrap { width: min(80vw, 330px); min-width: 248px; }
+  .lens-char { font-size: clamp(122px, 38vw, 176px); }
+  .reading-main { font-size: 29px; }
+  .mode-tab { font-size: 12px; }
+  .mode-tab svg { width: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-tab { transition: none; }
+}
