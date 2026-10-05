@@ -34,6 +34,7 @@ export const ALLOWED_EVENT_TYPES = Object.freeze(new Set([
   "notice_view",
   "meal_view",
   "notification_click",
+  "notification_response",
   "notification_received",
   "navigation_change",
   "item_expand",
