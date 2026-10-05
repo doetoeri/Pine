@@ -1,6 +1,7 @@
-import { UI_EXPERIMENT_ID } from "./constants.js";
+import { NOTIFICATION_EXPERIMENT_ID, UI_EXPERIMENT_ID } from "./constants.js";
 import { getExperimentPlatform } from "./experiment-service.js";
 
+const PENDING_NOTIFICATION_RESPONSE_KEY = "pincon-notification-response-pending-v1";
 let platform = null;
 let previousRoute = "";
 const taskStartedAt = new Map();
@@ -100,6 +101,14 @@ function installGuardrails() {
   platform?.log("page_load", { durationMs: duration, route: routeFromLocation() });
 }
 
+function rememberPendingNotificationResponse(payload) {
+  try {
+    const serialized = JSON.stringify(payload);
+    sessionStorage.setItem(PENDING_NOTIFICATION_RESPONSE_KEY, serialized);
+    localStorage.setItem(PENDING_NOTIFICATION_RESPONSE_KEY, serialized);
+  } catch {}
+}
+
 function installNotificationAttribution() {
   const url = new URL(location.href);
   const notificationId = url.searchParams.get("pinconNotificationId") || "";
@@ -109,6 +118,9 @@ function installNotificationAttribution() {
   const condition = url.searchParams.get("pinconCondition") || "";
   const period = Number(url.searchParams.get("pinconPeriod") || 0);
   const category = url.searchParams.get("pinconCategory") || "";
+  const sentAt = Number(url.searchParams.get("pinconSentAt") || Date.now());
+  const targetRoute = url.searchParams.get("pinconTargetRoute") || "";
+
   platform?.log("notification_click", {
     notificationId,
     condition,
@@ -117,13 +129,24 @@ function installNotificationAttribution() {
     route: routeFromLocation(),
   });
 
-  const sentAt = Number(url.searchParams.get("pinconSentAt") || Date.now());
+  if (experimentId === NOTIFICATION_EXPERIMENT_ID) {
+    rememberPendingNotificationResponse({
+      notificationId,
+      experimentId,
+      condition,
+      period,
+      category,
+      targetRoute,
+      sentAt,
+      openedAtMs: Date.now(),
+    });
+  }
+
   const elapsed = Math.max(0, Date.now() - sentAt);
   if (elapsed <= 5 * 60_000) platform?.log("app_open_after_notification_5m", { notificationId, window: "5m" });
   if (elapsed <= 30 * 60_000) platform?.log("app_open_after_notification_30m", { notificationId, window: "30m" });
   if (elapsed <= 60 * 60_000) platform?.log("app_open_after_notification_1h", { notificationId, window: "1h" });
 
-  const targetRoute = url.searchParams.get("pinconTargetRoute") || "";
   if (targetRoute && routeFromLocation() === targetRoute) {
     window.setTimeout(() => platform?.log("target_view_after_notification", {
       notificationId,
