@@ -53,6 +53,12 @@ MID  -> LOW  -> HIGH
 
 `baselineDays`, `periodDays`, `startDate`는 config에서 변경할 수 있다.
 
+## 자동 실행
+
+알림 실험 dispatcher는 기존 학교 동기화 자동화에서 함께 호출된다. GitHub Actions는 30분 간격으로 실행되고, 현재 KST 슬롯이 실험 대상인지 확인한 뒤 참가자별 조건과 그날의 발송 계획을 결정한다.
+
+따라서 실험 설정이 `ACTIVE`이고 `notification_experiment` flag가 켜져 있으며 UI 실험 종료 조건을 만족하면, 운영자가 매 알림을 직접 보내지 않아도 LOW/MID/HIGH 조건에 따라 자동으로 발송·기록된다.
+
 ## 알림 후보
 
 실험 dispatcher는 실제 PinCon 데이터에서 후보를 만든다.
@@ -103,7 +109,21 @@ Web Push 특성상 `notification_sent`를 실제 단말 표시 성공으로 해�
 
 FCM click URL에 notificationId/condition/period/category/targetRoute/sentAt을 넣어 앱 진입 후 attribution한다.
 
-## 설문
+## 알림별 Required Response
+
+실험 알림을 실제로 열면 URL attribution을 지우기 전에 `notificationId`, 조건, Period, 카테고리, target route를 pending response로 저장한다.
+
+PinCon 진입 후 다음 세 선택지 중 하나를 반드시 Response하도록 modal을 표시한다.
+
+- 필요했어요 · 이 알림이 도움이 됐어요
+- 보통이에요 · 있어도 없어도 괜찮아요
+- 불필요했어요 · 알림이 없어도 됐어요
+
+ESC로 닫거나 건너뛰는 선택지는 제공하지 않는다. 응답은 기존 분석 계약 안에서 `ui_satisfaction` 이벤트에 `source=notification_response`, `value=notification_response:*`로 기록하여 원래 `notification_click` 지표를 중복 집계하지 않는다.
+
+이 의무 Response는 **사용자가 실험 알림을 연 경우**에 적용한다. 알림을 열지 않은 사용자의 응답까지 웹에서 강제로 만들 수는 없으며, 그 경우에는 수신·클릭 여부 자체가 행동 데이터가 된다.
+
+## Period 종료 설문
 
 각 Period 종료 시 다음 5점 문항을 제공한다.
 
@@ -115,6 +135,8 @@ FCM click URL에 notificationId/condition/period/category/targetRoute/sentAt을 
 추가 문항:
 
 - 적절한 하루 알림 수: 0 / 1 / 2 / 3 / 4 / 5+
+
+모든 문항은 기본값 없이 선택해야 하며 `나중에` 버튼을 두지 않는다. Period 경계가 지난 뒤 처음 앱을 열어도 이전 Period의 미응답 설문을 먼저 복구해 표시한다.
 
 응답은 anonymousParticipant와 period/condition에 연결한다.
 
