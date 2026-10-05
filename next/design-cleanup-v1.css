@@ -256,8 +256,8 @@ md-dialog {
   .surface__meta { white-space: normal !important; text-align: end; }
 
   .bottom-nav {
-    left: max(6px, env(safe-area-inset-left)) !important;
-    right: max(6px, env(safe-area-inset-right)) !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
     bottom: max(8px, env(safe-area-inset-bottom)) !important;
   }
 }
