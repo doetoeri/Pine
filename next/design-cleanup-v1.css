@@ -262,6 +262,46 @@ md-dialog {
   }
 }
 
+/* Five icon+label Material buttons are a surprisingly effective way to rediscover
+ * arithmetic. At 280px there is no spare horizontal space, so preserve every route
+ * by shrinking only the dock chrome, not by hiding labels or allowing clipping. */
+@media (max-width: 320px) {
+  .bottom-nav {
+    padding: 4px !important;
+    gap: 1px !important;
+  }
+
+  .bottom-nav md-text-button,
+  .bottom-nav md-filled-tonal-button {
+    font-size: 9px !important;
+    letter-spacing: -.035em !important;
+    --md-text-button-leading-space: 1px;
+    --md-text-button-trailing-space: 1px;
+    --md-text-button-with-leading-icon-leading-space: 1px;
+    --md-text-button-with-leading-icon-trailing-space: 1px;
+    --md-text-button-icon-spacing: 1px;
+    --md-text-button-icon-size: 16px;
+    --md-filled-tonal-button-leading-space: 1px;
+    --md-filled-tonal-button-trailing-space: 1px;
+    --md-filled-tonal-button-with-leading-icon-leading-space: 1px;
+    --md-filled-tonal-button-with-leading-icon-trailing-space: 1px;
+    --md-filled-tonal-button-icon-spacing: 1px;
+    --md-filled-tonal-button-icon-size: 16px;
+  }
+
+  .bottom-nav md-icon {
+    inline-size: 16px !important;
+    min-inline-size: 16px !important;
+    max-inline-size: 16px !important;
+    block-size: 16px !important;
+    min-block-size: 16px !important;
+    max-block-size: 16px !important;
+    font-size: 16px !important;
+    line-height: 16px !important;
+    flex: 0 0 16px !important;
+  }
+}
+
 @media (max-width: 359px) {
   .brand__meta { display: none !important; }
   .brand { max-inline-size: calc(100% - 138px); }
