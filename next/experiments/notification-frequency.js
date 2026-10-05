@@ -18,10 +18,18 @@ function responseStorageKey(notificationId) {
   return `pincon-notification-response-v1:${String(notificationId || "")}`;
 }
 
+function clearPendingResponse() {
+  try {
+    sessionStorage.removeItem(PENDING_RESPONSE_KEY);
+    localStorage.removeItem(PENDING_RESPONSE_KEY);
+  } catch {}
+}
+
 function readPendingResponse() {
   const pending = json(sessionStorage.getItem(PENDING_RESPONSE_KEY))
     || json(localStorage.getItem(PENDING_RESPONSE_KEY));
   if (!pending || pending.experimentId !== EXPERIMENT_ID || !pending.notificationId) return null;
+
   const openedAtMs = Number(pending.openedAtMs || 0);
   if (openedAtMs && Date.now() - openedAtMs > RESPONSE_MAX_AGE_MS) {
     clearPendingResponse();
@@ -34,13 +42,6 @@ function readPendingResponse() {
   return pending;
 }
 
-function clearPendingResponse() {
-  try {
-    sessionStorage.removeItem(PENDING_RESPONSE_KEY);
-    localStorage.removeItem(PENDING_RESPONSE_KEY);
-  } catch {}
-}
-
 function snapshotContext(ctx) {
   if (!ctx || ctx.experimentId !== EXPERIMENT_ID) return null;
   return {
@@ -49,14 +50,10 @@ function snapshotContext(ctx) {
     phase: String(ctx.phase || ""),
     period: Number(ctx.period || 0),
     periodDay: Number(ctx.periodDay || 0),
-    periodDays: Number(ctx.periodDays || 4),
+    periodDays: Math.max(1, Number(ctx.periodDays || 4)),
     condition: String(ctx.condition || ""),
     seenAtMs: Date.now(),
   };
-}
-
-function readPreviousContext() {
-  return json(localStorage.getItem(LAST_CONTEXT_KEY));
 }
 
 function saveCurrentContext() {
@@ -70,25 +67,24 @@ function injectStyles() {
   const style = document.createElement("style");
   style.id = "pincon-notification-experiment-style";
   style.textContent = `
-    .pincon-exp-dialog{border:0;padding:0;background:transparent;max-width:min(520px,calc(100% - 24px));width:100%;color:var(--pc-text,#182014)}
+    .pincon-exp-dialog{border:0;padding:0;background:transparent;width:100%;max-width:min(520px,calc(100% - 24px));color:var(--pc-text,#182014)}
     .pincon-exp-dialog::backdrop{background:rgb(14 22 12/.42);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
     .pincon-exp-card{margin:0;padding:24px;border:1px solid color-mix(in srgb,var(--pc-line,#d8e1d3) 88%,transparent);border-radius:24px;background:var(--pc-surface,#fff);box-shadow:0 24px 70px rgb(12 20 10/.18);font:14px/1.55 "Noto Sans KR",system-ui,sans-serif}
-    .pincon-exp-kicker{margin:0 0 6px;color:var(--pc-primary-ink,#236f0e);font-size:12px;font-weight:700;letter-spacing:.02em}
+    .pincon-exp-kicker{margin:0 0 6px;color:var(--pc-primary-ink,#236f0e);font-size:12px;font-weight:700}
     .pincon-exp-title{margin:0;font-size:23px;line-height:1.25;letter-spacing:-.035em}
     .pincon-exp-copy{margin:8px 0 0;color:var(--pc-muted,#586452);font-size:13px}
     .pincon-exp-options{display:grid;gap:8px;margin-top:20px}
-    .pincon-exp-choice{width:100%;min-height:48px;padding:10px 14px;border:1px solid var(--pc-line,#d8e1d3);border-radius:15px;background:color-mix(in srgb,var(--pc-surface,#fff) 92%,var(--pc-bg,#f2f5ef));color:inherit;font:600 14px/1.3 inherit;text-align:left;cursor:pointer}
-    .pincon-exp-choice:hover,.pincon-exp-choice:focus-visible{border-color:color-mix(in srgb,var(--pc-primary,#2daa00) 48%,var(--pc-line,#d8e1d3));outline:2px solid color-mix(in srgb,var(--pc-primary,#2daa00) 16%,transparent);outline-offset:2px}
-    .pincon-exp-choice:disabled{opacity:.58;cursor:wait}
+    .pincon-exp-choice{width:100%;min-height:48px;padding:10px 14px;border:1px solid var(--pc-line,#d8e1d3);border-radius:15px;background:color-mix(in srgb,var(--pc-surface,#fff) 92%,var(--pc-bg,#f2f5ef));color:inherit;font-family:inherit;font-size:14px;font-weight:600;line-height:1.3;text-align:left;cursor:pointer}
+    .pincon-exp-choice:focus-visible{outline:2px solid color-mix(in srgb,var(--pc-primary,#2daa00) 35%,transparent);outline-offset:2px}
+    .pincon-exp-choice:disabled,.pincon-exp-submit:disabled{opacity:.58;cursor:wait}
     .pincon-exp-question{display:grid;gap:9px;margin:18px 0 0;padding:0;border:0}
     .pincon-exp-question legend{padding:0;font-weight:650;line-height:1.45}
     .pincon-exp-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
     .pincon-exp-scale label{display:grid;place-items:center;gap:5px;min-width:0;padding:8px 2px;border:1px solid var(--pc-line,#d8e1d3);border-radius:12px;background:color-mix(in srgb,var(--pc-surface,#fff) 94%,var(--pc-bg,#f2f5ef));font-size:11px;cursor:pointer}
     .pincon-exp-scale input{margin:0;accent-color:var(--pc-primary,#2daa00)}
     .pincon-exp-select{width:100%;min-height:46px;margin-top:8px;padding:0 12px;border:1px solid var(--pc-line,#d8e1d3);border-radius:13px;background:var(--pc-surface,#fff);color:inherit;font:inherit}
-    .pincon-exp-actions{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:22px}
-    .pincon-exp-submit{min-height:46px;padding:0 17px;border:0;border-radius:14px;background:var(--pc-primary,#2daa00);color:#fff;font:700 14px/1 inherit;cursor:pointer}
-    .pincon-exp-submit:disabled{opacity:.58;cursor:wait}
+    .pincon-exp-actions{display:flex;justify-content:flex-end;margin-top:22px}
+    .pincon-exp-submit{min-height:46px;padding:0 17px;border:0;border-radius:14px;background:var(--pc-primary,#2daa00);color:#fff;font-family:inherit;font-size:14px;font-weight:700;line-height:1;cursor:pointer}
     .pincon-exp-status{min-height:20px;margin:10px 0 0;color:var(--pc-muted,#586452);font-size:12px}
     @media(max-width:420px){.pincon-exp-card{padding:20px 16px;border-radius:21px}.pincon-exp-title{font-size:21px}.pincon-exp-scale{gap:4px}.pincon-exp-scale label{font-size:10px}}
   `;
@@ -119,15 +115,14 @@ function requireNotificationResponse() {
     const dialog = modalBase({
       kicker: `알림 실험 · ${pending.condition || context.condition || ""}`,
       title: "방금 알림은 어땠나요?",
-      copy: "알림을 연 경우에는 한 번의 Response가 필요합니다. 응답은 실험용 익명 ID와 함께 기록됩니다.",
+      copy: "실험 알림을 열었다면 Response를 한 번 남겨야 합니다. 응답은 실험용 익명 ID와 함께 기록됩니다.",
     });
     const body = dialog.querySelector("[data-exp-body]");
     body.innerHTML = `<div class="pincon-exp-options" role="group" aria-label="알림 반응">
       <button class="pincon-exp-choice" type="button" data-response="useful">필요했어요 · 이 알림이 도움이 됐어요</button>
       <button class="pincon-exp-choice" type="button" data-response="neutral">보통이에요 · 있어도 없어도 괜찮아요</button>
       <button class="pincon-exp-choice" type="button" data-response="unnecessary">불필요했어요 · 알림이 없어도 됐어요</button>
-    </div>
-    <p class="pincon-exp-status" data-exp-status aria-live="polite"></p>`;
+    </div><p class="pincon-exp-status" data-exp-status aria-live="polite"></p>`;
 
     body.querySelectorAll("[data-response]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -136,14 +131,14 @@ function requireNotificationResponse() {
         body.querySelectorAll("button").forEach((item) => { item.disabled = true; });
         status.textContent = "Response 저장 중…";
         try {
-          experiment.log("notification_click", {
+          experiment.log("ui_satisfaction", {
             notificationId: pending.notificationId,
             condition: pending.condition || context.condition || "",
             period: Number(pending.period || context.period || 0),
             category: pending.category || "",
             route: pending.targetRoute || "",
-            value: `response:${value}`,
-            source: "required_response",
+            value: `notification_response:${value}`,
+            source: "notification_response",
           });
           await experiment.flush();
           localStorage.setItem(responseStorageKey(pending.notificationId), "1");
@@ -162,7 +157,7 @@ function requireNotificationResponse() {
 
 function dueSurveyContext() {
   if (!context || context.experimentId !== EXPERIMENT_ID) return null;
-  const previous = readPreviousContext();
+  const previous = json(localStorage.getItem(LAST_CONTEXT_KEY));
   const current = snapshotContext(context);
 
   if (previous?.experimentId === EXPERIMENT_ID
@@ -184,7 +179,7 @@ function dueSurveyContext() {
 }
 
 function likert(name, label) {
-  return `<fieldset class="pincon-exp-question" required>
+  return `<fieldset class="pincon-exp-question">
     <legend>${label}</legend>
     <div class="pincon-exp-scale">
       ${[1,2,3,4,5].map((value) => `<label><input type="radio" name="${name}" value="${value}" required><span>${value}</span></label>`).join("")}
@@ -199,7 +194,7 @@ function requirePeriodSurvey(surveyContext) {
     const dialog = modalBase({
       kicker: `Period ${surveyContext.period} · ${surveyContext.condition}`,
       title: "이번 알림 기간을 평가해 주세요",
-      copy: "탐구 계획의 비교를 위해 4개 문항과 적정 알림 수에 모두 Response해야 다음 단계로 넘어갑니다. 1은 ‘전혀 아니다’, 5는 ‘매우 그렇다’입니다.",
+      copy: "탐구 비교를 위해 4개 문항과 적정 알림 수에 모두 Response해야 합니다. 1은 ‘전혀 아니다’, 5는 ‘매우 그렇다’입니다.",
     });
     const body = dialog.querySelector("[data-exp-body]");
     body.innerHTML = `<form data-exp-survey>
