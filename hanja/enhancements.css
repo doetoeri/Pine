@@ -1,0 +1,263 @@
+/* Motion + lore-glass inspired refinements for /hanja */
+:root {
+  --motion-ease: cubic-bezier(.22,1.15,.36,1.06);
+  --motion-soft: cubic-bezier(.2,.8,.2,1);
+  --glass-x: 50%;
+  --glass-y: 28%;
+  --glass-press: 0;
+}
+
+/* Main glyph now comes from the same Hanzi Writer vector data used by stroke order. */
+.lens-char,
+.writing-guide {
+  color: transparent !important;
+  text-shadow: none !important;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.vector-glyph-layer,
+.vector-writing-guide {
+  position: absolute;
+  inset: 12%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transform-origin: center;
+}
+.vector-glyph-layer > div,
+.vector-writing-guide > div { width: 100%; height: 100%; }
+.vector-writing-guide {
+  inset: 8%;
+  z-index: 1;
+  opacity: .16;
+}
+.writing-board canvas { position: relative; z-index: 3; }
+
+/* The lens gets the expensive glass treatment; other pills stay cheap. */
+.lens-disc {
+  isolation: isolate;
+  overflow: hidden;
+  transform: scale(calc(1 - var(--glass-press) * .012));
+  transition: box-shadow .45s var(--motion-soft), border-color .45s var(--motion-soft);
+}
+.lore-glass-refraction,
+.lore-glass-specular,
+.lore-glass-chroma {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.lore-glass-refraction {
+  z-index: 0;
+  inset: -1.2%;
+  opacity: .55;
+  background:
+    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255,255,255,.72) 0 8%, rgba(255,255,255,.05) 29%, transparent 52%),
+    radial-gradient(circle at 50% 52%, rgba(255,255,255,.16), rgba(255,255,255,0) 65%);
+  backdrop-filter: blur(9px) saturate(1.12) contrast(1.025);
+  -webkit-backdrop-filter: blur(9px) saturate(1.12) contrast(1.025);
+  filter: url(#pincon-lore-glass-displace);
+  transform: scale(1.012);
+}
+.lore-glass-chroma {
+  z-index: 1;
+  opacity: .17;
+  box-shadow:
+    inset 9px 2px 18px rgba(255,70,70,.22),
+    inset -9px -1px 18px rgba(70,135,255,.18),
+    inset 0 0 0 1px rgba(255,255,255,.68);
+  mix-blend-mode: screen;
+}
+.lore-glass-specular {
+  z-index: 4;
+  opacity: .72;
+  background:
+    radial-gradient(circle at var(--glass-x) var(--glass-y), rgba(255,255,255,.92) 0 1.5%, rgba(255,255,255,.34) 5%, transparent 18%),
+    linear-gradient(135deg, rgba(255,255,255,.58), transparent 20% 74%, rgba(255,255,255,.18));
+  mask: radial-gradient(circle, transparent 0 75%, #000 84% 100%);
+  -webkit-mask: radial-gradient(circle, transparent 0 75%, #000 84% 100%);
+}
+.stroke-layer { z-index: 6; }
+.vector-glyph-layer { z-index: 3; }
+
+/* Smooth page entrance without making the interface theatrical. */
+.topbar,
+.study-meta,
+.lens-stage,
+.swipe-hint,
+.mode-tabs,
+.detail-panel,
+.write-button,
+.weak-section {
+  animation: soft-rise .72s var(--motion-soft) both;
+}
+.study-meta { animation-delay: .04s; }
+.lens-stage { animation-delay: .08s; }
+.swipe-hint { animation-delay: .12s; }
+.mode-tabs { animation-delay: .15s; }
+.detail-panel { animation-delay: .18s; }
+.write-button { animation-delay: .21s; }
+.weak-section { animation-delay: .24s; }
+@keyframes soft-rise {
+  from { opacity: 0; translate: 0 11px; scale: .992; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+/* Motion language for pills */
+button,
+.reading-tags span,
+.swipe-hint,
+.study-meta,
+.detail-panel,
+.weak-card {
+  transition:
+    background-color .32s var(--motion-soft),
+    border-color .32s var(--motion-soft),
+    box-shadow .42s var(--motion-soft),
+    translate .42s var(--motion-ease),
+    scale .42s var(--motion-ease),
+    opacity .3s ease;
+}
+button:active { scale: .975; }
+.icon-button:active,
+.nav-arrow:active { scale: .93; }
+.write-button:active { scale: .985; translate: 0 2px; }
+
+.mode-tab {
+  transition:
+    color .3s ease,
+    background-color .38s var(--motion-soft),
+    box-shadow .4s var(--motion-soft),
+    translate .45s var(--motion-ease),
+    scale .45s var(--motion-ease);
+}
+.mode-tab.is-active { scale: 1.015; translate: 0 -1px; }
+.mode-tab svg { transition: rotate .55s var(--motion-ease), scale .45s var(--motion-ease); }
+.mode-tab.is-active svg { rotate: -3deg; scale: 1.08; }
+
+.detail-panel.is-motion-swapping {
+  animation: panel-swap .46s var(--motion-soft);
+}
+@keyframes panel-swap {
+  0% { opacity: .55; translate: 0 7px; scale: .992; }
+  100% { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+.vector-glyph-layer.is-changing {
+  animation: glyph-arrive .48s var(--motion-ease);
+}
+@keyframes glyph-arrive {
+  0% { opacity: 0; translate: 28px 0; scale: .935; filter: blur(2px); }
+  58% { opacity: 1; translate: -3px 0; scale: 1.015; filter: blur(0); }
+  100% { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+.reading-block.is-changing {
+  animation: reading-arrive .44s var(--motion-soft);
+}
+@keyframes reading-arrive {
+  from { opacity: .35; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+.side-preview {
+  transition: opacity .45s ease, translate .55s var(--motion-ease), scale .55s var(--motion-ease);
+}
+.side-preview:hover { scale: 1.025; }
+.side-preview.is-pulsing { animation: side-pulse .45s var(--motion-ease); }
+@keyframes side-pulse {
+  0% { opacity: .35; scale: .96; }
+  100% { opacity: .68; scale: 1; }
+}
+
+.progress-track span { transition: width .62s var(--motion-ease); }
+
+/* Deeper origin cards */
+.origin-extra {
+  max-width: 760px;
+  margin: 16px auto 0;
+  display: grid;
+  gap: 12px;
+  animation: origin-in .48s var(--motion-soft) both;
+}
+@keyframes origin-in {
+  from { opacity: 0; translate: 0 8px; }
+  to { opacity: 1; translate: 0 0; }
+}
+.origin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.origin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(250,249,246,.8);
+  color: var(--muted);
+  font-size: 12px;
+}
+.origin-chip b { color: var(--ink); font-family: var(--ui-strong); }
+.origin-deep {
+  padding: 16px 18px;
+  border: 1px solid rgba(55,54,49,.1);
+  border-radius: 20px;
+  background: rgba(250,249,246,.74);
+  color: #44443f;
+  font-size: 14px;
+  line-height: 1.85;
+}
+.origin-caution {
+  margin: 0;
+  padding: 0 2px;
+  color: #77766f;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+/* dialogs materialize instead of popping */
+.write-dialog[open],
+.search-dialog[open] { animation: dialog-materialize .5s var(--motion-ease) both; }
+.write-dialog::backdrop,
+.search-dialog::backdrop { animation: backdrop-in .35s ease both; }
+@keyframes dialog-materialize {
+  from { opacity: 0; translate: 0 18px; scale: .95; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* reveal the lower section only when it approaches the viewport */
+.motion-reveal { opacity: 0; translate: 0 18px; }
+.motion-reveal.is-revealed {
+  opacity: 1;
+  translate: 0 0;
+  transition: opacity .58s ease, translate .72s var(--motion-soft);
+}
+
+@media (hover: hover) {
+  .study-meta:hover,
+  .detail-panel:hover { translate: 0 -2px; box-shadow: 0 12px 34px rgba(37,35,30,.065); }
+  .reading-tags span:hover { translate: 0 -2px; background: rgba(255,255,255,.9); }
+}
+
+@media (max-width: 760px) {
+  .lore-glass-refraction { backdrop-filter: blur(6px) saturate(1.08); -webkit-backdrop-filter: blur(6px) saturate(1.08); }
+  .origin-deep { padding: 14px 15px; border-radius: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+  .lore-glass-refraction { filter: none; }
+}
