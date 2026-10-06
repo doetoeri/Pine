@@ -1,0 +1,66 @@
+
+    // Hanja cross-device sync: each user can only access their own study state.
+    match /hanjaUsers/{userId}/state/{docId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && docId == 'main'
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'currentIndex', 'currentChar', 'updatedAtMs', 'deviceId'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.currentIndex is int
+        && request.resource.data.currentIndex >= 0
+        && request.resource.data.currentIndex <= 5000
+        && request.resource.data.currentChar is string
+        && request.resource.data.currentChar.size() > 0
+        && request.resource.data.currentChar.size() <= 4
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs > 0
+        && request.resource.data.deviceId is string
+        && request.resource.data.deviceId.size() > 0
+        && request.resource.data.deviceId.size() <= 100;
+      allow delete: if false;
+    }
+
+    match /hanjaUsers/{userId}/progress/{charId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'char', 'grade', 'updatedAtMs', 'deviceId'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.char is string
+        && request.resource.data.char == charId
+        && request.resource.data.char.size() > 0
+        && request.resource.data.char.size() <= 4
+        && request.resource.data.grade in ['again', 'hard', 'good']
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs > 0
+        && request.resource.data.deviceId is string
+        && request.resource.data.deviceId.size() > 0
+        && request.resource.data.deviceId.size() <= 100;
+      allow delete: if false;
+    }
+
+    match /hanjaUsers/{userId}/devices/{deviceId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'deviceId', 'label', 'deviceType', 'lastSeenAtMs'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.deviceId is string
+        && request.resource.data.deviceId == deviceId
+        && request.resource.data.deviceId.size() > 0
+        && request.resource.data.deviceId.size() <= 100
+        && request.resource.data.label is string
+        && request.resource.data.label.size() > 0
+        && request.resource.data.label.size() <= 40
+        && request.resource.data.deviceType in ['mobile', 'tablet', 'desktop']
+        && request.resource.data.lastSeenAtMs is int
+        && request.resource.data.lastSeenAtMs > 0;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
