@@ -7,6 +7,8 @@ on:
       - "firestore.rules"
       - "storage.rules"
       - "automation/deploy-firestore-rules.mjs"
+      - "hanja/firestore.rules.fragment"
+      - "hanja/merge-firestore-rules.mjs"
       - ".github/workflows/firebase-rules.yml"
   workflow_dispatch:
 
@@ -27,6 +29,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Merge Hanja cross-device rules
+        run: node hanja/merge-firestore-rules.mjs
       - name: Deploy Firestore rules
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -48,7 +52,7 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d "{\"state\":\"success\",\"context\":\"Firebase Rules\",\"description\":\"Temporary 1-8 Firestore write rules deployed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
+            -d "{\"state\":\"success\",\"context\":\"Firebase Rules\",\"description\":\"Firestore rules deployed with Hanja sync access\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
       - name: Report Firebase rules failure
         if: ${{ failure() }}
         env:
