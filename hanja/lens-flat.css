@@ -27,3 +27,42 @@
 #lens [data-lore-glass] { display:none !important; }
 
 #lens { --lens-refraction:0 !important; --lens-chroma:0 !important; --lens-depth:0 !important; }
+
+/* Visibility safety net. The dial still uses Hanzi Writer vectors whenever they
+   render correctly, but a static vector/text fallback prevents a blank circle. */
+.flat-glyph-fallback {
+  position:absolute;
+  inset:12%;
+  z-index:7;
+  display:grid;
+  place-items:center;
+  color:#1d1d1a;
+  font:400 clamp(96px,22vw,176px)/1 var(--hanja, serif);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+.flat-glyph-fallback.is-visible {
+  opacity:1;
+  visibility:visible;
+}
+
+body.dial-vector-fallback .vector-glyph-layer {
+  opacity:1 !important;
+  visibility:visible !important;
+}
+
+body.dial-vector-ok .dial-cell-v3[data-current] {
+  opacity:1 !important;
+  visibility:visible !important;
+}
+
+body.dial-vector-ok .dial-cell-v3[data-current] .dial-glyph-target-v3,
+body.dial-vector-ok .dial-cell-v3[data-current] svg {
+  opacity:1 !important;
+  visibility:visible !important;
+}
+
+@media (max-width:640px) {
+  .flat-glyph-fallback { font-size:clamp(88px,31vw,150px); }
+}
