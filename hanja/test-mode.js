@@ -20,6 +20,22 @@
 
   function termBank() { return Array.isArray(window.HANJA_TERM_BANK) ? window.HANJA_TERM_BANK : []; }
 
+  function normalizeAnswer(value) {
+    return String(value ?? '')
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/[\s·,，.。/／、:：;；'"“”‘’()（）\-—_]/g, '')
+      .trim();
+  }
+
+  function readingVariants(item) {
+    const hun = String(item?.hun || '').trim();
+    const eum = String(item?.eum || '').trim();
+    const parts = hun.split(/[·,，/／、]/).map((v) => v.trim()).filter(Boolean);
+    const variants = [`${hun} ${eum}`, ...parts.map((part) => `${part} ${eum}`)];
+    return [...new Set(variants.map(normalizeAnswer).filter(Boolean))];
+  }
+
   function injectTrigger() {
     if ($('#hanjaTestTrigger')) return;
     const nav = document.querySelector('.topnav');
@@ -36,7 +52,7 @@
       const card = document.createElement('section');
       card.id = 'hanjaTestCard';
       card.className = 'hanja-test-card';
-      card.innerHTML = '<div><span class="test-kicker">TEST</span><strong>시험처럼 바로 확인</strong><p>훈·음 ↔ 한자, 서울 성문 이름까지 섞어서 출제합니다.</p></div><button type="button">시험 시작</button>';
+      card.innerHTML = '<div><span class="test-kicker">TEST</span><strong>선택형 + 주관식 시험</strong><p>훈·음 ↔ 한자, 성문 이름까지 직접 써서 답하는 문제를 섞어 출제합니다.</p></div><button type="button">시험 시작</button>';
       card.querySelector('button').addEventListener('click', openSetup);
       weak.insertAdjacentElement('beforebegin', card);
     }
@@ -65,13 +81,18 @@
     $('#hanjaTestShell', dialog).innerHTML = `
       <div class="test-head"><div><p>시험 모드</p><h2>학교 학습지 한자</h2></div><button class="test-close" type="button" aria-label="닫기">×</button></div>
       <div class="test-setup">
-        <div class="test-hero"><span class="test-hero-char">試</span><div><strong>${count}자에서 무작위 출제</strong><p>문제와 선택지 순서를 매번 섞습니다. 틀린 글자는 마지막에 따로 모아줍니다.</p></div></div>
+        <div class="test-hero"><span class="test-hero-char">試</span><div><strong>${count}자에서 무작위 출제</strong><p>주관식에서는 선택지 없이 직접 입력합니다. 뜻이 여러 개인 글자는 학습지에 적힌 훈 가운데 하나를 맞히면 인정합니다.</p></div></div>
         <fieldset><legend>문제 수</legend><div class="test-segments">
           <label><input type="radio" name="testCount" value="10" checked><span>10문제</span></label>
           <label><input type="radio" name="testCount" value="20"><span>20문제</span></label>
           <label><input type="radio" name="testCount" value="all"><span>전체</span></label>
         </div></fieldset>
-        <fieldset><legend>출제 방식</legend><div class="test-checks">
+        <fieldset><legend>답안 방식</legend><div class="test-segments answer-mode-segments">
+          <label><input type="radio" name="answerMode" value="choice"><span>선택형</span></label>
+          <label><input type="radio" name="answerMode" value="written"><span>주관식</span></label>
+          <label><input type="radio" name="answerMode" value="mixed" checked><span>혼합</span></label>
+        </div></fieldset>
+        <fieldset><legend>출제 내용</legend><div class="test-checks">
           <label><input type="checkbox" name="typeReading" checked><span>한자 → 훈·음</span></label>
           <label><input type="checkbox" name="typeChar" checked><span>훈·음 → 한자</span></label>
           <label><input type="checkbox" name="typeGate" checked><span>성문 이름</span></label>
@@ -87,6 +108,7 @@
     const items = allItems();
     if (items.length < 4) return;
     const rawCount = $('input[name="testCount"]:checked', dialog)?.value || '10';
+    const answerMode = $('input[name="answerMode"]:checked', dialog)?.value || 'mixed';
     const types = [];
     if ($('input[name="typeReading"]', dialog)?.checked) types.push('reading');
     if ($('input[name="typeChar"]', dialog)?.checked) types.push('char');
@@ -94,12 +116,17 @@
     if (!types.length) types.push('reading');
     const total = rawCount === 'all' ? items.length : Math.min(items.length, Number(rawCount));
     const itemPool = shuffle(items).slice(0, total);
-    const questions = itemPool.map((item, i) => makeQuestion(item, types[i % types.length], items));
-    // 성문 문제를 켠 경우 최소 한 문제는 넣습니다.
+    const questions = itemPool.map((item, i) => {
+      const q = makeQuestion(item, types[i % types.length], items);
+      q.answerMode = answerMode === 'mixed' ? (i % 2 === 0 ? 'choice' : 'written') : answerMode;
+      return q;
+    });
     if (types.includes('term') && questions.length && !questions.some((q) => q.type === 'term')) {
-      questions[questions.length - 1] = makeTermQuestion(shuffle(termBank())[0]);
+      const q = makeTermQuestion(shuffle(termBank())[0]);
+      q.answerMode = answerMode === 'mixed' ? 'written' : answerMode;
+      questions[questions.length - 1] = q;
     }
-    session = { questions, index:0, score:0, wrong:[], answers:[], finished:false, startedAt:Date.now() };
+    session = { questions, index:0, score:0, wrong:[], answers:[], finished:false, startedAt:Date.now(), answerMode };
     renderQuestion();
   }
 
@@ -119,8 +146,9 @@
       return {
         type:'char', item,
         prompt:`${item.hun} ${item.eum}`,
-        sub:'알맞은 한자를 고르세요.',
+        sub:'알맞은 한자를 쓰세요.',
         answer:item.char,
+        accepted:[normalizeAnswer(item.char)],
         options:distractors(item, items, (x) => x.char)
       };
     }
@@ -130,6 +158,7 @@
       prompt:item.char,
       sub:'이 한자의 훈과 음은?',
       answer,
+      accepted:readingVariants(item),
       options:distractors(item, items, (x) => `${x.hun} ${x.eum}`)
     };
   }
@@ -139,38 +168,71 @@
     const reverse = Math.random() < .5;
     if (reverse) {
       const options = shuffle([term.hanja, ...shuffle(bank.filter((x) => x.hanja !== term.hanja)).slice(0,3).map((x) => x.hanja)]);
-      return { type:'term', term, prompt:term.hangul, sub:'알맞은 한자 표기를 고르세요.', answer:term.hanja, options };
+      return { type:'term', term, prompt:term.hangul, sub:'알맞은 한자 표기를 쓰세요.', answer:term.hanja, accepted:[normalizeAnswer(term.hanja)], options };
     }
     const options = shuffle([term.reading, ...shuffle(bank.filter((x) => x.reading !== term.reading)).slice(0,3).map((x) => x.reading)]);
-    return { type:'term', term, prompt:term.hanja, sub:'이 성문 이름은?', answer:term.reading, options };
+    return { type:'term', term, prompt:term.hanja, sub:'이 성문 이름을 쓰세요.', answer:term.reading, accepted:[normalizeAnswer(term.reading), normalizeAnswer(term.hangul)], options };
+  }
+
+  function typeLabel(q) {
+    const content = q.type === 'term' ? '성문' : q.type === 'char' ? '훈·음 → 한자' : '한자 → 훈·음';
+    return `${q.answerMode === 'written' ? '주관식' : '선택형'} · ${content}`;
   }
 
   function renderQuestion() {
     const q = session.questions[session.index];
     const progress = `${session.index + 1} / ${session.questions.length}`;
     const hanjaPrompt = /[\u3400-\u9fff\uf900-\ufaff]/u.test(q.prompt);
+    const written = q.answerMode === 'written';
+    const expectedHanja = /[\u3400-\u9fff\uf900-\ufaff]/u.test(q.answer);
     $('#hanjaTestShell', dialog).innerHTML = `
       <div class="test-head compact"><div><p>시험 모드</p><h2>${progress}</h2></div><button class="test-close" type="button" aria-label="시험 끝내기">×</button></div>
       <div class="test-progress"><span style="width:${((session.index) / session.questions.length) * 100}%"></span></div>
       <div class="test-question">
-        <span class="test-type">${q.type === 'term' ? '성문' : q.type === 'char' ? '훈·음 → 한자' : '한자 → 훈·음'}</span>
+        <span class="test-type">${typeLabel(q)}</span>
         <div class="test-prompt ${hanjaPrompt ? 'is-hanja' : ''}">${q.prompt}</div>
         <p>${q.sub}</p>
-        <div class="test-options">${q.options.map((option, i) => `<button type="button" data-option="${i}" class="${/[\u3400-\u9fff\uf900-\ufaff]/u.test(option) ? 'is-hanja' : ''}">${option}</button>`).join('')}</div>
+        ${written ? `
+          <form class="test-written-form" id="testWrittenForm" autocomplete="off">
+            <input id="testWrittenInput" class="${expectedHanja ? 'is-hanja-input' : ''}" type="text" inputmode="text" enterkeyhint="done" placeholder="정답을 직접 입력" aria-label="주관식 정답">
+            <button type="submit">제출</button>
+          </form>` : `
+          <div class="test-options">${q.options.map((option, i) => `<button type="button" data-option="${i}" class="${/[\u3400-\u9fff\uf900-\ufaff]/u.test(option) ? 'is-hanja' : ''}">${option}</button>`).join('')}</div>`}
         <div class="test-feedback" id="testFeedback" aria-live="polite"></div>
       </div>`;
     $('.test-close', dialog).addEventListener('click', () => { if (confirm('진행 중인 시험을 끝낼까요?')) closeTest(); });
-    dialog.querySelectorAll('[data-option]').forEach((button) => button.addEventListener('click', () => answerQuestion(button, q)));
+    if (written) {
+      const form = $('#testWrittenForm', dialog);
+      const input = $('#testWrittenInput', dialog);
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        answerWritten(input, q);
+      });
+      setTimeout(() => input.focus(), 30);
+    } else {
+      dialog.querySelectorAll('[data-option]').forEach((button) => button.addEventListener('click', () => answerChoice(button, q)));
+    }
   }
 
-  function answerQuestion(button, q) {
+  function registerAnswer(q, selected, correct) {
+    if (correct) session.score += 1;
+    else session.wrong.push(q);
+    session.answers.push({ type:q.type, answerMode:q.answerMode, prompt:q.prompt, answer:q.answer, selected, correct });
+  }
+
+  function advanceAfterFeedback() {
+    window.setTimeout(() => {
+      session.index += 1;
+      if (session.index >= session.questions.length) finishTest(); else renderQuestion();
+    }, 780);
+  }
+
+  function answerChoice(button, q) {
     if (button.closest('.test-options')?.dataset.locked === 'true') return;
     button.closest('.test-options').dataset.locked = 'true';
     const value = q.options[Number(button.dataset.option)];
     const correct = value === q.answer;
-    if (correct) session.score += 1;
-    else session.wrong.push(q);
-    session.answers.push({ type:q.type, prompt:q.prompt, answer:q.answer, selected:value, correct });
+    registerAnswer(q, value, correct);
     dialog.querySelectorAll('[data-option]').forEach((choice) => {
       const option = q.options[Number(choice.dataset.option)];
       choice.classList.toggle('is-correct', option === q.answer);
@@ -179,10 +241,31 @@
     });
     const feedback = $('#testFeedback', dialog);
     feedback.innerHTML = correct ? '<strong>정답</strong>' : `<strong>오답</strong><span>정답: ${q.answer}</span>`;
-    window.setTimeout(() => {
-      session.index += 1;
-      if (session.index >= session.questions.length) finishTest(); else renderQuestion();
-    }, 650);
+    advanceAfterFeedback();
+  }
+
+  function answerWritten(input, q) {
+    const form = $('#testWrittenForm', dialog);
+    if (!form || form.dataset.locked === 'true') return;
+    const raw = input.value.trim();
+    if (!raw) {
+      input.classList.add('needs-answer');
+      input.focus();
+      return;
+    }
+    form.dataset.locked = 'true';
+    const normalized = normalizeAnswer(raw);
+    const accepted = q.accepted?.length ? q.accepted : [normalizeAnswer(q.answer)];
+    const correct = accepted.includes(normalized);
+    registerAnswer(q, raw, correct);
+    input.disabled = true;
+    const submit = $('button[type="submit"]', form);
+    if (submit) submit.disabled = true;
+    input.classList.toggle('is-correct', correct);
+    input.classList.toggle('is-wrong', !correct);
+    const feedback = $('#testFeedback', dialog);
+    feedback.innerHTML = correct ? '<strong>정답</strong><span>직접 인출 성공</span>' : `<strong>오답</strong><span>정답: ${q.answer}</span>`;
+    advanceAfterFeedback();
   }
 
   function finishTest() {
@@ -201,7 +284,7 @@
       <div class="test-result">
         <div class="test-score-ring"><strong>${session.score}</strong><span>/ ${session.questions.length}</span></div>
         <h3>${percent >= 90 ? '거의 다 잡았습니다.' : percent >= 70 ? '조금만 더 다듬으면 됩니다.' : '틀린 글자부터 다시 보면 됩니다.'}</h3>
-        <p>맞은 문제 ${session.score}개 · 틀린 문제 ${session.questions.length - session.score}개</p>
+        <p>맞은 문제 ${session.score}개 · 틀린 문제 ${session.questions.length - session.score}개${session.questions.some((q) => q.answerMode === 'written') ? ' · 주관식 포함' : ''}</p>
         <div class="test-wrong-list">${wrongUnique.length ? wrongUnique.map((q) => {
           const ch = q.item?.char || q.term?.hanja || q.answer;
           const label = q.item ? `${q.item.hun} ${q.item.eum}` : q.term?.reading || q.answer;
@@ -226,7 +309,11 @@
   function saveHistory(percent) {
     try {
       const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-      history.unshift({ at:Date.now(), score:session.score, total:session.questions.length, percent, wrong:session.wrong.map((q) => q.item?.char || q.term?.hanja || q.prompt).slice(0,30) });
+      history.unshift({
+        at:Date.now(), score:session.score, total:session.questions.length, percent,
+        answerMode:session.answerMode,
+        wrong:session.wrong.map((q) => q.item?.char || q.term?.hanja || q.prompt).slice(0,30)
+      });
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0,12)));
     } catch (_) {}
   }
