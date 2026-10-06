@@ -1,4 +1,5 @@
 /* Refraction is intentionally paused for the central Hanja lens.
    Keep this filename wired into index.html so the effect can be restored later. */
 @import url('./test-mode.css');
+@import url('./test-mode-subjective.css');
 @import url('./lens-flat.css');
