@@ -1,0 +1,426 @@
+/* /hanja experience v3
+   - Parallel dial-like Hanja carousel inside the lens
+   - Persistent Hanja roster across the main view and dialogs
+   - Easier stroke-order controls
+   - Wider Lore Glass visual language without turning every element into a GPU furnace
+*/
+
+:root {
+  --dial-gap: clamp(128px, 34vw, 190px);
+  --dial-drag-x: 0px;
+  --lg-x: 50%;
+  --lg-y: 18%;
+}
+
+/* --------------------------------------------------------------------------
+   Persistent roster
+   -------------------------------------------------------------------------- */
+.hanja-roster-shell {
+  position: sticky;
+  top: 86px;
+  z-index: 34;
+  width: 100%;
+  margin: 10px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,.62);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.64), rgba(248,247,243,.46));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.86),
+    0 8px 28px rgba(35,34,30,.055);
+  backdrop-filter: blur(18px) saturate(1.12);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  overflow: hidden;
+}
+
+.hanja-roster-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--lg-x) var(--lg-y), rgba(255,255,255,.62), transparent 22%),
+    linear-gradient(180deg, rgba(255,255,255,.28), transparent 28%);
+  opacity: .7;
+  mix-blend-mode: screen;
+}
+
+.hanja-roster-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1px 8px 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.hanja-roster-head strong {
+  color: var(--ink);
+  font-family: var(--ui-strong);
+  font-size: 12px;
+}
+
+.hanja-roster {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  padding: 0 2px 2px;
+}
+.hanja-roster::-webkit-scrollbar { display: none; }
+
+.hanja-roster button {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(55,54,49,.075);
+  border-radius: 999px;
+  background: rgba(255,255,255,.34);
+  color: #6e6e68;
+  font-family: var(--hanja);
+  font-size: 21px;
+  line-height: 1;
+  scroll-snap-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.56);
+  transition:
+    color .28s ease,
+    background-color .34s var(--motion-soft, ease),
+    border-color .34s ease,
+    box-shadow .4s var(--motion-soft, ease),
+    scale .38s var(--motion-ease, ease),
+    translate .38s var(--motion-ease, ease);
+}
+.hanja-roster button:hover {
+  background: rgba(255,255,255,.72);
+  translate: 0 -1px;
+}
+.hanja-roster button.is-current {
+  color: var(--accent);
+  border-color: rgba(201,52,48,.16);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,246,244,.76));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.92),
+    0 5px 18px rgba(201,52,48,.105);
+  scale: 1.055;
+}
+
+.dialog-hanja-roster {
+  position: relative;
+  margin: 4px 0 12px;
+  padding: 6px;
+  border: 1px solid rgba(255,255,255,.56);
+  border-radius: 999px;
+  background: rgba(245,244,239,.66);
+  backdrop-filter: blur(12px) saturate(1.08);
+  -webkit-backdrop-filter: blur(12px) saturate(1.08);
+}
+.dialog-hanja-roster .hanja-roster-head { display: none; }
+.dialog-hanja-roster .hanja-roster button { width: 39px; height: 34px; font-size: 19px; }
+
+/* --------------------------------------------------------------------------
+   Parallel dial carousel
+   -------------------------------------------------------------------------- */
+.lens-wrap {
+  touch-action: pan-y;
+  cursor: grab;
+}
+.lens-wrap.is-dial-dragging { cursor: grabbing; }
+
+.hanja-dial-v3 {
+  position: absolute;
+  z-index: 8;
+  inset: 7%;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .28s ease, scale .38s var(--motion-ease, ease), filter .28s ease;
+}
+
+.hanja-dial-v3::before,
+.hanja-dial-v3::after {
+  content: '';
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  bottom: 0;
+  width: 18%;
+  pointer-events: none;
+}
+.hanja-dial-v3::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(255,254,250,.64), transparent);
+}
+.hanja-dial-v3::after {
+  right: 0;
+  background: linear-gradient(-90deg, rgba(255,254,250,.64), transparent);
+}
+
+.dial-cell-v3 {
+  --slot: 0;
+  --cell-scale: .72;
+  --cell-opacity: .12;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 62%;
+  height: 62%;
+  display: grid;
+  place-items: center;
+  opacity: var(--cell-opacity);
+  transform:
+    translate3d(
+      calc(-50% + (var(--slot) * var(--dial-gap)) + var(--dial-drag-x)),
+      -50%,
+      0
+    )
+    scale(var(--cell-scale));
+  transform-origin: center;
+  filter: blur(.28px);
+  will-change: transform, opacity;
+  transition:
+    transform .48s var(--motion-ease, cubic-bezier(.2,.8,.2,1)),
+    opacity .34s ease,
+    filter .34s ease;
+}
+.hanja-dial-v3.is-dragging .dial-cell-v3 { transition: opacity .22s ease, filter .22s ease; }
+.hanja-dial-v3.is-settling .dial-cell-v3 { transition: transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s ease; }
+
+.dial-cell-v3[data-distance="0"] {
+  --cell-scale: 1;
+  --cell-opacity: 1;
+  filter: none;
+}
+.dial-cell-v3[data-distance="1"] {
+  --cell-scale: .72;
+  --cell-opacity: .19;
+  filter: blur(.15px);
+}
+.dial-cell-v3[data-distance="2"] {
+  --cell-scale: .56;
+  --cell-opacity: .065;
+  filter: blur(.5px);
+}
+.dial-cell-v3[data-distance="3"] {
+  --cell-scale: .48;
+  --cell-opacity: .018;
+}
+.dial-cell-v3[data-distance="far"] { opacity: 0; }
+
+.dial-glyph-target-v3 {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+/* Hide the old static center glyph when the dial is driving the normal lens. */
+body.dial-v3-ready:not(.stroke-mode-v3) .vector-glyph-layer { opacity: 0 !important; }
+body.stroke-mode-v3 .hanja-dial-v3 {
+  opacity: 0;
+  scale: .95;
+  filter: blur(3px);
+}
+body.stroke-mode-v3 .vector-glyph-layer { opacity: 0 !important; }
+
+/* External previous/next previews are redundant once the actual letters move in the lens. */
+body.dial-v3-ready .side-preview { visibility: hidden; }
+
+/* --------------------------------------------------------------------------
+   Stroke-order dock: directly under the lens, no hunting in the lower card
+   -------------------------------------------------------------------------- */
+.stroke-dock-v3 {
+  display: none;
+  width: min(520px, 92vw);
+  margin: 13px auto 0;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.64);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.78), rgba(246,244,239,.62));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    0 10px 28px rgba(34,33,29,.07);
+  backdrop-filter: blur(18px) saturate(1.12);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+}
+body.stroke-mode-v3 .stroke-dock-v3 { display: block; animation: strokeDockIn .4s var(--motion-ease, ease) both; }
+@keyframes strokeDockIn {
+  from { opacity: 0; translate: 0 8px; scale: .98; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+.stroke-dock-v3-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 7px 8px;
+}
+.stroke-dock-v3-head strong { font-family: var(--ui-strong); font-size: 13px; }
+.stroke-dock-v3-head span {
+  min-width: 42px;
+  height: 26px;
+  padding: 0 9px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(201,52,48,.075);
+  color: var(--accent);
+  font-family: var(--ui-strong);
+  font-size: 11px;
+}
+.stroke-dock-v3-actions {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 5px;
+}
+.stroke-dock-v3-actions button {
+  min-height: 44px;
+  border: 1px solid rgba(55,54,49,.075);
+  border-radius: 999px;
+  background: rgba(255,255,255,.48);
+  color: #555650;
+  font-family: var(--ui);
+  font-size: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.68);
+}
+.stroke-dock-v3-actions button:first-child {
+  color: var(--accent);
+  border-color: rgba(201,52,48,.13);
+  background: rgba(255,248,247,.88);
+  font-family: var(--ui-strong);
+}
+.stroke-dock-v3-actions button:active { scale: .97; }
+
+/* The old lower replay button becomes secondary; the useful controls are already at the lens. */
+body.stroke-mode-v3 #playStrokes { display: none; }
+body.stroke-mode-v3 .stroke-actions p::after {
+  content: ' 위 렌즈 아래의 재생 버튼으로 바로 조작할 수 있습니다.';
+  color: var(--accent);
+}
+
+/* --------------------------------------------------------------------------
+   Lore Glass across the rest of the interface
+   -------------------------------------------------------------------------- */
+[data-lore-surface-v3="true"] {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: rgba(255,255,255,.58) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.68), rgba(246,245,241,.47)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    inset 0 -1px 0 rgba(255,255,255,.22),
+    0 10px 32px rgba(36,35,31,.065) !important;
+  backdrop-filter: blur(16px) saturate(1.14) contrast(1.015);
+  -webkit-backdrop-filter: blur(16px) saturate(1.14) contrast(1.015);
+}
+
+[data-lore-surface-v3="true"]::after {
+  content: '';
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--lg-x) var(--lg-y), rgba(255,255,255,.62) 0 2%, rgba(255,255,255,.18) 9%, transparent 25%),
+    linear-gradient(180deg, rgba(255,255,255,.30), transparent 24%),
+    linear-gradient(110deg, transparent 0 62%, rgba(255,255,255,.08) 72%, transparent 82%);
+  opacity: .72;
+  mix-blend-mode: screen;
+  transition: opacity .28s ease;
+}
+[data-lore-surface-v3="true"][data-lore-pressed="true"]::after { opacity: .96; }
+
+/* Give glass cards enough contrast to remain readable. */
+.detail-panel .part-card,
+.detail-panel .result-card,
+.detail-panel .usage-card,
+.origin-deep,
+.origin-callout,
+.reading-tags span,
+.progress-box {
+  border-color: rgba(255,255,255,.52) !important;
+  background: rgba(255,255,255,.46) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.62),
+    0 5px 16px rgba(36,35,31,.035) !important;
+  backdrop-filter: blur(9px) saturate(1.08);
+  -webkit-backdrop-filter: blur(9px) saturate(1.08);
+}
+
+.mode-tabs {
+  background: rgba(229,228,223,.48) !important;
+  backdrop-filter: blur(15px) saturate(1.12);
+  -webkit-backdrop-filter: blur(15px) saturate(1.12);
+}
+.mode-tab.is-active {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,246,245,.72)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.96),
+    0 6px 18px rgba(201,52,48,.09) !important;
+}
+
+.bottom-nav {
+  background: rgba(250,249,246,.66) !important;
+  backdrop-filter: blur(22px) saturate(1.16) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.16) !important;
+}
+.bottom-nav button.is-active {
+  background: rgba(255,247,246,.66) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.8),
+    inset 0 0 0 1px rgba(201,52,48,.055),
+    0 4px 14px rgba(201,52,48,.07);
+}
+
+/* -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  :root { --dial-gap: clamp(112px, 38vw, 154px); }
+  .hanja-roster-shell {
+    top: 72px;
+    margin-top: 7px;
+    padding: 6px 7px;
+    backdrop-filter: blur(14px) saturate(1.1);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  }
+  .hanja-roster-head { display: none; }
+  .hanja-roster button { width: 40px; height: 35px; font-size: 20px; }
+  .hanja-dial-v3 { inset: 5%; }
+  .dial-cell-v3 { width: 66%; height: 66%; }
+  .stroke-dock-v3 { width: min(94vw, 430px); border-radius: 23px; }
+  .stroke-dock-v3-actions { grid-template-columns: 1.2fr 1fr 1fr; }
+  .stroke-dock-v3-actions button { min-height: 42px; padding: 0 8px; font-size: 11px; }
+  [data-lore-surface-v3="true"] {
+    backdrop-filter: blur(11px) saturate(1.09);
+    -webkit-backdrop-filter: blur(11px) saturate(1.09);
+  }
+}
+
+@media (max-width: 420px) {
+  :root { --dial-gap: 132px; }
+  .hanja-roster button { width: 38px; height: 34px; }
+  .stroke-dock-v3-actions button { font-size: 10.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dial-cell-v3,
+  .hanja-dial-v3,
+  .hanja-roster button,
+  .stroke-dock-v3 { transition-duration: .001ms !important; animation-duration: .001ms !important; }
+}
