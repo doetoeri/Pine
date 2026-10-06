@@ -20,10 +20,11 @@
     try {
       await loadScript('./school-set.js', 'hanjaSchoolSetScript');
       await loadScript('./school-set-patch.js', 'hanjaSchoolSetPatchScript');
-      // experience-v3 may already have built the 18-character dial. Rebuild it
+      // experience-v3 may already have built the smaller dial. Rebuild it
       // through its existing resize path after the full school list arrives.
       window.dispatchEvent(new Event('resize'));
       await loadScript('./test-mode.js', 'hanjaTestModeScript');
+      await loadScript('./visibility-fix.js', 'hanjaVisibilityFixScript');
     } catch (error) {
       console.warn('[hanja-bootstrap] optional module load failed', error);
     }
