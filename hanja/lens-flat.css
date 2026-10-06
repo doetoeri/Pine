@@ -1,0 +1,29 @@
+/* Temporary flat lens mode: keep the circular interaction target, remove optical refraction. */
+#lens,
+#lens .lens-disc,
+#lens .lens-aura,
+#lens .lens-disc::before,
+#lens .lens-disc::after {
+  filter:none !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+}
+
+#lens .lens-aura { display:none !important; }
+
+#lens .lens-disc {
+  background:rgba(247,246,242,.88) !important;
+  border:1px solid rgba(73,71,67,.12) !important;
+  box-shadow:0 16px 42px rgba(38,36,32,.07), inset 0 1px 0 rgba(255,255,255,.92) !important;
+}
+
+#lens .lens-disc::before,
+#lens .lens-disc::after { content:none !important; display:none !important; }
+
+#lens [class*="refract"],
+#lens [class*="chroma"],
+#lens [class*="caustic"],
+#lens [class*="specular"],
+#lens [data-lore-glass] { display:none !important; }
+
+#lens { --lens-refraction:0 !important; --lens-chroma:0 !important; --lens-depth:0 !important; }
