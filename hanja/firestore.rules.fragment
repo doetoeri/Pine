@@ -64,3 +64,44 @@
         && request.resource.data.lastSeenAtMs > 0;
       allow delete: if signedIn() && request.auth.uid == userId;
     }
+
+    // User-created Hanja entries are private to that Firebase account and sync across devices.
+    match /hanjaUsers/{userId}/customEntries/{charId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'schemaVersion', 'char', 'hun', 'eum', 'strokes', 'parts',
+          'structure', 'origin', 'memory', 'usage', 'originExtra', 'custom',
+          'createdAtMs', 'updatedAtMs'
+        ])
+        && request.resource.data.schemaVersion == 1
+        && request.resource.data.char is string
+        && request.resource.data.char == charId
+        && request.resource.data.char.size() > 0
+        && request.resource.data.char.size() <= 4
+        && request.resource.data.hun is string
+        && request.resource.data.hun.size() <= 30
+        && request.resource.data.eum is string
+        && request.resource.data.eum.size() <= 20
+        && request.resource.data.strokes is number
+        && request.resource.data.strokes >= 0
+        && request.resource.data.strokes <= 80
+        && request.resource.data.parts is list
+        && request.resource.data.parts.size() <= 8
+        && request.resource.data.structure is string
+        && request.resource.data.structure.size() <= 800
+        && request.resource.data.origin is string
+        && request.resource.data.origin.size() <= 1000
+        && request.resource.data.memory is string
+        && request.resource.data.memory.size() <= 600
+        && request.resource.data.usage is list
+        && request.resource.data.usage.size() <= 6
+        && request.resource.data.originExtra is map
+        && request.resource.data.custom == true
+        && request.resource.data.createdAtMs is int
+        && request.resource.data.createdAtMs > 0
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.updatedAtMs >= request.resource.data.createdAtMs;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
