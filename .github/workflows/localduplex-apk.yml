@@ -1,0 +1,99 @@
+name: LocalDuplex APK build
+
+on:
+  push:
+    branches: [ localduplex-apk-build ]
+    paths:
+      - '.localduplex-build/**'
+      - '.github/workflows/localduplex-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore LocalDuplex source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat .localduplex-build/chunks/part* > /tmp/project.tar.gz.b64
+          base64 -d /tmp/project.tar.gz.b64 > /tmp/project.tar.gz
+          echo "f6582515634e555fe014cfa49f85c6b7ef3f6dc489c5a62790cdf870d3c212b2  /tmp/project.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/project.tar.gz
+          test -f LocalDuplexAgent-Final/app/build.gradle.kts
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android command-line tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SDK="$HOME/android-sdk"
+          mkdir -p "$SDK/cmdline-tools"
+          curl -fL --retry 3 https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip -o /tmp/cmdline-tools.zip
+          rm -rf /tmp/android-cli
+          mkdir -p /tmp/android-cli
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/android-cli
+          mv /tmp/android-cli/cmdline-tools "$SDK/cmdline-tools/latest"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses >/dev/null || true
+          sdkmanager --channel=3 --sdk_root="$ANDROID_SDK_ROOT" \
+            "platform-tools" \
+            "platforms;android-37.2" \
+            "build-tools;37.0.0" \
+            "ndk;29.0.13113456" \
+            "cmake;3.31.6"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.1'
+
+      - name: Fetch pinned runtime dependencies
+        working-directory: LocalDuplexAgent-Final
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p app/libs app/src/main/assets
+          curl -fL --retry 3 https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-1.13.8.aar -o app/libs/sherpa-onnx-1.13.8.aar
+          echo "633c24321e06b1fe79feafa03ea16cbc0f8a286641e2da3559bac91bdb13bd96  app/libs/sherpa-onnx-1.13.8.aar" | sha256sum -c -
+          curl -fL --retry 3 https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad.onnx -o app/src/main/assets/silero_vad.onnx
+          echo "9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6  app/src/main/assets/silero_vad.onnx" | sha256sum -c -
+
+      - name: Static verification
+        working-directory: LocalDuplexAgent-Final
+        run: python3 tools/verify_phase1.py
+
+      - name: Build debug APK
+        working-directory: LocalDuplexAgent-Final
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          SRC=LocalDuplexAgent-Final/app/build/outputs/apk/debug/app-debug.apk
+          DST=LocalDuplexAgent-1.1.0-loaderfix-debug.apk
+          test -s "$SRC"
+          cp "$SRC" "$DST"
+          unzip -t "$DST" >/dev/null
+          sha256sum "$DST"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LocalDuplexAgent-1.1.0-loaderfix-debug
+          path: LocalDuplexAgent-1.1.0-loaderfix-debug.apk
+          if-no-files-found: error
