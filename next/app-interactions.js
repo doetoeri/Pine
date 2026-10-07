@@ -430,7 +430,10 @@ document.addEventListener("click", async (event) => {
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
   if (searchOpenButton) rememberDialogTrigger(searchOpenButton);
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
-  if (closeButton) scheduleDialogTriggerFocusRestore();
+  if (closeButton) {
+    if (closeButton.id === "closeNotifications") await document.querySelector("#notificationDialog")?.close?.();
+    scheduleDialogTriggerFocusRestore();
+  }
 
   const markAll = eventHost(event, (node) => node.id === "markAllNotificationsRead");
   if (markAll) {

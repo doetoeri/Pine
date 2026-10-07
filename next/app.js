@@ -440,10 +440,7 @@ function scheduleItems() {
   }
   const priority = { 수행평가: 0, "시험 범위": 1, 숙제: 2, "학급 행사": 3, 학사일정: 4 };
   return rows.filter((item) => !/토요\s*휴업일/.test(item.title)).sort((a, b) => {
-    const recurringA = /토요휴업일/.test(a.title) ? 1 : 0;
-    const recurringB = /토요휴업일/.test(b.title) ? 1 : 0;
-    return recurringA - recurringB
-      || (a.date || "9999-99-99").localeCompare(b.date || "9999-99-99")
+    return (a.date || "9999-99-99").localeCompare(b.date || "9999-99-99")
       || (priority[a.category] ?? 9) - (priority[b.category] ?? 9);
   });
 }
