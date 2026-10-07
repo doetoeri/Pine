@@ -233,7 +233,7 @@ gateway.addEventListener("change", scheduleMount);
 window.addEventListener("pincon-render", scheduleMount);
 window.addEventListener("popstate", scheduleMount);
 window.addEventListener("hashchange", scheduleMount);
-await gateway.start();
+gateway.start().catch((error) => console.error("[PinCon Data]", error));
 scheduleMount();
 
 export { mountLibrary as mountEvaluationPlanLibrary, openPlan as openEvaluationPlan };

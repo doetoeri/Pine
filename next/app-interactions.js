@@ -467,7 +467,7 @@ document.addEventListener("click", async (event) => {
 
 prepareReducedMotionLoader();
 queueReconcile();
-await gateway.start();
+gateway.start().catch((error) => console.error("[PinCon Data]", error));
 
 window.setTimeout(() => {
   if (!bootReleased) {

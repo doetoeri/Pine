@@ -840,4 +840,4 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) rend
 
 document.body.dataset.pinconVariant="next";
 render({animate:false});
-await gateway.start();
+gateway.start().catch((error) => console.error("[PinCon Data]", error));
