@@ -425,7 +425,7 @@ document.addEventListener("click", async (event) => {
     });
 }, true);
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) focusMainAfterRouteChange();
 
