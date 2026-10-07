@@ -120,10 +120,11 @@ for (const viewport of VIEWPORTS) {
 
     const trigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
     await expect(trigger).toBeVisible({ timeout: 8_000 });
-    await page.evaluate(() => window.scrollTo(0, 180));
-    // Ensure the redesigned schedule row is in view before measuring overlay scroll.
-    // Playwright otherwise scrolls the row itself during click.
-    await trigger.scrollIntoViewIfNeeded();
+    await page.evaluate(() => document.fonts.ready);
+    // Measure after the redesigned row and WebKit viewport have settled.
+    // The click must not include its own automatic scroll into view.
+    await trigger.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const scrollBefore = await page.evaluate(() => window.scrollY);
     const overflowBefore = await page.evaluate(() => ({
       innerWidth,
