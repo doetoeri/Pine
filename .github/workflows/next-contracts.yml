@@ -7,6 +7,8 @@ on:
       - "next/**"
       - "index.html"
       - "manifest.webmanifest"
+      - "sw.js"
+      - "registerSW.js"
       - "pincon-class-ops-data.js"
       - "firebase-messaging-sw.js"
       - "firestore.rules"
@@ -19,6 +21,8 @@ on:
       - "next/**"
       - "index.html"
       - "manifest.webmanifest"
+      - "sw.js"
+      - "registerSW.js"
       - "pincon-class-ops-data.js"
       - "firebase-messaging-sw.js"
       - "REBUILD.md"
@@ -98,6 +102,8 @@ jobs:
             next/experiments/notification-frequency.js \
             next/experiments/ui-satisfaction.js \
             next/admin/experiments.js \
+            sw.js \
+            registerSW.js \
             firebase-messaging-sw.js \
             pincon-class-ops-data.js \
             automation/deploy-firestore-rules.mjs

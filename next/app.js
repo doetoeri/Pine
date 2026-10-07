@@ -2,7 +2,7 @@ import { NextDataGateway, readClassProfile, saveClassProfile } from "./core/data
 import { buildNotificationFeed } from "./core/notification-store.js";
 import { buildRecoveryPack, recoveryProgress, setRecoveryItemCompleted } from "./core/recovery-pack.js";
 import { patchPage, rememberPage } from "./core/region-renderer.js";
-import { todayChangesMarkup } from "./today-changes.js?v=20261007-light1";
+import { todayChangesMarkup } from "./today-changes.js?v=20261007-light2";
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
@@ -46,7 +46,6 @@ const state = {
   timetableDate: localIsoDate(new Date()),
   recoveryDate: localIsoDate(new Date()),
   scheduleFilter: "all",
-  problemAttempts: new Map(),
 };
 
 const detailRegistry = new Map();
@@ -149,8 +148,10 @@ function cleanText(value) {
 }
 
 function safeUrl(value) {
+  const source = String(value || "").trim();
+  if (!source) return "";
   try {
-    const url = new URL(String(value || ""), location.href);
+    const url = new URL(source, location.href);
     return ["https:", "http:"].includes(url.protocol) ? url.href : "";
   } catch {
     return "";
@@ -654,8 +655,6 @@ function timetablePage() {
 
 function schedulePage() {
   const all = upcomingSchedule(120, state.scheduleFilter);
-  const recurring = all.filter((item) => /토요휴업일/.test(item.title));
-  const primary = all.filter((item) => !/토요휴업일/.test(item.title));
   const filters = [
     ["all", "전체"],
     ["academic", "학사일정"],
@@ -666,15 +665,14 @@ function schedulePage() {
     <div class="page-head"><div class="page-head__copy">
       <p class="page-eyebrow">날짜 정보</p>
       <h1 class="page-title" id="schedule-title">일정</h1>
-      <p class="page-subtitle">수행평가·시험·학급 행사를 먼저 보여주고, 반복 일정은 접어서 정리합니다.</p>
+      <p class="page-subtitle">수행평가·시험·학급 행사를 날짜순으로 확인하세요.</p>
     </div></div>
     ${syncMarkup()}
     <div class="filter-bar" aria-label="일정 종류 필터">
       ${filters.map(([value, label]) => `<md-filter-chip data-schedule-filter="${value}" ${state.scheduleFilter === value ? "selected" : ""} aria-pressed="${state.scheduleFilter === value}">${label}</md-filter-chip>`).join("")}
     </div>
     <article class="surface">
-      ${scheduleRows(primary, { emptySupport: recurring.length ? "반복 일정은 아래에서 펼쳐 볼 수 있습니다." : "선택한 종류의 예정된 일정이 없습니다." })}
-      ${recurring.length ? `<details class="recurring-group"><summary><span><md-icon>event_repeat</md-icon>토요휴업일 ${recurring.length}회</span><span>펼쳐보기</span></summary>${scheduleRows(recurring, { loadingNames: [] })}</details>` : ""}
+      ${scheduleRows(all, { emptySupport: "선택한 종류의 예정된 일정이 없습니다." })}
     </article>
   </section>`;
 }
@@ -778,16 +776,16 @@ function classroomPage() {
     <div class="page-head"><div class="page-head__copy">
       <p class="page-eyebrow">우리 반 정보</p>
       <h1 class="page-title" id="classroom-title">학급</h1>
-      <p class="page-subtitle">수행·숙제, 학급 행사, 학습 자료와 문제를 항목별로 살펴봅니다.</p>
+      <p class="page-subtitle">수행·숙제, 평가계획서, 학급 행사와 학습 자료를 항목별로 살펴봅니다.</p>
     </div></div>
     ${syncMarkup()}
     ${recoveryPackMarkup()}
-    <div class="grid grid--2">
-      <article class="surface"><div class="surface__header"><h2 class="surface__title">수행·숙제</h2><span class="surface__meta">${assignments.length ? `${assignments.length}건` : ""}</span></div>${scheduleRows(assignmentRows, { loadingNames: ["classAssignments"] })}</article>
-      <article class="surface"><div class="surface__header"><h2 class="surface__title">평가계획서 자료실</h2><span class="surface__meta">${evaluationPlans.length ? `${evaluationPlans.length}개` : ""}</span></div>${planRows}</article>
-      <article class="surface"><div class="surface__header"><h2 class="surface__title">학급 행사</h2><span class="surface__meta">${events.length ? `${events.length}건` : ""}</span></div>${scheduleRows(eventRows, { loadingNames: ["events"] })}</article>
-      <article class="surface"><div class="surface__header"><h2 class="surface__title">학습 자료</h2><span class="surface__meta">${resources.length ? `${resources.length}건` : ""}</span></div>${resourceRows(resources)}</article>
-      <article class="surface"><div class="surface__header"><h2 class="surface__title">분실물</h2><span class="surface__meta">${lostItems.length ? `${lostItems.length}건` : ""}</span></div>${lostItemRows(lostItems)}</article>
+    <div class="grid grid--2" data-render-key="classroom-grid" data-render-group>
+      <article class="surface" data-render-key="assignments"><div class="surface__header"><h2 class="surface__title">수행·숙제</h2><span class="surface__meta">${assignments.length ? `${assignments.length}건` : ""}</span></div>${scheduleRows(assignmentRows, { loadingNames: ["classAssignments"] })}</article>
+      <div class="evaluation-plan-region" data-render-key="plans"><article class="surface"><div class="surface__header"><h2 class="surface__title">평가계획서 자료실</h2><span class="surface__meta">${evaluationPlans.length ? `${evaluationPlans.length}개` : ""}</span></div>${planRows}</article></div>
+      <article class="surface" data-render-key="events"><div class="surface__header"><h2 class="surface__title">학급 행사</h2><span class="surface__meta">${events.length ? `${events.length}건` : ""}</span></div>${scheduleRows(eventRows, { loadingNames: ["events"] })}</article>
+      <article class="surface" data-render-key="resources"><div class="surface__header"><h2 class="surface__title">학습 자료</h2><span class="surface__meta">${resources.length ? `${resources.length}건` : ""}</span></div>${resourceRows(resources)}</article>
+      <article class="surface" data-render-key="lost"><div class="surface__header"><h2 class="surface__title">분실물</h2><span class="surface__meta">${lostItems.length ? `${lostItems.length}건` : ""}</span></div>${lostItemRows(lostItems)}</article>
     </div>
   </section>`;
 }
@@ -960,7 +958,7 @@ function render({ preserveView = false } = {}) {
     const label = `고촌고등학교 · ${profile.grade}학년 ${profile.classNumber}반`;
     if (meta.textContent !== label) meta.textContent = label;
   }
-  if (!shell) rememberPage(app.querySelector("#mainContent"));
+  if (!shell) rememberPage(app.querySelector("#mainContent"), page);
   renderedPage = page;
   renderedRoute = state.route;
   window.dispatchEvent(new CustomEvent("pincon-render", { detail: { route: state.route } }));
@@ -1269,44 +1267,6 @@ function lessonDetail(record) {
   };
 }
 
-function problemSourceLabel(item) {
-  const note = cleanText(item.source?.note);
-  const example = /예시|sample/i.test(note) || item.example === true;
-  return example ? "예시 문제" : "실제 학급 자료";
-}
-
-function problemDetail(record) {
-  const item = record.item;
-  const attempt = state.problemAttempts.get(item.id) || { selected: "", answer: "", submitted: false, correct: false };
-  const objective = item.type === "multiple-choice";
-  const answerReady = objective ? attempt.selected !== "" : Boolean(attempt.answer?.trim());
-  let interaction = "";
-  if (objective) {
-    interaction = `<fieldset class="quiz-choices" ${attempt.submitted ? "disabled" : ""}><legend>보기를 선택하세요</legend>
-      ${item.choices.map((choice, index) => `<label class="${String(attempt.selected) === String(index) ? "is-selected" : ""}">
-        <md-radio name="problem-${escapeHtml(item.id)}" value="${index}" data-problem-choice="${index}" ${String(attempt.selected) === String(index) ? "checked" : ""}></md-radio>
-        <span><strong>${index + 1}</strong>${escapeHtml(choice)}</span>
-      </label>`).join("")}
-    </fieldset>`;
-  } else {
-    interaction = `<md-outlined-text-field class="quiz-short-answer" data-problem-short-answer label="답 입력" value="${escapeHtml(attempt.answer || "")}" ${attempt.submitted ? "disabled" : ""}></md-outlined-text-field>`;
-  }
-  const result = attempt.submitted ? `<div class="quiz-result quiz-result--${attempt.correct ? "correct" : "incorrect"}" role="status" tabindex="-1">
-      <md-icon>${attempt.correct ? "check_circle" : "error"}</md-icon>
-      <div><strong>${attempt.correct ? "정답입니다" : "다시 확인해 보세요"}</strong><span><b>정답</b> ${escapeHtml(item.answer)}</span><span><b>해설</b> ${escapeHtml(item.explanation)}</span></div>
-    </div>
-    <md-filled-tonal-button data-problem-retry><md-icon slot="icon">refresh</md-icon>다시 풀기</md-filled-tonal-button>`
-    : `<md-filled-button data-problem-submit ${answerReady ? 'aria-disabled="false"' : 'disabled aria-disabled="true"'}>제출</md-filled-button>`;
-  return {
-    eyebrow: `${item.subject} · ${item.unit}`,
-    title: item.question,
-    summary: `${item.difficulty === "easy" ? "기초" : item.difficulty === "hard" ? "도전" : "보통"} · ${objective ? "객관식" : "주관식"}`,
-    badges: `<span class="origin-chip ${problemSourceLabel(item) === "예시 문제" ? "origin-chip--example" : "origin-chip--official"}"><md-icon>${problemSourceLabel(item) === "예시 문제" ? "science" : "verified"}</md-icon>${problemSourceLabel(item)}</span>`,
-    body: `${detailSection("문제 풀기", `<div class="quiz-panel">${interaction}<div class="quiz-actions">${result}</div></div>`)}
-      ${detailSection("출처", `<p class="detail-muted">${escapeHtml(problemSourceLabel(item))} · ${escapeHtml(item.source?.note || "출처 설명 없음")}</p>`)}`,
-  };
-}
-
 function detailSpec(record) {
   if (!record) return null;
   if (record.kind === "assignment") return assignmentDetail(record);
@@ -1318,7 +1278,6 @@ function detailSpec(record) {
   if (record.kind === "lost") return lostItemDetail(record);
   if (record.kind === "meal") return mealDetail(record);
   if (record.kind === "lesson") return lessonDetail(record);
-  if (record.kind === "problem") return problemDetail(record);
   return null;
 }
 
@@ -1683,33 +1642,6 @@ app.addEventListener("click", async (event) => {
     return;
   }
 
-  const problemSubmit = eventHost(event, (node) => node.hasAttribute("data-problem-submit"));
-  if (problemSubmit) {
-    if (problemSubmit.hasAttribute("disabled") || problemSubmit.getAttribute("aria-disabled") === "true") return;
-    const record = detailRegistry.get(state.detailKey);
-    if (record?.kind !== "problem") return;
-    const item = record.item;
-    const attempt = state.problemAttempts.get(item.id) || { selected: "", answer: "" };
-    const selectedText = item.type === "multiple-choice" ? item.choices[Number(attempt.selected)] : attempt.answer;
-    const normalizedSelected = cleanText(selectedText).toLocaleLowerCase("ko-KR");
-    const normalizedAnswer = cleanText(item.answer).toLocaleLowerCase("ko-KR");
-    attempt.correct = normalizedSelected === normalizedAnswer
-      || (item.type === "multiple-choice" && normalizedAnswer === String(Number(attempt.selected) + 1));
-    attempt.submitted = true;
-    state.problemAttempts.set(item.id, attempt);
-    renderDetailSurface({ focus: false, swap: true });
-    app.querySelector(".quiz-result")?.focus?.();
-    return;
-  }
-
-  const problemRetry = eventHost(event, (node) => node.hasAttribute("data-problem-retry"));
-  if (problemRetry) {
-    const item = detailRegistry.get(state.detailKey)?.item;
-    if (item?.id) state.problemAttempts.delete(item.id);
-    renderDetailSurface({ focus: false, swap: true });
-    return;
-  }
-
   const original = eventHost(event, (node) => node.hasAttribute("data-detail-original"));
   if (original) {
     app.querySelector("#detailTitle")?.focus({ preventScroll: true });
@@ -1722,20 +1654,6 @@ app.addEventListener("input", (event) => {
   if (searchField) {
     renderSearchResults(searchField.value);
     return;
-  }
-  const shortAnswer = eventHost(event, (node) => node.hasAttribute("data-problem-short-answer"));
-  if (shortAnswer) {
-    const item = detailRegistry.get(state.detailKey)?.item;
-    if (!item?.id) return;
-    const attempt = state.problemAttempts.get(item.id) || { selected: "", answer: "", submitted: false };
-    attempt.answer = shortAnswer.value || "";
-    state.problemAttempts.set(item.id, attempt);
-    const submit = app.querySelector("[data-problem-submit]");
-    if (submit) {
-      const disabled = !attempt.answer.trim();
-      submit.toggleAttribute("disabled", disabled);
-      submit.setAttribute("aria-disabled", String(disabled));
-    }
   }
 });
 
@@ -1755,17 +1673,6 @@ app.addEventListener("change", (event) => {
     render();
     return;
   }
-  const radio = eventHost(event, (node) => node.hasAttribute("data-problem-choice"));
-  if (!radio) return;
-  const record = detailRegistry.get(state.detailKey);
-  if (record?.kind !== "problem") return;
-  const attempt = state.problemAttempts.get(record.item.id) || { answer: "", submitted: false };
-  attempt.selected = radio.getAttribute("data-problem-choice");
-  state.problemAttempts.set(record.item.id, attempt);
-  const submit = app.querySelector("[data-problem-submit]");
-  submit?.removeAttribute("disabled");
-  submit?.setAttribute("aria-disabled", "false");
-  app.querySelectorAll(".quiz-choices label").forEach((label) => label.classList.toggle("is-selected", label.contains(radio)));
 });
 
 document.addEventListener("keydown", (event) => {

@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261007-light1";
+const PINCON_SW_VERSION = "20261007-light2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -64,7 +64,7 @@ self.addEventListener("install", (event) => {
     const cache = await caches.open(PINCON_SHELL_CACHE);
     // Limit parallel downloads so installation does not compete with the live app.
     for (let i = 0; i < PINCON_APP_SHELL.length; i += 4) {
-      await Promise.allSettled(PINCON_APP_SHELL.slice(i, i + 4).map((url) => fetchAndCache(new Request(new URL(url, self.location.href)), cache)));
+      await Promise.allSettled(PINCON_APP_SHELL.slice(i, i + 4).map((url) => fetchAndCache(new Request(new URL(url, self.location.href), { cache: "reload" }), cache)));
     }
   })());
 });
@@ -96,7 +96,7 @@ async function cachedAsset(request, event) {
   const cached = await cache.match(request);
   if (cached) {
     // Versioned URLs cannot change; unversioned imports revalidate in the background.
-    if (!new URL(request.url).searchParams.has("v")) event.waitUntil(fetchAndCache(request, cache).catch(() => {}));
+    if (!new URL(request.url).searchParams.has("v")) event.waitUntil(fetchAndCache(new Request(request, { cache: "no-cache" }), cache).catch(() => {}));
     return cached;
   }
   try { return await fetchAndCache(request, cache); }

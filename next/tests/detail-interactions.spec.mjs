@@ -121,11 +121,13 @@ for (const viewport of VIEWPORTS) {
     const trigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
     await expect(trigger).toBeVisible({ timeout: 8_000 });
     await page.evaluate(() => document.fonts.ready);
-    // Measure after the redesigned row and WebKit viewport have settled.
-    // The click must not include its own automatic scroll into view.
+    // Position the row, then measure at the actual pointer input. Playwright
+    // may still scroll a Material row before dispatching that input in WebKit.
     await trigger.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "instant" }));
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    const scrollBefore = await page.evaluate(() => window.scrollY);
+    await trigger.evaluate((node) => {
+      node.addEventListener("pointerdown", () => { globalThis.__detailScrollBefore = window.scrollY; }, { capture: true, once: true });
+    });
     const overflowBefore = await page.evaluate(() => ({
       innerWidth,
       rootClientWidth: document.documentElement.clientWidth,
@@ -134,6 +136,8 @@ for (const viewport of VIEWPORTS) {
       bodyScrollWidth: document.body.scrollWidth,
     }));
     await trigger.click();
+    const scrollBefore = await page.evaluate(() => globalThis.__detailScrollBefore);
+    expect(typeof scrollBefore).toBe("number");
 
     const layer = page.locator("#detailLayer");
     const surface = page.locator("#detailSurface");
@@ -144,12 +148,10 @@ for (const viewport of VIEWPORTS) {
     await expect(surface).toContainText("D-");
     await expect(surface).toContainText("확정");
     await expect(surface).toContainText("공통영어");
+    await expect(surface).toContainText("연결된 원본 자료가 아직 등록되지 않았습니다.");
+    await expect(surface.locator(".detail-actions [href]")).toHaveCount(0);
 
-    // WebKit can expose fractional visual-viewport coordinates while the 260ms
-    // detail transform is settling. Wait past the transition, then keep only a
-    // 2px rounding tolerance so genuine viewport overflow is still caught.
-    await page.waitForTimeout(320);
-
+    // Keep a 2px rounding tolerance for fractional visual-viewport coordinates.
     await expect.poll(() => surface.evaluate((node) => {
       const rect = node.getBoundingClientRect();
       return rect.left >= -1
@@ -221,6 +223,7 @@ for (const viewport of VIEWPORTS) {
     await page.goBack();
     await expect(layer).toBeHidden();
     await expect.poll(() => triggerHasFocus(trigger)).toBe(true);
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
     await context.close();
   });
 }

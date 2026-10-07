@@ -2,17 +2,22 @@ const regions = new WeakMap();
 function keyFor(node, index) {
   return node.dataset.renderKey || node.id || `${node.tagName}:${node.className}:${index}`;
 }
-function remember(container) {
+function remember(container, source = container) {
   const map = new Map();
+  const candidates = [...source.children];
   [...container.children].forEach((node, index) => {
-    map.set(keyFor(node, index), { node, markup: node.outerHTML });
-    if (node.hasAttribute("data-render-group")) remember(node);
+    const candidate = candidates[index] || node;
+    map.set(keyFor(node, index), { node, markup: candidate.outerHTML });
+    if (node.hasAttribute("data-render-group")) remember(node, candidate);
   });
   regions.set(container, map);
 }
-export function rememberPage(main) {
+export function rememberPage(main, markup = "") {
   const page = main.querySelector(":scope > .view-enter, :scope > .qf-page");
-  if (page) remember(page);
+  if (!page) return;
+  const template = document.createElement("template");
+  template.innerHTML = markup;
+  remember(page, template.content.querySelector(".view-enter, .qf-page") || page);
 }
 export function patchRegions(container, source) {
   const previous = regions.get(container) || new Map();
@@ -51,7 +56,9 @@ export function patchPage(main, markup, sameRoute) {
   const next = template.content.querySelector(".view-enter, .qf-page");
   if (sameRoute && current && next) patchRegions(current, next);
   else {
+    // Custom elements reflect accessibility attributes when connected. Keep
+    // the source signature before that happens, so the first update is stable.
+    if (next) remember(next);
     main.replaceChildren(template.content);
-    rememberPage(main);
   }
 }

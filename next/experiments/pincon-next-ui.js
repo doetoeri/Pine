@@ -1,5 +1,5 @@
 import { NextDataGateway, readClassProfile } from "../core/data-gateway.js";
-import { reportDataGatewaySnapshot } from "../experiment/bootstrap.js?v=20261007-light1";
+import { reportDataGatewaySnapshot } from "../experiment/bootstrap.js?v=20261007-light2";
 import { patchPage, rememberPage } from "../core/region-renderer.js";
 
 const root = document.createElement("div");
@@ -8,7 +8,7 @@ document.body.appendChild(root);
 
 const style = document.createElement("link");
 style.rel = "stylesheet";
-style.href = "./experiments/pincon-next-ui.css?v=20261007-light1";
+style.href = "./experiments/pincon-next-ui.css?v=20261007-light2";
 document.head.appendChild(style);
 
 const gateway = new NextDataGateway();
@@ -379,7 +379,7 @@ function render({ animate = true } = {}) {
     <header class="qf-top"><div class="qf-brand"><span class="qf-seed" aria-hidden="true"></span><div><strong>PinCon</strong><small>Presence × Quiet Flux · ${esc(profileLabel())}</small></div></div><span class="qf-sync">${esc(syncLabel())}</span></header>
     <main class="qf-main">${markup}</main>
   </div>${dockMarkup(active)}<div class="qf-toast" data-qf-toast role="status" aria-live="polite"></div>`;
-  if (!mounted) rememberPage(root.querySelector(".qf-main"));
+  if (!mounted) rememberPage(root.querySelector(".qf-main"), markup);
   else {
     if (markup !== renderedMarkup || active !== renderedSection) patchPage(mounted, markup, active === renderedSection);
     root.querySelector(".qf-sync").textContent = syncLabel();
