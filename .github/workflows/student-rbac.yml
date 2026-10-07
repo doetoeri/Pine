@@ -3,7 +3,7 @@ name: PinCon student RBAC
 on:
   pull_request:
     paths:
-      - "next/account-gate.js"
+      - "next/simple-account-gate.js"
       - "next/account-center.js"
       - "next/account-center.css"
       - "next/app-bootstrap.js"
@@ -25,12 +25,12 @@ on:
       - "next/admin/personal-notifications.js"
       - "next/admin/user-manager.js"
       - "next/admin/user-manager.css"
-      - "next/admin/account-create.js"
+      - "next/admin/account-create-v2.js"
       - "next/admin/account-create-service.js"
       - "next/admin/account-create.css"
       - "next/admin/class-duty-manager.js"
       - "next/admin/class-duty-manager.css"
-      - "next/admin/class-ops-settings.js"
+      - "next/admin/class-ops-settings-v2.js"
       - "next/admin/class-ops-settings-v2.js"
       - "next/admin/class-ops-settings.css"
       - "next/tests/account-create-service.test.mjs"
@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           for file in \
-            next/account-gate.js \
+            next/simple-account-gate.js \
             next/account-center.js \
             next/app-bootstrap.js \
             next/personal-notification-filter.js \
@@ -79,7 +79,7 @@ jobs:
             next/admin/personal-notifications.js \
             next/admin/user-manager.js \
             next/admin/account-create-service.js \
-            next/admin/account-create.js \
+            next/admin/account-create-v2.js \
             next/admin/class-ops-settings-v2.js \
             next/admin/class-duty-manager.js \
             integrations/pincon-ai/lib/class-accounts.mjs \
