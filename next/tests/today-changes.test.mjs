@@ -72,7 +72,7 @@ test("share text is compact, class-scoped, and distinguishes new versus changed"
 
 test("Next entry wires the digest and the UI distinguishes loading, error, empty, share, and router states", async () => {
   const [html, ui] = await Promise.all([
-    source("../app-bootstrap.js"),
+    source("../app.js"),
     source("../today-changes.js"),
   ]);
 

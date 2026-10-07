@@ -3,8 +3,6 @@ import { buildTodayChanges, buildTodayChangesShareText } from "./core/today-chan
 
 const gateway = new NextDataGateway();
 const COLLECTIONS = ["announcements", "content", "classAssignments", "evaluationPlans", "events"];
-let renderQueued = false;
-let lastSignature = "";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -18,11 +16,6 @@ function escapeHtml(value) {
 function compact(value, max = 150) {
   const text = String(value || "").replace(/\s+/g, " ").trim();
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
-}
-
-function routeIsToday() {
-  const route = location.hash.replace(/^#\/?/, "").split("?")[0];
-  return !route || route === "today";
 }
 
 function relevantStatus(snapshot) {
@@ -89,44 +82,8 @@ function cardMarkup(snapshot, rows) {
   </article>`;
 }
 
-function signature(snapshot, rows) {
-  const statuses = COLLECTIONS.map((name) => snapshot.collectionStatus?.[name] || "idle").join(",");
-  return [
-    routeIsToday() ? "today" : "other",
-    snapshot.online ? "online" : "offline",
-    snapshot.usingCache ? "cache" : "live",
-    statuses,
-    ...rows.map((row) => `${row.id}:${row.occurredAtMs}:${row.changeType}`),
-  ].join("|");
-}
-
-function render() {
-  renderQueued = false;
-  const existing = document.querySelector("#pinconTodayChanges");
-  if (!routeIsToday()) {
-    existing?.remove();
-    lastSignature = "";
-    return;
-  }
-
-  const main = document.querySelector("#mainContent");
-  const dashboard = main?.querySelector(".dashboard-grid");
-  if (!main || !dashboard) return;
-
-  const snapshot = gateway.snapshot();
-  const rows = buildTodayChanges(snapshot.data || {});
-  const nextSignature = signature(snapshot, rows);
-  if (existing && nextSignature === lastSignature) return;
-
-  existing?.remove();
-  dashboard.insertAdjacentHTML("beforebegin", cardMarkup(snapshot, rows));
-  lastSignature = nextSignature;
-}
-
-function queueRender() {
-  if (renderQueued) return;
-  renderQueued = true;
-  requestAnimationFrame(render);
+export function todayChangesMarkup(snapshot) {
+  return cardMarkup(snapshot, buildTodayChanges(snapshot.data || {}));
 }
 
 async function copyText(text) {
@@ -173,7 +130,4 @@ document.addEventListener("click", (event) => {
   if (share) shareCurrent(share);
 });
 
-gateway.addEventListener("change", queueRender);
-window.addEventListener("hashchange", queueRender);
-window.addEventListener("pincon-render", queueRender);
-queueRender();
+

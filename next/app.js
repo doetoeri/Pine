@@ -2,6 +2,7 @@ import { NextDataGateway, readClassProfile, saveClassProfile } from "./core/data
 import { buildNotificationFeed } from "./core/notification-store.js";
 import { buildRecoveryPack, recoveryProgress, setRecoveryItemCompleted } from "./core/recovery-pack.js";
 import { patchPage, rememberPage } from "./core/region-renderer.js";
+import { todayChangesMarkup } from "./today-changes.js?v=20261007-light1";
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
@@ -592,6 +593,7 @@ function todayPage() {
         })).join("")}</md-list>`
         : '<p class="quiet-empty">새 공지가 없습니다.</p>'}
     </article>
+    <div data-render-key="changes">${todayChangesMarkup(state.data)}</div>
     <div class="grid grid--2 dashboard-grid" data-render-key="dashboard" data-render-group>
       <article class="surface today-tasks" data-render-key="tasks">
         <div class="surface__header"><h2 class="surface__title"><md-icon>task_alt</md-icon>다가오는 일정</h2><md-text-button data-route="schedule">전체 일정</md-text-button></div>
