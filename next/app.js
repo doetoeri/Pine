@@ -1599,7 +1599,7 @@ app.addEventListener("click", async (event) => {
   if (detailItem) {
     const key = detailItem.getAttribute("data-detail-key");
     const route = detailItem.getAttribute("data-detail-route") || state.route;
-    app.querySelector("#searchDialog")?.close?.();
+    await app.querySelector("#searchDialog")?.close?.();
     if (route !== state.route) navigateToDetail(route, key, detailItem);
     else openDetail(key, detailItem);
     return;

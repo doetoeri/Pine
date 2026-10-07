@@ -121,6 +121,9 @@ for (const viewport of VIEWPORTS) {
     const trigger = page.locator('[data-detail-key^="assignment:classAssignments:"]').first();
     await expect(trigger).toBeVisible({ timeout: 8_000 });
     await page.evaluate(() => window.scrollTo(0, 180));
+    // Ensure the redesigned schedule row is in view before measuring overlay scroll.
+    // Playwright otherwise scrolls the row itself during click.
+    await trigger.scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => window.scrollY);
     const overflowBefore = await page.evaluate(() => ({
       innerWidth,
@@ -286,8 +289,8 @@ test("loading never reports zero and known empty cache uses an actual empty stat
   await loadingPage.route("https://www.gstatic.com/firebasejs/**", (route) => route.abort());
   await loadingPage.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
   await expect(loadingPage.locator("#today-title")).toBeVisible();
-  await expect(loadingPage.locator(".hero-meta")).not.toContainText("0개 수업");
-  await expect(loadingPage.locator(".hero-meta")).toContainText(/시간표 (확인 중|연결 오류)/);
+  await expect(loadingPage.locator(".today-timetable")).not.toContainText("등록된 수업이 없습니다");
+  await expect(loadingPage.locator(".today-timetable .skeleton-list, .today-timetable .data-error")).toBeVisible();
   await expect(loadingPage.locator(".notice-banner")).toBeVisible({ timeout: 8_000 });
   await loadingContext.close();
 
@@ -297,6 +300,6 @@ test("loading never reports zero and known empty cache uses an actual empty stat
   await emptyPage.goto("http://127.0.0.1:4173/next/#today", { waitUntil: "domcontentloaded" });
   await expect(emptyPage.locator("#today-title")).toBeVisible();
   await expect(emptyPage.getByText("등록된 수업이 없습니다")).toBeVisible();
-  await expect(emptyPage.getByText("급식 정보가 없습니다")).toBeVisible();
+  await expect(emptyPage.getByText("등록된 급식이 없습니다.")).toBeVisible();
   await emptyContext.close();
 });

@@ -402,7 +402,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) scheduleDialogTriggerFocusRestore();
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) {
     lastFocusedRoute = "";
@@ -457,7 +457,7 @@ document.addEventListener("click", (event) => {
   notificationStore.markRead(id);
   renderInbox();
   enhanceNotificationButton();
-  document.querySelector("#notificationDialog")?.close?.();
+  await document.querySelector("#notificationDialog")?.close?.();
   const detailKey = detailKind && collection && recordId
     ? globalThis.PinConNext?.detailKeyForReference?.(detailKind, collection, recordId)
     : "";
