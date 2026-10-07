@@ -16,7 +16,7 @@ function assertModuleSyntax(source, label) {
 test("evaluation plan v2 owns upload validation without prototype monkey patches", async () => {
   const [service, compatibility, storage] = await Promise.all([
     read("../evaluation-plans/service.js"),
-    read("../core/evaluation-plan-media.js"),
+    read("../app-bootstrap.js"),
     read("../../storage.rules"),
   ]);
 
@@ -43,7 +43,7 @@ test("evaluation plan v2 owns upload validation without prototype monkey patches
 test("administrator workflow exposes JPG in the first-class evaluation plan uploader", async () => {
   const [admin, compatibility, css] = await Promise.all([
     read("../evaluation-plans/admin.js"),
-    read("../admin/evaluation-plan-media.js"),
+    read("../admin/bootstrap.js"),
     read("../evaluation-plans/evaluation-plans.css"),
   ]);
 
@@ -67,7 +67,7 @@ test("administrator workflow exposes JPG in the first-class evaluation plan uplo
 test("student library previews JPG and PDF inside its full-width surface", async () => {
   const [student, compatibility, css, bootstrap, html] = await Promise.all([
     read("../evaluation-plans/student.js"),
-    read("../evaluation-plan-preview.js"),
+    read("../app-bootstrap.js"),
     read("../evaluation-plans/evaluation-plans.css"),
     read("../app-bootstrap.js"),
     read("../index.html"),
@@ -90,6 +90,6 @@ test("student library previews JPG and PDF inside its full-width surface", async
   assert.match(css, /evaluation-plan-library-surface/);
   assert.match(css, /grid-column:\s*1 \/ -1/);
   assert.match(css, /evaluation-plan-viewer__preview/);
-  assert.match(bootstrap, /evaluation-plan-preview\.js/);
-  assert.match(html, /evaluation-plan-preview\.css/);
+  assert.match(bootstrap, /evaluation-plans\/student\.js/);
+  assert.match(html, /evaluation-plans\/evaluation-plans\.css/);
 });

@@ -14,7 +14,6 @@ let lastDialogTrigger = null;
 let lastDialogTriggerId = "";
 let dialogFocusRestoreSequence = 0;
 let bootReleased = false;
-let routeTimer = 0;
 let lastFocusedRoute = "";
 let routeFocusRestoreQueued = false;
 
@@ -80,9 +79,6 @@ function prepareHost(host) {
   if (!(host instanceof HTMLElement)) return;
   bindShadowCapture(host);
   queueMicrotask(() => bindShadowCapture(host));
-  requestAnimationFrame(() => bindShadowCapture(host));
-  window.setTimeout(() => bindShadowCapture(host), 0);
-  window.setTimeout(() => bindShadowCapture(host), 50);
   const updateComplete = host.updateComplete;
   if (updateComplete && typeof updateComplete.then === "function") {
     updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
@@ -147,7 +143,7 @@ function applyBranding(root = document) {
 
   const railMark = root.querySelector?.(".rail__brand") || document.querySelector(".rail__brand");
   if (railMark && !railMark.querySelector(".pincon-brand-logo")) {
-    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon Beta</span><small class="rail__tagline"></small></span>`;
+    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon</span><small class="rail__tagline"></small></span>`;
   }
 
   const tagline = currentTagline();
@@ -174,25 +170,11 @@ function releaseBootWhenStable() {
   });
 }
 
-function animateRouteOnce() {
-  document.body.classList.remove("pincon-route-transition");
-  requestAnimationFrame(() => document.body.classList.add("pincon-route-transition"));
-  window.clearTimeout(routeTimer);
-  routeTimer = window.setTimeout(() => document.body.classList.remove("pincon-route-transition"), 220);
-}
-
 function dateLabel(dateString) {
   if (!dateString) return "";
   const date = new Date(`${dateString}T12:00:00`);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" }).format(date);
-}
-
-function roleLabel(role) {
-  if (role === "system-admin") return "시스템 관리자";
-  if (role === "manager") return "학급 관리자";
-  if (role === "editor") return "편집자";
-  return "학생 · 열람자";
 }
 
 function currentFeed() {
@@ -386,6 +368,7 @@ function reconcile() {
 }
 
 function queueReconcile() {
+  if (document.hidden || document.body.dataset.pinconVariant === "next") return;
   if (reconcileQueued) return;
   reconcileQueued = true;
   requestAnimationFrame(reconcile);
@@ -397,11 +380,11 @@ gateway.addEventListener("change", (event) => {
 });
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const enhancementObserver = new MutationObserver(() => {
+window.addEventListener("pincon-render", () => {
   queueReconcile();
   queueRouteFocusRestore();
 });
-if (appRoot) enhancementObserver.observe(appRoot, { childList: true, subtree: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) queueReconcile(); });
 
 document.addEventListener("focusin", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
@@ -412,11 +395,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && anyDialogOpen()) scheduleDialogTriggerFocusRestore();
 });
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) {
     lastFocusedRoute = "";
-    animateRouteOnce();
   }
 
   const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");
@@ -436,7 +418,7 @@ document.addEventListener("click", (event) => {
     });
 }, true);
 
-document.addEventListener("click", (event) => {
+document.addEventListener("click", async (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) focusMainAfterRouteChange();
 
@@ -448,7 +430,10 @@ document.addEventListener("click", (event) => {
   const searchOpenButton = eventHost(event, (node) => node.id === "openSearch");
   if (searchOpenButton) rememberDialogTrigger(searchOpenButton);
   const closeButton = eventHost(event, (node) => node.id === "closeSearch" || node.id === "closeNotifications");
-  if (closeButton) scheduleDialogTriggerFocusRestore();
+  if (closeButton) {
+    if (closeButton.id === "closeNotifications") await document.querySelector("#notificationDialog")?.close?.();
+    scheduleDialogTriggerFocusRestore();
+  }
 
   const markAll = eventHost(event, (node) => node.id === "markAllNotificationsRead");
   if (markAll) {
@@ -468,7 +453,7 @@ document.addEventListener("click", (event) => {
   notificationStore.markRead(id);
   renderInbox();
   enhanceNotificationButton();
-  document.querySelector("#notificationDialog")?.close?.();
+  await document.querySelector("#notificationDialog")?.close?.();
   const detailKey = detailKind && collection && recordId
     ? globalThis.PinConNext?.detailKeyForReference?.(detailKind, collection, recordId)
     : "";
@@ -482,7 +467,7 @@ document.addEventListener("click", (event) => {
 
 prepareReducedMotionLoader();
 queueReconcile();
-await gateway.start();
+gateway.start().catch((error) => console.error("[PinCon Data]", error));
 
 window.setTimeout(() => {
   if (!bootReleased) {

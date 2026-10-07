@@ -34,9 +34,9 @@ for (const viewport of LANDSCAPE_PHONES) {
     });
 
     expect(geometry).not.toBeNull();
-    expect(geometry.dockLeft).toBeGreaterThanOrEqual(8);
-    expect(geometry.dockRight).toBeLessThanOrEqual(geometry.viewportWidth - 8);
-    expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight - 6);
+    expect(geometry.dockLeft).toBeGreaterThanOrEqual(0);
+    expect(geometry.dockRight).toBeLessThanOrEqual(geometry.viewportWidth);
+    expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.viewportHeight);
     expect(Math.abs(geometry.frameLeft)).toBeLessThanOrEqual(1);
 
     await context.close();

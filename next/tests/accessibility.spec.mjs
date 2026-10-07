@@ -105,20 +105,16 @@ test("route changes from real Tab keyboard navigation move programmatic focus to
   await expect.poll(() => page.evaluate(() => document.activeElement?.id)).toBe("mainContent");
 });
 
-test("effects panel is keyboard reachable and Escape returns focus", async ({ page }) => {
-  const trigger = page.locator("#pinconEffectsToggle");
+test("theme control is keyboard reachable and keeps focus", async ({ page }) => {
+  const trigger = page.locator("#pinconThemeToggle");
   await expect(trigger).toBeVisible();
   await openByKeyboard(page, trigger);
-  await expect(page.locator("#pinconEffectsPanel")).toBeVisible();
-  await expect(page.locator('#pinconEffectsPanel [data-pincon-effect="light"]')).toHaveValue("100");
-  await page.keyboard.press("Escape");
-  await expect(page.locator("#pinconEffectsPanel")).toBeHidden();
+  await expect(page.locator("html")).toHaveAttribute("data-pincon-theme", "dark");
   await expect.poll(() => actualHasFocus(trigger)).toBe(true);
 });
 
 test("reduced motion preference collapses transition and animation duration", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("#today-title")).toBeVisible();
 
   const result = await page.evaluate(() => {

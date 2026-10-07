@@ -51,7 +51,7 @@ test("floating navigation never clips or omits route icons and labels", async ({
         const hostRect = control.getBoundingClientRect();
         const icon = control.querySelector("md-icon");
         const iconRect = icon?.getBoundingClientRect();
-        const labelNode = [...control.childNodes].find(
+        const labelNode = control.querySelector("span") || [...control.childNodes].find(
           (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
         );
         const range = document.createRange();

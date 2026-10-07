@@ -250,14 +250,19 @@ if (accountContext?.mode === "student" && accountContext.account) {
     renderQueued = false;
     if (!routeIsToday()) return;
     const main = document.querySelector("#mainContent");
-    const hero = main?.querySelector(".surface--hero");
+    const hero = main?.querySelector(".today-heading");
     if (!main || !hero) return;
     const title = hero.querySelector(".hero-title");
     if (title && home?.account?.name) title.textContent = `안녕하세요, ${home.account.name}님.`;
     const kicker = hero.querySelector(".hero-kicker");
     if (kicker) kicker.textContent = koDate();
-    main.querySelector("#pinconPersonalHome")?.remove();
-    hero.insertAdjacentHTML("afterend", personalMarkup());
+    const markup = personalMarkup();
+    const existing = main.querySelector("#pinconPersonalHome");
+    if (existing && existing._pinconMarkup === markup) return;
+    existing?.remove();
+    hero.insertAdjacentHTML("afterend", markup);
+    const mounted = main.querySelector("#pinconPersonalHome");
+    if (mounted) mounted._pinconMarkup = markup;
   }
 
   function queueRender() {
@@ -454,7 +459,7 @@ if (accountContext?.mode === "student" && accountContext.account) {
 
   gateway.addEventListener("change", queueRender);
   window.addEventListener("hashchange", queueRender);
-  new MutationObserver(queueRender).observe(document.querySelector("#app"), { childList: true, subtree: true });
+  window.addEventListener("pincon-render", queueRender);
   await refreshHome();
   queueRender();
 }

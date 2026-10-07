@@ -5,8 +5,8 @@ on:
     paths:
       - "pincon-guest-auth.js"
       - "next/write-mode.js"
-      - "next/admin/role-manager.js"
-      - "next/admin/role-manager.css"
+      - "next/admin/user-manager.js"
+      - "next/admin/user-manager.css"
       - "next/admin/bootstrap.js"
       - "next/admin/index.html"
       - "next/tests/auth-role-contract.test.mjs"
@@ -18,8 +18,8 @@ on:
     paths:
       - "pincon-guest-auth.js"
       - "next/write-mode.js"
-      - "next/admin/role-manager.js"
-      - "next/admin/role-manager.css"
+      - "next/admin/user-manager.js"
+      - "next/admin/user-manager.css"
       - "next/admin/bootstrap.js"
       - "next/admin/index.html"
       - "next/tests/auth-role-contract.test.mjs"
@@ -44,7 +44,7 @@ jobs:
           for file in \
             pincon-guest-auth.js \
             next/write-mode.js \
-            next/admin/role-manager.js \
+            next/admin/user-manager.js \
             next/admin/bootstrap.js \
             automation/enable-google-auth.mjs
           do

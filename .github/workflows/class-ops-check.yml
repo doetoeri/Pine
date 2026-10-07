@@ -5,9 +5,6 @@ on:
     branches: [main]
     paths:
       - "pincon-class-ops*.js"
-      - "pincon-class-ops.css"
-      - "pincon-print-center.js"
-      - "pincon-print-center.css"
       - "tests/**"
       - "firestore.rules"
       - "storage.rules"
@@ -18,9 +15,6 @@ on:
   pull_request:
     paths:
       - "pincon-class-ops*.js"
-      - "pincon-class-ops.css"
-      - "pincon-print-center.js"
-      - "pincon-print-center.css"
       - "tests/**"
       - "firestore.rules"
       - "storage.rules"
@@ -47,8 +41,6 @@ jobs:
         run: |
           node --check pincon-class-ops-core.js
           node --check pincon-class-ops-data.js
-          node --check pincon-class-ops.js
-          node --check pincon-print-center.js
           node --check sw.js
           node --test tests/*.test.mjs
       - name: Check automation modules

@@ -97,3 +97,8 @@ body[data-pincon-variant="next"] button:focus-visible,body[data-pincon-variant="
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.qf-skeleton{animation:none!important}}
 
 @media(max-width:620px){.qf-editor-grid{grid-template-columns:1fr}.qf-editor-field:has(textarea),.qf-editor-check{grid-column:auto}.qf-editor-dialog form{padding:21px}.qf-editor-head h2{font-size:23px}}
+
+/* No background animation while studying; explicit control motion remains. */
+.qf-live-dot.is-live { animation: none; box-shadow: none; }
+.qf-task-label, .qf-subnav button { font-size: 14px; }
+.qf-task-note { font-size: 12px; }

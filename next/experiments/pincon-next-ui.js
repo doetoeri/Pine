@@ -1,5 +1,6 @@
 import { NextDataGateway, readClassProfile } from "../core/data-gateway.js";
-import { reportDataGatewaySnapshot } from "../experiment/bootstrap.js";
+import { reportDataGatewaySnapshot } from "../experiment/bootstrap.js?v=20261007-light1";
+import { patchPage, rememberPage } from "../core/region-renderer.js";
 
 const root = document.createElement("div");
 root.id = "experimentApp";
@@ -7,11 +8,13 @@ document.body.appendChild(root);
 
 const style = document.createElement("link");
 style.rel = "stylesheet";
-style.href = "./experiments/pincon-next-ui.css?v=20260915-flux2";
+style.href = "./experiments/pincon-next-ui.css?v=20261007-light1";
 document.head.appendChild(style);
 
 const gateway = new NextDataGateway();
 let snapshot = gateway.snapshot();
+let renderedSection = "";
+let renderedMarkup = "";
 let flowTab = location.hash.startsWith("#schedule") ? "schedule" : "timetable";
 let classroomTab = "notice";
 let searchQuery = "";
@@ -370,10 +373,20 @@ function dockMarkup(active) {
 function render({ animate = true } = {}) {
   reportDataGatewaySnapshot(snapshot);
   const active = sectionFromHash();
-  root.innerHTML = `<div class="qf-shell">
+  const markup = active === "today" ? todayMarkup() : active === "flow" ? flowMarkup() : active === "classroom" ? classroomMarkup() : meMarkup();
+  const mounted = root.querySelector(".qf-main");
+  if (!mounted) root.innerHTML = `<div class="qf-shell">
     <header class="qf-top"><div class="qf-brand"><span class="qf-seed" aria-hidden="true"></span><div><strong>PinCon</strong><small>Presence × Quiet Flux · ${esc(profileLabel())}</small></div></div><span class="qf-sync">${esc(syncLabel())}</span></header>
-    <main class="qf-main">${active === "today" ? todayMarkup() : active === "flow" ? flowMarkup() : active === "classroom" ? classroomMarkup() : meMarkup()}</main>
+    <main class="qf-main">${markup}</main>
   </div>${dockMarkup(active)}<div class="qf-toast" data-qf-toast role="status" aria-live="polite"></div>`;
+  if (!mounted) rememberPage(root.querySelector(".qf-main"));
+  else {
+    if (markup !== renderedMarkup || active !== renderedSection) patchPage(mounted, markup, active === renderedSection);
+    root.querySelector(".qf-sync").textContent = syncLabel();
+    root.querySelectorAll("[data-qf-nav]").forEach((button) => button.setAttribute("aria-current", button.dataset.qfNav === active ? "page" : "false"));
+  }
+  renderedMarkup = markup;
+  renderedSection = active;
   syncPhysicalControls(false);
   const page = root.querySelector(".qf-page");
   if (animate && page && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -817,8 +830,14 @@ root.addEventListener("pointerup", finishPointer);
 root.addEventListener("pointercancel", finishPointer);
 root.addEventListener("keydown", handleCursorKeydown);
 window.addEventListener("popstate",()=>render(),{passive:true});window.addEventListener("hashchange",()=>render(),{passive:true});window.addEventListener("resize",()=>syncPhysicalControls(false),{passive:true});
-gateway.addEventListener("change",(event)=>{snapshot=event.detail;syncSelectedLesson();render({animate:false});});
+let dataFrame = 0;
+function renderData() {
+  if (dataFrame || document.hidden) return;
+  dataFrame = requestAnimationFrame(() => { dataFrame = 0; syncSelectedLesson(); render({ animate: false }); });
+}
+gateway.addEventListener("change", (event) => { snapshot = event.detail; renderData(); });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) renderData(); });
 
 document.body.dataset.pinconVariant="next";
 render({animate:false});
-await gateway.start();
+gateway.start().catch((error) => console.error("[PinCon Data]", error));

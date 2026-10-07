@@ -1,6 +1,6 @@
 import { NextDataGateway } from "../core/data-gateway.js";
 
-await import("../core/evaluation-plan-media.js?v=20260831-media2");
+await import("../evaluation-plans/service.js");
 const gateway = new NextDataGateway();
 
 await gateway.start();
@@ -16,7 +16,7 @@ if (!snapshot.canArchiveContent) {
   await import("./class-switcher.js");
   await import("./brand-settings.js");
   await import("./content-editor-v2.js?v=20260903-ops2");
-  await import("./evaluation-plan-media.js?v=20260831-media2");
+  await import("../evaluation-plans/admin.js");
   await import("./daily-brief-image.js?v=20260831-daily2");
   await import("./personal-notifications.js?v=20260910-broadcast1");
   await import("./user-manager.js?v=20260903-pinless1");
