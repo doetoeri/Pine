@@ -497,7 +497,7 @@ function periodRows(periods, document) {
       const key = registerDetail("lesson", item, {
         collection: "neisTimetables",
         id: `${document?.id || document?.date || "day"}-${period}`,
-        route: "timetable",
+        route: state.route === "today" ? "today" : "timetable",
         document,
         date: document?.date,
         period,
@@ -508,14 +508,14 @@ function periodRows(periods, document) {
         title: subject,
         supporting: [item.room || item.classroom, item.teacher || item.teacherName].filter(Boolean).join(" · ") || "수업 상세 보기",
         leading: `<strong>${escapeHtml(period)}교시</strong>`,
-        route: "timetable",
+        route: state.route === "today" ? "today" : "timetable",
         ariaLabel: `${period}교시 ${subject}, 수업 상세`,
       });
     }).join("")}
   </md-list>`;
 }
 
-function scheduleRows(items, { loadingNames = ["classAssignments", "events", "academicSchedules"], emptySupport = "등록되면 이곳에서 확인할 수 있습니다." } = {}) {
+function scheduleRows(items, { loadingNames = ["classAssignments", "events", "academicSchedules"], emptySupport = "등록되면 이곳에서 확인할 수 있습니다.", detailRoute = "" } = {}) {
   if (!items.length && collectionLoading(loadingNames)) return skeletonMarkup(4, "일정 불러오는 중");
   if (!items.length && collectionFailed(loadingNames)) return errorMarkup("일정을 불러오지 못했습니다");
   if (!items.length) return emptyMarkup("event_available", "예정된 항목이 없습니다", emptySupport);
@@ -527,7 +527,7 @@ function scheduleRows(items, { loadingNames = ["classAssignments", "events", "ac
       leading: `<strong>${escapeHtml(timeDistance(item.date))}</strong>`,
       date: item.date ? dateLabel(item.date, { weekday: false }) : "날짜 미정",
       status: statusChipMarkup(item.source),
-      route: item.filter === "event" ? "classroom" : "schedule",
+      route: detailRoute || (item.filter === "event" ? "classroom" : "schedule"),
       ariaLabel: `${item.title}, ${item.date ? dateLabel(item.date) : "날짜 미정"}, ${statusInfo(item.source).label}, 자세히`,
     })).join("")}
   </md-list>`;
@@ -597,7 +597,7 @@ function todayPage() {
     <div class="grid grid--2 dashboard-grid" data-render-key="dashboard" data-render-group>
       <article class="surface today-tasks" data-render-key="tasks">
         <div class="surface__header"><h2 class="surface__title"><md-icon>task_alt</md-icon>다가오는 일정</h2><md-text-button data-route="schedule">전체 일정</md-text-button></div>
-        ${scheduleRows(tasks)}
+        ${scheduleRows(tasks, { detailRoute: "today" })}
       </article>
       <article class="surface today-timetable" data-render-key="timetable">
         <div class="surface__header"><h2 class="surface__title"><md-icon>calendar_view_day</md-icon>오늘 시간표</h2><md-text-button data-route="timetable">다른 날짜</md-text-button></div>
