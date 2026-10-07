@@ -1348,6 +1348,7 @@ function clearModalInert() {
 }
 
 function renderDetailSurface({ focus = false, swap = false } = {}) {
+  const backgroundScrollY = window.scrollY;
   const layer = app.querySelector("#detailLayer");
   const surface = app.querySelector("#detailSurface");
   if (!layer || !surface || !state.detailKey) return;
@@ -1387,7 +1388,13 @@ function renderDetailSurface({ focus = false, swap = false } = {}) {
   updateVisualViewport();
   requestAnimationFrame(() => {
     layer.classList.add("is-open");
-    if (focus) app.querySelector("#detailTitle")?.focus({ preventScroll: true });
+    if (focus) {
+      app.querySelector("#detailTitle")?.focus({ preventScroll: true });
+      window.scrollTo({ top: backgroundScrollY, behavior: "instant" });
+      requestAnimationFrame(() => {
+        if (state.detailKey) window.scrollTo({ top: backgroundScrollY, behavior: "instant" });
+      });
+    }
   });
 }
 

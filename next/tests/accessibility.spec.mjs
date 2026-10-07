@@ -115,7 +115,6 @@ test("theme control is keyboard reachable and keeps focus", async ({ page }) => 
 
 test("reduced motion preference collapses transition and animation duration", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator("#today-title")).toBeVisible();
 
   const result = await page.evaluate(() => {
