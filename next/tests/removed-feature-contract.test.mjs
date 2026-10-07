@@ -12,6 +12,7 @@ const removedPaths = [
 ];
 
 const runtimeFiles = [
+  "../app.js",
   "../app-bootstrap.js",
   "../index.html",
   "../admin/bootstrap.js",
@@ -28,6 +29,6 @@ test("problem bank remains outside the PinCon Next product scope", async () => {
 
   for (const path of runtimeFiles) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
-    assert.doesNotMatch(source, /problem[-_ ]?bank|problemBank|문제은행/i, `${path} must not load or expose the removed feature`);
+    assert.doesNotMatch(source, /problem[-_ ]?bank|problemBank|problemAttempts|data-problem-|문제은행/i, `${path} must not load or expose the removed feature`);
   }
 });

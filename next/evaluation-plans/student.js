@@ -6,6 +6,8 @@ const service = new EvaluationPlanService(gateway);
 let selectedSubject = "all";
 let activePreview = null;
 let activePlanId = "";
+let mountQueued = false;
+const mountedMarkup = new WeakMap();
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -95,20 +97,26 @@ function ensureViewer() {
 }
 
 function mountLibrary() {
-  const html = librarySurfaceMarkup(plans());
   const existing = document.querySelector("[data-evaluation-plan-library-host]");
-  if (existing) {
-    existing.outerHTML = html;
-    return;
-  }
-  const legacy = findLegacySurface();
-  if (!legacy) return;
-  legacy.outerHTML = html;
+  const legacy = existing ? null : findLegacySurface();
+  if (!existing && !legacy) return;
+  const html = librarySurfaceMarkup(plans());
+  if (existing && mountedMarkup.get(existing) === html) return;
+  if (existing) existing.outerHTML = html;
+  else legacy.outerHTML = html;
+  mountedMarkup.set(document.querySelector("[data-evaluation-plan-library-host]"), html);
 }
 
 function scheduleMount() {
-  requestAnimationFrame(() => requestAnimationFrame(mountLibrary));
+  if (mountQueued || document.hidden) return;
+  mountQueued = true;
+  requestAnimationFrame(() => {
+    mountQueued = false;
+    if (!document.hidden) mountLibrary();
+  });
 }
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) scheduleMount(); });
 
 function cleanupPreview() {
   activePreview?.revoke?.();

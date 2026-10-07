@@ -48,6 +48,32 @@ test("live update bursts keep navigation, dialogs and unchanged cards mounted", 
   await expect(page.locator("#searchDialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.locator(".today-notices")).toContainText("대화상자 중 변경");
+
+  await page.evaluate(async () => {
+    const { NextDataGateway } = await import("/next/core/data-gateway.js");
+    const gateway = new NextDataGateway();
+    gateway.state.data.evaluationPlans = [{ id: "stable-plan", title: "공식 평가계획서", subject: "공통영어", status: "verified", sourceUrl: "https://example.com/plan.pdf" }];
+    gateway.emit();
+  });
+  await page.locator('.nav-control[data-route="classroom"]:visible').click();
+  const planCard = page.locator('[data-evaluation-plan-open="stable-plan"]');
+  await expect(planCard).toBeVisible();
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  await planCard.evaluate((node) => { globalThis.__stablePlanCard = node; node.focus(); });
+  await expect(planCard).toBeFocused();
+  await page.evaluate(async () => {
+    const { NextDataGateway } = await import("/next/core/data-gateway.js");
+    const gateway = new NextDataGateway();
+    for (let i = 0; i < 40; i += 1) {
+      gateway.state.data.events = [{ id: "event", title: "변경된 학급 행사 " + i, date: "2099-01-01", status: "open" }];
+      gateway.emit();
+    }
+  });
+  await expect(page.locator('[data-render-key="events"]')).toContainText("변경된 학급 행사 39");
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  expect(await planCard.evaluate((node) => ({ sameCard: node === globalThis.__stablePlanCard, focused: document.activeElement === node }))).toEqual({ sameCard: true, focused: true });
+  await expect(page.locator("[data-evaluation-plan-library-host]")).toHaveCount(1);
+  await expect(page.locator(".evaluation-plan-region article")).toHaveCount(1);
 });
 test("repository batches notification and cache writes", async ({ page }) => {
   await page.goto("http://127.0.0.1:4173/next/", { waitUntil: "domcontentloaded" });
