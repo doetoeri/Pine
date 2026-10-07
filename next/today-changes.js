@@ -175,6 +175,5 @@ document.addEventListener("click", (event) => {
 
 gateway.addEventListener("change", queueRender);
 window.addEventListener("hashchange", queueRender);
-const app = document.querySelector("#app");
-if (app) new MutationObserver(queueRender).observe(app, { childList: true, subtree: true });
+window.addEventListener("pincon-render", queueRender);
 queueRender();

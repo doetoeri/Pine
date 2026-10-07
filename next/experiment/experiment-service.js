@@ -18,7 +18,7 @@ import { ExperimentAnalytics } from "./analytics.js";
 
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
-const SDK = "12.17.1";
+const SDK = "12.16.0";
 const CACHE_PREFIX = "pincon-experiment-context-v1";
 const PARTICIPANT_PREFIX = "pincon-experiment-participant-v1";
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;

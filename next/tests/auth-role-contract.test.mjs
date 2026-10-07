@@ -16,7 +16,7 @@ test("Google auth uses Firebase GoogleAuthProvider with persistent popup sign-in
 
 test("edit dialog presents Google and named guest paths without the obsolete login-free headline", async () => {
   const auth = await source("../../pincon-guest-auth.js");
-  const css = await source("../dialog-polish.css");
+  const css = await source("../app.css");
   assert.match(auth, /<div slot="headline">편집 시작<\/div>/);
   assert.match(auth, /data-google-sign-in/);
   assert.match(auth, /Google로 로그인/);
@@ -32,13 +32,11 @@ test("student trust UI exposes Google sign-in without granting admin by itself",
   assert.doesNotMatch(writeMode, /level\s*[:=]\s*["']school["']/);
 });
 
-test("role manager renders and writes roles only after current school-admin verification", async () => {
-  const manager = await source("../admin/role-manager.js");
-  assert.match(manager, /role\?\.enabled === true && role\?\.level === "school"/);
-  assert.match(manager, /"schools", SCHOOL\.id, "roles", uid/);
-  assert.match(manager, /level: "class"/);
-  assert.match(manager, /classKeys: \[classKey\]/);
-  assert.match(manager, /writeBatch/);
+test("active account manager uses the authenticated server API for role updates", async () => {
+  const manager = await source("../admin/user-manager.js");
+  assert.match(manager, /accountRequest\("\/api\/accounts\/manage"/);
+  assert.match(manager, /roles: \["STUDENT"/);
+  assert.doesNotMatch(manager, /writeBatch/);
 });
 
 test("production Firestore keeps role mutation server-gated by schoolAdmin", async () => {

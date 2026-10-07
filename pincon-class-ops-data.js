@@ -217,10 +217,15 @@ export class PinconClassOpsRepository extends EventTarget {
     this.cachedCollections = new Set();
     this.api = null;
     this.authUnsubscribe = null;
+    this.emitTimer = null;
+    this.cacheTimer = null;
+    this.roleGeneration = 0;
+    this.handlePageHide = () => this.flushCache();
     this.handleOnline = () => this.setOnline(true);
     this.handleOffline = () => this.setOnline(false);
     window.addEventListener("online", this.handleOnline);
     window.addEventListener("offline", this.handleOffline);
+    window.addEventListener("pagehide", this.handlePageHide);
   }
 
   snapshot() {
@@ -233,6 +238,8 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   refreshProfile() {
+    this.flushCache();
+    this.roleGeneration += 1;
     const profile = classProfile();
     const nextClassKey = profile?.classKey || "";
     if (nextClassKey === this.state.classKey) return false;
@@ -260,7 +267,11 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   emit() {
-    this.dispatchEvent(new CustomEvent("change", { detail: this.snapshot() }));
+    if (this.emitTimer !== null) return;
+    this.emitTimer = setTimeout(() => {
+      this.emitTimer = null;
+      this.dispatchEvent(new CustomEvent("change", { detail: this.snapshot() }));
+    }, 16);
   }
 
   setOnline(online) {
@@ -284,6 +295,14 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   saveCache() {
+    if (this.cacheTimer !== null) return;
+    this.cacheTimer = setTimeout(() => this.flushCache(), 750);
+  }
+
+  flushCache() {
+    if (this.cacheTimer === null) return;
+    clearTimeout(this.cacheTimer);
+    this.cacheTimer = null;
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(publicCacheCopy(this.state))); } catch {}
   }
 
@@ -341,6 +360,7 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   async listenRole() {
+    const generation = ++this.roleGeneration;
     this.privateUnsubscribers.splice(0).forEach((stop) => stop());
     for (const name of ["patchNoteDrafts", "changeLogs", "supplyReports"]) this.state.data[name] = [];
     this.state.role = null;
@@ -351,6 +371,7 @@ export class PinconClassOpsRepository extends EventTarget {
     }
     const roleRef = this.api.doc(this.api.db, "schools", SCHOOL.id, "roles", this.state.user.uid);
     const roleSnapshot = await this.api.getDoc(roleRef).catch(() => null);
+    if (generation !== this.roleGeneration) return;
     const role = docData(roleSnapshot);
     this.state.role = role;
     this.state.isPresident = isPresidentRole(role, this.state.classKey);
@@ -364,7 +385,9 @@ export class PinconClassOpsRepository extends EventTarget {
       const queryRef = queryFor(this.api, name, this.state.classKey, this.state.isPresident);
       if (!queryRef) continue;
       const unsubscribe = listenQuery(this.api, queryRef, (snapshot) => {
-        this.state.data[name] = rowsForProfile(name, rowsFromSnapshot(snapshot), this.state.profile);
+        const previousStatus = this.state.collectionStatus[name];
+        const changed = !snapshot.docChanges || snapshot.docChanges().length > 0 || ["idle", "loading"].includes(previousStatus);
+        if (changed) this.state.data[name] = rowsForProfile(name, rowsFromSnapshot(snapshot), this.state.profile);
         this.state.collectionStatus[name] = snapshot.metadata?.fromCache ? "cached" : "success";
         if (snapshot.metadata?.fromCache) {
           this.cachedCollections.add(name);
@@ -375,7 +398,7 @@ export class PinconClassOpsRepository extends EventTarget {
           this.state.cacheSavedAtMs = Date.now();
         }
         this.state.lastError = "";
-        if (!snapshot.metadata?.fromCache) this.saveCache();
+        if (!snapshot.metadata?.fromCache && (changed || previousStatus !== "success")) this.saveCache();
         this.emit();
       }, (error) => {
         this.state.collectionStatus[name] = this.cachedCollections.has(name) ? "cached-error" : "error";
@@ -399,12 +422,17 @@ export class PinconClassOpsRepository extends EventTarget {
   }
 
   dispose() {
+    this.flushCache();
+    if (this.emitTimer !== null) clearTimeout(this.emitTimer);
+    this.emitTimer = null;
+    this.roleGeneration += 1;
     this.unsubscribers.splice(0).forEach((stop) => stop());
     this.privateUnsubscribers.splice(0).forEach((stop) => stop());
     this.authUnsubscribe?.();
     this.authUnsubscribe = null;
     window.removeEventListener("online", this.handleOnline);
     window.removeEventListener("offline", this.handleOffline);
+    window.removeEventListener("pagehide", this.handlePageHide);
   }
 
   async ensureUser() {

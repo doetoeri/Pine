@@ -1,134 +1,39 @@
-# Pincon
+# PinCon
 
-Pincon은 1~3학년, 학년별 1~10반까지 총 30개 학급을 지원하는 학교생활 PWA입니다. 공지, 시간표 변경, 체육 장소, 준비물, 수행평가·학사 일정, 모둠 정보를 학급별로 실시간 동기화합니다.
+고촌고등학교의 공지·시간표·일정·급식·학급 운영을 연결하는 정적 PWA입니다. 메인 주소는 `/next/`이며 루트 주소는 그 화면으로 이동합니다. 학번/PIN과 Google 관리자 로그인, Firebase 실시간 데이터, 교실·자리 배치·TV 화면, NEIS 자동 수집, 알림 빈도 실험을 유지합니다.
 
-화면의 버튼, 칩, 목록, 탭, 체크박스, 대화상자, 선택·입력 필드와 FAB는 Google의 공식 `@material/web` Material 3 컴포넌트만 사용합니다. 별도 재사용 UI 컴포넌트는 만들지 않았으며, 데스크톱 탐색 패널, 태블릿 2열 보드, 모바일 1열 카드와 가로모드까지 기기별 레이아웃으로 전환됩니다.
+## 화면과 실행 구조
 
-## 현재 데이터 상태
+- 오늘: 반 공지 → 다가오는 일정·시간표 → 급식. 개인 학급 운영 정보와 오늘 변경사항은 해당 기능에서 연결합니다.
+- 시간표, 일정, 학급, 더보기: 동일한 화면 틀과 탐색 메뉴를 공유합니다.
+- `next/app-bootstrap.js`: 계정 확인 → 화면·필수 기능 → 실험 초기화. 실험 통신을 기다리는 동안에도 기본 화면을 사용할 수 있습니다.
+- `next/core/region-renderer.js`: 바뀐 영역만 교체합니다. 메뉴, 검색/알림 대화상자, 변경되지 않은 시간표와 급식은 그대로 유지합니다.
+- `pincon-class-ops-data.js`: Firestore 변경 알림을 16ms 단위로 합치고 공개 캐시 저장은 750ms 단위로 합칩니다. 비공개 관리자 데이터는 공개 캐시에 넣지 않습니다.
+- 탐색 메뉴는 기본 HTML 버튼을 사용하고 입력·목록·대화상자는 기존 Material Web 컴포넌트를 사용합니다.
+- 단색 표면과 시스템 글꼴을 기본으로 사용합니다. 라이트/다크 모드는 유지하며 지속적인 배경 효과와 광원 조절 패널은 제거했습니다.
+- 서비스 워커는 현재 앱의 최소 파일만 4개씩 내려받습니다. 버전이 지정된 정적 파일은 캐시를 재사용하고 설정·문서는 재검증합니다.
 
-- 앱에는 예시 공지, 예시 시간표, 학생 이름 등 시드·더미 데이터가 없습니다.
-- 첫 실행에서 사용자가 학년과 반을 선택합니다.
-- Firebase 설정 전에는 각 화면이 올바른 빈 상태로 표시됩니다.
-- Firebase 설정 후에는 선택한 반에 해당하는 Firestore 문서만 실시간으로 구독합니다.
+## 유지하는 별도 서비스
 
-## 지원 기능
+`hanja/`, `voca/`, `word-master-glass-recall/`, `sidedesk/`는 별도 학습 앱입니다. 메인 PinCon에서 연결되지 않는 구버전 셸, 중복 관리자 모듈, Flow/버튼 시안과 누적 스타일 파일은 삭제했습니다. 삭제 이력은 Git에서 확인할 수 있습니다.
 
-- 학급 범위: 1~3학년 × 1~10반
-- 공개 범위: 현재 반, 현재 학년 전체, 전교 전체
-- 콘텐츠: 공지, 시간표·장소 변경, 준비물, 일정·D-day, 모둠 구성원
-- 동기화: Firestore `onSnapshot` 실시간 반영
-- 오프라인: Firestore IndexedDB 다중 탭 캐시와 재연결 시 자동 업로드
-- 공동 편집: Google 로그인한 학생은 현재 학급의 모든 콘텐츠를 등록·수정하고, 기존 공개 범위를 유지한 채 보이는 항목을 수정할 수 있음
-- 변경 기록: 등록·수정·삭제 이력을 20개까지 표시하고 이전 상태로 복원
-- 운영자: `roles/{uid}` 문서에 등록된 학교 운영자는 학년·전교 범위까지 발행 가능
-- NEIS: 고촌고등학교 급식 자동 조회, 30개 학급 시간표 30분 주기 동기화와 변경 감지
-- 알림: 시간표 변경 시 학급 공지 생성과 설치형 PWA 웹 푸시
-- PWA: 홈 화면 설치, 독립 실행, 앱 셸 오프라인 캐시, 자동 업데이트
-- 화면: 휴대폰, 태블릿, 크롬북, 데스크톱 반응형
-
-## 통합 PinCon 셸
-
-학급을 선택하면 기존 Pincon과 학급 운영이 별도 화면으로 나뉘지 않고 하나의 반응형 셸로 열립니다. 공지·시간표 변경·급식·모둠은 학급 운영의 오늘·일정·학급 탭과 합쳐지고, 다음 운영 흐름도 같은 탐색 안에서 이어집니다.
-
-> 학생 의견 → 회장 확인 → 처리 → 결과 공개 → 월간 패치노트
-
-- 오늘: 긴급 공지, 오늘·내일 수행평가, 중요한 준비물, 학사일정, 시간표, 급식 순으로 자동 정렬
-- 일정: 회장 공식 수행평가·준비물과 NEIS 학사일정을 출처별로 분리
-- 학급: 익명 건의, 공식 답변·처리 상태, 학급 행사, 공식 투표, 월별 패치노트
-- 자료: 시험·수행 자료 업로드, 중요 자료 고정, 공용 물품·대여, 분실물
-- 카카오톡 공지: 회장이 다음 날 시간표·과제·공지·새 학습지·급식을 한 번에 초안으로 만들고, 내용을 확인한 뒤 휴대폰 공유창에서 카카오톡과 수신 대상을 직접 선택
-- 학습지 DB: 과목·단원·유형·학년도·학기·버전·쪽 수 검색과 분류, 등록 시 공유 권한 및 개인정보 제거 확인
-- 관리: 회장 전용 지표·빠른 작업, 패치노트 자동 초안, 변경 기록, 되돌리기, 30일 휴지통
-- 검색: 공지·수행평가·행사·건의·패치노트·자료·공용품 통합 검색
-- 시험기간 모드: 14일 이내 시험·고사를 감지해 학습 정보를 홈 최우선으로 표시
-
-학생 화면은 익명 의견과 행사 답변에 이메일·UID·이름을 기록하지 않습니다. 회장 기능은 `roles/{uid}` 문서와 `firestore.rules`가 함께 검사하므로 개발자 도구로 버튼을 호출해도 서버에서 차단됩니다.
-
-자료 파일과 분실물 사진은 `storage.rules`로 10MB, 허용된 문서·이미지 형식만 업로드할 수 있습니다. 일반 학생 자료는 `pending` 상태로 저장되고, 회장이 승인한 뒤 공개됩니다. 새 학습지 파일은 영구 공개 다운로드 주소를 DB에 저장하지 않고, 로그인한 사용자가 열 때 Firebase 인증을 거쳐 임시 Blob으로 내려받습니다.
-
-카카오톡 기능은 유료 메시지 API나 비공식 매크로를 쓰지 않습니다. 앱이 공지 초안을 만들고 브라우저의 무료 Web Share 기능을 호출하므로, 사용자가 매번 내용과 수신 대상을 확인합니다. 전화번호와 카카오 친구 목록은 수집하지 않습니다. 브라우저가 Web Share를 지원하지 않으면 공지 내용을 클립보드에 복사합니다.
-
-학습지에는 직접 제작, 선생님 공유 허락, 공개 라이선스, 학교·공공기관 공개 자료 중 하나의 근거가 필요합니다. 시중 교재·문제집 스캔본과 학생 이름·얼굴·연락처·성적이 포함된 파일은 등록하지 않도록 확인 절차를 둡니다. 이 절차는 일반적인 안전장치이며 개별 상황에 대한 법률 자문을 대신하지 않습니다.
-
-Firestore·FCM은 Firebase의 무료 할당량 안에서 운영할 수 있습니다. 다만 Firebase Storage는 2026년 정책상 Blaze 요금제 연결이 필요할 수 있으므로, 소규모 학급 사용이 무료 할당량 안이더라도 결제 계정 등록 여부와 사용량 알림을 Firebase 콘솔에서 확인하세요. 카카오톡 공유 자체에는 별도 API 비용이 없습니다.
-
-## 로컬 실행
+## 로컬 확인
 
 ```bash
 python3 -m http.server 4173
-```
-
-정적 앱이므로 별도 번들이 필요하지 않습니다. 핵심 로직과 자동화 문법 검사는 다음처럼 실행합니다.
-
-```bash
 node --test tests/*.test.mjs
-node --check pincon-class-ops-core.js
-node --check pincon-class-ops-data.js
-node --check pincon-class-ops.js
-(cd automation && npm ci)
-node --check automation/neis-sync.mjs
+node --test next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs
+npm install --no-save @playwright/test@1.55.0
+npx playwright install chromium webkit
+npx playwright test next/tests/boot.spec.mjs next/tests/performance.spec.mjs next/tests/render-stability.spec.mjs --browser=chromium
 ```
 
-## Firebase 연결
+자동 테스트의 로컬 읽기 모드는 운영 Firestore를 수정하지 않습니다. 실제 계정 화면은 로컬 주소에 `?auth=1`을 붙여 확인합니다. GitHub Actions의 PinCon Next contracts에서 보안 계약, Chromium/WebKit, 모바일·태블릿·데스크톱 화면과 렌더링 안정성을 검사합니다.
 
-1. Firebase 콘솔에서 프로젝트와 웹 앱을 만듭니다.
-2. Authentication에서 Google 로그인을 켜고 `doetoeri.github.io`를 승인된 도메인에 추가합니다.
-3. Firestore 데이터베이스를 만듭니다.
-4. `firebase-config.example.js`를 참고해 `firebase-config.js`의 `null`을 실제 웹 앱 설정 객체로 교체합니다.
-5. Firebase CLI에서 `firebase deploy --only firestore,storage`를 실행해 Firestore 규칙·인덱스와 Storage 규칙을 배포합니다. `main` 브랜치에서는 규칙 배포 GitHub Actions도 자동 실행됩니다.
-6. 최초 학교 운영자 계정은 Firebase 콘솔에서 다음 경로에 직접 추가합니다.
+## 운영
 
-```text
-schools/gochon-high/roles/{Firebase Authentication UID}
-```
+Firebase 공개 웹 설정은 `firebase-config.js`에 있고 실제 권한은 `firestore.rules`와 `storage.rules`에서 검사합니다. 학생 계정·관리 API는 `integrations/pincon-ai/`에 있습니다. 비밀키와 서비스 계정은 프런트엔드에 넣지 않습니다.
 
-전교 운영자 문서 예시:
+NEIS/FCM 동기화는 `automation/`과 관련 GitHub Actions를 사용합니다. 알림 빈도 실험의 조건 배정·발송·수신·응답·설문은 기존 흐름을 유지하며 `docs/NOTIFICATION_EXPERIMENT.md`와 `docs/EXPERIMENT_PLATFORM.md`를 참고합니다.
 
-```json
-{
-  "enabled": true,
-  "level": "school",
-  "classKeys": []
-}
-```
-
-학급 운영자 문서 예시:
-
-```json
-{
-  "enabled": true,
-  "level": "class",
-  "classKeys": ["1-3"],
-  "title": "학급 회장"
-}
-```
-
-이 문서가 회장 전용 계정입니다. Google 로그인한 사용자의 Firebase UID와 문서 ID가 같아야 하며, `classKeys`에 현재 반이 포함된 경우에만 관리 탭이 나타납니다.
-
-학년 운영자는 `level`을 `grade`로 하고, 해당 학년 10개 반을 `classKeys`에 넣으며 앱 표시용 `grades` 배열도 함께 둡니다.
-
-```json
-{
-  "enabled": true,
-  "level": "grade",
-  "grades": [1],
-  "classKeys": ["1-1", "1-2", "1-3", "1-4", "1-5", "1-6", "1-7", "1-8", "1-9", "1-10"]
-}
-```
-
-Firebase 웹 설정의 API 키는 비밀번호가 아닙니다. 실제 읽기·쓰기 권한은 저장소에 포함된 `firestore.rules`가 서버에서 검사합니다. 서비스 계정 키나 관리자 비밀키는 절대로 프런트엔드 파일에 넣지 마세요.
-
-## NEIS 자동 동기화와 알림 활성화
-
-저장소의 `.github/workflows/neis-sync.yml`은 30분마다 고촌고등학교 시간표, NEIS 급식·학사일정을 확인합니다. 처음 실행할 때는 기준 시간표만 저장하고, 이후 과목이 달라졌을 때만 해당 반 공지와 푸시를 만듭니다. 같은 자동화가 행사·투표를 종료 시각에 맞춰 마감하고 변경 기록을 남기며, 수행평가 전날·당일, 중요한 준비물, 행사 시작, 투표 마감, 회장 긴급 공지를 사용자별 설정에 맞춰 묶음 알림으로 발송합니다. `notificationReceipts`가 중복 발송을 막습니다.
-
-GitHub 저장소의 **Settings → Secrets and variables → Actions**에 다음 Repository secret 두 개를 직접 등록합니다.
-
-- `NEIS_API_KEY`: NEIS 교육정보 개방 포털에서 발급받은 인증키
-- `FIREBASE_SERVICE_ACCOUNT_JSON`: Firebase **프로젝트 설정 → 서비스 계정 → 새 비공개 키 생성**으로 받은 JSON 파일의 전체 내용
-
-서비스 계정 JSON은 비밀키이므로 채팅, 저장소 파일, `firebase-config.js`에 넣지 마세요. GitHub Secrets에만 보관합니다.
-
-설치 앱 알림은 Firebase **프로젝트 설정 → 클라우드 메시징 → 웹 푸시 인증서**에서 키 쌍을 만든 뒤, 공개 키만 `firebase-config.js`의 `vapidKey`에 넣으면 활성화됩니다. 브라우저 정책상 각 학생은 더보기 화면에서 **알림 켜기**를 한 번 눌러 직접 허용해야 합니다.
-
-설정 후 GitHub의 **Actions → NEIS timetable sync → Run workflow**로 최초 동기화를 한 번 실행합니다. 이 최초 실행은 변경 공지를 만들지 않고 비교 기준만 저장합니다.
+성능 검증은 로컬 데이터로 UI 처리 시간을 확인합니다. 실제 기기의 성능, 운영 네트워크와 Firestore 응답 속도는 별도로 확인해야 합니다.

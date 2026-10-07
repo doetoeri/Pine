@@ -72,12 +72,11 @@ test("share text is compact, class-scoped, and distinguishes new versus changed"
 
 test("Next entry wires the digest and the UI distinguishes loading, error, empty, share, and router states", async () => {
   const [html, ui] = await Promise.all([
-    source("../index.html"),
+    source("../app-bootstrap.js"),
     source("../today-changes.js"),
   ]);
 
-  assert.match(html, /today-changes\.css\?v=20260905-digest1/);
-  assert.match(html, /today-changes\.js\?v=20260905-digest1/);
+  assert.match(html, /today-changes\.js\?v=20261007-light1/);
   assert.match(ui, /변경사항 확인 중/);
   assert.match(ui, /변경사항을 확인하지 못했습니다/);
   assert.match(ui, /새로 바뀐 정보 없음/);

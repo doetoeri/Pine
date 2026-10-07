@@ -191,10 +191,11 @@ test("PWA and bootstrap include experiment modules and stable fallback", async (
     readFile(new URL("../sw.js", import.meta.url), "utf8"),
     readFile(new URL("../next/app-bootstrap.js", import.meta.url), "utf8"),
   ]);
-  assert.match(sw, /next\/experiment\/experiment-service\.js/);
-  assert.match(sw, /next\/experiments\/pincon-next-ui\.js/);
-  assert.match(sw, /next\/experiments\/public-beta\.js/);
+  assert.match(sw, /cachedAsset/);
+  assert.match(bootstrap, /experiment\/bootstrap\.js/);
+  assert.match(bootstrap, /experiments\/pincon-next-ui\.js/);
+  assert.match(bootstrap, /experiments\/public-beta\.js/);
   assert.match(bootstrap, /initExperimentPlatform/);
   assert.match(bootstrap, /dataset\.pinconVariant = "legacy"/);
-  assert.match(bootstrap, /experimentPlatform\?\.uiContext\?\.variant === "next"/);
+  assert.match(bootstrap, /experimentPlatform\.uiContext\?\.variant === "next"/);
 });

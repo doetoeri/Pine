@@ -1,6 +1,7 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "./core/data-gateway.js";
 import { buildNotificationFeed } from "./core/notification-store.js";
 import { buildRecoveryPack, recoveryProgress, setRecoveryItemCompleted } from "./core/recovery-pack.js";
+import { patchPage, rememberPage } from "./core/region-renderer.js";
 
 await import("../material-official-loader.js");
 await globalThis.PINCON_MATERIAL_READY;
@@ -15,6 +16,11 @@ const ROUTES = Object.freeze([
   { id: "classroom", label: "학급", icon: "groups" },
   { id: "more", label: "더보기", icon: "more_horiz" },
 ]);
+
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+const DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" });
+const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" });
+const textCache = new Map();
 
 const SUBJECT_NAMES = Object.freeze({
   공영: "공통영어",
@@ -49,6 +55,8 @@ let lastDetailTriggerKey = "";
 let detailPointer = null;
 let renderTimer = 0;
 let dataRenderDeferred = false;
+let renderedRoute = "";
+let renderedPage = "";
 
 function appDialogBusy() {
   return ["#searchDialog", "#notificationDialog"].some((selector) => {
@@ -64,7 +72,8 @@ function appDialogBusy() {
 function scheduleDataRender() {
   window.clearTimeout(renderTimer);
   renderTimer = window.setTimeout(() => {
-    if (appDialogBusy()) {
+    if (document.body.dataset.pinconVariant === "next") return;
+    if (document.hidden || appDialogBusy()) {
       dataRenderDeferred = true;
       return;
     }
@@ -72,6 +81,10 @@ function scheduleDataRender() {
     render({ preserveView: true });
   }, 32);
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) resumeDeferredDataRender();
+});
 
 function resumeDeferredDataRender() {
   if (!dataRenderDeferred || appDialogBusy()) return;
@@ -124,9 +137,14 @@ function escapeHtml(value) {
 }
 
 function cleanText(value) {
+  const source = String(value || "");
+  if (textCache.has(source)) return textCache.get(source);
   const node = document.createElement("div");
-  node.innerHTML = String(value || "").replace(/<br\s*\/?\s*>/gi, "\n");
-  return (node.textContent || "").replace(/\s*\n\s*/g, " · ").replace(/\s+/g, " ").trim();
+  node.innerHTML = source.replace(/<br\s*\/?\s*>/gi, "\n");
+  const text = (node.textContent || "").replace(/\s*\n\s*/g, " · ").replace(/\s+/g, " ").trim();
+  if (textCache.size >= 800) textCache.clear();
+  textCache.set(source, text);
+  return text;
 }
 
 function safeUrl(value) {
@@ -157,23 +175,14 @@ function firstTimestamp(item = {}, keys = []) {
 function formatDateTime(value) {
   const time = timestampMs(value);
   if (!time) return "아직 확인되지 않음";
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "long",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(time));
+  return DATE_TIME_FORMATTER.format(new Date(time));
 }
 
 function dateLabel(dateString, options = {}) {
   if (!dateString) return "날짜 미정";
   const date = new Date(`${dateString}T12:00:00`);
   if (Number.isNaN(date.getTime())) return String(dateString);
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: options.weekday === false ? undefined : "long",
-  }).format(date);
+  return (options.weekday === false ? SHORT_DATE_FORMATTER : DATE_FORMATTER).format(date);
 }
 
 function timeDistance(dateString) {
@@ -549,86 +558,10 @@ function syncMarkup() {
 
 function navMarkup(className) {
   return `<nav class="${className}" aria-label="주요 메뉴">
-    ${ROUTES.map((route) => {
-      const selected = route.id === state.route;
-      const tag = selected ? "md-filled-tonal-button" : "md-text-button";
-      return `<${tag} data-route="${route.id}" ${selected ? 'aria-current="page" data-aria-current="page"' : ""}>
-        <md-icon slot="icon">${route.icon}</md-icon>${route.label}
-      </${tag}>`;
-    }).join("")}
+    ${ROUTES.map((route) => `<button type="button" class="nav-control ${route.id === state.route ? "is-selected" : ""}" data-route="${route.id}" ${route.id === state.route ? 'aria-current="page" data-aria-current="page"' : ""}>
+      <md-icon aria-hidden="true">${route.icon}</md-icon><span>${route.label}</span>
+    </button>`).join("")}
   </nav>`;
-}
-
-function seasonDashboardMarkup() {
-  const today = localIsoDate(new Date());
-  const assignments = (collections().classAssignments || [])
-    .filter((item) => !item.deleted && item.published !== false && (!itemDate(item) || itemDate(item) >= today));
-  const performance = assignments.filter((item) => assignmentCategory(item) === "수행평가").slice(0, 6);
-  const exams = assignments.filter((item) => assignmentCategory(item) === "시험 범위").slice(0, 8);
-  const loading = collectionLoading(["classAssignments"]);
-
-  if (!performance.length && !exams.length && collectionFailed(["classAssignments"])) {
-    return `<section class="season-dashboard" aria-labelledby="season-title"><div class="section-heading"><div><p class="page-eyebrow">평가 시즌</p><h2 id="season-title">평가 일정</h2></div></div><article class="surface">${errorMarkup("평가 일정을 불러오지 못했습니다")}</article></section>`;
-  }
-  if (!performance.length && !exams.length && !loading) return "";
-  if (!performance.length && !exams.length && loading) {
-    return `<section class="season-dashboard" aria-labelledby="season-title">
-      <div class="section-heading"><div><p class="page-eyebrow">평가 시즌</p><h2 id="season-title">평가 일정을 확인하는 중</h2></div></div>
-      <article class="surface">${skeletonMarkup(3, "평가 일정 불러오는 중")}</article>
-    </section>`;
-  }
-
-  const performanceMarkup = performance.length ? `<article class="surface season-card">
-    <div class="surface__header">
-      <div><p class="page-eyebrow">수행평가 시즌</p><h2 class="surface__title">다가오는 수행평가</h2></div>
-      <span class="surface__meta">${performance.length}건</span>
-    </div>
-    <md-list class="interactive-list">
-      ${performance.map((item) => {
-        const date = itemDate(item);
-        const key = registerDetail("assignment", item, { collection: "classAssignments", route: "today" });
-        return interactiveListItem({
-          key,
-          title: itemTitle(item),
-          supporting: [fullSubjectName(item.subject), date ? dateLabel(date) : "날짜 미정"].join(" · "),
-          leading: `<strong>${escapeHtml(timeDistance(date))}</strong>`,
-          status: statusChipMarkup(item),
-          route: "today",
-          ariaLabel: `${fullSubjectName(item.subject)} ${itemTitle(item)}, ${date ? dateLabel(date) : "날짜 미정"}, ${statusInfo(item).label}, 자세히`,
-        });
-      }).join("")}
-    </md-list>
-  </article>` : "";
-
-  const examMarkup = exams.length ? `<article class="surface season-card season-card--exam">
-    <div class="surface__header">
-      <div><p class="page-eyebrow">중간·기말고사</p><h2 class="surface__title">시험 범위와 확인 상태</h2></div>
-      <span class="surface__meta">${escapeHtml(timeDistance(itemDate(exams[0])))}</span>
-    </div>
-    <md-list class="interactive-list">
-      ${exams.map((item) => {
-        const date = itemDate(item);
-        const key = registerDetail("assignment", item, { collection: "classAssignments", route: "today" });
-        const range = cleanText(item.range || item.examRange || item.scope || item.evaluationRange) || "범위 확인 중";
-        return interactiveListItem({
-          key,
-          title: `${fullSubjectName(item.subject)} · ${itemTitle(item)}`,
-          supporting: `${date ? dateLabel(date) : "시험일 미정"} · ${range}`,
-          leading: `<strong>${escapeHtml(timeDistance(date))}</strong>`,
-          status: statusChipMarkup(item),
-          route: "today",
-        });
-      }).join("")}
-    </md-list>
-  </article>` : "";
-
-  return `<section class="season-dashboard" aria-labelledby="season-title">
-    <div class="section-heading">
-      <div><p class="page-eyebrow">읽기 전용 시즌 보드</p><h2 id="season-title">평가 일정</h2></div>
-      <span>확인되지 않은 내용은 추측하지 않습니다.</span>
-    </div>
-    <div class="grid grid--2">${performanceMarkup}${examMarkup}</div>
-  </section>`;
 }
 
 function todayPage() {
@@ -636,63 +569,45 @@ function todayPage() {
   const document = timetableDocument(today);
   const periods = periodsFor(today);
   const meal = mealFor(today);
-  const tasks = upcomingSchedule(5);
-  const notice = announcements(1)[0];
-  const profile = state.data.profile || readClassProfile();
+  const tasks = upcomingSchedule(6);
+  const notices = announcements(3);
   const mealKey = meal ? registerDetail("meal", meal, { collection: "meals", route: "today" }) : "";
-  const noticeKey = notice ? registerDetail("announcement", notice, {
-    collection: notice.__collection || "announcements",
-    route: notice.category === "수업 변경" ? "timetable" : "today",
-  }) : "";
+  const urgent = notices.some((item) => item.priority === "urgent");
 
-  return `<section class="view-enter" aria-labelledby="today-title">
-    <div class="surface surface--hero">
-      <p class="hero-kicker">${escapeHtml(dateLabel(today))}</p>
-      <h1 class="hero-title" id="today-title">오늘 필요한 것부터.</h1>
-      <div class="hero-meta">
-        <span class="meta-pill"><md-icon>school</md-icon>${escapeHtml(profile ? `${profile.grade}학년 ${profile.classNumber}반` : "학급 미선택")}</span>
-        <span class="meta-pill"><md-icon>schedule</md-icon>${!periods.length && collectionLoading(["neisTimetables"]) ? "시간표 확인 중" : !periods.length && collectionFailed(["neisTimetables"]) ? "시간표 연결 오류" : periods.length ? `${periods.length}개 수업` : "등록된 수업 없음"}</span>
-        <span class="meta-pill"><md-icon>task_alt</md-icon>${!tasks.length && collectionLoading(["classAssignments", "events", "academicSchedules"]) ? "일정 확인 중" : !tasks.length && collectionFailed(["classAssignments", "events", "academicSchedules"]) ? "일정 연결 오류" : tasks.length ? `예정 ${tasks.length}건` : "예정된 일정 없음"}</span>
-      </div>
-    </div>
-    ${syncMarkup()}
-    ${state.data.error ? `<div class="surface surface--error notice-banner" role="alert"><md-icon>error</md-icon><p>${escapeHtml(state.data.error)}</p><md-text-button data-action="retry-data">다시 시도</md-text-button></div>` : ""}
-    ${seasonDashboardMarkup()}
-    <div class="grid grid--2 dashboard-grid">
-      <article class="surface">
-        <div class="surface__header"><h2 class="surface__title">오늘 시간표</h2><span class="surface__meta">컴시간</span></div>
-        ${periodRows(periods.slice(0, 8), document)}
-      </article>
-      <article class="surface">
-        <div class="surface__header"><h2 class="surface__title">다가오는 일정</h2><span class="surface__meta">${tasks.length ? `${tasks.length}건` : ""}</span></div>
+  return `<section class="view-enter today-workspace" aria-labelledby="today-title">
+    <header class="today-heading" data-render-key="heading">
+      <div><p class="page-eyebrow">${escapeHtml(dateLabel(today))}</p><h1 class="page-title" id="today-title">오늘</h1></div>
+      <md-text-button data-action="retry-data" aria-label="학급 정보 새로고침"><md-icon slot="icon">refresh</md-icon>새로고침</md-text-button>
+    </header>
+    <div data-render-key="sync">${syncMarkup()}</div>
+    <div data-render-key="error">${state.data.error ? `<div class="surface surface--error notice-banner" role="alert"><md-icon>error</md-icon><p>${escapeHtml(state.data.error)}</p><md-text-button data-action="retry-data">다시 시도</md-text-button></div>` : ""}</div>
+    <article class="surface today-notices ${urgent ? "today-notices--urgent" : ""}" data-render-key="notices">
+      <div class="surface__header"><h2 class="surface__title"><md-icon>campaign</md-icon>반 공지</h2><md-text-button data-route="classroom">모두 보기</md-text-button></div>
+      ${!notices.length && collectionLoading(["announcements", "content"]) ? skeletonMarkup(2, "공지 불러오는 중") : !notices.length && collectionFailed(["announcements", "content"]) ? errorMarkup("공지를 불러오지 못했습니다") : notices.length
+        ? `<md-list class="interactive-list">${notices.map((notice) => interactiveListItem({
+          key: registerDetail("announcement", notice, { collection: notice.__collection || "announcements", route: notice.category === "수업 변경" ? "timetable" : "today" }),
+          title: itemTitle(notice),
+          supporting: cleanText(notice.body || notice.description || notice.category),
+          leading: `<md-icon>${notice.priority === "urgent" ? "priority_high" : "notifications"}</md-icon>`,
+          date: summaryDate(notice) ? dateLabel(summaryDate(notice), { weekday: false }) : "",
+          route: notice.category === "수업 변경" ? "timetable" : "today",
+        })).join("")}</md-list>`
+        : '<p class="quiet-empty">새 공지가 없습니다.</p>'}
+    </article>
+    <div class="grid grid--2 dashboard-grid" data-render-key="dashboard" data-render-group>
+      <article class="surface today-tasks" data-render-key="tasks">
+        <div class="surface__header"><h2 class="surface__title"><md-icon>task_alt</md-icon>다가오는 일정</h2><md-text-button data-route="schedule">전체 일정</md-text-button></div>
         ${scheduleRows(tasks)}
       </article>
-      <article class="surface surface--lowest">
-        <div class="surface__header"><h2 class="surface__title">오늘 급식</h2><span class="surface__meta">NEIS</span></div>
-        ${!meal && collectionLoading(["meals"]) ? skeletonMarkup(1, "급식 불러오는 중") : !meal && collectionFailed(["meals"]) ? errorMarkup("급식을 불러오지 못했습니다") : meal
-          ? `<md-list class="interactive-list">${interactiveListItem({
-            key: mealKey,
-            title: meal.mealType || "중식",
-            supporting: cleanText(meal.dishesHtml) || "식단 정보 없음",
-            leading: "<md-icon>restaurant</md-icon>",
-            date: meal.calories || "",
-            route: "today",
-            ariaLabel: `${meal.mealType || "중식"} 급식 메뉴 자세히`,
-          })}</md-list>`
-          : emptyMarkup("restaurant", "급식 정보가 없습니다", "NEIS에 식단이 등록되면 표시됩니다.")}
+      <article class="surface today-timetable" data-render-key="timetable">
+        <div class="surface__header"><h2 class="surface__title"><md-icon>calendar_view_day</md-icon>오늘 시간표</h2><md-text-button data-route="timetable">다른 날짜</md-text-button></div>
+        ${periodRows(periods.slice(0, 8), document)}
       </article>
-      <article class="surface surface--lowest">
-        <div class="surface__header"><h2 class="surface__title">중요 공지</h2><span class="surface__meta">최신</span></div>
-        ${!notice && collectionLoading(["announcements", "content"]) ? skeletonMarkup(1, "공지 불러오는 중") : !notice && collectionFailed(["announcements", "content"]) ? errorMarkup("공지를 불러오지 못했습니다") : notice
-          ? `<md-list class="interactive-list">${interactiveListItem({
-            key: noticeKey,
-            title: itemTitle(notice),
-            supporting: cleanText(notice.body || notice.description || notice.category),
-            leading: "<md-icon>campaign</md-icon>",
-            date: summaryDate(notice) ? dateLabel(summaryDate(notice), { weekday: false }) : "",
-            route: notice.category === "수업 변경" ? "timetable" : "today",
-          })}</md-list>`
-          : emptyMarkup("notifications_none", "새 공지가 없습니다", "새 공지가 등록되면 알림함에도 남습니다.")}
+      <article class="surface today-meal" data-render-key="meal">
+        <div class="surface__header"><h2 class="surface__title"><md-icon>restaurant</md-icon>오늘 급식</h2><span class="surface__meta">NEIS</span></div>
+        ${!meal && collectionLoading(["meals"]) ? skeletonMarkup(1, "급식 불러오는 중") : !meal && collectionFailed(["meals"]) ? errorMarkup("급식을 불러오지 못했습니다") : meal
+          ? `<md-list class="interactive-list">${interactiveListItem({ key: mealKey, title: meal.mealType || "중식", supporting: cleanText(meal.dishesHtml || meal.menu || meal.dishes) || "식단 정보 없음", leading: "<md-icon>restaurant</md-icon>", date: meal.calories || "", route: "today", ariaLabel: "오늘 급식 메뉴와 알레르기 자세히" })}</md-list>`
+          : '<p class="quiet-empty">등록된 급식이 없습니다.</p>'}
       </article>
     </div>
   </section>`;
@@ -995,7 +910,9 @@ function render({ preserveView = false } = {}) {
       .map((name) => active?.getAttribute?.(name) ? `[${name}="${CSS.escape(active.getAttribute(name))}"]` : "")
       .find(Boolean) || "";
   prepareDetailRegistry();
-  app.innerHTML = `<div class="shell">
+  const page = pageMarkup();
+  const shell = app.querySelector(".shell");
+  if (!shell) app.innerHTML = `<div class="shell">
     <aside class="rail" aria-label="PinCon 내비게이션">
       <div class="rail__brand" aria-hidden="true"><md-icon>hub</md-icon></div>
       ${navMarkup("rail__nav")}
@@ -1003,7 +920,7 @@ function render({ preserveView = false } = {}) {
     <div class="app-frame">
       <header class="topbar">
         <div class="brand">
-          <div class="brand__mark" aria-hidden="true"><md-icon>hub</md-icon></div>
+          <div class="brand__mark" aria-hidden="true"><img class="pincon-brand-logo" src="./assets/pincon-icon.svg" alt="" width="38" height="38" /></div>
           <div class="brand__text">
             <span class="brand__title">PinCon <span class="beta-badge">Beta</span></span>
             <span class="brand__meta">고촌고등학교 · ${escapeHtml(`${profile.grade}학년 ${profile.classNumber}반`)}</span>
@@ -1011,16 +928,42 @@ function render({ preserveView = false } = {}) {
           </div>
         </div>
         <div class="topbar__actions">
+          <md-icon-button id="pinconThemeToggle" aria-label="다크 모드로 전환"><md-icon>dark_mode</md-icon></md-icon-button>
           <md-icon-button id="openSearch" aria-label="통합 검색"><md-icon>search</md-icon></md-icon-button>
           <md-icon-button id="openNotifications" aria-label="알림함"><md-icon>notifications</md-icon></md-icon-button>
         </div>
       </header>
-      <main class="content-wrap" id="mainContent" tabindex="-1">${pageMarkup()}</main>
+      <main class="content-wrap" id="mainContent" tabindex="-1">${page}</main>
       ${navMarkup("bottom-nav")}
     </div>
     ${dialogsMarkup()}
     ${detailLayerMarkup()}
   </div>`;
+  else {
+    if (page !== renderedPage || state.route !== renderedRoute) {
+      patchPage(app.querySelector("#mainContent"), page, state.route === renderedRoute);
+    }
+    if (state.route !== renderedRoute) {
+      for (const control of app.querySelectorAll(".rail__nav [data-route], .bottom-nav [data-route]")) {
+        const selected = control.dataset.route === state.route;
+        control.classList.toggle("is-selected", selected);
+        if (selected) {
+          control.setAttribute("aria-current", "page");
+          control.setAttribute("data-aria-current", "page");
+        } else {
+          control.removeAttribute("aria-current");
+          control.removeAttribute("data-aria-current");
+        }
+      }
+    }
+    const meta = app.querySelector(".brand__meta");
+    const label = `고촌고등학교 · ${profile.grade}학년 ${profile.classNumber}반`;
+    if (meta.textContent !== label) meta.textContent = label;
+  }
+  if (!shell) rememberPage(app.querySelector("#mainContent"));
+  renderedPage = page;
+  renderedRoute = state.route;
+  window.dispatchEvent(new CustomEvent("pincon-render", { detail: { route: state.route } }));
   requestAnimationFrame(() => {
     if (preserveView) window.scrollTo({ top: scrollY, behavior: "auto" });
     if (state.detailKey) {
@@ -1922,4 +1865,4 @@ if (!location.hash) {
 
 updateVisualViewport();
 render();
-await gateway.start();
+gateway.start().catch((error) => console.error("[PinCon Data]", error));

@@ -69,30 +69,30 @@ test("account API can use the verified Identity v2 alias while main is missing r
   assert.match(auth, /account-api-unreachable/);
 });
 
-test("PinCon PWA revalidates code assets after a deployment", async () => {
+test("PWA separates code caching from configuration revalidation", async () => {
   const worker = await source("../../sw.js");
   const registration = await source("../../registerSW.js");
   assert.match(worker, /PINCON_SW_VERSION = "[0-9]{8}-[a-z0-9-]+"/);
-  assert.match(worker, /new Request\(request, \{ cache: "reload" \}\)/);
-  assert.match(worker, /mustRevalidate = \/\\\.\(\?:js\|css\|html\|webmanifest\|json\)\$\/i/);
-  assert.match(worker, /networkFirst\(request, "\.\/index\.html", \{ forceReload: true \}\)/);
-  assert.match(registration, /\.\/sw\.js\?v=[0-9]{8}-[a-z0-9-]+/);
+  assert.match(worker, /cachedAsset/);
+  assert.match(worker, /searchParams\.has\("v"\)/);
+  assert.match(worker, /cache: "no-cache"/);
+  assert.match(worker, /firebase-config/);
   assert.match(registration, /updateViaCache: "none"/);
 });
 
 test("account entry keeps login failures generic and validates locally", async () => {
-  const gate = await source("../account-gate.js");
-  assert.match(gate, /학번 또는 PIN이 맞지 않습니다/);
+  const gate = await source("../simple-account-gate.js");
+  assert.match(gate, /학번과 PIN 또는 활성화 코드를 다시 확인해주세요/);
   assert.match(gate, /\^\\d\{5\}\$/);
   assert.match(gate, /\^\\d\{6,12\}\$/);
   assert.doesNotMatch(gate, /존재하지 않는 학번|PIN이 틀|비밀번호가 틀/);
 });
 
 test("first login forces a PIN change without an old PIN lookup path", async () => {
-  const gate = await source("../account-gate.js");
+  const gate = await source("../simple-account-gate.js");
   const auth = await source("../core/student-auth.js");
   assert.match(gate, /account\.mustChangePin/);
-  assert.match(gate, /보안 설정/);
+  assert.match(gate, /새 PIN/);
   assert.match(gate, /changeStudentPin/);
   assert.match(auth, /changeStudentPin/);
   assert.doesNotMatch(`${gate}\n${auth}`, /기존 PIN 확인|currentPin|oldPin/i);
@@ -114,13 +114,13 @@ test("PIN change reauthenticates after Firebase invalidates the previous credent
 });
 
 test("first login claims a staged identity with a one-time activation code", async () => {
-  const gate = await source("../account-gate.js");
+  const gate = await source("../simple-account-gate.js");
   const auth = await source("../core/student-auth.js");
   const claim = await source("../../integrations/pincon-ai/handlers/accounts/claim.mjs");
   const create = await source("../../integrations/pincon-ai/handlers/accounts/create.mjs");
-  assert.match(gate, /첫 로그인 · 활성화 코드 사용/);
-  assert.match(gate, /pinconClaimStudentNumber/);
-  assert.match(gate, /pinconClaimActivationCode/);
+  assert.match(gate, /처음 로그인할 때만 활성화 코드를 입력/);
+  assert.match(gate, /pinconSimpleStudentNumber/);
+  assert.match(gate, /pinconSimpleCredential/);
   assert.match(gate, /claimStudentAccount/);
   assert.match(auth, /\/api\/accounts\/claim/);
   assert.match(auth, /activationCode/);
@@ -134,8 +134,8 @@ test("first login claims a staged identity with a one-time activation code", asy
 });
 
 test("legacy Google administrators retain a migration login path", async () => {
-  const gate = await source("../account-gate.js");
-  assert.match(gate, /관리자 Google 계정으로 계속/);
+  const gate = await source("../simple-account-gate.js");
+  assert.match(gate, /Google로 관리자 로그인/);
   assert.match(gate, /PINCON_GUEST_AUTH/);
   assert.match(gate, /mode: "legacy"/);
 });
@@ -151,26 +151,21 @@ test("student account center owns profile security and logout", async () => {
   assert.doesNotMatch(center, /localStorage|sessionStorage/);
 });
 
-test("application modules boot only after the account gate resolves", async () => {
+test("account readiness precedes the app, which precedes experiments", async () => {
   const bootstrap = await source("../app-bootstrap.js");
   const html = await source("../index.html");
-  const accountReadyIndex = bootstrap.indexOf("await accountReady");
-  const routeRecoveryIndex = bootstrap.indexOf('await import("./route-focus-stability.js?v=20260903-route2")');
-  const appIndex = bootstrap.indexOf('await import("./app.js?v=20260905-readonly1")');
-
-  assert.ok(accountReadyIndex >= 0);
-  assert.ok(routeRecoveryIndex > accountReadyIndex, "route recovery must arm after authentication resolves");
-  assert.ok(appIndex > routeRecoveryIndex, "route recovery must arm before the app can render clickable navigation");
-  assert.match(bootstrap, /account-gate\.js\?v=20260903-identity2/);
-  assert.match(bootstrap, /simple-account-gate\.js\?v=20260905-readonly1/);
-  assert.match(bootstrap, /readonly-notice\.js\?v=20260905-readonly1/);
-  assert.match(html, /src="\.\/app-bootstrap\.js\?v=[0-9]{8}-[a-z0-9-]+"/);
+  const gate = bootstrap.indexOf("await accountReady");
+  const app = bootstrap.indexOf('await import("./app.js?v=20261007-light1")');
+  const experiments = bootstrap.indexOf("async function startExperiments");
+  assert.ok(gate >= 0 && app > gate && experiments > app);
+  assert.match(bootstrap, /simple-account-gate/);
+  assert.doesNotMatch(bootstrap, /route-focus-stability/);
+  assert.match(html, /app-bootstrap\.js/);
   assert.match(html, /account-center\.css/);
-  assert.doesNotMatch(html, /src="\.\/app\.js"/);
 });
 
 test("test-only authentication bypass is restricted to localhost", async () => {
-  const gate = await source("../account-gate.js");
+  const gate = await source("../simple-account-gate.js");
   assert.match(gate, /\["127\.0\.0\.1", "localhost"\]\.includes\(location\.hostname\)/);
   assert.match(gate, /get\("auth"\) !== "1"/);
 });

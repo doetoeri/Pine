@@ -230,6 +230,7 @@ document.addEventListener("closed", (event) => {
 }, true);
 
 gateway.addEventListener("change", scheduleMount);
+window.addEventListener("pincon-render", scheduleMount);
 window.addEventListener("popstate", scheduleMount);
 window.addEventListener("hashchange", scheduleMount);
 await gateway.start();

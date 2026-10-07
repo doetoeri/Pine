@@ -14,7 +14,6 @@ let lastDialogTrigger = null;
 let lastDialogTriggerId = "";
 let dialogFocusRestoreSequence = 0;
 let bootReleased = false;
-let routeTimer = 0;
 let lastFocusedRoute = "";
 let routeFocusRestoreQueued = false;
 
@@ -80,9 +79,6 @@ function prepareHost(host) {
   if (!(host instanceof HTMLElement)) return;
   bindShadowCapture(host);
   queueMicrotask(() => bindShadowCapture(host));
-  requestAnimationFrame(() => bindShadowCapture(host));
-  window.setTimeout(() => bindShadowCapture(host), 0);
-  window.setTimeout(() => bindShadowCapture(host), 50);
   const updateComplete = host.updateComplete;
   if (updateComplete && typeof updateComplete.then === "function") {
     updateComplete.then(() => bindShadowCapture(host)).catch(() => {});
@@ -147,7 +143,7 @@ function applyBranding(root = document) {
 
   const railMark = root.querySelector?.(".rail__brand") || document.querySelector(".rail__brand");
   if (railMark && !railMark.querySelector(".pincon-brand-logo")) {
-    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon Beta</span><small class="rail__tagline"></small></span>`;
+    railMark.innerHTML = `${logoMarkup()}<span class="rail__wordmark"><span>PinCon</span><small class="rail__tagline"></small></span>`;
   }
 
   const tagline = currentTagline();
@@ -172,13 +168,6 @@ function releaseBootWhenStable() {
       window.setTimeout(() => document.querySelector("#pinconBoot")?.remove(), 220);
     });
   });
-}
-
-function animateRouteOnce() {
-  document.body.classList.remove("pincon-route-transition");
-  requestAnimationFrame(() => document.body.classList.add("pincon-route-transition"));
-  window.clearTimeout(routeTimer);
-  routeTimer = window.setTimeout(() => document.body.classList.remove("pincon-route-transition"), 220);
 }
 
 function dateLabel(dateString) {
@@ -386,6 +375,7 @@ function reconcile() {
 }
 
 function queueReconcile() {
+  if (document.hidden || document.body.dataset.pinconVariant === "next") return;
   if (reconcileQueued) return;
   reconcileQueued = true;
   requestAnimationFrame(reconcile);
@@ -397,11 +387,11 @@ gateway.addEventListener("change", (event) => {
 });
 notificationStore.addEventListener("change", () => queueReconcile());
 
-const enhancementObserver = new MutationObserver(() => {
+window.addEventListener("pincon-render", () => {
   queueReconcile();
   queueRouteFocusRestore();
 });
-if (appRoot) enhancementObserver.observe(appRoot, { childList: true, subtree: true });
+document.addEventListener("visibilitychange", () => { if (!document.hidden) queueReconcile(); });
 
 document.addEventListener("focusin", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
@@ -416,7 +406,6 @@ document.addEventListener("click", (event) => {
   const routeControl = eventHost(event, (node) => node.hasAttribute("data-route"));
   if (routeControl) {
     lastFocusedRoute = "";
-    animateRouteOnce();
   }
 
   const notificationOpenButton = eventHost(event, (node) => node.id === "openNotifications");

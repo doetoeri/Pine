@@ -2,7 +2,7 @@ name: PinCon Next contracts
 
 on:
   push:
-    branches: [rebuild]
+    branches: [main, rebuild]
     paths:
       - "next/**"
       - "index.html"
@@ -50,11 +50,11 @@ jobs:
             next/app-bootstrap.js \
             next/detail-history-stability.js \
             next/dialog-focus-stability.js \
-            next/route-focus-stability.js \
+            next/theme.js \
             next/reveal-loader.js \
             next/write-mode.js \
             next/admin-visibility.js \
-            next/evaluation-plan-preview.js \
+            next/evaluation-plans/student.js \
             next/today-changes.js \
             next/evaluation-plans/service.js \
             next/evaluation-plans/admin.js \
@@ -62,14 +62,14 @@ jobs:
             next/admin/admin.js \
             next/admin/bootstrap.js \
             next/admin/brand-settings.js \
-            next/admin/content-editor.js \
+            next/admin/content-editor-v2.js \
             next/admin/daily-brief-data.js \
             next/admin/daily-brief-renderer.js \
             next/admin/daily-brief-image.js \
-            next/admin/evaluation-plan-media.js \
-            next/admin/today-open-write-ui.js \
+            next/evaluation-plans/admin.js \
+            next/core/region-renderer.js \
             next/admin/account-create-service.js \
-            next/admin/account-create.js \
+            next/admin/account-create-v2.js \
             next/admin/class-duty-manager.js \
             next/classroom-entry.js \
             next/classroom/classroom.js \
@@ -81,7 +81,7 @@ jobs:
             next/core/admin-policy.js \
             next/core/brand-settings.js \
             next/core/data-gateway.js \
-            next/core/evaluation-plan-media.js \
+            next/evaluation-plans/service.js \
             next/core/notification-store.js \
             next/core/recovery-pack.js \
             next/core/student-auth.js \
@@ -227,3 +227,7 @@ jobs:
         run: npx playwright test next/tests/accessibility.spec.mjs --browser=chromium --reporter=line --max-failures=1
       - name: Accessibility smoke · WebKit
         run: npx playwright test next/tests/accessibility.spec.mjs --browser=webkit --reporter=line --max-failures=1
+      - name: Stable incremental rendering · Chromium
+        run: npx playwright test next/tests/render-stability.spec.mjs next/tests/layout-cleanup.spec.mjs --browser=chromium --reporter=line --max-failures=1
+      - name: Stable incremental rendering · WebKit
+        run: npx playwright test next/tests/render-stability.spec.mjs next/tests/layout-cleanup.spec.mjs --browser=webkit --reporter=line --max-failures=1
