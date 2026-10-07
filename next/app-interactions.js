@@ -177,13 +177,6 @@ function dateLabel(dateString) {
   return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" }).format(date);
 }
 
-function roleLabel(role) {
-  if (role === "system-admin") return "시스템 관리자";
-  if (role === "manager") return "학급 관리자";
-  if (role === "editor") return "편집자";
-  return "학생 · 열람자";
-}
-
 function currentFeed() {
   return notificationStore.decorate(feed);
 }

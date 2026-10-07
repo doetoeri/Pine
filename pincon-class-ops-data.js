@@ -239,10 +239,10 @@ export class PinconClassOpsRepository extends EventTarget {
 
   refreshProfile() {
     this.flushCache();
-    this.roleGeneration += 1;
     const profile = classProfile();
     const nextClassKey = profile?.classKey || "";
     if (nextClassKey === this.state.classKey) return false;
+    this.roleGeneration += 1;
 
     this.unsubscribers.splice(0).forEach((stop) => stop());
     this.privateUnsubscribers.splice(0).forEach((stop) => stop());

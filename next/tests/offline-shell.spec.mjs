@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 test("an installed PWA opens the saved class immediately without a network", async ({ page, context }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
     const data = Object.fromEntries(["announcements", "classAssignments", "evaluationPlans", "events", "polls", "feedback", "supplies", "supplyLoans", "lostItems", "resources", "patchNotes", "academicSchedules", "neisTimetables", "meals", "content", "classSettings"].map((name) => [name, []]));
