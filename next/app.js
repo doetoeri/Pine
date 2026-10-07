@@ -439,7 +439,7 @@ function scheduleItems() {
     });
   }
   const priority = { 수행평가: 0, "시험 범위": 1, 숙제: 2, "학급 행사": 3, 학사일정: 4 };
-  return rows.sort((a, b) => {
+  return rows.filter((item) => !/토요\s*휴업일/.test(item.title)).sort((a, b) => {
     const recurringA = /토요휴업일/.test(a.title) ? 1 : 0;
     const recurringB = /토요휴업일/.test(b.title) ? 1 : 0;
     return recurringA - recurringB
@@ -458,6 +458,7 @@ function upcomingSchedule(limit = 6, filter = "all") {
 
 function statusChipMarkup(item) {
   const status = statusInfo(item);
+  if (status.tone === "checking") return "";
   return `<span class="status-chip status-chip--${status.tone}"><md-icon>${status.icon}</md-icon>${status.label}</span>`;
 }
 
@@ -1412,8 +1413,7 @@ function hideDetailSurface({ restoreFocus = true } = {}) {
     });
     if (restoreFocus) restoreDetailFocus();
   };
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
-  else window.setTimeout(finish, 240);
+  finish();
 }
 
 function actualFocusable(control) {

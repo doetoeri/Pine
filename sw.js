@@ -23,7 +23,6 @@ const PINCON_APP_SHELL = [
   "./next/write-mode.js",
   "./next/readonly-notice.js",
   "./next/core/degraded-readonly.js",
-  "./next/ui-regression-fixes.js",
   "./next/today-changes.js",
   "./next/core/today-changes.js",
   "./next/theme.js",

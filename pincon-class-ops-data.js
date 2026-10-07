@@ -384,9 +384,11 @@ export class PinconClassOpsRepository extends EventTarget {
     for (const name of PUBLIC_COLLECTIONS) {
       const queryRef = queryFor(this.api, name, this.state.classKey, this.state.isPresident);
       if (!queryRef) continue;
+      let receivedSnapshot = false;
       const unsubscribe = listenQuery(this.api, queryRef, (snapshot) => {
         const previousStatus = this.state.collectionStatus[name];
-        const changed = !snapshot.docChanges || snapshot.docChanges().length > 0 || ["idle", "loading"].includes(previousStatus);
+        const changed = !receivedSnapshot || !snapshot.docChanges || snapshot.docChanges().length > 0;
+        receivedSnapshot = true;
         if (changed) this.state.data[name] = rowsForProfile(name, rowsFromSnapshot(snapshot), this.state.profile);
         this.state.collectionStatus[name] = snapshot.metadata?.fromCache ? "cached" : "success";
         if (snapshot.metadata?.fromCache) {

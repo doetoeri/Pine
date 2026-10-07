@@ -2286,3 +2286,8 @@ body:not(.pincon-boot-done) #app { visibility: visible; }
 .bottom-nav .nav-control md-icon { font-size: 22px; }
 .rail__nav .nav-control { display: flex; align-items: center; gap: 12px; padding: 12px 18px; text-align: left; }
 .nav-control:focus-visible { outline: 3px solid var(--md-sys-color-primary); outline-offset: -3px; }
+
+/* Open and close details without continuous animation or a delayed exit. */
+.detail-backdrop, .detail-surface { transition: none; box-shadow: none; }
+.detail-body--swap, .skeleton-row span { animation: none; }
+md-icon-button, md-text-button, md-filled-button, md-filled-tonal-button, md-outlined-button, .interactive-item { touch-action: manipulation; }

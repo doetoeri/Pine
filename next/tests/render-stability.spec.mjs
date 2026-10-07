@@ -67,3 +67,33 @@ test("repository batches notification and cache writes", async ({ page }) => {
   });
   expect(result).toEqual({ changes: 1, saves: 1 });
 });
+
+test("the first empty server result clears stale cached records", async ({ page }) => {
+  await page.goto("http://127.0.0.1:4173/next/", { waitUntil: "domcontentloaded" });
+  const result = await page.evaluate(async () => {
+    const { PinconClassOpsRepository } = await import("/pincon-class-ops-data.js");
+    const repository = new PinconClassOpsRepository();
+    repository.state.data.announcements = [{ id: "deleted", title: "오래된 공지" }];
+    repository.state.collectionStatus.announcements = "cached";
+    const receivers = new Map();
+    repository.api = {
+      db: {},
+      collection: (...args) => args.at(-1),
+      query: (name) => name,
+      where: () => null,
+      limit: () => null,
+      onSnapshot: (name, options, receive) => { receivers.set(name, receive); return () => {}; },
+    };
+    repository.listenPublic();
+    const receive = receivers.get("announcements");
+    receive({ docs: [], docChanges: () => [], metadata: { fromCache: false } });
+    const afterDeletion = repository.state.data.announcements.length;
+    receive({ docs: [{ id: "new", data: () => ({ title: "서버 공지" }) }], docChanges: () => [{ type: "added" }], metadata: { fromCache: false } });
+    const records = repository.state.data.announcements;
+    receive({ get docs() { throw new Error("Metadata-only updates must not read unchanged documents"); }, docChanges: () => [], metadata: { fromCache: false } });
+    const sameRecords = records === repository.state.data.announcements;
+    repository.dispose();
+    return { afterDeletion, title: records[0].title, sameRecords };
+  });
+  expect(result).toEqual({ afterDeletion: 0, title: "서버 공지", sameRecords: true });
+});

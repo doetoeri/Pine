@@ -31,7 +31,6 @@ await import("./theme.js?v=20261007-light1");
 
 await Promise.all([
   import("./today-changes.js?v=20261007-light1"),
-  import("./ui-regression-fixes.js?v=20260830-fix1"),
   import("./readonly-notice.js?v=20260905-readonly1"),
   import("./write-mode.js"),
   import("./evaluation-plans/student.js"),
