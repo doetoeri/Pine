@@ -155,7 +155,7 @@ test("account readiness precedes the app, which precedes experiments", async () 
   const bootstrap = await source("../app-bootstrap.js");
   const html = await source("../index.html");
   const gate = bootstrap.indexOf("await accountReady");
-  const app = bootstrap.indexOf('await import("./app.js?v=20261009-coverflow1")');
+  const app = bootstrap.indexOf('await import("./app.js?v=20261009-new1")');
   const experiments = bootstrap.indexOf("async function startExperiments");
   assert.ok(gate >= 0 && app > gate && experiments > app);
   assert.match(bootstrap, /simple-account-gate/);

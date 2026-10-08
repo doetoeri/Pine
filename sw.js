@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261009-coverflow1";
+const PINCON_SW_VERSION = "20261009-new1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -29,6 +29,9 @@ const PINCON_APP_SHELL = [
   "./next/app-interactions.js",
   "./next/core/notification-store.js",
   "./next/app.js",
+  "./new/index.html",
+  "./new/app.js",
+  "./new/app.css",
   "./next/assessments/coverflow.js",
   "./next/assessments/coverflow.css",
   "./next/assessments/attachments.js",
@@ -85,7 +88,7 @@ async function networkFirst(request, event) {
   const url = new URL(request.url);
   const indexUrl = new URL(url.href);
   if (indexUrl.pathname.endsWith("/")) indexUrl.pathname += "index.html";
-  else if (indexUrl.pathname.endsWith("/next")) indexUrl.pathname += "/index.html";
+  else if (/\/(?:next|new)$/.test(indexUrl.pathname)) indexUrl.pathname += "/index.html";
   const cached = await cache.match(request) || await cache.match(request, { ignoreSearch: true }) || await cache.match(indexUrl.href, { ignoreSearch: true });
   const network = fetchAndCache(new Request(request, { cache: "no-cache" }), cache);
   event.waitUntil(network.catch(() => {}));

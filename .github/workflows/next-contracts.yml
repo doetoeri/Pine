@@ -5,6 +5,7 @@ on:
     branches: [main, rebuild]
     paths:
       - "next/**"
+      - "new/**"
       - "index.html"
       - "manifest.webmanifest"
       - "sw.js"
@@ -19,6 +20,7 @@ on:
   pull_request:
     paths:
       - "next/**"
+      - "new/**"
       - "index.html"
       - "manifest.webmanifest"
       - "sw.js"
@@ -49,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           for file in \
+            new/app.js \
             next/app.js \
             next/assessments/coverflow.js \
             next/assessments/attachments.js \

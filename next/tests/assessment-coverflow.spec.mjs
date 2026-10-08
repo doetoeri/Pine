@@ -12,7 +12,8 @@ for (const width of [360, 768, 1440]) {
       } }));
     });
     await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
-    await page.goto("http://127.0.0.1:4173/next/#classroom", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator(".rail, .app-frame, .topbar")).toHaveCount(0);
     const scene = page.locator(".pc-scene");
     await expect(scene).toBeVisible();
     await expect(page.locator(".pc-cover")).toHaveCount(16);
@@ -20,10 +21,10 @@ for (const width of [360, 768, 1440]) {
     await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "cover-1");
     await expect(page.locator(".pc-caption-title")).toHaveText("영어 수행평가 1");
     await page.locator('.pc-cover[aria-pressed="true"]').click();
-    await expect(page.locator("#detailTitle")).toHaveText("영어 수행평가 1");
-    await expect(page.locator("#detailSurface")).toContainText("실제 상세 내용");
-    await page.locator('#detailSurface [data-detail-close]').first().click();
-    await expect(page.locator("#detailLayer")).toBeHidden();
+    await expect(page.locator("#detail-title")).toHaveText("영어 수행평가 1");
+    await expect(page.locator("#details")).toContainText("실제 상세 내용");
+    await page.locator('#details [data-close]').first().click();
+    await expect(page.locator("#details")).toBeHidden();
     await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "cover-1");
     await scene.press("End");
     await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "cover-15");

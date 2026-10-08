@@ -1,5 +1,3 @@
-import { coverflowMarkup, mountCoverflow } from "./assessments/coverflow.js";
-import { mountAttachmentViewer } from "./assessments/viewer.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "./core/data-gateway.js";
 import { buildNotificationFeed } from "./core/notification-store.js";
 import { buildRecoveryPack, recoveryProgress, setRecoveryItemCompleted } from "./core/recovery-pack.js";
@@ -741,13 +739,12 @@ function recoveryPackMarkup() {
 }
 
 function classroomPage() {
-  const assignments = (collections().classAssignments || []).filter((item) => !item.deleted && item.published !== false);
+  const assignments = (collections().classAssignments || []).filter((item) => !item.deleted && item.published !== false).slice(0, 8);
   const evaluationPlans = (collections().evaluationPlans || []).filter((item) => !item.deleted && item.status !== "draft").slice(0, 12);
   const events = (collections().events || []).filter((item) => !item.deleted && item.status !== "draft").slice(0, 8);
   const resources = (collections().resources || []).filter((item) => !item.deleted && (!item.moderationStatus || item.moderationStatus === "approved")).slice(0, 8);
   const lostItems = (collections().lostItems || []).filter((item) => !item.deleted && item.status !== "resolved").slice(0, 8);
-  const assessmentRows = assignments.filter(item => !item.type || item.type === "assessment").sort((a,b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999")).map(item => ({ ...item, subject: fullSubjectName(item.subject), kind: item.evaluationMethod || "수행평가", detailKey: registerDetail("assignment", item, { collection: "classAssignments", route: "classroom" }) }));
-  const assignmentRows = assignments.filter(item => item.type && item.type !== "assessment").map((item) => ({
+  const assignmentRows = assignments.map((item) => ({
     category: assignmentCategory(item),
     filter: "work",
     title: itemTitle(item),
@@ -784,8 +781,7 @@ function classroomPage() {
     ${syncMarkup()}
     ${recoveryPackMarkup()}
     <div class="grid grid--2" data-render-key="classroom-grid" data-render-group>
-      ${coverflowMarkup(assessmentRows, state.data.profile?.classKey || "")}
-      <article class="surface" data-render-key="assignments"><div class="surface__header"><h2 class="surface__title">시험·준비물</h2><span class="surface__meta">${assignmentRows.length ? `${assignmentRows.length}건` : ""}</span></div>${scheduleRows(assignmentRows, { loadingNames: ["classAssignments"] })}</article>
+      <article class="surface" data-render-key="assignments"><div class="surface__header"><h2 class="surface__title">수행·숙제</h2><span class="surface__meta">${assignments.length ? `${assignments.length}건` : ""}</span></div>${scheduleRows(assignmentRows, { loadingNames: ["classAssignments"] })}</article>
       <div class="evaluation-plan-region" data-render-key="plans"><article class="surface"><div class="surface__header"><h2 class="surface__title">평가계획서 자료실</h2><span class="surface__meta">${evaluationPlans.length ? `${evaluationPlans.length}개` : ""}</span></div>${planRows}</article></div>
       <article class="surface" data-render-key="events"><div class="surface__header"><h2 class="surface__title">학급 행사</h2><span class="surface__meta">${events.length ? `${events.length}건` : ""}</span></div>${scheduleRows(eventRows, { loadingNames: ["events"] })}</article>
       <article class="surface" data-render-key="resources"><div class="surface__header"><h2 class="surface__title">학습 자료</h2><span class="surface__meta">${resources.length ? `${resources.length}건` : ""}</span></div>${resourceRows(resources)}</article>
@@ -963,7 +959,6 @@ function render({ preserveView = false } = {}) {
     if (meta.textContent !== label) meta.textContent = label;
   }
   if (!shell) rememberPage(app.querySelector("#mainContent"), page);
-  mountCoverflow(app, (key, trigger) => openDetail(key, trigger));
   renderedPage = page;
   renderedRoute = state.route;
   window.dispatchEvent(new CustomEvent("pincon-render", { detail: { route: state.route } }));
@@ -1082,14 +1077,10 @@ function assignmentDetail(record) {
     summary: `${date ? `${dateLabel(date)} · ${timeDistance(date)}` : "날짜 미정"}${item.subject ? ` · ${fullSubjectName(item.subject)}` : ""}`,
     badges: `${statusChipMarkup(item)}${originChipMarkup(item, context)}`,
     body: `${notificationContextMarkup()}
-      ${state.data.canArchiveContent ? `<a class="pc-attachment-button" href="./admin/?assignment=${encodeURIComponent(item.id)}">내용·첨부 수정</a>` : ""}
       ${detailSection("핵심 정보", detailFieldsMarkup(fields))}
       ${detailSection(category === "시험 범위" ? "평가계획서 원본" : "원본 평가계획서", plan
         ? `${item.pageReferences ? `<p class="detail-muted">관련 페이지 · ${escapeHtml(item.pageReferences)}</p>` : ""}${linkedMaterialsMarkup(plan)}`
         : linkedMaterialsMarkup(item))}
-      ${detailSection("첨부 자료", [
-        ["noticeAttachment", "안내문 JPG"], ["worksheetPack", "학습지팩 PDF"]
-      ].filter(([slot]) => item[slot]?.storagePath).map(([slot, label]) => `<button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escapeHtml(item.id)}">${label} · ${escapeHtml(item[slot].fileName || "파일 보기")}</button>`).join("") || '<p class="detail-muted">등록된 안내문이나 학습지팩이 없습니다.</p>')}
       ${detailSection("변경 기록", changeHistoryMarkup(record))}`,
   };
 }
@@ -1334,7 +1325,7 @@ function renderDetailSurface({ focus = false, swap = false } = {}) {
   app.querySelectorAll("[data-detail-key]").forEach((item) => {
     const selected = item.getAttribute("data-detail-key") === state.detailKey;
     item.toggleAttribute("data-highlight", selected);
-    if (!item.matches(".pc-cover")) item.setAttribute("aria-pressed", String(selected));
+    item.setAttribute("aria-pressed", String(selected));
   });
 
   if (!spec) {
@@ -1383,7 +1374,7 @@ function hideDetailSurface({ restoreFocus = true } = {}) {
     if (!layer.classList.contains("is-open")) layer.hidden = true;
     app.querySelectorAll("[data-detail-key]").forEach((item) => {
       item.removeAttribute("data-highlight");
-      if (!item.matches(".pc-cover")) item.setAttribute("aria-pressed", "false");
+      item.setAttribute("aria-pressed", "false");
     });
     if (restoreFocus) restoreDetailFocus();
   };
@@ -1785,7 +1776,6 @@ if (!location.hash) {
   }, "", routeHash(state.route, state.detailKey));
 }
 
-mountAttachmentViewer(gateway);
 updateVisualViewport();
 render();
 gateway.start().catch((error) => console.error("[PinCon Data]", error));
