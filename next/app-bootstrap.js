@@ -25,7 +25,7 @@ document.body.dataset.pinconVariant = "legacy";
 await import("./evaluation-plans/service.js");
 await import("./personal-notification-filter.js?v=20260830-personal1");
 await import("./loading-resilience.js?v=20261007-light2");
-await import("./app.js?v=20261007-light2");
+await import("./app.js?v=20261009-coverflow1");
 await import("./app-interactions.js?v=20261007-light2");
 await import("./theme.js?v=20261007-light2");
 

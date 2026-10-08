@@ -10,6 +10,7 @@ let activeType = "all";
 let showArchive = false;
 let renderQueued = false;
 let saving = false;
+let pendingAssignment = new URLSearchParams(location.search).get("assignment") || "";
 
 const TYPES = Object.freeze({
   announcements: { label: "공지", icon: "campaign", noun: "공지" },
@@ -131,6 +132,14 @@ function formFields(collection, item = {}) {
       ${selectField("확인 상태", "verificationStatus", [["review","확인 중"],["verified","공식 자료 확인"],["changed","수업 중 변경됨"]], item.verificationStatus || "review")}
       ${field("학생에게 안내된 날짜", "announcedDate", dateValue(item.announcedDate) || localToday(), { type: "date", max: 0 })}
       ${textarea("학생용 요약", "description", item.description, 1200)}
+      <fieldset class="ops-v2-attachments"><legend>첨부 자료</legend>
+        <label class="ops-v2-field"><span>안내문 JPG · 10MB 이하</span><input name="noticeFile" type="file" accept="image/jpeg,.jpg,.jpeg"><small>${escapeHtml(item.noticeAttachment?.fileName || "JPG 안내문을 선택해 주세요.")}</small></label>
+        ${item.noticeAttachment ? checkField("기존 안내문 첨부 해제", "removeNotice") : ""}
+        <label class="ops-v2-field"><span>학습지팩 PDF · 10MB 이하</span><input name="packFile" type="file" accept="application/pdf,.pdf"><small>${escapeHtml(item.worksheetPack?.fileName || "PDF 학습지팩을 선택해 주세요.")}</small></label>
+        ${item.worksheetPack ? checkField("기존 학습지팩 첨부 해제", "removePack") : ""}
+        ${checkField("파일 공유 권한과 개인정보 제거를 확인함", "fileConfirmed")}
+        <small>저장을 누르면 업로드됩니다. 파일을 선택하지 않으면 기존 첨부를 유지합니다.</small>
+      </fieldset>
       <div class="ops-v2-check-row">${checkField("학생 화면에 공개", "published", item.published !== false)}${checkField("결석자 복귀팩에 포함", "recoveryRelevant", item.recoveryRelevant !== false)}</div>`;
   }
 
@@ -235,6 +244,7 @@ function openEditor(collection, id = "", duplicate = false) {
 }
 
 function closeEditor() {
+  if (saving) return;
   root?.querySelector("#opsV2Dialog")?.close();
 }
 
@@ -272,6 +282,7 @@ async function submitEditor(event) {
   const saveButton = root?.querySelector("#opsV2Save");
   if (!dialog || !collection) return;
   saving = true;
+  for (const button of dialog.querySelectorAll("button")) button.disabled = true;
   if (saveButton) saveButton.disabled = true;
   if (status) { status.textContent = "Firestore에 저장한 뒤 서버에서 다시 확인하고 있습니다…"; status.dataset.kind = ""; }
   try {
@@ -279,15 +290,20 @@ async function submitEditor(event) {
     const result = await service.save(collection, valuesFromForm(collection, form), {
       id: dialog.dataset.recordId || "",
       file,
+      noticeFile: collection === "classAssignments" ? form.elements.namedItem("noticeFile")?.files?.[0] || null : null,
+      packFile: collection === "classAssignments" ? form.elements.namedItem("packFile")?.files?.[0] || null : null,
+      removeNotice: form.elements.namedItem("removeNotice")?.checked === true,
+      removePack: form.elements.namedItem("removePack")?.checked === true,
       fileConfirmed: form.elements.namedItem("fileConfirmed")?.checked === true,
     });
-    closeEditor();
+    dialog.close();
     setStatus(`저장 완료 · 서버에서 ${result.id} 확인됨`, "success");
     await gateway.retry();
   } catch (error) {
     if (status) { status.textContent = error?.message || "저장하지 못했습니다."; status.dataset.kind = "error"; }
   } finally {
     saving = false;
+    for (const button of dialog.querySelectorAll("button")) button.disabled = false;
     if (saveButton) saveButton.disabled = false;
   }
 }
@@ -335,6 +351,7 @@ function handleClick(event) {
 
 function bindCard() {
   root?.querySelector("#opsV2Form")?.addEventListener("submit", submitEditor);
+  root?.querySelector("#opsV2Dialog")?.addEventListener("cancel", event => { if (saving) event.preventDefault(); });
   root?.querySelector("#opsV2Search")?.addEventListener("input", (event) => {
     query = event.target.value;
     const list = root?.querySelector(".ops-v2-list");
@@ -368,6 +385,10 @@ function render() {
   grid.insertAdjacentHTML("afterbegin", mainMarkup());
   bindCard();
   patchQuickActions();
+  if (pendingAssignment && service.find("classAssignments", pendingAssignment)) {
+    const id = pendingAssignment; pendingAssignment = "";
+    openEditor("classAssignments", id);
+  }
 }
 
 function queueRender() {

@@ -1,3 +1,4 @@
+import { stageAttachments } from "../assessments/attachments.js";
 import { NextDataGateway } from "../core/data-gateway.js";
 
 const EDITABLE_COLLECTIONS = new Set([
@@ -45,6 +46,7 @@ function safeAudit(value = {}) {
     if (typeof item === "string") out[key] = item.slice(0, 2000);
     else if (["number", "boolean"].includes(typeof item) || item === null) out[key] = item;
     else if (Array.isArray(item)) out[key] = item.slice(0, 40);
+    else if (["noticeAttachment", "worksheetPack"].includes(key) && item && typeof item === "object") out[key] = { fileName: clean(item.fileName, 160), storagePath: clean(item.storagePath, 600), contentType: clean(item.contentType, 80), fileSize: Number(item.fileSize || 0) };
   }
   return out;
 }
@@ -169,10 +171,12 @@ export class ContentServiceV2 extends EventTarget {
     return (this.gateway.snapshot().data?.[collection] || []).find((item) => item?.id === id) || null;
   }
 
-  async save(collection, values, { id = "", file = null, fileConfirmed = false } = {}) {
+  async save(collection, values, options = {}) {
+    const { id = "", file = null, fileConfirmed = false, noticeFile = null, packFile = null } = options;
     if (!EDITABLE_COLLECTIONS.has(collection)) throw new Error("지원하지 않는 콘텐츠 종류입니다.");
     if (this.busy) throw new Error("이전 저장이 아직 끝나지 않았습니다.");
     this.busy = true;
+    let attachmentStage = null, committed = false;
     try {
       const { snapshot, repository, user } = await this.ready();
       const api = repository.api;
@@ -208,6 +212,11 @@ export class ContentServiceV2 extends EventTarget {
       recordId = targetRef.id;
       const beforeSnapshot = current ? await api.getDoc(targetRef) : null;
       const before = beforeSnapshot?.exists?.() ? beforeSnapshot.data() : null;
+      if (collection === "classAssignments") {
+        if ((noticeFile || packFile) && !fileConfirmed) throw new Error("파일 공유 권한과 개인정보 제거 여부를 확인해 주세요.");
+        attachmentStage = await stageAttachments(repository, snapshot.profile.classKey, recordId, before || current, options);
+        normalized = { ...normalized, ...attachmentStage.values };
+      }
       const next = {
         ...(before || current || {}),
         ...normalized,
@@ -242,6 +251,8 @@ export class ContentServiceV2 extends EventTarget {
         source: "operations-center-v2",
       });
       await batch.commit();
+      committed = true;
+      await attachmentStage?.cleanup();
 
       const verify = await api.getDoc(targetRef);
       if (!verify?.exists?.()) throw new Error("서버 저장 확인에 실패했습니다. 다시 시도해 주세요.");
@@ -251,6 +262,7 @@ export class ContentServiceV2 extends EventTarget {
       this.dispatchEvent(new CustomEvent("saved", { detail: { collection, id: recordId, record: saved } }));
       return { id: recordId, record: saved };
     } catch (error) {
+      if (!committed) await attachmentStage?.rollback();
       const code = clean(error?.code, 120);
       if (code.includes("permission-denied")) {
         throw new Error("Firestore가 저장을 거부했습니다. 관리자 역할과 학급 권한을 다시 확인해 주세요.");

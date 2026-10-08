@@ -494,3 +494,7 @@
     border-radius: 20px;
   }
 }
+
+.ops-v2-attachments { display: grid; gap: 16px; border: 1px solid var(--md-sys-color-outline-variant, #cbd2df); border-radius: 14px; padding: 18px; min-width: 0; }
+.ops-v2-attachments legend { font-weight: 700; padding: 0 6px; }
+.ops-v2-attachments small { font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }

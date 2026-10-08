@@ -50,6 +50,10 @@ jobs:
           set -euo pipefail
           for file in \
             next/app.js \
+            next/assessments/coverflow.js \
+            next/assessments/attachments.js \
+            next/assessments/viewer.js \
+            next/admin/content-service-v2.js \
             next/app-interactions.js \
             next/app-bootstrap.js \
             next/detail-history-stability.js \
@@ -114,6 +118,7 @@ jobs:
         run: >-
           node --test
           next/tests/contracts.test.mjs
+          next/tests/assessment-attachments.test.mjs
           next/tests/admin-policy.test.mjs
           next/tests/today-open-write.test.mjs
           next/tests/today-changes.test.mjs

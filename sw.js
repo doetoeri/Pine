@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261007-light2";
+const PINCON_SW_VERSION = "20261009-coverflow1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -29,6 +29,10 @@ const PINCON_APP_SHELL = [
   "./next/app-interactions.js",
   "./next/core/notification-store.js",
   "./next/app.js",
+  "./next/assessments/coverflow.js",
+  "./next/assessments/coverflow.css",
+  "./next/assessments/attachments.js",
+  "./next/assessments/viewer.js",
   "./next/assets/pincon-icon.svg",
   "./next/core/region-renderer.js",
   "./next/core/recovery-pack.js",
