@@ -35,7 +35,7 @@ export function mountCoverflow(root, openDetail) {
   let target = position, velocity = 0, ignoreClick = 0, entering = !reduced.matches && !introduced.has(selectionKey), start = performance.now();
   introduced.add(selectionKey);
   const center = position;
-  const entranceDuration = 880, stagger = 58;
+  const entranceDuration = 460, stagger = 28;
   const entranceEnd = entranceDuration + Math.min(Math.max(center, cards.length - 1 - center), 6) * stagger;
   const controller = { destroy };
   controllers.set(host, controller);
@@ -46,8 +46,9 @@ export function mountCoverflow(root, openDetail) {
   const listen = new AbortController(), options = { signal: listen.signal };
 
   function destroy() { cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); }
-  function paint(now = performance.now()) {
-    const scale = width / 384;
+  function paint() {
+    // Resize callbacks and animation frames share one monotonic entrance clock.
+    const now = performance.now(), scale = width / 384;
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i], delta = i - position, distance = Math.abs(delta), visible = distance < 6.6;
       card.style.visibility = visible ? "visible" : "hidden";
@@ -57,10 +58,12 @@ export function mountCoverflow(root, openDetail) {
       const turn = Math.sin(Math.min(distance, 1) * Math.PI / 2), sign = Math.sign(delta);
       const delay = Math.min(Math.abs(i - center), 6) * stagger;
       const t = entering ? clamp((now - start - delay) / entranceDuration, 0, 1) : 1;
-      const spread = t === 1 ? 1 : 1 - Math.exp(-7.5 * t) * (Math.cos(13 * t) + 7.5 / 13 * Math.sin(13 * t));
+      // Critically damped: approach the resting layout without overshooting it.
+      const spread = t === 1 ? 1 : (1 - (1 + 7 * t) * Math.exp(-7 * t)) / (1 - 8 * Math.exp(-7));
+      const remaining = 1 - spread;
       const x = (delta * 82 + sign * 152 * turn) * scale, z = (-134 * turn - Math.max(0, distance - 1) * 5) * scale;
-      card.style.transform = `translate3d(${x * spread}px,${(44 + distance * 8) * (1 - spread) * scale}px,${z * spread - 90 * (1 - spread) * scale}px) rotateY(${-sign * 65 * turn * spread + sign * 42 * (1 - spread)}deg) rotateX(${5 * (1 - spread)}deg) scale(${.91 + .09 * spread})`;
-      card.style.opacity = String(1 - Math.pow(1 - clamp(t * 3.2, 0, 1), 3));
+      card.style.transform = `translate3d(${x - sign * 18 * remaining * scale}px,${14 * remaining * scale}px,${z - 18 * remaining * scale}px) rotateY(${-sign * 65 * turn}deg) scale(${.985 + .015 * spread})`;
+      card.style.opacity = String(1 - Math.pow(1 - clamp(t * 2.4, 0, 1), 3));
       card.style.zIndex = String(1000 - Math.round(distance * 100));
     }
     const index = clamp(Math.round(position), 0, cards.length - 1);
@@ -83,11 +86,11 @@ export function mountCoverflow(root, openDetail) {
       if (now - start >= entranceEnd || reduced.matches) entering = false;
     } else if (!drag) {
       if (reduced.matches) { position = target; velocity = 0; }
-      else { const offset = position - target, decay = Math.exp(-12 * dt), cos = Math.cos(6 * dt), sin = Math.sin(6 * dt), v = velocity; position = target + decay * (offset * cos + (v + 12 * offset) / 6 * sin); velocity = decay * (v * cos - (12 * v + 180 * offset) / 6 * sin); }
+      else { const offset = position - target, decay = Math.exp(-18 * dt), approach = velocity + 18 * offset; position = target + (offset + approach * dt) * decay; velocity = (velocity - 18 * approach * dt) * decay; }
     }
     const moving = Math.abs(position - target) > .00015 || Math.abs(velocity) > .002;
     if (!moving && !drag && !entering) { position = target; velocity = 0; last = 0; }
-    paint(now);
+    paint();
     if (entering || moving && !drag) animate();
   }
   function go(index) { entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1); last = 0; animate(); }

@@ -17,9 +17,9 @@
 
 .pc-flow .pc-caption-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
-.pc-motion-dialog{transform-origin:50% 45%}
-.pc-motion-dialog[data-dialog-motion="opening"]::backdrop{animation:pc-backdrop-in 360ms cubic-bezier(.2,.7,.2,1) both}
-.pc-motion-dialog[data-dialog-motion="closing"]::backdrop{animation:pc-backdrop-out 180ms ease-in both}
+.pc-motion-dialog{transform-origin:50% 50%}
+.pc-motion-dialog[data-dialog-motion="opening"]::backdrop{animation:pc-backdrop-in 280ms cubic-bezier(.2,.8,.2,1) both}
+.pc-motion-dialog[data-dialog-motion="closing"]::backdrop{animation:pc-backdrop-out 160ms cubic-bezier(.4,0,1,1) both}
 @keyframes pc-backdrop-in{from{opacity:var(--pc-backdrop-from,0)}to{opacity:1}}
 @keyframes pc-backdrop-out{from{opacity:var(--pc-backdrop-from,1)}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){.pc-motion-dialog::backdrop{animation:none!important}}

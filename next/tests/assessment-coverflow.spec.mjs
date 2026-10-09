@@ -98,7 +98,7 @@ test("both upload slots accept PDF/images and a failed transfer can be retried w
   await expect(page.locator("#details")).toBeHidden();
 });
 
-test("covers cascade with a rebound, settle, and stay settled when data refreshes", async ({ page }) => {
+test("covers enter in a restrained cascade without bouncing and stay settled on refresh", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 360, height: 800 });
   await page.addInitScript(() => {
@@ -123,7 +123,9 @@ test("covers cascade with a rebound, settle, and stay settled when data refreshe
   await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
   const samples = await page.evaluate(() => window.motionSamples);
   expect(samples.some(sample => sample.first > .2 && sample.fourth < .05)).toBe(true);
-  expect(samples.some(sample => sample.y < -1)).toBe(true);
+  expect(samples.filter(sample => sample.phase === "entering").length).toBeGreaterThan(2);
+  expect(samples.every(sample => sample.y >= 0 && sample.y <= 15)).toBe(true);
+  expect(samples.slice(1).every((sample, i) => sample.y <= samples[i].y + .001)).toBe(true);
   expect(samples.at(-1).y).toBe(0);
   await page.evaluate(async () => {
     const { NextDataGateway } = await import("/next/core/data-gateway.js");

@@ -1,11 +1,11 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js?v=20261009-motion1";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-motion1";
+import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js?v=20261009-motion2";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-motion2";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
-import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-motion1";
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-motion2";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));

@@ -49,18 +49,16 @@ function play(dialog, frames, options, phase, finish) {
 
 export function openDialog(dialog) {
   prepareDialog(dialog);
-  const wasOpen = dialog.open, state = motions.get(dialog);
+  const wasOpen = dialog.open;
   if (wasOpen && dialog.dataset.dialogMotion !== "closing") return;
   const current = wasOpen ? getComputedStyle(dialog) : null;
-  const from = current ? { opacity: current.opacity, transform: current.transform } : { opacity: 0, transform: "translateY(22px) scale(.955)" };
+  const from = current ? { opacity: current.opacity, transform: current.transform } : { opacity: 0, transform: "translateY(8px) scale(.98)" };
   dialog.style.setProperty("--pc-backdrop-from", wasOpen ? getComputedStyle(dialog, "::backdrop").opacity : "0");
   if (!wasOpen) dialog.showModal();
-  // A gentle overshoot, then a short settle, rather than a hard zoom.
   play(dialog, [
-    { ...from, offset: 0, easing: "cubic-bezier(.18,.8,.25,1)" },
-    { opacity: 1, transform: "translateY(-2px) scale(1.006)", offset: .72, easing: "cubic-bezier(.3,0,.3,1)" },
-    { opacity: 1, transform: "translateY(0) scale(1)", offset: 1 }
-  ], { duration: 360 }, "opening", () => {});
+    from,
+    { opacity: 1, transform: "translateY(0) scale(1)" }
+  ], { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" }, "opening", () => {});
 }
 
 export function closeDialog(dialog) {
@@ -70,15 +68,15 @@ export function closeDialog(dialog) {
   dialog.style.setProperty("--pc-backdrop-from", getComputedStyle(dialog, "::backdrop").opacity);
   play(dialog, [
     { opacity: current.opacity, transform: current.transform },
-    { opacity: 0, transform: "translateY(12px) scale(.975)" }
-  ], { duration: 180, easing: "cubic-bezier(.4,0,.75,1)" }, "closing", () => dialog.close());
+    { opacity: 0, transform: "translateY(4px) scale(.99)" }
+  ], { duration: 160, easing: "cubic-bezier(.4,0,1,1)" }, "closing", () => dialog.close());
 }
 
 export function revealDialogContent(dialog) {
   if (!dialog.open || reduced()) return;
   const content = dialog.querySelector(".dialog-body, .pc-file-body");
   content?.animate([
-    { opacity: 0, transform: "translateY(8px)" },
-    { opacity: 1, transform: "translateY(0)" }
-  ], { duration: 240, easing: "cubic-bezier(.2,.7,.2,1)" });
+    { opacity: 0 },
+    { opacity: 1 }
+  ], { duration: 160, easing: "cubic-bezier(.2,.8,.2,1)" });
 }
