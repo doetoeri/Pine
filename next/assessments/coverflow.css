@@ -37,3 +37,8 @@
 @keyframes pc-backdrop-in{from{opacity:var(--pc-backdrop-from,0)}to{opacity:1}}
 @keyframes pc-backdrop-out{from{opacity:var(--pc-backdrop-from,1)}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){.pc-motion-dialog::backdrop{animation:none!important}}
+
+/* Mask outside the perspective scene so the covers and their reflections keep
+   their 3D depth. The caption sits outside this viewport and stays fully clear. */
+.pc-flow-viewport{--pc-edge-fade:clamp(20px,8%,88px);position:relative;width:100%;height:100%;overflow:hidden;--pc-edge-mask:linear-gradient(to right,transparent 0%,#0002 calc(var(--pc-edge-fade) * .25),#0008 calc(var(--pc-edge-fade) * .55),#000e calc(var(--pc-edge-fade) * .82),#000 var(--pc-edge-fade),#000 calc(100% - var(--pc-edge-fade)),#000e calc(100% - var(--pc-edge-fade) * .82),#0008 calc(100% - var(--pc-edge-fade) * .55),#0002 calc(100% - var(--pc-edge-fade) * .25),transparent 100%);-webkit-mask-image:var(--pc-edge-mask);mask-image:var(--pc-edge-mask);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.pc-flow-viewport>.pc-scene{overflow:visible}

@@ -50,6 +50,54 @@ for (const width of [360, 768, 1440]) {
 }
 
 
+for (const width of [360, 1440]) {
+  test(`cover edges fade without removing a still-visible sheet at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(() => {
+      localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+      localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+        classAssignments: Array.from({ length: 96 }, (_, i) => ({ id: `edge-${i}`, classKey: "1-8", type: "assessment", subject: ["미술", "국어", "수학", "영어"][i % 4], title: `Assessment ${i}`, dueDate: "2099-11-13", published: true })),
+      } }));
+    });
+    await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+    await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+    const scene = page.locator(".pc-scene"), viewport = page.locator(".pc-flow-viewport");
+    for (let i = 0; i < 4; i++) await scene.press("PageDown");
+    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "edge-16");
+    await expect(scene).toHaveAttribute("data-motion", "resting");
+    expect(await viewport.evaluate(node => getComputedStyle(node).maskImage)).not.toBe("none");
+    expect(await page.locator(".pc-caption").evaluate(node => node.closest(".pc-flow-viewport"))).toBeNull();
+    const selected = await page.locator('.pc-cover[aria-pressed="true"]').boundingBox();
+    expect(selected.x).toBeGreaterThan(30);
+    expect(selected.x + selected.width).toBeLessThan(width - 30);
+    const far = page.locator('.pc-cover[data-index="23"]');
+    if (width === 1440) {
+      await expect(far).toHaveCSS("visibility", "visible");
+      const box = await far.boundingBox();
+      expect(box.x).toBeLessThan(width);
+      expect(box.x + box.width).toBeGreaterThan(width);
+    } else await expect(far).toHaveCSS("visibility", "hidden");
+    const visibleCount = await page.locator(".pc-cover").evaluateAll(cards => cards.filter(card => card.style.visibility === "visible").length);
+    expect(visibleCount).toBeLessThan(30);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.screenshot({ path: test.info().outputPath("cover-edges.png") });
+    const front = page.locator('.pc-cover[data-index="16"]'), transform = await front.evaluate(node => node.style.transform);
+    await page.mouse.move(width / 2, selected.y + selected.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(width / 2 - 70, selected.y + selected.height / 2, { steps: 8 });
+    await expect.poll(() => front.evaluate(node => node.style.transform)).not.toBe(transform);
+    await page.screenshot({ path: test.info().outputPath("cover-edges-drag.png") });
+    await page.mouse.up();
+    await expect(scene).toHaveAttribute("data-motion", "resting");
+    const idleUpdates = await page.evaluate(async () => {
+      let count = 0; const observer = new MutationObserver(records => { count += records.length; });
+      observer.observe(document.querySelector(".pc-flow-viewport"), { attributes: true, subtree: true, attributeFilter: ["style"] });
+      await new Promise(resolve => setTimeout(resolve, 160)); observer.disconnect(); return count;
+    });
+    expect(idleUpdates).toBe(0);
+  });
+}
+
 test("administrators can delete assessments in new, cancel and retry safely without losing attachments", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.addInitScript(() => {

@@ -48,9 +48,9 @@ function face(row) {
 export function coverflowMarkup(rows, classKey = "") {
   if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="assessment-flow"><p>등록된 수행평가가 없습니다.</p></section>`;
   return `<section class="pc-flow" data-render-key="assessment-flow" data-class-key="${escape(classKey)}" aria-label="수행평가">
-    <div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="수행평가 커버플로우. 좌우 드래그 또는 방향키로 선택하고 가운데 커버를 누르면 상세 내용을 엽니다.">
+    <div class="pc-flow-viewport"><div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="수행평가 커버플로우. 좌우 드래그 또는 방향키로 선택하고 가운데 커버를 누르면 상세 내용을 엽니다.">
       ${rows.map((row, index) => `<button type="button" class="pc-cover pc-theme-${subjectTheme(row.subject)}" data-index="${index}" data-assessment-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey)}" data-detail-route="classroom" aria-pressed="false" tabindex="-1" aria-label="${escape((row.subject || '수행평가') + ' · ' + row.title)}">${face(row)}<span class="pc-reflection" aria-hidden="true">${face(row)}</span></button>`).join("")}
-    </div><div class="pc-caption"><p class="pc-caption-title"></p><p class="pc-caption-subject"></p></div><p class="sr-only pc-announcement" aria-live="polite" aria-atomic="true"></p>
+    </div></div><div class="pc-caption"><p class="pc-caption-title"></p><p class="pc-caption-subject"></p></div><p class="sr-only pc-announcement" aria-live="polite" aria-atomic="true"></p>
   </section>`;
 }
 
@@ -122,15 +122,7 @@ export function mountCoverflow(root, openDetail) {
     // Resize callbacks and animation frames share one monotonic entrance clock.
     const now = performance.now(), scale = width / 384;
     for (let i = 0; i < cards.length; i++) {
-      const card = cards[i], delta = i - position, distance = Math.abs(delta), visible = distance < 6.6;
-      if (visibility[i] !== visible) {
-        card.style.visibility = visible ? "visible" : "hidden";
-        card.style.pointerEvents = visible ? "auto" : "none";
-        visibility[i] = visible;
-      }
-      const hint = visible && (entering || last || drag) ? "transform" : "auto";
-      if (hint !== hints[i]) { card.style.willChange = hint; hints[i] = hint; }
-      if (!visible) { paintLight(i, 0, 0, 0, 1, false, false); continue; }
+      const card = cards[i], delta = i - position, distance = Math.abs(delta);
       const turn = Math.sin(Math.min(distance, 1) * Math.PI / 2), sign = Math.sign(delta);
       const delay = Math.min(Math.abs(i - center), 6) * stagger;
       const t = entering ? clamp((now - start - delay) / entranceDuration, 0, 1) : 1;
@@ -140,10 +132,25 @@ export function mountCoverflow(root, openDetail) {
       const x = (delta * 82 + sign * 152 * turn) * scale, z = (-134 * turn - Math.max(0, distance - 1) * 5) * scale;
       const yaw = -sign * 65 * turn, cardScale = .985 + .015 * spread;
       const renderX = x - sign * 18 * remaining * scale, renderZ = z - 18 * remaining * scale;
+      // Cull only after both projected edges leave the viewport. A fixed card
+      // count can remove a still-visible cover on a wide screen or mid-drag.
+      const radians = yaw * Math.PI / 180, half = width * cardScale / 2;
+      const sin = Math.sin(radians), cos = Math.cos(radians);
+      const left = 1600 * (renderX - cos * half) / (1600 - renderZ - sin * half);
+      const right = 1600 * (renderX + cos * half) / (1600 - renderZ + sin * half);
+      const visible = Math.max(left, right) > -sceneWidth / 2 - 24 && Math.min(left, right) < sceneWidth / 2 + 24;
+      if (visibility[i] !== visible) {
+        card.style.visibility = visible ? "visible" : "hidden";
+        card.style.pointerEvents = visible ? "auto" : "none";
+        visibility[i] = visible;
+      }
+      const hint = visible && (entering || last || drag) ? "transform" : "auto";
+      if (hint !== hints[i]) { card.style.willChange = hint; hints[i] = hint; }
+      if (!visible) { paintLight(i, 0, 0, 0, 1, false, false); continue; }
       card.style.transform = `translate3d(${renderX}px,${14 * remaining * scale}px,${renderZ}px) rotateY(${yaw}deg) scale(${cardScale})`;
       card.style.opacity = String(1 - Math.pow(1 - clamp(t * 2.4, 0, 1), 3));
       card.style.zIndex = String(1000 - Math.round(distance * 100));
-      paintLight(i, yaw * Math.PI / 180, renderX, renderZ, cardScale, Boolean(entering || last || drag), true);
+      paintLight(i, radians, renderX, renderZ, cardScale, Boolean(entering || last || drag), true);
     }
     const index = clamp(Math.round(position), 0, cards.length - 1);
     if (index !== selected) {
