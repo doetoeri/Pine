@@ -50,6 +50,74 @@ for (const width of [360, 768, 1440]) {
 }
 
 
+test("administrators can delete assessments in new, cancel and retry safely without losing attachments", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+      classAssignments: [0, 1].map(i => ({ id: `delete-${i}`, classKey: "1-8", type: "assessment", title: `삭제 검사 ${i}`, subject: "미술", dueDate: "2099-11-13", published: true,
+        noticeAttachment: { storagePath: `assessments/delete-${i}/notice.jpg`, fileName: "안내문.jpg", contentType: "image/jpeg" } })),
+    } }));
+  });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".pc-cover")).toHaveCount(2);
+  await page.locator('.pc-cover[aria-pressed="true"]').click();
+  await expect(page.locator("#delete-assessment")).toHaveCount(0);
+  await page.evaluate(async () => {
+    const { NextDataGateway } = await import("/next/core/data-gateway.js");
+    const gateway = new NextDataGateway(), documents = new Map(gateway.state.data.classAssignments.map(row => [`schools/gochon-high/classAssignments/${row.id}`, { ...row }]));
+    const fixture = window.deleteFixture = { attempts: 0, documents };
+    gateway.start = async () => gateway.snapshot();
+    gateway.state.canArchiveContent = true; gateway.state.user = { uid: "delete-operator" };
+    const api = { db: {}, serverTimestamp: () => 1 };
+    api.doc = (...args) => { const parts = args[0] === api.db ? args.slice(1) : [args[0].path || args[0], ...args.slice(1)]; if (parts.length === 1) parts.push(crypto.randomUUID()); return { path: parts.join("/"), id: parts.at(-1) }; };
+    api.getDoc = async ref => ({ exists: () => documents.has(ref.path), data: () => documents.get(ref.path) });
+    api.writeBatch = () => {
+      const pending = [];
+      return { set: (ref, value) => pending.push([ref.path, value]), commit: async () => {
+        fixture.attempts++; gateway.emit();
+        await new Promise(resolve => setTimeout(resolve, 300));
+        if (fixture.attempts === 1) throw new Error("삭제 연결 실패. 다시 시도해 주세요.");
+        for (const [path, value] of pending) documents.set(path, value);
+      } };
+    };
+    gateway.repository = { api, ensureUser: async () => gateway.state.user, collectionRef: name => "schools/gochon-high/" + name, documentRef: (name, id) => api.doc(api.db, "schools", "gochon-high", name, id) };
+    gateway.emit();
+  });
+  await page.locator("#delete-assessment").click();
+  await expect(page.locator("#delete-confirmation")).toBeVisible();
+  await expect(page.locator("#cancel-delete")).toBeFocused();
+  await page.locator("#cancel-delete").click();
+  await expect(page.locator("#delete-confirmation")).toBeHidden();
+  expect(await page.evaluate(() => window.deleteFixture.attempts)).toBe(0);
+  await page.locator("#delete-assessment").click();
+  await page.locator("#confirm-delete").click();
+  await expect(page.locator("#confirm-delete")).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#details")).toBeVisible();
+  await expect(page.locator("#delete-status")).toContainText("삭제 연결 실패");
+  await expect(page.locator("#confirm-delete")).toBeEnabled();
+  await expect(page.locator(".pc-cover")).toHaveCount(2);
+  await page.locator("#confirm-delete").evaluate(button => { button.click(); button.click(); });
+  await expect(page.locator("#details")).toBeHidden();
+  await expect(page.locator(".pc-cover")).toHaveCount(1);
+  const stored = await page.evaluate(() => ({ attempts: window.deleteFixture.attempts, record: window.deleteFixture.documents.get("schools/gochon-high/classAssignments/delete-0"), logs: [...window.deleteFixture.documents].filter(([path]) => path.includes("/changeLogs/")).map(([, value]) => value) }));
+  expect(stored.attempts).toBe(2);
+  expect(stored.record.deleted).toBe(true);
+  expect(stored.record.noticeAttachment.storagePath).toBe("assessments/delete-0/notice.jpg");
+  expect(stored.logs).toHaveLength(1);
+  expect(stored.logs[0].action).toBe("delete");
+  expect(stored.logs[0].actorUid).toBe("delete-operator");
+  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toBeFocused();
+  await page.locator(".pc-cover").click();
+  await page.locator("#delete-assessment").click();
+  await page.locator("#confirm-delete").click();
+  await expect(page.locator("#details")).toBeHidden();
+  await expect(page.locator(".pc-cover")).toHaveCount(0);
+  await expect(page.locator("#add")).toBeFocused();
+});
+
 test("both upload slots accept PDF/images and a failed transfer can be retried without losing the form", async ({ page }) => {
   test.setTimeout(90000);
   const errors = [];

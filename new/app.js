@@ -32,9 +32,11 @@ function render() {
   $("add").hidden = !snapshot.canArchiveContent;
   $("connection").hidden = !snapshot.error && !snapshot.usingCache;
   $("connection").textContent = snapshot.error ? "연결을 확인해 주세요. 설정에서 다시 연결할 수 있어요." : "저장된 자료를 보고 있어요.";
-  if (!editing && $("details").open && $("details").dataset.dialogMotion !== "closing") {
+  if (!editing && !saving && $("details").open && $("details").dataset.dialogMotion !== "closing") {
     const row = record(detailId);
-    if (row && row.published !== false) fillDetail(row);
+    if (row && row.published !== false) {
+      if (!snapshot.canArchiveContent || !$("delete-confirmation") || $("delete-confirmation").hidden) fillDetail(row);
+    }
     else closeDialog($("details"));
   }
   updateAccount();
@@ -47,7 +49,8 @@ function fillDetail(row) {
     ${row.evaluationRange ? `<p><strong>평가 범위</strong><br>${escape(row.evaluationRange)}</p>` : ""}
     ${row.materials ? `<p><strong>준비물</strong><br>${escape(row.materials)}</p>` : ""}
     <div class="attachments">${[["noticeAttachment", "안내문"], ["worksheetPack", "학습지팩"]].filter(([slot]) => (row[slot]?.storagePath || row[slot]?.fileId)).map(([slot, label]) => `<div class="pc-attachment-row"><button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escape(row.id)}" aria-label="${label} 보기"><strong>${label}<span>보기</span></strong><small>${escape(row[slot].fileName)}</small></button><button type="button" class="pc-attachment-download" data-assessment-download="${slot}" data-assessment-id="${escape(row.id)}" aria-label="${label} 다운로드">↓<span>다운로드</span></button><p class="pc-attachment-status" role="status" hidden></p></div>`).join("") || '<p class="muted">등록된 안내문이나 학습지팩이 없습니다.</p>'}</div>
-    ${gateway.snapshot().canArchiveContent ? '<div class="dialog-actions"><button type="button" id="edit">내용·첨부 수정</button></div>' : ""}</div>`;
+    ${gateway.snapshot().canArchiveContent ? `<div class="dialog-actions"><button type="button" id="delete-assessment" class="danger">삭제</button><button type="button" id="edit">내용·첨부 수정</button></div>
+    <section id="delete-confirmation" class="delete-confirmation" aria-labelledby="delete-title" hidden><h2 id="delete-title">이 수행평가를 삭제할까요?</h2><p>커버에서 사라지며, 내용과 첨부 자료는 관리자 보관함에서 복원할 수 있어요.</p><p id="delete-status" role="status"></p><div class="dialog-actions"><button type="button" id="cancel-delete">취소</button><button type="button" id="confirm-delete" class="danger">삭제하기</button></div></section>` : ""}</div>`;
 }
 
 function openDetail(id, trigger) {
@@ -87,11 +90,46 @@ function openEditor(id = "") {
 $("details").addEventListener("click", event => {
   if (event.target.closest("[data-close]") && !saving) closeDialog($("details"));
   if (event.target.closest("#edit")) openEditor(detailId);
+  if (event.target.closest("#delete-assessment") && !saving) {
+    $("delete-confirmation").hidden = false;
+    $("delete-status").textContent = "";
+    $("cancel-delete").focus();
+  }
+  if (event.target.closest("#cancel-delete") && !saving) {
+    $("delete-confirmation").hidden = true;
+    $("delete-assessment").focus();
+  }
+  if (event.target.closest("#confirm-delete")) deleteAssessment();
 });
+async function deleteAssessment() {
+  if (saving || !gateway.snapshot().canArchiveContent || !record(detailId)) return;
+  const id = detailId, classKey = gateway.snapshot().profile.classKey;
+  const dialog = $("details"), status = $("delete-status"), controls = [...dialog.querySelectorAll("button")];
+  saving = true;
+  controls.forEach(control => control.disabled = true);
+  dialog.setAttribute("aria-busy", "true");
+  status.className = "";
+  status.textContent = "삭제 후 서버에서 확인하는 중…";
+  try {
+    const archived = await service.archive("classAssignments", id);
+    if (gateway.snapshot().profile.classKey === classKey) {
+      gateway.state.data.classAssignments = (gateway.state.data.classAssignments || []).map(row => row.id === id ? { ...archived, id } : row);
+    }
+    closeDialog(dialog);
+    render();
+  } catch (error) {
+    status.className = "error";
+    status.textContent = error?.message || "삭제하지 못했어요. 다시 시도해 주세요.";
+  } finally {
+    saving = false;
+    dialog.removeAttribute("aria-busy");
+    controls.forEach(control => { if (control.isConnected) control.disabled = false; });
+  }
+}
 $("details").addEventListener("close", () => {
   if ($("details").open) return;
   editing = false;
-  const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector('.pc-cover[aria-pressed="true"]');
+  const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector('.pc-cover[aria-pressed="true"]') || $("add");
   target?.focus({ preventScroll: true });
 });
 $("details").addEventListener("submit", async event => {
