@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261009-new1";
+const PINCON_SW_VERSION = "20261009-upload2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",

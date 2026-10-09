@@ -669,6 +669,50 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function publishedAssessmentFile(schoolId, fileId, file) {
+      let assignment = get(/databases/$(database)/documents/schools/$(schoolId)/classAssignments/$(file.recordId)).data;
+      return assignment.classKey == file.classKey
+        && assignment.published == true && assignment.deleted == false
+        && assignment.get(file.slot, {}).get('fileId', '') == fileId;
+    }
+
+    function readableAssessmentFile(schoolId, fileId, file) {
+      return signedIn() && (classOperator(schoolId, file.classKey)
+        || (file.state == 'ready' && publishedAssessmentFile(schoolId, fileId, file)));
+    }
+
+    match /schools/{schoolId}/assessmentFiles/{fileId} {
+      allow get: if readableAssessmentFile(schoolId, fileId, resource.data);
+      allow create: if classOperator(schoolId, request.resource.data.classKey)
+        && request.resource.data.keys().hasOnly(['backend', 'fileId', 'classKey', 'recordId', 'fileName', 'contentType', 'fileSize', 'chunkCount', 'slot', 'state', 'createdAtMs'])
+        && request.resource.data.backend == 'firestore' && request.resource.data.fileId == fileId
+        && request.resource.data.recordId is string && request.resource.data.recordId.size() > 0 && request.resource.data.recordId.size() <= 160
+        && request.resource.data.fileName is string && request.resource.data.fileName.size() > 0 && request.resource.data.fileName.size() <= 160
+        && request.resource.data.contentType in ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif']
+        && request.resource.data.fileSize is int && request.resource.data.fileSize > 0 && request.resource.data.fileSize <= 10485760
+        && request.resource.data.chunkCount is int && request.resource.data.chunkCount > 0 && request.resource.data.chunkCount <= 20
+        && request.resource.data.chunkCount * 524288 >= request.resource.data.fileSize
+        && (request.resource.data.chunkCount - 1) * 524288 < request.resource.data.fileSize
+        && request.resource.data.slot in ['noticeAttachment', 'worksheetPack']
+        && request.resource.data.state == 'staging' && request.resource.data.createdAtMs is int;
+      allow update: if classOperator(schoolId, resource.data.classKey)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state'])
+        && resource.data.state == 'staging' && request.resource.data.state == 'ready'
+        && getAfter(/databases/$(database)/documents/schools/$(schoolId)/classAssignments/$(resource.data.recordId)).data.classKey == resource.data.classKey
+        && getAfter(/databases/$(database)/documents/schools/$(schoolId)/classAssignments/$(resource.data.recordId)).data.get(resource.data.slot, {}).get('fileId', '') == fileId;
+      allow delete: if classOperator(schoolId, resource.data.classKey);
+
+      match /assessmentFileChunks/{chunkId} {
+        function file() { return get(/databases/$(database)/documents/schools/$(schoolId)/assessmentFiles/$(fileId)).data; }
+        allow get: if readableAssessmentFile(schoolId, fileId, file());
+        allow create: if classOperator(schoolId, file().classKey) && file().state == 'staging'
+          && chunkId.matches('^([0-9]|1[0-9])$')
+          && request.resource.data.keys().hasOnly(['data'])
+          && request.resource.data.data is bytes && request.resource.data.data.size() > 0 && request.resource.data.data.size() <= 524288;
+        allow delete: if classOperator(schoolId, file().classKey);
+      }
+    }
+
     match /schools/{schoolId}/evaluationPlans/{planId} {
       allow read: if signedIn();
       allow create, update: if classOperator(schoolId, request.resource.data.classKey)

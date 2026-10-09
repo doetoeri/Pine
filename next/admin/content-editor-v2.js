@@ -1,5 +1,6 @@
+import { ATTACHMENT_ACCEPT } from "../assessments/attachments.js?v=20261009-upload2";
 import { NextDataGateway } from "../core/data-gateway.js";
-import { ContentServiceV2 } from "./content-service-v2.js";
+import { ContentServiceV2 } from "./content-service-v2.js?v=20261009-upload2";
 
 const root = document.querySelector("#adminApp");
 const gateway = new NextDataGateway();
@@ -133,9 +134,9 @@ function formFields(collection, item = {}) {
       ${field("학생에게 안내된 날짜", "announcedDate", dateValue(item.announcedDate) || localToday(), { type: "date", max: 0 })}
       ${textarea("학생용 요약", "description", item.description, 1200)}
       <fieldset class="ops-v2-attachments"><legend>첨부 자료</legend>
-        <label class="ops-v2-field"><span>안내문 JPG · 10MB 이하</span><input name="noticeFile" type="file" accept="image/jpeg,.jpg,.jpeg"><small>${escapeHtml(item.noticeAttachment?.fileName || "JPG 안내문을 선택해 주세요.")}</small></label>
+        <label class="ops-v2-field"><span>안내문 · PDF 또는 이미지 · 10MB 이하</span><input name="noticeFile" type="file" accept="${ATTACHMENT_ACCEPT}"><small>${escapeHtml(item.noticeAttachment?.fileName || "PDF 또는 이미지를 선택해 주세요.")}</small></label>
         ${item.noticeAttachment ? checkField("기존 안내문 첨부 해제", "removeNotice") : ""}
-        <label class="ops-v2-field"><span>학습지팩 PDF · 10MB 이하</span><input name="packFile" type="file" accept="application/pdf,.pdf"><small>${escapeHtml(item.worksheetPack?.fileName || "PDF 학습지팩을 선택해 주세요.")}</small></label>
+        <label class="ops-v2-field"><span>학습지팩 · PDF 또는 이미지 · 10MB 이하</span><input name="packFile" type="file" accept="${ATTACHMENT_ACCEPT}"><small>${escapeHtml(item.worksheetPack?.fileName || "PDF 또는 이미지를 선택해 주세요.")}</small></label>
         ${item.worksheetPack ? checkField("기존 학습지팩 첨부 해제", "removePack") : ""}
         ${checkField("파일 공유 권한과 개인정보 제거를 확인함", "fileConfirmed")}
         <small>저장을 누르면 업로드됩니다. 파일을 선택하지 않으면 기존 첨부를 유지합니다.</small>
@@ -295,6 +296,7 @@ async function submitEditor(event) {
       removeNotice: form.elements.namedItem("removeNotice")?.checked === true,
       removePack: form.elements.namedItem("removePack")?.checked === true,
       fileConfirmed: form.elements.namedItem("fileConfirmed")?.checked === true,
+      onProgress: progress => { if (status) status.textContent = progress.phase === "upload" ? `${progress.fileName} · 업로드 ${Math.round(progress.transferred / progress.totalBytes * 100)}%` : "파일 업로드 완료 · 서버에서 저장을 확인하는 중…"; },
     });
     dialog.close();
     setStatus(`저장 완료 · 서버에서 ${result.id} 확인됨`, "success");

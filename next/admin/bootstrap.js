@@ -15,7 +15,7 @@ if (!snapshot.canArchiveContent) {
   await import("./admin-shortcuts.js");
   await import("./class-switcher.js");
   await import("./brand-settings.js");
-  await import("./content-editor-v2.js?v=20261009-coverflow1");
+  await import("./content-editor-v2.js?v=20261009-upload2");
   await import("../evaluation-plans/admin.js");
   await import("./daily-brief-image.js?v=20260831-daily2");
   await import("./personal-notifications.js?v=20260910-broadcast1");

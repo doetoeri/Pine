@@ -1,7 +1,9 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
-import { ContentServiceV2 } from "../next/admin/content-service-v2.js";
-import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js";
+import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
+import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js?v=20261009-upload2";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-upload2";
+
+import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -38,7 +40,7 @@ function fillDetail(row) {
     <p class="detail-description">${escape(row.description || "등록된 상세 내용이 없습니다.")}</p>
     ${row.evaluationRange ? `<p><strong>평가 범위</strong><br>${escape(row.evaluationRange)}</p>` : ""}
     ${row.materials ? `<p><strong>준비물</strong><br>${escape(row.materials)}</p>` : ""}
-    <div class="attachments">${[["noticeAttachment", "안내문 JPG"], ["worksheetPack", "학습지팩 PDF"]].filter(([slot]) => row[slot]?.storagePath).map(([slot, label]) => `<button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escape(row.id)}">${label} · ${escape(row[slot].fileName)}</button>`).join("") || '<p class="muted">등록된 안내문이나 학습지팩이 없습니다.</p>'}</div>
+    <div class="attachments">${[["noticeAttachment", "안내문"], ["worksheetPack", "학습지팩"]].filter(([slot]) => (row[slot]?.storagePath || row[slot]?.fileId)).map(([slot, label]) => `<button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escape(row.id)}">${label} · ${escape(row[slot].fileName)}</button>`).join("") || '<p class="muted">등록된 안내문이나 학습지팩이 없습니다.</p>'}</div>
     ${gateway.snapshot().canArchiveContent ? '<div class="dialog-actions"><button type="button" id="edit">내용·첨부 수정</button></div>' : ""}</div>`;
 }
 
@@ -52,7 +54,7 @@ function openDetail(id, trigger) {
 
 function openEditor(id = "") {
   if (!gateway.snapshot().canArchiveContent || saving) return;
-  detailId = id; editing = true;
+  detailId = id || crypto.randomUUID(); editing = true;
   const row = record(id) || {};
   $("details").innerHTML = `<header><h1 id="detail-title">${id ? "수행평가 수정" : "수행평가 추가"}</h1><button type="button" data-close aria-label="닫기">×</button></header><form id="editor-form" class="dialog-body">
     <label>수행평가 이름<input name="title" maxlength="120" value="${escape(row.title)}" required></label>
@@ -62,9 +64,9 @@ function openEditor(id = "") {
     <label>평가 범위<textarea name="evaluationRange" rows="2" maxlength="600">${escape(row.evaluationRange)}</textarea></label>
     <label>준비물<input name="materials" maxlength="500" value="${escape(row.materials)}"></label>
     <div class="attachments"><fieldset><legend>첨부 자료</legend>
-      <label>안내문 JPG · 10MB 이하<input name="noticeFile" type="file" accept="image/jpeg,.jpg,.jpeg"><small>${escape(row.noticeAttachment?.fileName || "JPG/JPEG 파일을 선택해 주세요.")}</small></label>
+      <label>안내문 · PDF 또는 이미지 · 10MB 이하<input name="noticeFile" type="file" accept="${ATTACHMENT_ACCEPT}"><small>${escape(row.noticeAttachment?.fileName || "PDF 또는 이미지 파일을 선택해 주세요.")}</small></label>
       ${row.noticeAttachment ? '<label class="check"><input name="removeNotice" type="checkbox">기존 안내문 첨부 해제</label>' : ""}
-      <label>학습지팩 PDF · 10MB 이하<input name="packFile" type="file" accept="application/pdf,.pdf"><small>${escape(row.worksheetPack?.fileName || "PDF 파일을 선택해 주세요.")}</small></label>
+      <label>학습지팩 · PDF 또는 이미지 · 10MB 이하<input name="packFile" type="file" accept="${ATTACHMENT_ACCEPT}"><small>${escape(row.worksheetPack?.fileName || "PDF 또는 이미지 파일을 선택해 주세요.")}</small></label>
       ${row.worksheetPack ? '<label class="check"><input name="removePack" type="checkbox">기존 학습지팩 첨부 해제</label>' : ""}
       <label class="check"><input name="fileConfirmed" type="checkbox">파일 공유 권한과 개인정보 제거를 확인함</label>
       <small>저장을 누르면 업로드돼요. 파일을 선택하지 않으면 기존 첨부가 유지돼요.</small>
@@ -89,13 +91,16 @@ $("details").addEventListener("submit", async event => {
   if (saving || event.target.id !== "editor-form") return;
   const form = event.target, data = new FormData(form), current = record(detailId) || {};
   saving = true;
-  form.querySelectorAll("button").forEach(button => button.disabled = true);
+  form.querySelectorAll("button,input,textarea,select").forEach(control => control.disabled = true);
   $("details").querySelector("[data-close]").disabled = true;
-  $("save-status").textContent = "파일을 업로드하고 내용을 저장하는 중…";
+  $("save-status").className = "";
+  $("save-status").textContent = "연결과 파일을 확인하는 중…";
   try {
     const values = { ...current, type: "assessment", published: data.has("published") };
     for (const key of ["title", "subject", "evaluationMethod", "dueDate", "description", "evaluationRange", "materials"]) values[key] = data.get(key) || "";
-    const result = await service.save("classAssignments", values, { id: detailId, noticeFile: form.elements.noticeFile.files[0] || null, packFile: form.elements.packFile.files[0] || null, removeNotice: data.has("removeNotice"), removePack: data.has("removePack"), fileConfirmed: data.has("fileConfirmed") });
+    const result = await service.save("classAssignments", values, { id: detailId, noticeFile: form.elements.noticeFile.files[0] || null, packFile: form.elements.packFile.files[0] || null, removeNotice: data.has("removeNotice"), removePack: data.has("removePack"), fileConfirmed: data.has("fileConfirmed"), onProgress: progress => {
+      $("save-status").textContent = progress.phase === "upload" ? `${progress.fileName} · 업로드 ${Math.round(progress.transferred / progress.totalBytes * 100)}%` : progress.phase === "save" ? "업로드 완료 · 수행평가 내용을 저장하는 중…" : "서버 저장을 확인하는 중…";
+    } });
     // Keep the just-verified record visible while the realtime listener catches up.
     const rows = gateway.state.data.classAssignments || [];
     gateway.state.data.classAssignments = [...rows.filter(row => row.id !== result.id), { ...result.record, id: result.id }];
@@ -106,7 +111,7 @@ $("details").addEventListener("submit", async event => {
     $("save-status").className = "error";
   } finally {
     saving = false;
-    form.querySelectorAll("button").forEach(button => button.disabled = false);
+    form.querySelectorAll("button,input,textarea,select").forEach(control => control.disabled = false);
     $("details").querySelector("[data-close]").disabled = false;
   }
 });

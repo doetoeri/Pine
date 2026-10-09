@@ -1,4 +1,4 @@
-import { previewAttachment, ATTACHMENT_SLOTS } from "./attachments.js";
+import { previewAttachment, ATTACHMENT_SLOTS } from "./attachments.js?v=20261009-upload2";
 
 export function mountAttachmentViewer(gateway) {
   let dialog = null, preview = null, token = 0, trigger = null;
@@ -25,8 +25,9 @@ export function mountAttachmentViewer(gateway) {
       const loaded = await previewAttachment(gateway, recordId, slot);
       if (pending !== token || !dialog.open) { loaded.revoke(); return; }
       preview = loaded;
-      const node = document.createElement(slot === "noticeAttachment" ? "img" : "iframe");
-      node.src = loaded.url; node.setAttribute(slot === "noticeAttachment" ? "alt" : "title", loaded.fileName);
+      const isImage = loaded.contentType.startsWith("image/");
+      const node = document.createElement(isImage ? "img" : "iframe");
+      node.src = loaded.url; node.setAttribute(isImage ? "alt" : "title", loaded.fileName);
       content.removeAttribute("role"); content.replaceChildren(node);
       download.href = loaded.url; download.download = loaded.fileName; download.hidden = false;
     } catch (error) {

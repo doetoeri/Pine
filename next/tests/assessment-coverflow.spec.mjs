@@ -34,3 +34,57 @@ for (const width of [360, 768, 1440]) {
     expect(result.hidden).toBeGreaterThan(0);
   });
 }
+
+
+test("both upload slots accept PDF/images and a failed transfer can be retried without losing the form", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: { classAssignments: [] } }));
+  });
+  await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  await page.locator("#settings").waitFor();
+  await page.evaluate(async () => {
+    const { NextDataGateway } = await import("/next/core/data-gateway.js");
+    const gateway = new NextDataGateway(), documents = new Map();
+    gateway.start = async () => gateway.snapshot();
+    gateway.state.canArchiveContent = true; gateway.state.user = { uid: "isolated-operator" };
+    const api = { db: {}, storage: {}, serverTimestamp: () => 1, Bytes: { fromUint8Array: bytes => ({ toUint8Array: () => bytes }) } };
+    api.doc = (...args) => { const parts = args[0] === api.db ? args.slice(1) : [args[0].path || args[0], ...args.slice(1)]; if (parts.length === 1) parts.push(crypto.randomUUID()); return { path: parts.join("/"), id: parts.at(-1) }; };
+    api.getDoc = async ref => ({ exists: () => documents.has(ref.path), data: () => documents.get(ref.path) });
+    let rejectFirstPart = true;
+    api.writeBatch = () => {
+      const pending = [];
+      return { set: (ref,value) => pending.push(["set",ref,value]), update: (ref,value) => pending.push(["update",ref,value]), delete: ref => pending.push(["delete",ref]), commit: async () => {
+        await new Promise(resolve => setTimeout(resolve, 40));
+        if (rejectFirstPart && pending.some(([action,ref]) => action === "set" && ref.path.includes("/assessmentFileChunks/"))) { rejectFirstPart = false; throw new Error("파일 전송 실패. 다시 저장해 주세요."); }
+        for (const [action,ref,value] of pending) { if (action === "delete") documents.delete(ref.path); else documents.set(ref.path, action === "update" ? { ...documents.get(ref.path), ...value } : value); }
+      } };
+    };
+    gateway.repository = { api, ensureUser: async () => gateway.state.user, collectionRef: name => "schools/gochon-high/"+name, documentRef: (name,id) => api.doc(api.db,"schools","gochon-high",name,id) };
+    gateway.emit();
+  });
+  await page.locator("#add").click();
+  const notice = page.locator('[name="noticeFile"]'), pack = page.locator('[name="packFile"]');
+  expect(await notice.getAttribute("accept")).toEqual(await pack.getAttribute("accept"));
+  await page.locator('[name="title"]').fill("형식 제한 없는 수행평가");
+  await page.locator('[name="subject"]').fill("미술");
+  await notice.setInputFiles({ name: "안내문.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.7\nworksheet") });
+  await pack.setInputFiles({ name: "학습지팩.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNYtfsMAAREAjLFENlZAAAAAElFTkSuQmCC", "base64") });
+  await page.locator('[name="fileConfirmed"]').check();
+  await page.locator('#editor-form button[type="submit"]').click();
+  await expect(page.locator("#save-status")).toContainText("파일 전송 실패");
+  await expect(page.locator('#editor-form button[type="submit"]')).toBeEnabled();
+  expect(await notice.evaluate(input => input.files[0].name)).toBe("안내문.pdf");
+  await page.locator('#editor-form button[type="submit"]').click();
+  await expect(page.locator("#details")).toBeHidden();
+  await expect(page.locator(".pc-cover")).toHaveCount(1);
+  await page.locator(".pc-cover").click();
+  await page.locator('[data-assessment-file="noticeAttachment"]').click();
+  await expect(page.locator(".pc-file-body iframe")).toBeVisible();
+  await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "안내문.pdf");
+  await page.locator("[data-pc-file-close]").click();
+  await page.locator('[data-assessment-file="worksheetPack"]').click();
+  await expect(page.locator(".pc-file-body img")).toBeVisible();
+  expect(await page.locator(".pc-file-body img").evaluate(async img => { await img.decode(); return img.naturalWidth; })).toBe(1);
+  await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "학습지팩.png");
+});
