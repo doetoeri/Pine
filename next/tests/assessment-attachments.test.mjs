@@ -6,9 +6,19 @@ globalThis.window = new EventTarget();
 Object.defineProperty(globalThis, "navigator", { value: { onLine: true }, configurable: true });
 const { validateAttachment, scopedAttachment, previewAttachment, withDeadline, MAX_ATTACHMENT_SIZE, FILE_CHUNK_SIZE } = await import("../assessments/attachments.js");
 const { ContentServiceV2 } = await import("../admin/content-service-v2.js");
-const { assessmentDue, coverflowMarkup } = await import("../assessments/coverflow.js");
+const { assessmentDue, coverflowMarkup, subjectTheme } = await import("../assessments/coverflow.js");
 const jpg = () => new File([new Uint8Array([255, 216, 255, 224, 0, 16])], "안내문.jpg", { type: "image/jpeg" });
 const pdf = () => new File(["%PDF-1.7\nworksheet"], "학습지팩.pdf", { type: "application/pdf" });
+
+test("subject colors stay fixed when covers are reordered or subjects use common aliases", () => {
+  assert.equal(subjectTheme("공통 영어"), subjectTheme("공영"));
+  assert.equal(subjectTheme("공통수학2"), subjectTheme("수학"));
+  assert.equal(subjectTheme(" English "), subjectTheme("english"));
+  assert.notEqual(subjectTheme("국어"), subjectTheme("수학"));
+  const rows = [{ id: "math", subject: "수학" }, { id: "korean", subject: "국어" }];
+  const themes = markup => [...markup.matchAll(/pc-theme-(\d).*?data-assessment-id="([^"]+)"/g)].map(([, theme, id]) => [id, theme]).sort();
+  assert.deepEqual(themes(coverflowMarkup(rows)), themes(coverflowMarkup([...rows].reverse())));
+});
 
 function harness() {
   const documents = new Map(), deleted = [], writes = [], legacyFiles = new Map();

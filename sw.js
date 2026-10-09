@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261009-light1";
+const PINCON_SW_VERSION = "20261009-paper1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -37,6 +37,8 @@ const PINCON_APP_SHELL = [
   "./next/assessments/attachments.js",
   "./next/assessments/viewer.js",
   "./next/assessments/dialog-motion.js",
+  "./next/assessments/paper-reader.js",
+  "./next/assessments/paper-reader.css",
   "./next/assets/pincon-icon.svg",
   "./next/core/region-renderer.js",
   "./next/core/recovery-pack.js",
@@ -122,7 +124,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate" || /firebase-config\.js$|\.(?:json|webmanifest)$/i.test(url.pathname)) {
     event.respondWith(networkFirst(request, event)); return;
   }
-  if (/\.(?:js|css|html|svg|png|jpg|jpeg|webp|ico|woff2?)$/i.test(url.pathname)) {
+  if (/\.(?:m?js|css|html|svg|png|jpg|jpeg|webp|ico|woff2?|bcmap|ttf|pfb|wasm)$/i.test(url.pathname)) {
     event.respondWith(cachedAsset(request, event));
   }
 });

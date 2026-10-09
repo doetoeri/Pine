@@ -56,6 +56,7 @@ jobs:
             next/assessments/coverflow.js \
             next/assessments/attachments.js \
             next/assessments/viewer.js \
+            next/assessments/paper-reader.js \
             next/assessments/dialog-motion.js \
             next/admin/content-service-v2.js \
             next/app-interactions.js \

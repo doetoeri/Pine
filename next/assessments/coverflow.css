@@ -28,6 +28,10 @@
 .pc-flow[data-lighting="on"] .pc-face{box-shadow:inset 0 0 0 1px #ffffff38,0 3px 10px #22304b12}
 
 .pc-motion-dialog{transform-origin:50% 50%}
+.pc-shared-source{opacity:0!important;pointer-events:none!important}
+.pc-shared-cover{position:fixed;inset:auto;margin:0;padding:0;border:0;background:transparent;overflow:hidden;pointer-events:none;transform-origin:0 0;border-radius:4px;box-sizing:border-box}
+.pc-shared-cover>.pc-face{width:100%;height:100%;box-sizing:border-box}
+.pc-shared-cover[data-lighting="on"] .pc-surface-light{display:block}
 .pc-motion-dialog[data-dialog-motion="opening"]::backdrop{animation:pc-backdrop-in 280ms cubic-bezier(.2,.8,.2,1) both}
 .pc-motion-dialog[data-dialog-motion="closing"]::backdrop{animation:pc-backdrop-out 160ms cubic-bezier(.4,0,1,1) both}
 @keyframes pc-backdrop-in{from{opacity:var(--pc-backdrop-from,0)}to{opacity:1}}

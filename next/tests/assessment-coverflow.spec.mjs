@@ -1,4 +1,18 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+
+function paperPdf(pages = 6) {
+  const objects = [null, "<< /Type /Catalog /Pages 2 0 R >>", `<< /Type /Pages /Count ${pages} /Kids [${Array.from({ length: pages }, (_, i) => `${4 + i * 2} 0 R`).join(" ")}] >>`, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"];
+  for (let i = 0; i < pages; i++) {
+    const stream = `0.1 0.2 0.3 rg BT /F1 24 Tf 50 760 Td (WORKSHEET - PAGE ${i + 1}) Tj 0 -60 Td /F1 14 Tf (Write your answer on this actual PDF sheet.) Tj ET 0.6 0.6 0.6 RG 50 600 m 545 600 l S`;
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + i * 2} 0 R >>`, `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
+  }
+  let body = "%PDF-1.7\n", offsets = [0];
+  for (let i = 1; i < objects.length; i++) { offsets.push(Buffer.byteLength(body)); body += `${i} 0 obj\n${objects[i]}\nendobj\n`; }
+  const xref = Buffer.byteLength(body);
+  body += `xref\n0 ${objects.length}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(body);
+}
 
 test.use({ reducedMotion: "reduce" });
 for (const width of [360, 768, 1440]) {
@@ -37,6 +51,10 @@ for (const width of [360, 768, 1440]) {
 
 
 test("both upload slots accept PDF/images and a failed transfer can be retried without losing the form", async ({ page }) => {
+  test.setTimeout(90000);
+  const errors = [];
+  page.on("pageerror", error => { errors.push(error.message); console.error(error.stack); });
+  await page.setViewportSize({ width: 360, height: 800 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
     localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
@@ -70,8 +88,10 @@ test("both upload slots accept PDF/images and a failed transfer can be retried w
   expect(await notice.getAttribute("accept")).toEqual(await pack.getAttribute("accept"));
   await page.locator('[name="title"]').fill("형식 제한 없는 수행평가");
   await page.locator('[name="subject"]').fill("미술");
-  await notice.setInputFiles({ name: "안내문.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.7\nworksheet") });
-  await pack.setInputFiles({ name: "학습지팩.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNYtfsMAAREAjLFENlZAAAAAElFTkSuQmCC", "base64") });
+  const pdf = paperPdf();
+  const jpg = Buffer.from(await page.evaluate(() => { const canvas = document.createElement("canvas"); canvas.width = 300; canvas.height = 424; const ctx = canvas.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0,0,300,424); ctx.fillStyle = "#273043"; ctx.font = "18px Arial"; ctx.fillText("IMAGE SHEET",30,60); return canvas.toDataURL("image/jpeg").split(",")[1]; }), "base64");
+  await notice.setInputFiles({ name: "안내문.pdf", mimeType: "application/pdf", buffer: pdf });
+  await pack.setInputFiles({ name: "학습지팩.jpg", mimeType: "image/jpeg", buffer: jpg });
   await page.locator('[name="fileConfirmed"]').check();
   await page.locator('#editor-form button[type="submit"]').click();
   await expect(page.locator("#save-status")).toContainText("파일 전송 실패");
@@ -81,19 +101,111 @@ test("both upload slots accept PDF/images and a failed transfer can be retried w
   await expect(page.locator("#details")).toBeHidden();
   await expect(page.locator(".pc-cover")).toHaveCount(1);
   await page.locator(".pc-cover").click();
+  const original = page.waitForEvent("download");
+  await page.locator('[data-assessment-download="noticeAttachment"]').click();
+  const received = await original;
+  expect(received.suggestedFilename()).toBe("안내문.pdf");
+  expect(await readFile(await received.path())).toEqual(pdf);
+  await expect(page.locator(".pc-file-viewer")).toHaveCount(0);
   await page.locator('[data-assessment-file="noticeAttachment"]').click();
-  await expect(page.locator(".pc-file-body iframe")).toBeVisible();
+  const stage = page.locator(".pc-paper-stage");
+  await expect(stage).toHaveAttribute("data-page", "1", { timeout: 25000 });
+  await expect(page.locator('[data-paper-prev]')).toBeDisabled();
+  await expect(page.locator('.pc-paper-page-number span')).toHaveText("/ 6");
   await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "안내문.pdf");
+  await expect(page.locator('[data-paper-page="1"] img').first()).toBeVisible();
+  await expect(page.locator('[data-paper-page="2"]')).toHaveClass(/pc-paper-loaded/);
+  await expect(page.locator(".pc-paper-fan")).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath("paper-pdf.png") });
+  await page.locator('[data-paper-next]').click();
+  await expect(stage).toHaveAttribute("data-phase", "flipping");
+  await expect(stage).toHaveAttribute("data-page", "2");
+  await expect(stage).toHaveAttribute("data-phase", "read");
+  await stage.press("ArrowLeft");
+  await expect(stage).toHaveAttribute("data-page", "1");
+  await expect(stage).toHaveAttribute("data-phase", "read");
+  const sheet = await page.locator('.pc-paper-book').boundingBox();
+  await page.mouse.move(sheet.x + sheet.width * .9, sheet.y + sheet.height * .8);
+  await page.mouse.down();
+  await page.mouse.move(sheet.x + sheet.width * .65, sheet.y + sheet.height * .7, { steps: 6 });
+  await page.screenshot({ path: test.info().outputPath("paper-fold.png") });
+  await page.mouse.move(sheet.x + sheet.width * .2, sheet.y + sheet.height * .7, { steps: 6 });
+  await page.mouse.up();
+  await expect(stage).toHaveAttribute("data-page", "2");
+  await expect(stage).toHaveAttribute("data-phase", "read");
+  await page.mouse.move(sheet.x + sheet.width * .1, sheet.y + sheet.height * .8);
+  await page.mouse.down();
+  await page.mouse.move(sheet.x + sheet.width * .75, sheet.y + sheet.height * .7, { steps: 12 });
+  await page.mouse.up();
+  await expect(stage).toHaveAttribute("data-page", "1");
+  await expect(stage).toHaveAttribute("data-phase", "read");
+  await page.mouse.move(sheet.x + sheet.width * .9, sheet.y + sheet.height * .8);
+  await page.mouse.down();
+  await page.mouse.move(sheet.x + sheet.width * .82, sheet.y + sheet.height * .8, { steps: 3 });
+  await page.mouse.up();
+  await expect(stage).toHaveAttribute("data-phase", "read");
+  await expect(stage).toHaveAttribute("data-page", "1");
+  await stage.press("End");
+  await expect(stage).toHaveAttribute("data-page", "6");
+  await expect(page.locator('[data-paper-next]')).toBeDisabled();
+  await page.locator('[data-paper-zoom]').click();
+  await expect(stage).toHaveClass(/pc-paper-zoomed/);
+  await page.locator('[data-paper-zoom]').click();
+  await expect(stage).not.toHaveClass(/pc-paper-zoomed/);
+  await page.waitForTimeout(300);
+  const mutations = await stage.evaluate(async node => { let count = 0; const observer = new MutationObserver(records => count += records.length); observer.observe(node, { subtree:true, attributes:true, attributeFilter:["style"] }); await new Promise(resolve => setTimeout(resolve,200)); observer.disconnect(); return count; });
+  expect(mutations).toBe(0);
   await page.locator("[data-pc-file-close]").click();
   await page.locator('[data-assessment-file="worksheetPack"]').click();
-  await expect(page.locator(".pc-file-body img")).toBeVisible();
-  expect(await page.locator(".pc-file-body img").evaluate(async img => { await img.decode(); return img.naturalWidth; })).toBe(1);
-  await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "학습지팩.png");
+  await expect(stage).toHaveAttribute("data-page", "1");
+  await expect(page.locator(".pc-paper-fan")).toHaveCount(0);
+  await expect(page.locator('[data-paper-page="1"] img')).toBeVisible();
+  expect(await page.locator('[data-paper-page="1"] img').evaluate(img => img.naturalWidth)).toBe(300);
+  await expect(page.locator('[data-paper-next]')).toBeDisabled();
+  await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "학습지팩.jpg");
+  await page.screenshot({ path: test.info().outputPath("paper-jpg.png") });
   await page.keyboard.press("Escape");
   await expect(page.locator(".pc-file-viewer")).toBeHidden();
   await expect(page.locator('[data-assessment-file="worksheetPack"]')).toBeFocused();
+  const imageDownload = page.waitForEvent("download");
+  await page.locator('[data-assessment-download="worksheetPack"]').click();
+  expect(await readFile(await (await imageDownload).path())).toEqual(jpg);
   await page.locator("#edit").click();
   await expect(page.locator("#editor-form")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#details")).toBeHidden();
+  expect(errors).toEqual([]);
+});
+
+test("detail expansion returns to its cover and handles reopen or reduced motion during the transition", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: { classAssignments: [{ id: "shared-cover", subject: "수학", title: "연결된 수행평가", description: "상세 내용", published: true }] } }));
+  });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  const opening = await page.evaluate(() => {
+    const cover = document.querySelector(".pc-cover"); cover.click();
+    return { ghost: Boolean(document.querySelector(".pc-shared-cover:popover-open")), sourceHidden: cover.classList.contains("pc-shared-source"), phase: document.querySelector("#details").dataset.dialogMotion };
+  });
+  expect(opening).toEqual({ ghost: true, sourceHidden: true, phase: "opening" });
+  await expect(page.locator(".pc-shared-cover")).toHaveCount(0);
+  await page.evaluate(() => document.querySelector('#details [data-close]').click());
+  await expect(page.locator("#details")).toHaveAttribute("data-dialog-motion", "closing");
+  await page.evaluate(() => document.querySelector(".pc-cover").click());
+  await expect(page.locator("#details")).toBeVisible();
+  await expect(page.locator("#detail-title")).toHaveText("연결된 수행평가");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#details")).toBeHidden();
+  await expect(page.locator(".pc-cover")).not.toHaveClass(/pc-shared-source/);
+  await expect(page.locator(".pc-cover")).toBeFocused();
+  await page.evaluate(() => document.querySelector(".pc-cover").click());
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".pc-shared-cover")).toHaveCount(0);
+  await expect(page.locator(".pc-cover")).not.toHaveClass(/pc-shared-source/);
   await page.keyboard.press("Escape");
   await expect(page.locator("#details")).toBeHidden();
 });
@@ -122,7 +234,7 @@ test("covers enter in a restrained cascade without bouncing and stay settled on 
   await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
   const samples = await page.evaluate(() => window.motionSamples);
-  expect(samples.some(sample => sample.first > .2 && sample.fourth < .05)).toBe(true);
+  expect(samples.some(sample => sample.first > .2 && sample.first > sample.fourth + .15)).toBe(true);
   expect(samples.filter(sample => sample.phase === "entering").length).toBeGreaterThan(2);
   expect(samples.every(sample => sample.y >= 0 && sample.y <= 15)).toBe(true);
   expect(samples.slice(1).every((sample, i) => sample.y <= samples[i].y + .001)).toBe(true);

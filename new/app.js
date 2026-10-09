@@ -1,11 +1,11 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261009-light1";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-light1";
+import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261009-paper1";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-paper1";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
-import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-light1";
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -46,7 +46,7 @@ function fillDetail(row) {
     <p class="detail-description">${escape(row.description || "등록된 상세 내용이 없습니다.")}</p>
     ${row.evaluationRange ? `<p><strong>평가 범위</strong><br>${escape(row.evaluationRange)}</p>` : ""}
     ${row.materials ? `<p><strong>준비물</strong><br>${escape(row.materials)}</p>` : ""}
-    <div class="attachments">${[["noticeAttachment", "안내문"], ["worksheetPack", "학습지팩"]].filter(([slot]) => (row[slot]?.storagePath || row[slot]?.fileId)).map(([slot, label]) => `<button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escape(row.id)}">${label} · ${escape(row[slot].fileName)}</button>`).join("") || '<p class="muted">등록된 안내문이나 학습지팩이 없습니다.</p>'}</div>
+    <div class="attachments">${[["noticeAttachment", "안내문"], ["worksheetPack", "학습지팩"]].filter(([slot]) => (row[slot]?.storagePath || row[slot]?.fileId)).map(([slot, label]) => `<div class="pc-attachment-row"><button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escape(row.id)}" aria-label="${label} 보기"><strong>${label}<span>보기</span></strong><small>${escape(row[slot].fileName)}</small></button><button type="button" class="pc-attachment-download" data-assessment-download="${slot}" data-assessment-id="${escape(row.id)}" aria-label="${label} 다운로드">↓<span>다운로드</span></button><p class="pc-attachment-status" role="status" hidden></p></div>`).join("") || '<p class="muted">등록된 안내문이나 학습지팩이 없습니다.</p>'}</div>
     ${gateway.snapshot().canArchiveContent ? '<div class="dialog-actions"><button type="button" id="edit">내용·첨부 수정</button></div>' : ""}</div>`;
 }
 
@@ -55,7 +55,7 @@ function openDetail(id, trigger) {
   if (!row || row.published === false) return;
   detailId = id; detailTrigger = trigger; editing = false;
   fillDetail(row);
-  openDialog($("details"));
+  openDialog($("details"), trigger);
 }
 
 function openEditor(id = "") {

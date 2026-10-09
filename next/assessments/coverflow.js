@@ -23,6 +23,24 @@ export function assessmentDue(date, now = Date.now()) {
   return days < 0 ? "마감 지남" : days === 0 ? "D-DAY" : `D−${days}`;
 }
 
+// Subject identity survives sorting, edits, new assignments and another device.
+export function subjectTheme(subject) {
+  const key = String(subject || "수행평가").normalize("NFKC").toLowerCase().replace(/\s+/g, "");
+  const groups = [
+    /^(수학|공통수학|확률|미적분|기하)/,
+    /^(국어|공통국어|문학|독서|화법|언어와매체)/,
+    /^(과학|통합과학|물리|화학|생명|지구|과탐|과학탐구)/,
+    /^(사회|통합사회|한국사|역사|세계사|지리|정치|경제|윤리|도덕)/,
+    /^(영어|공통영어|공영|영독|영작)/,
+    /^(체육|음악|미술|기술|가정|정보|한문|중국어|일본어)/
+  ];
+  const group = groups.findIndex(pattern => pattern.test(key));
+  if (group >= 0) return group;
+  let hash = 2166136261;
+  for (const ch of key) hash = Math.imul(hash ^ ch.codePointAt(0), 16777619);
+  return (hash >>> 0) % groups.length;
+}
+
 function face(row) {
   return `<div class="pc-face"><span class="pc-surface-light" aria-hidden="true"></span><div class="pc-head"><span>${escape(row.subject || "수행평가")}</span><span>${escape(row.kind || "수행평가")}</span></div><div class="pc-title">${escape(row.title)}</div><div class="pc-bottom"><div class="pc-deadline"><span class="pc-date">${escape(row.dueDate ? row.dueDate.slice(5).replace("-", ".") : "날짜 미정")}</span><span>${escape(assessmentDue(row.dueDate))}</span></div><div class="pc-meta"><span>${escape((row.confirmed || row.verificationStatus === "verified") ? "공식 자료 확인" : "확인 중")}</span><span>${[row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · ")}</span></div></div></div>`;
 }
@@ -31,7 +49,7 @@ export function coverflowMarkup(rows, classKey = "") {
   if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="assessment-flow"><p>등록된 수행평가가 없습니다.</p></section>`;
   return `<section class="pc-flow" data-render-key="assessment-flow" data-class-key="${escape(classKey)}" aria-label="수행평가">
     <div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="수행평가 커버플로우. 좌우 드래그 또는 방향키로 선택하고 가운데 커버를 누르면 상세 내용을 엽니다.">
-      ${rows.map((row, index) => `<button type="button" class="pc-cover pc-theme-${index % 6}" data-index="${index}" data-assessment-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey)}" data-detail-route="classroom" aria-pressed="false" tabindex="-1" aria-label="${escape(row.subject + ' · ' + row.title)}">${face(row)}<span class="pc-reflection" aria-hidden="true">${face(row)}</span></button>`).join("")}
+      ${rows.map((row, index) => `<button type="button" class="pc-cover pc-theme-${subjectTheme(row.subject)}" data-index="${index}" data-assessment-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey)}" data-detail-route="classroom" aria-pressed="false" tabindex="-1" aria-label="${escape((row.subject || '수행평가') + ' · ' + row.title)}">${face(row)}<span class="pc-reflection" aria-hidden="true">${face(row)}</span></button>`).join("")}
     </div><div class="pc-caption"><p class="pc-caption-title"></p><p class="pc-caption-subject"></p></div><p class="sr-only pc-announcement" aria-live="polite" aria-atomic="true"></p>
   </section>`;
 }
