@@ -37,10 +37,12 @@ for (const width of [360, 768, 1440]) {
 
 
 test("both upload slots accept PDF/images and a failed transfer can be retried without losing the form", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.addInitScript(() => {
     localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
     localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: { classAssignments: [] } }));
   });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
   await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
   await page.locator("#settings").waitFor();
   await page.evaluate(async () => {
@@ -87,4 +89,63 @@ test("both upload slots accept PDF/images and a failed transfer can be retried w
   await expect(page.locator(".pc-file-body img")).toBeVisible();
   expect(await page.locator(".pc-file-body img").evaluate(async img => { await img.decode(); return img.naturalWidth; })).toBe(1);
   await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "학습지팩.png");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".pc-file-viewer")).toBeHidden();
+  await expect(page.locator('[data-assessment-file="worksheetPack"]')).toBeFocused();
+  await page.locator("#edit").click();
+  await expect(page.locator("#editor-form")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#details")).toBeHidden();
+});
+
+test("covers cascade with a rebound, settle, and stay settled when data refreshes", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+      classAssignments: Array.from({ length: 8 }, (_, i) => ({ id: `motion-${i}`, classKey: "1-8", type: "assessment", subject: "국어", title: `수행평가 ${i}`, published: true }))
+    } }));
+    window.motionSamples = [];
+    const sample = () => {
+      const scene = document.querySelector(".pc-scene");
+      if (scene) {
+        const cards = scene.querySelectorAll(".pc-cover");
+        window.motionSamples.push({ phase: scene.dataset.motion, first: Number(cards[0].style.opacity), fourth: Number(cards[3].style.opacity), y: new DOMMatrix(getComputedStyle(cards[0]).transform).m42 });
+        if (scene.dataset.motion === "resting") return;
+      }
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  const samples = await page.evaluate(() => window.motionSamples);
+  expect(samples.some(sample => sample.first > .2 && sample.fourth < .05)).toBe(true);
+  expect(samples.some(sample => sample.y < -1)).toBe(true);
+  expect(samples.at(-1).y).toBe(0);
+  await page.evaluate(async () => {
+    const { NextDataGateway } = await import("/next/core/data-gateway.js");
+    const gateway = new NextDataGateway();
+    gateway.state.data.classAssignments[0].description = "갱신된 자료";
+    gateway.emit();
+  });
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  await expect(page.locator(".pc-cover").first()).toHaveCSS("opacity", "1");
+  const transform = await page.locator(".pc-cover").first().evaluate(card => card.style.transform);
+  await page.waitForTimeout(120);
+  expect(await page.locator(".pc-cover").first().evaluate(card => card.style.transform)).toBe(transform);
+
+  // Escape during the entrance must still close and restore the trigger's focus.
+  await page.locator("#settings").focus();
+  await page.evaluate(() => document.querySelector("#settings").click());
+  await expect(page.locator("#preferences")).toHaveAttribute("data-dialog-motion", "opening");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#preferences")).toBeHidden();
+  await expect(page.locator("#settings")).toBeFocused();
+  await page.locator("#settings").click();
+  await expect(page.locator("#preferences")).toBeVisible();
+  await page.locator("#preferences [data-close]").click();
+  await expect(page.locator("#preferences")).toBeHidden();
 });

@@ -2,6 +2,7 @@ const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
 const controllers = new WeakMap();
 const selections = new Map();
+const introduced = new Set();
 
 export function assessmentDue(date, now = Date.now()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return "미정";
@@ -31,8 +32,11 @@ export function mountCoverflow(root, openDetail) {
   const selectionKey = host.dataset.classKey;
   let selected = -1, width = 340, frame = 0, last = 0, drag = null, wheelTimer = 0;
   let position = Math.max(0, cards.findIndex(card => card.dataset.assessmentId === selections.get(selectionKey)));
-  let target = position, velocity = 0, ignoreClick = 0, entering = !reduced.matches, start = performance.now();
+  let target = position, velocity = 0, ignoreClick = 0, entering = !reduced.matches && !introduced.has(selectionKey), start = performance.now();
+  introduced.add(selectionKey);
   const center = position;
+  const entranceDuration = 880, stagger = 58;
+  const entranceEnd = entranceDuration + Math.min(Math.max(center, cards.length - 1 - center), 6) * stagger;
   const controller = { destroy };
   controllers.set(host, controller);
   const disconnected = new MutationObserver(() => { if (!host.isConnected) destroy(); });
@@ -51,12 +55,12 @@ export function mountCoverflow(root, openDetail) {
       card.style.willChange = visible && (entering || last || drag) ? "transform" : "auto";
       if (!visible) continue;
       const turn = Math.sin(Math.min(distance, 1) * Math.PI / 2), sign = Math.sign(delta);
-      const delay = Math.min(Math.abs(i - center), 6) * 64 + (i > center ? 26 : 0);
-      const t = entering ? clamp((now - start - delay) / 760, 0, 1) : 1;
-      const spread = t === 1 ? 1 : 1 - Math.exp(-8.5 * t) * (Math.cos(7 * t) + 1.214 * Math.sin(7 * t));
+      const delay = Math.min(Math.abs(i - center), 6) * stagger;
+      const t = entering ? clamp((now - start - delay) / entranceDuration, 0, 1) : 1;
+      const spread = t === 1 ? 1 : 1 - Math.exp(-7.5 * t) * (Math.cos(13 * t) + 7.5 / 13 * Math.sin(13 * t));
       const x = (delta * 82 + sign * 152 * turn) * scale, z = (-134 * turn - Math.max(0, distance - 1) * 5) * scale;
       card.style.transform = `translate3d(${x * spread}px,${(44 + distance * 8) * (1 - spread) * scale}px,${z * spread - 90 * (1 - spread) * scale}px) rotateY(${-sign * 65 * turn * spread + sign * 42 * (1 - spread)}deg) rotateX(${5 * (1 - spread)}deg) scale(${.91 + .09 * spread})`;
-      card.style.opacity = String(1 - Math.pow(1 - clamp(t * 2.3, 0, 1), 3));
+      card.style.opacity = String(1 - Math.pow(1 - clamp(t * 3.2, 0, 1), 3));
       card.style.zIndex = String(1000 - Math.round(distance * 100));
     }
     const index = clamp(Math.round(position), 0, cards.length - 1);
@@ -76,7 +80,7 @@ export function mountCoverflow(root, openDetail) {
     if (!host.isConnected) return destroy();
     const dt = last ? Math.min((now - last) / 1000, .05) : 1 / 60; last = now;
     if (entering) {
-      if (now - start > 1170) entering = false;
+      if (now - start >= entranceEnd || reduced.matches) entering = false;
     } else if (!drag) {
       if (reduced.matches) { position = target; velocity = 0; }
       else { const offset = position - target, decay = Math.exp(-12 * dt), cos = Math.cos(6 * dt), sin = Math.sin(6 * dt), v = velocity; position = target + decay * (offset * cos + (v + 12 * offset) / 6 * sin); velocity = decay * (v * cos - (12 * v + 180 * offset) / 6 * sin); }
@@ -131,5 +135,6 @@ export function mountCoverflow(root, openDetail) {
     else { target = clamp(target + delta / (220 * width / 384), 0, cards.length - 1); animate(); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => go(target), 140); }
   }, { ...options, passive: false });
   document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(frame); frame = 0; entering = false; drag = null; position = target = clamp(Math.round(position), 0, cards.length - 1); velocity = 0; last = 0; paint(); } }, options);
+  reduced.addEventListener("change", () => { if (reduced.matches) { entering = false; go(target); } }, options);
   width = cards[0].offsetWidth || 340; paint(); if (entering) animate();
 }

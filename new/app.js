@@ -1,15 +1,19 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js?v=20261009-upload2";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-upload2";
+import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js?v=20261009-motion1";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-motion1";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
+
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-motion1";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 if (!readClassProfile()) saveClassProfile(1, 8);
 const gateway = new NextDataGateway(), service = new ContentServiceV2(gateway);
 let signature = "", detailId = "", detailTrigger = null, saving = false, editing = false;
+prepareDialog($("details"), () => !saving);
+prepareDialog($("preferences"));
 const record = id => (gateway.snapshot().data?.classAssignments || []).find(row => row.id === id && !row.deleted);
 
 function render() {
@@ -26,10 +30,10 @@ function render() {
   $("add").hidden = !snapshot.canArchiveContent;
   $("connection").hidden = !snapshot.error && !snapshot.usingCache;
   $("connection").textContent = snapshot.error ? "연결을 확인해 주세요. 설정에서 다시 연결할 수 있어요." : "저장된 자료를 보고 있어요.";
-  if (!editing && $("details").open) {
+  if (!editing && $("details").open && $("details").dataset.dialogMotion !== "closing") {
     const row = record(detailId);
     if (row && row.published !== false) fillDetail(row);
-    else $("details").close();
+    else closeDialog($("details"));
   }
   updateAccount();
 }
@@ -49,12 +53,13 @@ function openDetail(id, trigger) {
   if (!row || row.published === false) return;
   detailId = id; detailTrigger = trigger; editing = false;
   fillDetail(row);
-  if (!$("details").open) $("details").showModal();
+  openDialog($("details"));
 }
 
 function openEditor(id = "") {
   if (!gateway.snapshot().canArchiveContent || saving) return;
   detailId = id || crypto.randomUUID(); editing = true;
+  const wasOpen = $("details").open;
   const row = record(id) || {};
   $("details").innerHTML = `<header><h1 id="detail-title">${id ? "수행평가 수정" : "수행평가 추가"}</h1><button type="button" data-close aria-label="닫기">×</button></header><form id="editor-form" class="dialog-body">
     <label>수행평가 이름<input name="title" maxlength="120" value="${escape(row.title)}" required></label>
@@ -73,15 +78,16 @@ function openEditor(id = "") {
     </fieldset></div>
     <label class="check"><input name="published" type="checkbox" ${row.published !== false ? "checked" : ""}>학생에게 공개</label>
     <p id="save-status" role="status"></p><div class="dialog-actions"><button type="button" data-close>취소</button><button type="submit" class="primary">저장</button></div></form>`;
-  if (!$("details").open) $("details").showModal();
+  openDialog($("details"));
+  if (wasOpen) revealDialogContent($("details"));
 }
 
 $("details").addEventListener("click", event => {
-  if (event.target.closest("[data-close]") && !saving) $("details").close();
+  if (event.target.closest("[data-close]") && !saving) closeDialog($("details"));
   if (event.target.closest("#edit")) openEditor(detailId);
 });
-$("details").addEventListener("cancel", event => { if (saving) event.preventDefault(); });
 $("details").addEventListener("close", () => {
+  if ($("details").open) return;
   editing = false;
   const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector('.pc-cover[aria-pressed="true"]');
   target?.focus({ preventScroll: true });
@@ -104,7 +110,7 @@ $("details").addEventListener("submit", async event => {
     // Keep the just-verified record visible while the realtime listener catches up.
     const rows = gateway.state.data.classAssignments || [];
     gateway.state.data.classAssignments = [...rows.filter(row => row.id !== result.id), { ...result.record, id: result.id }];
-    $("details").close();
+    closeDialog($("details"));
     render();
   } catch (error) {
     $("save-status").textContent = error?.message || "저장하지 못했어요. 다시 시도해 주세요.";
@@ -130,13 +136,13 @@ $("settings").onclick = () => {
   const profile = gateway.snapshot().profile;
   classForm.elements.grade.value = profile.grade;
   classForm.elements.classNumber.value = profile.classNumber;
-  updateAccount(); $("preferences").showModal();
+  updateAccount(); openDialog($("preferences"));
 };
-$("preferences").querySelector("[data-close]").onclick = () => $("preferences").close();
+$("preferences").querySelector("[data-close]").onclick = () => closeDialog($("preferences"));
 classForm.onsubmit = async event => {
   event.preventDefault();
   saveClassProfile(classForm.elements.grade.value, classForm.elements.classNumber.value);
-  $("preferences").close();
+  closeDialog($("preferences"));
   await gateway.retry();
 };
 async function accountAction(action, refresh = true) {

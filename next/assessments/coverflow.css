@@ -16,3 +16,10 @@
 .pc-flow .pc-caption-title,.pc-flow .pc-caption-subject{color:var(--md-sys-color-on-surface,#273043);text-shadow:none}
 
 .pc-flow .pc-caption-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+.pc-motion-dialog{transform-origin:50% 45%}
+.pc-motion-dialog[data-dialog-motion="opening"]::backdrop{animation:pc-backdrop-in 360ms cubic-bezier(.2,.7,.2,1) both}
+.pc-motion-dialog[data-dialog-motion="closing"]::backdrop{animation:pc-backdrop-out 180ms ease-in both}
+@keyframes pc-backdrop-in{from{opacity:var(--pc-backdrop-from,0)}to{opacity:1}}
+@keyframes pc-backdrop-out{from{opacity:var(--pc-backdrop-from,1)}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.pc-motion-dialog::backdrop{animation:none!important}}
