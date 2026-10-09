@@ -17,6 +17,16 @@
 
 .pc-flow .pc-caption-title{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 
+.pc-surface-light{display:none;position:absolute;top:-25%;left:17%;width:66%;height:150%;pointer-events:none;background:linear-gradient(90deg,#fff0 0%,#ffffff05 18%,#ffffff1f 33%,#ffffff85 44%,#ffffffe6 50%,#ffffff66 57%,#ffffff14 72%,#fff0 100%);opacity:0;transform-origin:50% 50%}
+.pc-flow[data-lighting="on"] .pc-surface-light{display:block}
+.pc-flow[data-lighting="on"] .pc-theme-0{--cover-background:linear-gradient(130deg,#b2c9ea,#d5e1f2 48%,#9eb6d7)}
+.pc-flow[data-lighting="on"] .pc-theme-1{--cover-background:linear-gradient(130deg,#dfb4c8,#efdae3 48%,#c4abc6)}
+.pc-flow[data-lighting="on"] .pc-theme-2{--cover-background:linear-gradient(130deg,#9bbfb7,#d0e4db 48%,#8eb3a8)}
+.pc-flow[data-lighting="on"] .pc-theme-3{--cover-background:linear-gradient(130deg,#cfab7e,#e8d6b9 48%,#bfa47d)}
+.pc-flow[data-lighting="on"] .pc-theme-4{--cover-background:linear-gradient(130deg,#bab3dd,#ded9f0 48%,#aaa0cd)}
+.pc-flow[data-lighting="on"] .pc-theme-5{--cover-background:linear-gradient(130deg,#a6b1c2,#d5dce5 48%,#94a2b8)}
+.pc-flow[data-lighting="on"] .pc-face{box-shadow:inset 0 0 0 1px #ffffff38,0 3px 10px #22304b12}
+
 .pc-motion-dialog{transform-origin:50% 50%}
 .pc-motion-dialog[data-dialog-motion="opening"]::backdrop{animation:pc-backdrop-in 280ms cubic-bezier(.2,.8,.2,1) both}
 .pc-motion-dialog[data-dialog-motion="closing"]::backdrop{animation:pc-backdrop-out 160ms cubic-bezier(.4,0,1,1) both}

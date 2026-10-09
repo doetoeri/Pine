@@ -1,5 +1,5 @@
 import { previewAttachment, ATTACHMENT_SLOTS } from "./attachments.js?v=20261009-upload2";
-import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "./dialog-motion.js?v=20261009-motion2";
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "./dialog-motion.js?v=20261009-light1";
 
 export function mountAttachmentViewer(gateway) {
   let dialog = null, preview = null, token = 0, trigger = null;

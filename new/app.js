@@ -1,11 +1,11 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow } from "../next/assessments/coverflow.js?v=20261009-motion2";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-motion2";
+import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261009-light1";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-light1";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
-import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-motion2";
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-light1";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -14,6 +14,8 @@ const gateway = new NextDataGateway(), service = new ContentServiceV2(gateway);
 let signature = "", detailId = "", detailTrigger = null, saving = false, editing = false;
 prepareDialog($("details"), () => !saving);
 prepareDialog($("preferences"));
+$("cover-lighting").checked = coverLightingEnabled();
+$("cover-lighting").onchange = event => setCoverLightingEnabled(event.target.checked);
 const record = id => (gateway.snapshot().data?.classAssignments || []).find(row => row.id === id && !row.deleted);
 
 function render() {
@@ -136,6 +138,7 @@ $("settings").onclick = () => {
   const profile = gateway.snapshot().profile;
   classForm.elements.grade.value = profile.grade;
   classForm.elements.classNumber.value = profile.classNumber;
+  $("cover-lighting").checked = coverLightingEnabled();
   updateAccount(); openDialog($("preferences"));
 };
 $("preferences").querySelector("[data-close]").onclick = () => closeDialog($("preferences"));

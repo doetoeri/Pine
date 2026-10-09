@@ -3,6 +3,17 @@ const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
 const controllers = new WeakMap();
 const selections = new Map();
 const introduced = new Set();
+const lightingControllers = new Set();
+const LIGHTING_KEY = "pincon-cover-lighting-v1";
+let lightingEnabled = true;
+try { lightingEnabled = globalThis.localStorage?.getItem(LIGHTING_KEY) !== "off"; } catch {}
+
+export function coverLightingEnabled() { return lightingEnabled; }
+export function setCoverLightingEnabled(enabled) {
+  lightingEnabled = Boolean(enabled);
+  try { localStorage.setItem(LIGHTING_KEY, lightingEnabled ? "on" : "off"); } catch {}
+  for (const controller of lightingControllers) controller.updateLighting();
+}
 
 export function assessmentDue(date, now = Date.now()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return "미정";
@@ -13,7 +24,7 @@ export function assessmentDue(date, now = Date.now()) {
 }
 
 function face(row) {
-  return `<div class="pc-face"><div class="pc-head"><span>${escape(row.subject || "수행평가")}</span><span>${escape(row.kind || "수행평가")}</span></div><div class="pc-title">${escape(row.title)}</div><div class="pc-bottom"><div class="pc-deadline"><span class="pc-date">${escape(row.dueDate ? row.dueDate.slice(5).replace("-", ".") : "날짜 미정")}</span><span>${escape(assessmentDue(row.dueDate))}</span></div><div class="pc-meta"><span>${escape((row.confirmed || row.verificationStatus === "verified") ? "공식 자료 확인" : "확인 중")}</span><span>${[row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · ")}</span></div></div></div>`;
+  return `<div class="pc-face"><span class="pc-surface-light" aria-hidden="true"></span><div class="pc-head"><span>${escape(row.subject || "수행평가")}</span><span>${escape(row.kind || "수행평가")}</span></div><div class="pc-title">${escape(row.title)}</div><div class="pc-bottom"><div class="pc-deadline"><span class="pc-date">${escape(row.dueDate ? row.dueDate.slice(5).replace("-", ".") : "날짜 미정")}</span><span>${escape(assessmentDue(row.dueDate))}</span></div><div class="pc-meta"><span>${escape((row.confirmed || row.verificationStatus === "verified") ? "공식 자료 확인" : "확인 중")}</span><span>${[row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · ")}</span></div></div></div>`;
 }
 
 export function coverflowMarkup(rows, classKey = "") {
@@ -30,31 +41,78 @@ export function mountCoverflow(root, openDetail) {
   if (!scene || controllers.has(host)) return;
   const cards = [...scene.querySelectorAll(".pc-cover")], reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const selectionKey = host.dataset.classKey;
-  let selected = -1, width = 340, frame = 0, last = 0, drag = null, wheelTimer = 0;
+  const lights = cards.map(card => ({ nodes: [...card.querySelectorAll(".pc-surface-light")], pose: "", opacity: "", hint: "" }));
+  const visibility = [], hints = [];
+  let selected = -1, width = 340, sceneWidth = 0, frame = 0, last = 0, drag = null, wheelTimer = 0;
   let position = Math.max(0, cards.findIndex(card => card.dataset.assessmentId === selections.get(selectionKey)));
   let target = position, velocity = 0, ignoreClick = 0, entering = !reduced.matches && !introduced.has(selectionKey), start = performance.now();
   introduced.add(selectionKey);
   const center = position;
   const entranceDuration = 460, stagger = 28;
   const entranceEnd = entranceDuration + Math.min(Math.max(center, cards.length - 1 - center), 6) * stagger;
-  const controller = { destroy };
+  const controller = { destroy, updateLighting };
   controllers.set(host, controller);
+  lightingControllers.add(controller);
+  host.dataset.lighting = lightingEnabled ? "on" : "off";
   const disconnected = new MutationObserver(() => { if (!host.isConnected) destroy(); });
   disconnected.observe(root, { childList: true, subtree: true });
-  const resize = new ResizeObserver(() => { width = cards[0].offsetWidth || 340; paint(); });
+  const resize = new ResizeObserver(() => { width = cards[0].offsetWidth || 340; sceneWidth = scene.clientWidth; paint(); });
   resize.observe(scene);
   const listen = new AbortController(), options = { signal: listen.signal };
 
-  function destroy() { cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); }
+  function destroy() { cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
+  function updateLighting() { host.dataset.lighting = lightingEnabled ? "on" : "off"; paint(); }
+  function paintLight(index, yaw, x, z, cardScale, moving, visible) {
+    if (!lightingEnabled) return;
+    const light = lights[index];
+    let pose = light.pose, opacity = "0", hint = "auto";
+    if (visible) {
+      const sin = Math.sin(yaw), cos = Math.cos(yaw), half = width * cardScale / 2;
+      // Match the scene's 1600px perspective without measuring DOM bounds per frame.
+      const a = 1600 * (x - cos * half) / (1600 - z - sin * half);
+      const b = 1600 * (x + cos * half) / (1600 - z + sin * half);
+      const onScreen = Math.max(a, b) > -sceneWidth / 2 - 20 && Math.min(a, b) < sceneWidth / 2 + 20;
+      if (onScreen) {
+        const viewYaw = Math.atan2(-x, 1600 - z);
+        const halfYaw = (viewYaw - .38) / 2;
+        const mismatch = yaw - halfYaw;
+        const facing = clamp(Math.cos(yaw - viewYaw), 0, 1);
+        const shift = clamp(-mismatch * 1.5, -1.4, 1.4) * width;
+        const stretch = .85 + (1 - facing) * .5;
+        // The rotated softbox must also intersect the cover's local clip.
+        const lightHalf = width * (.33 * stretch * .9511 + .75 * .3091);
+        if (Math.abs(shift) < width / 2 + lightHalf) {
+          const fresnel = .04 + .96 * Math.pow(1 - facing, 5);
+          const specular = Math.exp(-Math.pow(mismatch / .44, 2));
+          pose = `translate3d(${shift.toFixed(2)}px,0,0) rotate(-18deg) scaleX(${stretch.toFixed(3)})`;
+          opacity = (.1 + specular * .4 + fresnel * .2).toFixed(3);
+          hint = moving ? "transform,opacity" : "auto";
+        }
+      }
+    }
+    if (pose === light.pose && opacity === light.opacity && hint === light.hint) return;
+    // Two matching layers: the cover and its floor reflection. Only composite
+    // their transform/opacity; the small softbox gradient itself never changes.
+    for (const node of light.nodes) {
+      if (pose !== light.pose) node.style.transform = pose;
+      if (opacity !== light.opacity) node.style.opacity = opacity;
+      if (hint !== light.hint) node.style.willChange = hint;
+    }
+    light.pose = pose; light.opacity = opacity; light.hint = hint;
+  }
   function paint() {
     // Resize callbacks and animation frames share one monotonic entrance clock.
     const now = performance.now(), scale = width / 384;
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i], delta = i - position, distance = Math.abs(delta), visible = distance < 6.6;
-      card.style.visibility = visible ? "visible" : "hidden";
-      card.style.pointerEvents = visible ? "auto" : "none";
-      card.style.willChange = visible && (entering || last || drag) ? "transform" : "auto";
-      if (!visible) continue;
+      if (visibility[i] !== visible) {
+        card.style.visibility = visible ? "visible" : "hidden";
+        card.style.pointerEvents = visible ? "auto" : "none";
+        visibility[i] = visible;
+      }
+      const hint = visible && (entering || last || drag) ? "transform" : "auto";
+      if (hint !== hints[i]) { card.style.willChange = hint; hints[i] = hint; }
+      if (!visible) { paintLight(i, 0, 0, 0, 1, false, false); continue; }
       const turn = Math.sin(Math.min(distance, 1) * Math.PI / 2), sign = Math.sign(delta);
       const delay = Math.min(Math.abs(i - center), 6) * stagger;
       const t = entering ? clamp((now - start - delay) / entranceDuration, 0, 1) : 1;
@@ -62,9 +120,12 @@ export function mountCoverflow(root, openDetail) {
       const spread = t === 1 ? 1 : (1 - (1 + 7 * t) * Math.exp(-7 * t)) / (1 - 8 * Math.exp(-7));
       const remaining = 1 - spread;
       const x = (delta * 82 + sign * 152 * turn) * scale, z = (-134 * turn - Math.max(0, distance - 1) * 5) * scale;
-      card.style.transform = `translate3d(${x - sign * 18 * remaining * scale}px,${14 * remaining * scale}px,${z - 18 * remaining * scale}px) rotateY(${-sign * 65 * turn}deg) scale(${.985 + .015 * spread})`;
+      const yaw = -sign * 65 * turn, cardScale = .985 + .015 * spread;
+      const renderX = x - sign * 18 * remaining * scale, renderZ = z - 18 * remaining * scale;
+      card.style.transform = `translate3d(${renderX}px,${14 * remaining * scale}px,${renderZ}px) rotateY(${yaw}deg) scale(${cardScale})`;
       card.style.opacity = String(1 - Math.pow(1 - clamp(t * 2.4, 0, 1), 3));
       card.style.zIndex = String(1000 - Math.round(distance * 100));
+      paintLight(i, yaw * Math.PI / 180, renderX, renderZ, cardScale, Boolean(entering || last || drag), true);
     }
     const index = clamp(Math.round(position), 0, cards.length - 1);
     if (index !== selected) {
@@ -139,5 +200,5 @@ export function mountCoverflow(root, openDetail) {
   }, { ...options, passive: false });
   document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(frame); frame = 0; entering = false; drag = null; position = target = clamp(Math.round(position), 0, cards.length - 1); velocity = 0; last = 0; paint(); } }, options);
   reduced.addEventListener("change", () => { if (reduced.matches) { entering = false; go(target); } }, options);
-  width = cards[0].offsetWidth || 340; paint(); if (entering) animate();
+  width = cards[0].offsetWidth || 340; sceneWidth = scene.clientWidth; paint(); if (entering) animate();
 }

@@ -151,3 +151,52 @@ test("covers enter in a restrained cascade without bouncing and stay settled on 
   await page.locator("#preferences [data-close]").click();
   await expect(page.locator("#preferences")).toBeHidden();
 });
+
+test("cover lighting follows tilt, stops updating at rest and remembers the off setting", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+      classAssignments: Array.from({ length: 16 }, (_, i) => ({ id: `light-${i}`, classKey: "1-8", type: "assessment", subject: "미술", title: `수행평가 ${i}`, published: true }))
+    } }));
+  });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  const scene = page.locator(".pc-scene"), flow = page.locator(".pc-flow");
+  await expect(scene).toHaveAttribute("data-motion", "resting");
+  await expect(flow).toHaveAttribute("data-lighting", "on");
+  const front = page.locator('.pc-cover[data-index="0"] > .pc-face > .pc-surface-light');
+  const start = await front.evaluate(node => ({ transform: node.style.transform, background: getComputedStyle(node).backgroundImage }));
+  await scene.press("ArrowRight");
+  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "light-1");
+  await expect(scene).toHaveAttribute("data-motion", "resting");
+  const turned = await front.evaluate(node => ({ transform: node.style.transform, background: getComputedStyle(node).backgroundImage }));
+  expect(turned.transform).not.toBe(start.transform);
+  expect(turned.background).toBe(start.background);
+  const mirror = page.locator('.pc-cover[data-index="0"] .pc-reflection .pc-surface-light');
+  expect(await mirror.evaluate(node => node.style.transform)).toBe(turned.transform);
+  await expect(page.locator('.pc-cover[data-index="15"] .pc-surface-light').first()).toHaveCSS("opacity", "0");
+  const idleUpdates = await page.evaluate(async () => {
+    let updates = 0;
+    const observer = new MutationObserver(records => { updates += records.length; });
+    document.querySelectorAll(".pc-surface-light").forEach(node => observer.observe(node, { attributes: true, attributeFilter: ["style"] }));
+    await new Promise(resolve => setTimeout(resolve, 200));
+    observer.disconnect();
+    return updates;
+  });
+  expect(idleUpdates).toBe(0);
+  await page.locator("#settings").click();
+  await expect(page.locator("#cover-lighting")).toBeChecked();
+  await page.locator("#cover-lighting").uncheck();
+  await expect(flow).toHaveAttribute("data-lighting", "off");
+  await expect(front).toHaveCSS("display", "none");
+  await page.locator("#preferences [data-close]").click();
+  await expect(page.locator("#preferences")).toBeHidden();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(flow).toHaveAttribute("data-lighting", "off");
+  await page.locator("#settings").click();
+  await expect(page.locator("#cover-lighting")).not.toBeChecked();
+  await page.locator("#cover-lighting").check();
+  await expect(flow).toHaveAttribute("data-lighting", "on");
+});
