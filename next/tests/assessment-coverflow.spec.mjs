@@ -35,7 +35,9 @@ test("the white greeting finishes on time even when app and fonts are delayed", 
   try {
     await page.waitForFunction(() => window.PINCON_STARTUP);
     expect(await page.evaluate(() => window.PINCON_STARTUP.mode)).toBe("full");
-    await page.waitForFunction(() => window.PINCON_STARTUP.finished);
+    // WebKit can suspend animation frames before a pending module/font lets
+    // the document paint. Check the independent timer without waiting on RAF.
+    await page.waitForFunction(() => window.PINCON_STARTUP.finished, null, { polling: 50, timeout: 2500 });
     const greeting = await page.evaluate(() => ({ elapsed: window.PINCON_STARTUP.endAt - window.PINCON_STARTUP.startAt, background: getComputedStyle(document.body).backgroundImage }));
     expect(greeting.elapsed).toBeLessThan(1150);
     expect(greeting.background).toContain("radial-gradient");
