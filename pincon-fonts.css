@@ -1,0 +1,24 @@
+/* PinCon shared UI typography. OpenAI Sans Latin is served from its public CDN.
+   Keep a native Hangul fallback until the licensed Hangul asset is hosted locally. */
+@font-face {
+  font-family: "PinCon OpenAI Sans";
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/OpenAISans-Regular.woff2") format("woff2");
+  font-style: normal; font-weight: 400; font-display: swap;
+  unicode-range: U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF;
+}
+@font-face {
+  font-family: "PinCon OpenAI Sans";
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/OpenAISans-Medium.woff2") format("woff2");
+  font-style: normal; font-weight: 500; font-display: swap;
+  unicode-range: U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF;
+}
+@font-face {
+  font-family: "PinCon OpenAI Sans";
+  src: url("https://cdn.openai.com/common/fonts/openai-sans/OpenAISans-Semibold.woff2") format("woff2");
+  font-style: normal; font-weight: 600 900; font-display: swap;
+  unicode-range: U+0000-024F,U+1E00-1EFF,U+2000-206F,U+20A0-20CF;
+}
+:root,body,button,input,select,textarea,dialog {
+  font-family:"PinCon OpenAI Sans","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+.material-symbols-rounded,md-icon { font-family:"Material Symbols Rounded" !important; }
