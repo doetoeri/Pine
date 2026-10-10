@@ -1,7 +1,9 @@
-const PINCON_SW_VERSION = "20261010-scroll1";
+const PINCON_SW_VERSION = "20261010-font-tablet2";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
+  "./pincon-fonts.css",
+  "./fonts/OpenAISansHangulVariable.woff2",
   "./material-official-loader.js",
   "./material-web.bundle.js",
   "./next/app-bootstrap.js",
