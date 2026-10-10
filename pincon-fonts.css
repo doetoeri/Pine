@@ -33,3 +33,25 @@
   font-family:"PinCon OpenAI Sans","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 .material-symbols-rounded,md-icon { font-family:"Material Symbols Rounded" !important; }
+
+/* Assessment CoverFlow typography, shared by /next and /new.
+   Covers, reflections, captions, and deadline numerals use the same family.
+   Font sizes, layout, motion, and Material Symbols stay unchanged. */
+.pc-flow .pc-cover,
+.pc-flow .pc-face,
+.pc-flow .pc-head,
+.pc-flow .pc-head > span,
+.pc-flow .pc-subject,
+.pc-flow .pc-kind,
+.pc-flow .pc-title,
+.pc-flow .pc-bottom,
+.pc-flow .pc-deadline,
+.pc-flow .pc-date,
+.pc-flow .pc-due,
+.pc-flow .pc-meta,
+.pc-flow .pc-caption,
+.pc-flow .pc-caption-title,
+.pc-flow .pc-caption-subject,
+.pc-flow .pc-reflection .pc-face {
+  font-family: "PinCon OpenAI Sans", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
