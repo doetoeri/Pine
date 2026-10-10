@@ -82,7 +82,6 @@ function updateViewButton() {
   const label = view === "calendar" ? "커버 보기" : "달력 보기";
   $("view-toggle").setAttribute("aria-label", label);
   $("view-toggle").setAttribute("title", label);
-  $("view-toggle").setAttribute("aria-pressed", String(view === "calendar"));
 }
 updateViewButton();
 $("view-toggle").onclick = () => {

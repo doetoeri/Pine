@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="./app.css?v=20261010-calendar1">
   <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261009-paper1">
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
-  <script src="../registerSW.js?v=20261010-calendar1" defer></script>
+  <script src="../registerSW.js?v=20261010-calendar2" defer></script>
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2" />
   <style>
     /* A self-contained greeting: no image, font or module download to await. */
@@ -83,7 +83,7 @@
       window.addEventListener("pagehide", finish, { once: true, signal: listeners.signal });
     })();
   </script>
-  <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="view-toggle" aria-label="달력 보기" title="달력 보기" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg></button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
+  <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="view-toggle" aria-label="달력 보기" title="달력 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg></button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
   <p id="view-status" class="sr-only" role="status" aria-live="polite"></p>
   <p id="connection" class="connection" role="status" hidden></p>
   <dialog id="details" aria-labelledby="detail-title"></dialog>
@@ -104,6 +104,6 @@
     </div>
   </dialog>
   <noscript>PinCon을 사용하려면 JavaScript를 켜 주세요.</noscript>
-  <script type="module" src="./app.js?v=20261010-calendar1"></script>
+  <script type="module" src="./app.js?v=20261010-calendar2"></script>
 </body>
 </html>

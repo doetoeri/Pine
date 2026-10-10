@@ -207,7 +207,9 @@ jobs:
       - name: Start static preview server
         run: python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/pincon-next-http.log 2>&1 &
       - name: Check all responsive, interaction and performance flows
-        run: npx playwright test next/tests/*.spec.mjs --browser=${{ matrix.browser }} --workers=2 --reporter=line --max-failures=3
+        # Motion samples should measure one WebKit renderer at a time; two
+        # software renderers can starve each other's animation-frame clock.
+        run: npx playwright test next/tests/*.spec.mjs --browser=${{ matrix.browser }} --workers=${{ matrix.browser == 'webkit' && '1' || '2' }} --reporter=line --max-failures=3
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
