@@ -6,19 +6,34 @@ import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
 import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
+import { assessmentCalendarMarkup, calendarDate, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261010-calendar1";
+import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261010-calendar1";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 if (!readClassProfile()) saveClassProfile(1, 8);
 const gateway = new NextDataGateway(), service = new ContentServiceV2(gateway);
 let signature = "", detailId = "", detailTrigger = null, saving = false, editing = false;
+let view = "covers", month = currentCalendarMonth(), selectedDay = "", calendarOpened = false, stopViewMotion = () => {};
 prepareDialog($("details"), () => !saving);
 prepareDialog($("preferences"));
 $("cover-lighting").checked = coverLightingEnabled();
 $("cover-lighting").onchange = event => setCoverLightingEnabled(event.target.checked);
+$("startup-enabled").checked = window.PINCON_STARTUP?.enabled !== false;
+$("startup-enabled").onchange = event => {
+  const enabled = event.target.checked;
+  if (window.PINCON_STARTUP) {
+    window.PINCON_STARTUP.enabled = enabled;
+    if (!enabled) window.PINCON_STARTUP.dismiss?.();
+  }
+  try {
+    localStorage.setItem("pincon-startup-enabled-v1", enabled ? "on" : "off");
+    if (enabled) localStorage.removeItem("pincon-startup-day-v1");
+  } catch {}
+};
 const record = id => (gateway.snapshot().data?.classAssignments || []).find(row => row.id === id && !row.deleted);
 
-function render() {
+function render({ transition = false } = {}) {
   const snapshot = gateway.snapshot();
   const rows = (snapshot.data?.classAssignments || []).filter(row => !row.deleted && row.published !== false && (!row.type || row.type === "assessment") && (!row.classKey || row.classKey === snapshot.profile?.classKey))
     .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
@@ -26,20 +41,26 @@ function render() {
   // Realtime timestamps, attachment metadata and detail-only edits must not
   // replace the scene (and interrupt an in-progress scroll) when covers match.
   const pending = !rows.length && !snapshot.ready && !snapshot.usingCache;
-  const next = JSON.stringify([snapshot.profile?.classKey, pending, rows.map(row => [
-    row.id, row.title, row.subject, row.kind, row.dueDate,
+  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, month, selectedDay, view === "calendar" ? seoulToday() : "", rows.map(row => [
+    row.id, row.title, row.subject, row.kind, row.dueDate, row.dateType,
     Boolean(row.confirmed || row.verificationStatus === "verified"),
     Boolean(row.noticeAttachment), Boolean(row.worksheetPack),
   ])]);
   if (next !== signature) {
+    stopViewMotion();
+    const before = transition ? captureAssessmentTiles($("covers")) : [];
+    const scrollTop = $("covers").querySelector(".pc-calendar")?.scrollTop || 0;
     signature = next;
     $("covers").innerHTML = pending
       ? '<section class="pc-flow pc-flow-empty" aria-label="수행평가"><p>수행평가</p></section>'
-      : coverflowMarkup(rows, snapshot.profile?.classKey || "");
+      : view === "calendar" ? assessmentCalendarMarkup(rows, month, selectedDay) : coverflowMarkup(rows, snapshot.profile?.classKey || "");
+    $("covers").setAttribute("aria-label", view === "calendar" ? "수행평가 달력" : "수행평가 커버플로우");
     if (window.PINCON_STARTUP?.mode === "full" && !window.PINCON_STARTUP.finished) {
       document.documentElement.style.setProperty("--pc-startup-elapsed", `${performance.now() - window.PINCON_STARTUP.startAt}ms`);
     }
     mountCoverflow($("covers"), openDetail, { startup: window.PINCON_STARTUP });
+    if (transition) stopViewMotion = animateAssessmentView($("covers"), before);
+    else if (view === "calendar") $("covers").querySelector(".pc-calendar")?.scrollTo(0, scrollTop);
   }
   $("add").hidden = !snapshot.canArchiveContent;
   $("connection").hidden = !snapshot.error && !snapshot.usingCache;
@@ -53,6 +74,66 @@ function render() {
   }
   updateAccount();
 }
+
+const calendarIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg>';
+const coversIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7.5h3v12H3zM18 7.5h3v12h-3z"/><rect x="8.5" y="4.5" width="7" height="15" rx=".8"/></svg>';
+function updateViewButton() {
+  $("view-toggle").innerHTML = view === "calendar" ? coversIcon : calendarIcon;
+  const label = view === "calendar" ? "커버 보기" : "달력 보기";
+  $("view-toggle").setAttribute("aria-label", label);
+  $("view-toggle").setAttribute("title", label);
+  $("view-toggle").setAttribute("aria-pressed", String(view === "calendar"));
+}
+updateViewButton();
+$("view-toggle").onclick = () => {
+  window.PINCON_STARTUP?.dismiss?.();
+  stopViewMotion();
+  if (view === "covers" && !calendarOpened) {
+    const selected = $("covers").querySelector('.pc-cover[aria-pressed="true"]');
+    const row = selected && record(selected.dataset.assessmentId);
+    if (row && (!row.dateType || row.dateType === "exact") && calendarDate(row.dueDate)) month = row.dueDate.slice(0, 7);
+    calendarOpened = true;
+  }
+  view = view === "covers" ? "calendar" : "covers";
+  updateViewButton(); render({ transition: true });
+  $("view-status").textContent = view === "calendar" ? `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월 달력 보기` : "커버 보기";
+};
+
+$("covers").addEventListener("click", event => {
+  if (view !== "calendar") return;
+  const navigation = event.target.closest("[data-calendar-month]");
+  if (navigation) {
+    const value = navigation.dataset.calendarMonth;
+    month = value === "today" ? currentCalendarMonth() : shiftCalendarMonth(month, Number(value));
+    selectedDay = ""; render({ transition: true });
+    $("covers").querySelector(`[data-calendar-month="${value}"]`)?.focus({ preventScroll: true });
+    $("view-status").textContent = `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월`;
+    return;
+  }
+  const day = event.target.closest("[data-calendar-day]");
+  if (day) {
+    selectedDay = day.dataset.calendarDay; render();
+    const heading = $("calendar-day-title");
+    heading?.focus({ preventScroll: true });
+    heading?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    return;
+  }
+  const tile = event.target.closest(".pc-calendar-tile");
+  if (tile) openDetail(tile.dataset.assessmentId, tile);
+});
+$("covers").addEventListener("focusin", event => {
+  if (!event.target.matches(".pc-calendar-number")) return;
+  $("covers").querySelectorAll(".pc-calendar-number").forEach(button => { button.tabIndex = button === event.target ? 0 : -1; });
+});
+$("covers").addEventListener("keydown", event => {
+  if (!event.target.matches(".pc-calendar-number") || event.ctrlKey || event.metaKey || event.altKey) return;
+  const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[event.key];
+  if (!delta) return;
+  event.preventDefault();
+  const date = shiftCalendarDay(event.target.dataset.calendarDay, delta);
+  if (!$("covers").querySelector(`.pc-calendar-number[data-calendar-day="${date}"]`)) { month = date.slice(0, 7); selectedDay = ""; render(); }
+  $("covers").querySelector(`.pc-calendar-number[data-calendar-day="${date}"]`)?.focus({ preventScroll: true });
+});
 
 function fillDetail(row) {
   $("details").innerHTML = `<header><h1 id="detail-title">${escape(row.title)}</h1><button type="button" data-close aria-label="닫기">×</button></header><div class="dialog-body">
@@ -141,7 +222,7 @@ async function deleteAssessment() {
 $("details").addEventListener("close", () => {
   if ($("details").open) return;
   editing = false;
-  const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector('.pc-cover[aria-pressed="true"]') || $("add");
+  const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector(`.pc-calendar-tile[data-assessment-id="${CSS.escape(detailId)}"],.pc-cover[aria-pressed="true"]`) || (!$("add").hidden ? $("add") : $("view-toggle"));
   target?.focus({ preventScroll: true });
 });
 $("details").addEventListener("submit", async event => {
@@ -189,6 +270,7 @@ $("settings").onclick = () => {
   classForm.elements.grade.value = profile.grade;
   classForm.elements.classNumber.value = profile.classNumber;
   $("cover-lighting").checked = coverLightingEnabled();
+  $("startup-enabled").checked = window.PINCON_STARTUP?.enabled !== false;
   updateAccount(); openDialog($("preferences"));
 };
 $("preferences").querySelector("[data-close]").onclick = () => closeDialog($("preferences"));

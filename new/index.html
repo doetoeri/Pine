@@ -8,10 +8,10 @@
   <title>PinCon · 수행평가</title>
   <link rel="icon" href="../next/assets/pincon-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261010-intro1">
-  <link rel="stylesheet" href="./app.css?v=20261010-intro1">
+  <link rel="stylesheet" href="./app.css?v=20261010-calendar1">
   <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261009-paper1">
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
-  <script src="../registerSW.js?v=20261010-intro1" defer></script>
+  <script src="../registerSW.js?v=20261010-calendar1" defer></script>
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2" />
   <style>
     /* A self-contained greeting: no image, font or module download to await. */
@@ -48,14 +48,15 @@
       const root = document.documentElement, mark = document.querySelector(".pc-startup");
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       const day = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      let repeat = false, light = true;
+      let repeat = false, light = true, enabled = true;
       try {
         repeat = localStorage.getItem("pincon-startup-day-v1") === day;
         light = localStorage.getItem("pincon-cover-lighting-v1") !== "off";
+        enabled = localStorage.getItem("pincon-startup-enabled-v1") !== "off";
       } catch {}
-      const mode = reduced.matches || document.hidden ? "none" : repeat ? "short" : "full";
+      const mode = !enabled || reduced.matches || document.hidden ? "none" : repeat ? "short" : "full";
       const duration = mode === "full" ? 800 : mode === "short" ? 200 : 0;
-      const state = window.PINCON_STARTUP = { mode, duration, startAt: performance.now(), finished: false };
+      const state = window.PINCON_STARTUP = { mode, duration, enabled, startAt: performance.now(), finished: false, dismiss: finish };
       const listeners = new AbortController(), timers = [];
       function finish() {
         if (state.finished) return;
@@ -82,12 +83,14 @@
       window.addEventListener("pagehide", finish, { once: true, signal: listeners.signal });
     })();
   </script>
-  <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
+  <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="view-toggle" aria-label="달력 보기" title="달력 보기" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg></button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
+  <p id="view-status" class="sr-only" role="status" aria-live="polite"></p>
   <p id="connection" class="connection" role="status" hidden></p>
   <dialog id="details" aria-labelledby="detail-title"></dialog>
   <dialog id="preferences" aria-labelledby="preferences-title">
     <header><h1 id="preferences-title">설정</h1><button type="button" data-close aria-label="닫기">×</button></header>
     <div class="dialog-body">
+      <label class="appearance-option"><span><strong>시작 인트로</strong><small>하루 첫 접속에 짧게 인사해요. 켜면 다음 접속부터 보여요.</small></span><input id="startup-enabled" class="setting-switch" type="checkbox" role="switch"></label>
       <label class="appearance-option"><span><strong>커버 빛 반사</strong><small>기울기에 따라 반사가 자연스럽게 달라져요.</small></span><input id="cover-lighting" class="setting-switch" type="checkbox" role="switch"></label>
       <hr>
       <form id="class-form"><div class="fields"><label>학년<select name="grade"><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></label><label>반<select name="classNumber"></select></label></div><button type="submit">학급 선택</button></form>
@@ -101,6 +104,6 @@
     </div>
   </dialog>
   <noscript>PinCon을 사용하려면 JavaScript를 켜 주세요.</noscript>
-  <script type="module" src="./app.js?v=20261010-intro1"></script>
+  <script type="module" src="./app.js?v=20261010-calendar1"></script>
 </body>
 </html>
