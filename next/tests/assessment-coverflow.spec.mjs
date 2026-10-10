@@ -15,6 +15,90 @@ function paperPdf(pages = 6) {
 }
 
 test.use({ reducedMotion: "reduce" });
+
+test("the white greeting finishes on time even when app and fonts are delayed", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+      classAssignments: [{ id: "greeting-cover", classKey: "1-8", type: "assessment", subject: "국어", title: "실제 저장된 수행평가", published: true }],
+    } }));
+  });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const delay = async route => { await gate; await route.continue(); };
+  await page.route("**/new/app.js?*", delay);
+  await page.route("**/fonts/*.woff2", delay);
+  const navigation = page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  try {
+    await page.waitForFunction(() => window.PINCON_STARTUP);
+    expect(await page.evaluate(() => window.PINCON_STARTUP.mode)).toBe("full");
+    await page.waitForFunction(() => window.PINCON_STARTUP.finished);
+    const greeting = await page.evaluate(() => ({ elapsed: window.PINCON_STARTUP.endAt - window.PINCON_STARTUP.startAt, background: getComputedStyle(document.body).backgroundImage }));
+    expect(greeting.elapsed).toBeLessThan(1150);
+    expect(greeting.background).toContain("radial-gradient");
+    await expect(page.locator(".pc-startup")).toHaveCount(0);
+    await expect(page.locator(".pc-scene")).toHaveCount(0);
+    await expect(page.locator("#covers")).toHaveText("수행평가");
+  } finally { release(); }
+  await navigation;
+  // Late data reveals real covers immediately, without replaying the greeting.
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  await expect(page.locator(".pc-cover")).toHaveCSS("opacity", "1");
+  await page.locator(".pc-cover").click();
+  await expect(page.locator("#detail-title")).toHaveText("실제 저장된 수행평가");
+});
+
+test("cached covers join the greeting and same-day visits use only the short reveal", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+    localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+      classAssignments: Array.from({ length: 16 }, (_, i) => ({ id: `greeting-${i}`, classKey: "1-8", type: "assessment", subject: "미술", title: `수행평가 ${i}`, published: true })),
+    } }));
+  });
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => window.PINCON_STARTUP.finished);
+  expect(await page.evaluate(() => window.PINCON_STARTUP.mode)).toBe("full");
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("opacity", "1");
+  await expect(page.locator(".pc-caption")).toHaveCSS("opacity", "1");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => window.PINCON_STARTUP.finished);
+  const repeat = await page.evaluate(() => ({ mode: window.PINCON_STARTUP.mode, elapsed: window.PINCON_STARTUP.endAt - window.PINCON_STARTUP.startAt }));
+  expect(repeat.mode).toBe("short");
+  expect(repeat.elapsed).toBeLessThan(500);
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  await expect(page.locator(".pc-cover").first()).toHaveCSS("opacity", "1");
+});
+
+test("greeting input dismisses immediately and motion preferences take priority", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => localStorage.setItem("pincon-cover-lighting-v1", "off"));
+  await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route("**/new/app.js?*", async route => { await gate; await route.continue(); });
+  const navigation = page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+  try {
+    await page.waitForFunction(() => window.PINCON_STARTUP);
+    await expect(page.locator(".pc-startup-sheen")).toHaveCSS("display", "none");
+    await page.keyboard.press("ArrowRight");
+    expect(await page.evaluate(() => window.PINCON_STARTUP.finished)).toBe(true);
+    await expect(page.locator(".pc-startup")).toHaveCount(0);
+  } finally { release(); }
+  await navigation;
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  expect(await page.evaluate(() => ({ mode: window.PINCON_STARTUP.mode, finished: window.PINCON_STARTUP.finished }))).toEqual({ mode: "none", finished: true });
+  await expect(page.locator(".pc-startup")).toHaveCount(0);
+  await page.locator("#settings").click();
+  await expect(page.locator("#preferences")).toBeVisible();
+});
+
 for (const width of [360, 768, 1440]) {
   test(`assessment covers select, open details and retain selection at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 960 });
@@ -174,7 +258,7 @@ for (const width of [360, 768, 1440]) {
 
     for (const lighting of [true, false]) {
       const scroll = await page.evaluate(async lighting => {
-        const { setCoverLightingEnabled } = await import("/next/assessments/coverflow.js?v=20261010-scroll1");
+        const { setCoverLightingEnabled } = await import("/next/assessments/coverflow.js?v=20261010-intro1");
         setCoverLightingEnabled(lighting);
         const scene = document.querySelector(".pc-scene");
         let running = true, frames = 0, blankFrames = 0;

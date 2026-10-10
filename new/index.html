@@ -7,15 +7,81 @@
   <meta name="description" content="PinCon 수행평가 커버플로우 · 안내문과 학습지팩">
   <title>PinCon · 수행평가</title>
   <link rel="icon" href="../next/assets/pincon-icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261010-scroll1">
-  <link rel="stylesheet" href="./app.css?v=20261010-scroll1">
+  <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261010-intro1">
+  <link rel="stylesheet" href="./app.css?v=20261010-intro1">
   <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261009-paper1">
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
-  <script src="../registerSW.js?v=20261010-font-tablet2" defer></script>
+  <script src="../registerSW.js?v=20261010-intro1" defer></script>
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2" />
+  <style>
+    /* A self-contained greeting: no image, font or module download to await. */
+    .pc-startup{position:fixed;inset:0;z-index:10;pointer-events:none;background:var(--pc-scene-background,radial-gradient(ellipse at 50% 43%,#fff 0%,#f8f9fc 48%,#edf0f5 100%));animation:pc-startup-out 200ms 350ms cubic-bezier(.2,.7,.2,1) both;will-change:opacity}
+    .pc-startup[hidden]{display:none}
+    .pc-startup-mark{position:absolute;--startup-card:min(380px,calc(100vw - 82px),calc((100dvh - 150px) * .65));top:calc(50% - var(--startup-card) * .3);left:50%;width:min(174px,46vw);height:auto;overflow:visible;transform:translate(-50%,-50%);animation:pc-startup-mark 140ms cubic-bezier(.2,.7,.2,1) both}
+    .pc-startup-sheen{animation:pc-startup-sheen 260ms 160ms cubic-bezier(.3,0,.2,1) both}
+    html[data-startup-light="off"] .pc-startup-sheen{display:none}
+    html[data-startup="full"] .tools,html[data-startup="full"] .connection{animation:pc-startup-ui 160ms 620ms ease both}
+    html[data-startup="full"] .pc-caption{animation:pc-startup-ui 160ms calc(620ms - var(--pc-startup-elapsed,0ms)) ease both}
+    @keyframes pc-startup-mark{from{opacity:0;transform:translate(-50%,-50%) scale(.985)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+    @keyframes pc-startup-sheen{from{transform:translateX(0)}to{transform:translateX(var(--pc-startup-sweep))}}
+    @keyframes pc-startup-out{from{opacity:1}to{opacity:0}}
+    @keyframes pc-startup-ui{from{opacity:0}to{opacity:1}}
+    @media(prefers-reduced-motion:reduce){.pc-startup{display:none!important}html[data-startup="full"] .tools,html[data-startup="full"] .connection,html[data-startup="full"] .pc-caption{opacity:1;animation:none}}
+  </style>
 </head>
 <body>
-  <main id="covers" aria-label="수행평가 커버플로우"><p class="empty">수행평가를 불러오는 중…</p></main>
+  <main id="covers" aria-label="수행평가 커버플로우"><p class="empty">수행평가</p></main>
+  <div class="pc-startup" aria-hidden="true" hidden>
+    <svg class="pc-startup-mark" viewBox="0 0 3310 800" fill="none" aria-hidden="true" style="--pc-startup-sweep:5296.0px" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <path id="pc-startup-glyphs" d="M85.33 60H392Q458.67 60 509.17 85.5Q559.67 111 588 159.83Q616.33 208.67 616.33 276.67Q616.33 344.67 588 393.83Q559.67 443 509.17 468.5Q458.67 494 392 494H205.33V760H85.33ZM496.33 276.67Q496.33 225 465.33 196.17Q434.33 167.33 377 167.33H205.33V386.67H377Q434.33 386.67 465.33 357.5Q496.33 328.33 496.33 276.67ZM701.33 260H816.33V760H701.33ZM687 115.79Q687 86.58 708.21 65.62Q729.43 44.67 759 44.67Q788 44.67 809 65.5Q830 86.33 830 116.02Q830 144.41 809 165.71Q788 187 758.67 187Q729.33 187 708.17 166Q687 145 687 115.79ZM943.33 260H1058.33V322.33Q1080 288.67 1118.5 269Q1157 249.33 1207.33 249.33Q1261.33 249.33 1302.69 273.45Q1344.04 297.57 1366.69 341.78Q1389.33 386 1389.33 443.67V760H1274.33V467.33Q1274.33 410.9 1249.08 380.12Q1223.83 349.33 1175.82 349.33H1174.16Q1123.67 349.33 1091 388.92Q1058.33 428.5 1058.33 491.67V760H943.33ZM1486 410Q1486 306.67 1527.17 224.67Q1568.33 142.67 1644 96.33Q1719.67 50 1819 50Q1902 50 1967.33 81Q2032.67 112 2072.5 167.67Q2112.33 223.33 2120 296.33H1998Q1986 232.33 1939.67 195.17Q1893.33 158 1823.67 158H1815Q1753.33 158 1706.5 190.17Q1659.67 222.33 1634 279.5Q1608.33 336.67 1608.33 410Q1608.33 483.33 1634 540.5Q1659.67 597.67 1706.5 629.5Q1753.33 661.33 1815 661.33H1823.67Q1893.33 661.33 1939.5 624.17Q1985.67 587 1997.67 523H2120Q2112.33 595.33 2072.33 651Q2032.33 706.67 1966.83 738Q1901.33 769.33 1819 769.33Q1718 769.33 1642.67 723.33Q1567.33 677.33 1526.67 595.83Q1486 514.33 1486 410ZM2186.33 509.33Q2186.33 436 2218.83 376.5Q2251.33 317 2308.67 283.17Q2366 249.33 2436.67 249.33Q2508 249.33 2565 283.17Q2622 317 2654.5 376.5Q2687 436 2687 509.33Q2687 583.33 2654.5 642.83Q2622 702.33 2565 736.5Q2508 770.67 2436.67 770.67Q2366 770.67 2308.67 736.5Q2251.33 702.33 2218.83 642.83Q2186.33 583.33 2186.33 509.33ZM2571 509.33Q2571 460.33 2554.5 423.17Q2538 386 2507.67 365.83Q2477.33 345.67 2439 345.67H2433.33Q2395.67 345.67 2365.5 365.83Q2335.33 386 2318.5 423.17Q2301.67 460.33 2301.67 509.33Q2301.67 558.33 2318.5 595.83Q2335.33 633.33 2365.5 653.67Q2395.67 674 2433.33 674H2439Q2477.33 674 2507.67 653.67Q2538 633.33 2554.5 595.83Q2571 558.33 2571 509.33ZM2783.33 260H2898.33V322.33Q2920 288.67 2958.5 269Q2997 249.33 3047.33 249.33Q3101.33 249.33 3142.69 273.45Q3184.04 297.57 3206.69 341.78Q3229.33 386 3229.33 443.67V760H3114.33V467.33Q3114.33 410.9 3089.08 380.12Q3063.83 349.33 3015.82 349.33H3014.16Q2963.67 349.33 2931 388.92Q2898.33 428.5 2898.33 491.67V760H2783.33Z"/>
+        <linearGradient id="pc-startup-metal" x1="0" y1="0" x2="3310" y2="800" gradientUnits="userSpaceOnUse"><stop stop-color="#29374d"/><stop offset=".4" stop-color="#63738c"/><stop offset=".62" stop-color="#334158"/><stop offset="1" stop-color="#4b5870"/></linearGradient>
+        <linearGradient id="pc-startup-shine"><stop stop-color="#c4d8fa" stop-opacity="0"/><stop offset=".38" stop-color="#d4e2ff" stop-opacity=".25"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset=".63" stop-color="#e4d7ee" stop-opacity=".3"/><stop offset="1" stop-color="#e4d7ee" stop-opacity="0"/></linearGradient>
+        <clipPath id="pc-startup-clip"><use href="#pc-startup-glyphs"/></clipPath>
+      </defs>
+      <use href="#pc-startup-glyphs" fill="url(#pc-startup-metal)"/>
+      <g clip-path="url(#pc-startup-clip)"><rect class="pc-startup-sheen" x="-1489.5" y="0" width="1489.5" height="800" fill="url(#pc-startup-shine)"/></g>
+    </svg>
+  </div>
+  <script>
+    (() => {
+      const root = document.documentElement, mark = document.querySelector(".pc-startup");
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      const day = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      let repeat = false, light = true;
+      try {
+        repeat = localStorage.getItem("pincon-startup-day-v1") === day;
+        light = localStorage.getItem("pincon-cover-lighting-v1") !== "off";
+      } catch {}
+      const mode = reduced.matches || document.hidden ? "none" : repeat ? "short" : "full";
+      const duration = mode === "full" ? 800 : mode === "short" ? 200 : 0;
+      const state = window.PINCON_STARTUP = { mode, duration, startAt: performance.now(), finished: false };
+      const listeners = new AbortController(), timers = [];
+      function finish() {
+        if (state.finished) return;
+        state.finished = true; state.endAt = performance.now();
+        timers.forEach(clearTimeout); listeners.abort();
+        root.dataset.startup = "ready";
+        delete root.dataset.startupLight;
+        document.dispatchEvent(new Event("pincon-startup-end"));
+        mark.remove();
+      }
+      root.dataset.startup = mode;
+      // Repeat visits go straight to the app's 200ms cover reveal. A second
+      // overlay would add a needless pause before cached covers can appear.
+      if (mode !== "full") { finish(); return; }
+      root.dataset.startupLight = light ? "on" : "off";
+      mark.hidden = false;
+      mark.getBoundingClientRect();
+      try { if (mode === "full") localStorage.setItem("pincon-startup-day-v1", day); } catch {}
+      timers.push(setTimeout(finish, duration));
+      // Input and reduced-motion always take priority over the greeting.
+      for (const type of ["pointerdown", "keydown", "wheel"]) document.addEventListener(type, finish, { capture: true, passive: true, signal: listeners.signal });
+      document.addEventListener("visibilitychange", () => { if (document.hidden) finish(); }, { signal: listeners.signal });
+      reduced.addEventListener("change", () => { if (reduced.matches) finish(); }, { signal: listeners.signal });
+      window.addEventListener("pagehide", finish, { once: true, signal: listeners.signal });
+    })();
+  </script>
   <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
   <p id="connection" class="connection" role="status" hidden></p>
   <dialog id="details" aria-labelledby="detail-title"></dialog>
@@ -35,6 +101,6 @@
     </div>
   </dialog>
   <noscript>PinCon을 사용하려면 JavaScript를 켜 주세요.</noscript>
-  <script type="module" src="./app.js?v=20261010-scroll1"></script>
+  <script type="module" src="./app.js?v=20261010-intro1"></script>
 </body>
 </html>

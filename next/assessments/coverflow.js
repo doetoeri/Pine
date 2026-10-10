@@ -54,7 +54,7 @@ export function coverflowMarkup(rows, classKey = "") {
   </section>`;
 }
 
-export function mountCoverflow(root, openDetail) {
+export function mountCoverflow(root, openDetail, { startup = null } = {}) {
   const host = root?.querySelector(".pc-flow"), scene = host?.querySelector(".pc-scene");
   if (!scene || controllers.has(host)) return;
   const cards = [...scene.querySelectorAll(".pc-cover")], reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -63,10 +63,15 @@ export function mountCoverflow(root, openDetail) {
   const visibility = [], hints = [], depths = [];
   let selected = -1, width = 340, sceneWidth = 0, frame = 0, last = 0, drag = null, wheelTimer = 0;
   let position = Math.max(0, cards.findIndex(card => card.dataset.assessmentId === selections.get(selectionKey)));
-  let target = position, velocity = 0, ignoreClick = 0, entering = !reduced.matches && !introduced.has(selectionKey), start = performance.now();
+  const now = performance.now();
+  const startupEntrance = startup?.mode === "full" && !startup.finished && now < startup.startAt + startup.duration;
+  const repeatReveal = startup?.mode === "short" && !reduced.matches && !introduced.has(selectionKey);
+  let target = position, velocity = 0, ignoreClick = 0;
+  let entering = !reduced.matches && !introduced.has(selectionKey) && (!startup || startupEntrance);
+  const start = startupEntrance ? startup.startAt + 300 : now;
   introduced.add(selectionKey);
   const center = position;
-  const entranceDuration = 460, stagger = 28;
+  const entranceDuration = startupEntrance ? 380 : 460, stagger = startupEntrance ? 20 : 28;
   const entranceEnd = entranceDuration + Math.min(Math.max(center, cards.length - 1 - center), 6) * stagger;
   const controller = { destroy, updateLighting };
   controllers.set(host, controller);
@@ -77,6 +82,20 @@ export function mountCoverflow(root, openDetail) {
   const resize = new ResizeObserver(() => { width = cards[0].offsetWidth || 340; sceneWidth = scene.clientWidth; paint(); });
   resize.observe(scene);
   const listen = new AbortController(), options = { signal: listen.signal };
+
+  if (repeatReveal) {
+    host.dataset.startupReveal = "short";
+    host.addEventListener("animationend", event => {
+      if (event.animationName === "pc-return-cover") delete host.dataset.startupReveal;
+    }, options);
+  }
+
+  // The short brand greeting owns a fixed clock, independent of data/network.
+  // An early gesture dismisses it and settles the covers before input proceeds.
+  if (startup) document.addEventListener("pincon-startup-end", () => {
+    if (!entering) return;
+    entering = false; cancelAnimationFrame(frame); frame = 0; last = 0; paint();
+  }, options);
 
   function destroy() { cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
   function updateLighting() { host.dataset.lighting = lightingEnabled ? "on" : "off"; paint(); }
@@ -225,6 +244,6 @@ export function mountCoverflow(root, openDetail) {
     else { target = clamp(target + delta / (220 * width / 384), 0, cards.length - 1); animate(); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => go(target), 140); }
   }, { ...options, passive: false });
   document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(frame); frame = 0; entering = false; drag = null; position = target = clamp(Math.round(position), 0, cards.length - 1); velocity = 0; last = 0; paint(); } }, options);
-  reduced.addEventListener("change", () => { if (reduced.matches) { entering = false; go(target); } }, options);
+  reduced.addEventListener("change", () => { if (reduced.matches) { delete host.dataset.startupReveal; entering = false; go(target); } }, options);
   width = cards[0].offsetWidth || 340; sceneWidth = scene.clientWidth; paint(); if (entering) animate();
 }

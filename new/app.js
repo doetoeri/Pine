@@ -1,6 +1,6 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261010-scroll1";
+import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261010-intro1";
 import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-paper1";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
@@ -25,15 +25,21 @@ function render() {
     .map(row => ({ ...row, detailKey: row.id, kind: row.evaluationMethod || "수행평가" }));
   // Realtime timestamps, attachment metadata and detail-only edits must not
   // replace the scene (and interrupt an in-progress scroll) when covers match.
-  const next = JSON.stringify([snapshot.profile?.classKey, rows.map(row => [
+  const pending = !rows.length && !snapshot.ready && !snapshot.usingCache;
+  const next = JSON.stringify([snapshot.profile?.classKey, pending, rows.map(row => [
     row.id, row.title, row.subject, row.kind, row.dueDate,
     Boolean(row.confirmed || row.verificationStatus === "verified"),
     Boolean(row.noticeAttachment), Boolean(row.worksheetPack),
   ])]);
   if (next !== signature) {
     signature = next;
-    $("covers").innerHTML = coverflowMarkup(rows, snapshot.profile?.classKey || "");
-    mountCoverflow($("covers"), openDetail);
+    $("covers").innerHTML = pending
+      ? '<section class="pc-flow pc-flow-empty" aria-label="수행평가"><p>수행평가</p></section>'
+      : coverflowMarkup(rows, snapshot.profile?.classKey || "");
+    if (window.PINCON_STARTUP?.mode === "full" && !window.PINCON_STARTUP.finished) {
+      document.documentElement.style.setProperty("--pc-startup-elapsed", `${performance.now() - window.PINCON_STARTUP.startAt}ms`);
+    }
+    mountCoverflow($("covers"), openDetail, { startup: window.PINCON_STARTUP });
   }
   $("add").hidden = !snapshot.canArchiveContent;
   $("connection").hidden = !snapshot.error && !snapshot.usingCache;
