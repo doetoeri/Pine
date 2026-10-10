@@ -60,7 +60,7 @@ export function mountCoverflow(root, openDetail) {
   const cards = [...scene.querySelectorAll(".pc-cover")], reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const selectionKey = host.dataset.classKey;
   const lights = cards.map(card => ({ nodes: [...card.querySelectorAll(".pc-surface-light")], pose: "", opacity: "", hint: "" }));
-  const visibility = [], hints = [];
+  const visibility = [], hints = [], depths = [];
   let selected = -1, width = 340, sceneWidth = 0, frame = 0, last = 0, drag = null, wheelTimer = 0;
   let position = Math.max(0, cards.findIndex(card => card.dataset.assessmentId === selections.get(selectionKey)));
   let target = position, velocity = 0, ignoreClick = 0, entering = !reduced.matches && !introduced.has(selectionKey), start = performance.now();
@@ -80,32 +80,27 @@ export function mountCoverflow(root, openDetail) {
 
   function destroy() { cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
   function updateLighting() { host.dataset.lighting = lightingEnabled ? "on" : "off"; paint(); }
-  function paintLight(index, yaw, x, z, cardScale, moving, visible) {
+  function paintLight(index, yaw, x, z, visible) {
     if (!lightingEnabled) return;
     const light = lights[index];
-    let pose = light.pose, opacity = "0", hint = "auto";
+    let pose = light.pose, opacity = "0";
+    // Only the nearest covers can catch this light. Do not allocate a large
+    // transparent softbox texture for every distant sheet on a wide display.
+    const hint = visible && Math.abs(index - position) < 1.5 && !reduced.matches ? "transform,opacity" : "auto";
     if (visible) {
-      const sin = Math.sin(yaw), cos = Math.cos(yaw), half = width * cardScale / 2;
-      // Match the scene's 1600px perspective without measuring DOM bounds per frame.
-      const a = 1600 * (x - cos * half) / (1600 - z - sin * half);
-      const b = 1600 * (x + cos * half) / (1600 - z + sin * half);
-      const onScreen = Math.max(a, b) > -sceneWidth / 2 - 20 && Math.min(a, b) < sceneWidth / 2 + 20;
-      if (onScreen) {
-        const viewYaw = Math.atan2(-x, 1600 - z);
-        const halfYaw = (viewYaw - .38) / 2;
-        const mismatch = yaw - halfYaw;
-        const facing = clamp(Math.cos(yaw - viewYaw), 0, 1);
-        const shift = clamp(-mismatch * 1.5, -1.4, 1.4) * width;
-        const stretch = .85 + (1 - facing) * .5;
-        // The rotated softbox must also intersect the cover's local clip.
-        const lightHalf = width * (.33 * stretch * .9511 + .75 * .3091);
-        if (Math.abs(shift) < width / 2 + lightHalf) {
-          const fresnel = .04 + .96 * Math.pow(1 - facing, 5);
-          const specular = Math.exp(-Math.pow(mismatch / .44, 2));
-          pose = `translate3d(${shift.toFixed(2)}px,0,0) rotate(-18deg) scaleX(${stretch.toFixed(3)})`;
-          opacity = (.1 + specular * .4 + fresnel * .2).toFixed(3);
-          hint = moving ? "transform,opacity" : "auto";
-        }
+      const viewYaw = Math.atan2(-x, 1600 - z);
+      const halfYaw = (viewYaw - .38) / 2;
+      const mismatch = yaw - halfYaw;
+      const facing = clamp(Math.cos(yaw - viewYaw), 0, 1);
+      const shift = clamp(-mismatch * 1.5, -1.4, 1.4) * width;
+      const stretch = .85 + (1 - facing) * .5;
+      // The rotated softbox must also intersect the cover's local clip.
+      const lightHalf = width * (.33 * stretch * .9511 + .75 * .3091);
+      if (Math.abs(shift) < width / 2 + lightHalf) {
+        const fresnel = .04 + .96 * Math.pow(1 - facing, 5);
+        const specular = Math.exp(-Math.pow(mismatch / .44, 2));
+        pose = `translate3d(${shift.toFixed(2)}px,0,0) rotate(-18deg) scaleX(${stretch.toFixed(3)})`;
+        opacity = (.1 + specular * .4 + fresnel * .2).toFixed(3);
       }
     }
     if (pose === light.pose && opacity === light.opacity && hint === light.hint) return;
@@ -121,6 +116,7 @@ export function mountCoverflow(root, openDetail) {
   function paint() {
     // Resize callbacks and animation frames share one monotonic entrance clock.
     const now = performance.now(), scale = width / 384;
+    const index = clamp(Math.round(position), 0, cards.length - 1);
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i], delta = i - position, distance = Math.abs(delta);
       const turn = Math.sin(Math.min(distance, 1) * Math.PI / 2), sign = Math.sign(delta);
@@ -132,27 +128,32 @@ export function mountCoverflow(root, openDetail) {
       const x = (delta * 82 + sign * 152 * turn) * scale, z = (-134 * turn - Math.max(0, distance - 1) * 5) * scale;
       const yaw = -sign * 65 * turn, cardScale = .985 + .015 * spread;
       const renderX = x - sign * 18 * remaining * scale, renderZ = z - 18 * remaining * scale;
-      // Cull only after both projected edges leave the viewport. A fixed card
-      // count can remove a still-visible cover on a wide screen or mid-drag.
+      // Prepare covers before they enter the viewport. Keep a wider exit margin
+      // so reversing a drag at an edge does not recreate the same GPU layers.
       const radians = yaw * Math.PI / 180, half = width * cardScale / 2;
       const sin = Math.sin(radians), cos = Math.cos(radians);
       const left = 1600 * (renderX - cos * half) / (1600 - renderZ - sin * half);
       const right = 1600 * (renderX + cos * half) / (1600 - renderZ + sin * half);
-      const visible = Math.max(left, right) > -sceneWidth / 2 - 24 && Math.min(left, right) < sceneWidth / 2 + 24;
+      const margin = Math.max(48, width * (visibility[i] ? .4 : .2));
+      const visible = Math.max(left, right) > -sceneWidth / 2 - margin && Math.min(left, right) < sceneWidth / 2 + margin;
       if (visibility[i] !== visible) {
         card.style.visibility = visible ? "visible" : "hidden";
         card.style.pointerEvents = visible ? "auto" : "none";
         visibility[i] = visible;
       }
-      const hint = visible && (entering || last || drag) ? "transform" : "auto";
+      // Retain only the nearby layers, including between consecutive inputs.
+      // Toggling will-change on every stop/start can flash masked 3D content.
+      const hint = visible && !reduced.matches ? "transform" : "auto";
       if (hint !== hints[i]) { card.style.willChange = hint; hints[i] = hint; }
-      if (!visible) { paintLight(i, 0, 0, 0, 1, false, false); continue; }
+      if (!visible) { paintLight(i, 0, 0, 0, false); continue; }
+      // Relative depth changes only when the nearest cover changes, not on
+      // every fractional scroll position. Preserve the intervening layers.
+      const depth = String(1000 - Math.abs(i - index));
+      if (depths[i] !== depth) { card.style.zIndex = depth; depths[i] = depth; }
       card.style.transform = `translate3d(${renderX}px,${14 * remaining * scale}px,${renderZ}px) rotateY(${yaw}deg) scale(${cardScale})`;
       card.style.opacity = String(1 - Math.pow(1 - clamp(t * 2.4, 0, 1), 3));
-      card.style.zIndex = String(1000 - Math.round(distance * 100));
-      paintLight(i, radians, renderX, renderZ, cardScale, Boolean(entering || last || drag), true);
+      paintLight(i, radians, renderX, renderZ, true);
     }
-    const index = clamp(Math.round(position), 0, cards.length - 1);
     if (index !== selected) {
       selected = index;
       selections.set(selectionKey, cards[index].dataset.assessmentId);
@@ -179,7 +180,7 @@ export function mountCoverflow(root, openDetail) {
     paint();
     if (entering || moving && !drag) animate();
   }
-  function go(index) { entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1); last = 0; animate(); }
+  function go(index) { entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1); animate(); }
   function activate(index) { entering = false; if (index === Math.round(position) && Math.abs(position - index) < .08) openDetail(cards[index].dataset.detailKey, cards[index]); else go(index); }
   scene.addEventListener("click", event => { const card = event.target.closest(".pc-cover"); if (!card) return; event.stopPropagation(); if (performance.now() > ignoreClick) activate(Number(card.dataset.index)); }, options);
   scene.addEventListener("pointerdown", event => {

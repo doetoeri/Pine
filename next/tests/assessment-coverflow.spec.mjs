@@ -65,7 +65,8 @@ for (const width of [360, 1440]) {
     for (let i = 0; i < 4; i++) await scene.press("PageDown");
     await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "edge-16");
     await expect(scene).toHaveAttribute("data-motion", "resting");
-    expect(await viewport.evaluate(node => getComputedStyle(node).maskImage)).not.toBe("none");
+    expect(await viewport.evaluate(node => getComputedStyle(node).maskImage)).toBe("none");
+    expect(await viewport.evaluate(node => getComputedStyle(node, "::after").maskImage)).not.toBe("none");
     expect(await page.locator(".pc-caption").evaluate(node => node.closest(".pc-flow-viewport"))).toBeNull();
     const selected = await page.locator('.pc-cover[aria-pressed="true"]').boundingBox();
     expect(selected.x).toBeGreaterThan(30);
@@ -95,6 +96,122 @@ for (const width of [360, 1440]) {
       await new Promise(resolve => setTimeout(resolve, 160)); observer.disconnect(); return count;
     });
     expect(idleUpdates).toBe(0);
+  });
+}
+
+for (const width of [360, 768, 1440]) {
+  test(`scrolling stays continuous through reversals and background sync at ${width}px`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.setViewportSize({ width, height: 900 });
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.addInitScript(() => {
+      localStorage.setItem("pincon-profile-v2", JSON.stringify({ grade: 1, classNumber: 8 }));
+      localStorage.setItem("pincon-class-ops-cache-v1", JSON.stringify({ classKey: "1-8", savedAtMs: Date.now(), data: {
+        classAssignments: Array.from({ length: 96 }, (_, i) => ({ id: `scroll-${i}`, classKey: "1-8", type: "assessment", subject: "국어", title: `Assessment ${i}`, dueDate: "2099-11-13", published: true })),
+      } }));
+    });
+    await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
+    await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
+    const scene = page.locator(".pc-scene");
+    for (let i = 0; i < 4; i++) await scene.press("PageDown");
+    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "scroll-16");
+    await expect(scene).toHaveAttribute("data-motion", "resting");
+
+    const result = await page.evaluate(async () => {
+      const flow = document.querySelector(".pc-flow"), scene = flow.querySelector(".pc-scene");
+      const front = flow.querySelector('.pc-cover[aria-pressed="true"]');
+      const stats = { frames: 0, blankFrames: 0, depthSwitches: 0, layerSwitches: 0, maxTravel: 0 };
+      const layers = [front, ...front.querySelectorAll(".pc-surface-light")];
+      const previous = new Map(layers.map(node => [node, { depth: node.style.zIndex, hint: node.style.willChange }]));
+      let running = true;
+      const sample = () => {
+        if (!running) return;
+        stats.frames++;
+        const selected = flow.querySelector('.pc-cover[aria-pressed="true"]');
+        if (!flow.isConnected || !selected || selected.style.visibility === "hidden" || Number(selected.style.opacity) < .99) stats.blankFrames++;
+        stats.maxTravel = Math.max(stats.maxTravel, Math.abs(new DOMMatrix(front.style.transform).m41));
+        requestAnimationFrame(sample);
+      };
+      const observer = new MutationObserver(records => {
+        for (const { target } of records) {
+          const old = previous.get(target);
+          if (!old) continue;
+          const next = { depth: target.style.zIndex, hint: target.style.willChange };
+          if (next.depth !== old.depth) stats.depthSwitches++;
+          if (next.hint !== old.hint) stats.layerSwitches++;
+          previous.set(target, next);
+        }
+      });
+      layers.forEach(node => observer.observe(node, { attributes: true, attributeFilter: ["style"] }));
+      requestAnimationFrame(sample);
+      for (let i = 0; i < 6; i++) {
+        scene.dispatchEvent(new WheelEvent("wheel", { deltaY: 8, bubbles: true, cancelable: true }));
+        await new Promise(resolve => setTimeout(resolve, 25));
+        if (i === 2) {
+          const { NextDataGateway } = await import("/next/core/data-gateway.js");
+          const gateway = new NextDataGateway();
+          gateway.state.data.classAssignments[16].description = "Background update while scrolling";
+          gateway.state.data.classAssignments[16].updatedAt = Date.now();
+          gateway.emit();
+        }
+      }
+      await new Promise(resolve => {
+        const check = () => scene.dataset.motion === "resting" ? resolve() : requestAnimationFrame(check);
+        requestAnimationFrame(check);
+      });
+      running = false; observer.disconnect();
+      return { ...stats, sameScene: scene === document.querySelector(".pc-scene"), selected: front.dataset.assessmentId };
+    });
+    expect(result.sameScene).toBe(true);
+    expect(result.frames).toBeGreaterThan(3);
+    expect(result.maxTravel).toBeGreaterThan(1);
+    expect(result.blankFrames).toBe(0);
+    // Sub-card scrolling must not change stacking order or discard the layers
+    // when the nearest cover is the same before and after the gesture.
+    expect(result.depthSwitches).toBe(0);
+    expect(result.layerSwitches).toBe(0);
+
+    for (const lighting of [true, false]) {
+      const scroll = await page.evaluate(async lighting => {
+        const { setCoverLightingEnabled } = await import("/next/assessments/coverflow.js?v=20261010-scroll1");
+        setCoverLightingEnabled(lighting);
+        const scene = document.querySelector(".pc-scene");
+        let running = true, frames = 0, blankFrames = 0;
+        const sample = () => {
+          if (!running) return;
+          frames++;
+          const selected = scene.querySelector('.pc-cover[aria-pressed="true"]');
+          if (!scene.isConnected || !selected || selected.style.visibility === "hidden" || Number(selected.style.opacity) < .99) blankFrames++;
+          requestAnimationFrame(sample);
+        };
+        requestAnimationFrame(sample);
+        for (const deltaY of [90, 90, 90, -90, 90, -90, 90, -90, 90, 90]) {
+          scene.dispatchEvent(new WheelEvent("wheel", { deltaY, bubbles: true, cancelable: true }));
+          await new Promise(resolve => setTimeout(resolve, 35));
+        }
+        await new Promise(resolve => {
+          const check = () => scene.dataset.motion === "resting" ? resolve() : requestAnimationFrame(check);
+          requestAnimationFrame(check);
+        });
+        running = false;
+        return { frames, blankFrames };
+      }, lighting);
+      expect(scroll.frames).toBeGreaterThan(3);
+      expect(scroll.blankFrames).toBe(0);
+      await expect(scene).toHaveAttribute("data-motion", "resting");
+      const expected = lighting ? "scroll-20" : "scroll-24";
+      await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", expected);
+      await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("opacity", "1");
+      await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("visibility", "visible");
+    }
+    // Data must still update even though detail-only changes retain the scene.
+    for (let i = 0; i < 2; i++) await scene.press("PageUp");
+    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "scroll-16");
+    await expect(scene).toHaveAttribute("data-motion", "resting");
+    await page.locator('.pc-cover[aria-pressed="true"]').click();
+    await expect(page.locator("#details")).toContainText("Background update while scrolling");
+    expect(errors).toEqual([]);
   });
 }
 

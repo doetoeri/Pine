@@ -1,6 +1,6 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261010-edge1";
+import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261010-scroll1";
 import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-paper1";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
@@ -23,7 +23,13 @@ function render() {
   const rows = (snapshot.data?.classAssignments || []).filter(row => !row.deleted && row.published !== false && (!row.type || row.type === "assessment") && (!row.classKey || row.classKey === snapshot.profile?.classKey))
     .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
     .map(row => ({ ...row, detailKey: row.id, kind: row.evaluationMethod || "수행평가" }));
-  const next = JSON.stringify([snapshot.profile?.classKey, rows]);
+  // Realtime timestamps, attachment metadata and detail-only edits must not
+  // replace the scene (and interrupt an in-progress scroll) when covers match.
+  const next = JSON.stringify([snapshot.profile?.classKey, rows.map(row => [
+    row.id, row.title, row.subject, row.kind, row.dueDate,
+    Boolean(row.confirmed || row.verificationStatus === "verified"),
+    Boolean(row.noticeAttachment), Boolean(row.worksheetPack),
+  ])]);
   if (next !== signature) {
     signature = next;
     $("covers").innerHTML = coverflowMarkup(rows, snapshot.profile?.classKey || "");
