@@ -1,3 +1,5 @@
+import { advanceTilt } from "./tilt-physics.js?v=20261011-tilt1";
+
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
 const controllers = new WeakMap();
@@ -54,7 +56,7 @@ export function coverflowMarkup(rows, classKey = "") {
   </section>`;
 }
 
-export function mountCoverflow(root, openDetail, { startup = null } = {}) {
+export function mountCoverflow(root, openDetail, { startup = null, tilt = null } = {}) {
   const host = root?.querySelector(".pc-flow"), scene = host?.querySelector(".pc-scene");
   if (!scene || controllers.has(host)) return;
   const cards = [...scene.querySelectorAll(".pc-cover")], reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -67,6 +69,7 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
   const startupEntrance = startup?.mode === "full" && !startup.finished && now < startup.startAt + startup.duration;
   const repeatReveal = startup?.mode === "short" && !reduced.matches && !introduced.has(selectionKey);
   let target = position, velocity = 0, ignoreClick = 0;
+  let tiltInput = 0, tiltSpeed = 0, stopTilt = () => {};
   let entering = !reduced.matches && !introduced.has(selectionKey) && (!startup || startupEntrance);
   const start = startupEntrance ? startup.startAt + 300 : now;
   introduced.add(selectionKey);
@@ -97,7 +100,7 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
     entering = false; cancelAnimationFrame(frame); frame = 0; last = 0; paint();
   }, options);
 
-  function destroy() { cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
+  function destroy() { stopTilt(); cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
   function updateLighting() { host.dataset.lighting = lightingEnabled ? "on" : "off"; paint(); }
   function paintLight(index, yaw, x, z, visible) {
     if (!lightingEnabled) return;
@@ -190,20 +193,36 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
     const dt = last ? Math.min((now - last) / 1000, .05) : 1 / 60; last = now;
     if (entering) {
       if (now - start >= entranceEnd || reduced.matches) entering = false;
+    } else if (!drag && tiltInput && !reduced.matches) {
+      const next = advanceTilt(position, tiltSpeed, tiltInput, dt, cards.length - 1);
+      position = target = next.position; tiltSpeed = next.speed; velocity = 0;
     } else if (!drag) {
       if (reduced.matches) { position = target; velocity = 0; }
       else { const offset = position - target, decay = Math.exp(-18 * dt), approach = velocity + 18 * offset; position = target + (offset + approach * dt) * decay; velocity = (velocity - 18 * approach * dt) * decay; }
     }
-    const moving = Math.abs(position - target) > .00015 || Math.abs(velocity) > .002;
+    const driving = Boolean(tiltInput && !drag && !reduced.matches && (tiltInput > 0 ? position < cards.length - 1 : position > 0));
+    const moving = driving || Math.abs(position - target) > .00015 || Math.abs(velocity) > .002;
     if (!moving && !drag && !entering) { position = target; velocity = 0; last = 0; }
     paint();
     if (entering || moving && !drag) animate();
   }
+  function steer(input) {
+    if (!host.isConnected) return;
+    const old = tiltInput;
+    tiltInput = reduced.matches || drag ? 0 : input;
+    if (tiltInput) {
+      entering = false; clearTimeout(wheelTimer); target = position; velocity = 0;
+      if (tiltInput > 0 ? position < cards.length - 1 : position > 0) animate();
+    } else if (old) {
+      velocity = tiltSpeed * .35; tiltSpeed = 0; go(position);
+    }
+  }
   function go(index) { entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1); animate(); }
-  function activate(index) { entering = false; if (index === Math.round(position) && Math.abs(position - index) < .08) openDetail(cards[index].dataset.detailKey, cards[index]); else go(index); }
+  function activate(index) { tilt?.pause(); entering = false; if (index === Math.round(position) && Math.abs(position - index) < .08) openDetail(cards[index].dataset.detailKey, cards[index]); else go(index); }
   scene.addEventListener("click", event => { const card = event.target.closest(".pc-cover"); if (!card) return; event.stopPropagation(); if (performance.now() > ignoreClick) activate(Number(card.dataset.index)); }, options);
   scene.addEventListener("pointerdown", event => {
     if (event.button !== 0 || event.isPrimary === false) return;
+    tilt?.pause();
     entering = false; cancelAnimationFrame(frame); frame = 0; velocity = 0; clearTimeout(wheelTimer); target = position;
     drag = { id: event.pointerId, x: event.clientX, y: event.clientY, position, moved: false, samples: [{ time: performance.now(), position }], index: event.target.closest(".pc-cover")?.dataset.index };
     scene.setPointerCapture(event.pointerId); scene.focus({ preventScroll: true });
@@ -221,6 +240,7 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
   function endDrag(event, cancelled = false) {
     if (!drag || drag.id !== event.pointerId) return;
     const old = drag; drag = null;
+    tilt?.pause();
     if (scene.hasPointerCapture(event.pointerId)) scene.releasePointerCapture(event.pointerId);
     ignoreClick = performance.now() + 400;
     if (old.moved && !cancelled) { const a = old.samples[0], b = old.samples.at(-1); velocity = b.time - a.time >= 8 && performance.now() - b.time < 100 ? clamp((b.position - a.position) * 1000 / (b.time - a.time), -12, 12) : 0; go(position + velocity * .2); }
@@ -231,6 +251,7 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
   scene.addEventListener("keydown", event => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const delta = { ArrowLeft: -1, ArrowRight: 1, PageUp: -4, PageDown: 4 }[event.key];
+    if (delta || ["Home", "End", "Enter", " "].includes(event.key)) tilt?.pause();
     if (delta) { event.preventDefault(); go(target + delta); scene.focus({ preventScroll: true }); }
     else if (event.key === "Home" || event.key === "End") { event.preventDefault(); go(event.key === "Home" ? 0 : cards.length - 1); }
     else if (event.target === scene && ["Enter", " "].includes(event.key)) { event.preventDefault(); activate(selected); }
@@ -239,6 +260,7 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
     if (event.ctrlKey || event.metaKey || drag) return;
     const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     if (!delta) return;
+    tilt?.pause();
     event.preventDefault(); entering = false;
     if (event.deltaMode || Math.abs(delta) >= 60) go(target + Math.sign(delta));
     else { target = clamp(target + delta / (220 * width / 384), 0, cards.length - 1); animate(); clearTimeout(wheelTimer); wheelTimer = setTimeout(() => go(target), 140); }
@@ -246,4 +268,5 @@ export function mountCoverflow(root, openDetail, { startup = null } = {}) {
   document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(frame); frame = 0; entering = false; drag = null; position = target = clamp(Math.round(position), 0, cards.length - 1); velocity = 0; last = 0; paint(); } }, options);
   reduced.addEventListener("change", () => { if (reduced.matches) { delete host.dataset.startupReveal; entering = false; go(target); } }, options);
   width = cards[0].offsetWidth || 340; sceneWidth = scene.clientWidth; paint(); if (entering) animate();
+  if (tilt && cards.length > 1) stopTilt = tilt.subscribe(steer);
 }

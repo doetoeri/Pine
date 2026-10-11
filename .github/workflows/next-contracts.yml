@@ -54,8 +54,10 @@ jobs:
             new/app.js \
             new/calendar.js \
             new/view-motion.js \
+            new/tilt-swipe.js \
             next/app.js \
             next/assessments/coverflow.js \
+            next/assessments/tilt-physics.js \
             next/assessments/attachments.js \
             next/assessments/viewer.js \
             next/assessments/paper-reader.js \
@@ -127,6 +129,7 @@ jobs:
           next/tests/contracts.test.mjs
           next/tests/assessment-attachments.test.mjs
           next/tests/assessment-calendar.test.mjs
+          next/tests/assessment-tilt.test.mjs
           next/tests/admin-policy.test.mjs
           next/tests/today-open-write.test.mjs
           next/tests/today-changes.test.mjs

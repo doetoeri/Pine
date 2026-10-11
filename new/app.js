@@ -1,13 +1,14 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261010-intro1";
+import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261011-tilt1";
 import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-paper1";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
 import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
-import { assessmentCalendarMarkup, calendarDate, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261010-calendar1";
+import { assessmentCalendarMarkup, calendarDate, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261011-tilt1";
 import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261010-calendar1";
+import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt1";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -17,6 +18,33 @@ let signature = "", detailId = "", detailTrigger = null, saving = false, editing
 let view = "covers", month = currentCalendarMonth(), selectedDay = "", calendarOpened = false, stopViewMotion = () => {};
 prepareDialog($("details"), () => !saving);
 prepareDialog($("preferences"));
+const tilt = new TiltSwipe();
+const tiltMessages = {
+  off: "휴대폰을 기울여 커버를 넘겨요. 기울일수록 더 빨라져요.",
+  permission: "스위치를 다시 켜서 휴대폰의 기울기 사용을 허용해 주세요.",
+  requesting: "휴대폰의 동작·방향 접근을 허용해 주세요.",
+  paused: "설정을 닫고 휴대폰을 편하게 잡아 주세요. 그 자세가 기준이 돼요.",
+  waiting: "휴대폰의 기울기 센서를 확인하고 있어요.",
+  calibrating: "휴대폰을 잠깐 편하게 잡아 주세요. 지금 자세를 기준으로 맞춰요.",
+  ready: "좌우로 기울이면 속도가 붙어요. 처음 자세로 돌리면 멈춰요.",
+  denied: "센서 접근이 허용되지 않았어요. 브라우저에서 허용한 뒤 다시 켜 주세요.",
+  unavailable: "이 기기나 브라우저에서는 기울기 센서를 사용할 수 없어요.",
+  reduced: "기기의 ‘동작 줄이기’ 설정에 따라 기울기 제어를 쉬고 있어요.",
+};
+tilt.onchange = ({ enabled, status }) => {
+  $("tilt-enabled").checked = enabled;
+  $("tilt-enabled").disabled = status === "requesting";
+  $("tilt-status").textContent = status === "paused" && view === "calendar" ? "커버 보기에서 사용할 수 있어요. 돌아오면 현재 자세를 기준으로 맞춰요." : tiltMessages[status];
+};
+$("tilt-enabled").onchange = event => tilt.setEnabled(event.target.checked);
+function syncTiltActivity() {
+  tilt.setActive(view === "covers" && !$("details").open && !$("preferences").open && window.PINCON_STARTUP?.finished !== false);
+  tilt.notify();
+}
+const tiltDialogs = new MutationObserver(syncTiltActivity);
+for (const dialog of [$("details"), $("preferences")]) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+document.addEventListener("pincon-startup-end", syncTiltActivity);
+tilt.notify();
 $("cover-lighting").checked = coverLightingEnabled();
 $("cover-lighting").onchange = event => setCoverLightingEnabled(event.target.checked);
 $("startup-enabled").checked = window.PINCON_STARTUP?.enabled !== false;
@@ -58,10 +86,11 @@ function render({ transition = false } = {}) {
     if (window.PINCON_STARTUP?.mode === "full" && !window.PINCON_STARTUP.finished) {
       document.documentElement.style.setProperty("--pc-startup-elapsed", `${performance.now() - window.PINCON_STARTUP.startAt}ms`);
     }
-    mountCoverflow($("covers"), openDetail, { startup: window.PINCON_STARTUP });
+    mountCoverflow($("covers"), openDetail, { startup: window.PINCON_STARTUP, tilt });
     if (transition) stopViewMotion = animateAssessmentView($("covers"), before);
     else if (view === "calendar") $("covers").querySelector(".pc-calendar")?.scrollTo(0, scrollTop);
   }
+  syncTiltActivity();
   $("add").hidden = !snapshot.canArchiveContent;
   $("connection").hidden = !snapshot.error && !snapshot.usingCache;
   $("connection").textContent = snapshot.error ? "연결을 확인해 주세요. 설정에서 다시 연결할 수 있어요." : "저장된 자료를 보고 있어요.";
@@ -270,6 +299,7 @@ $("settings").onclick = () => {
   classForm.elements.classNumber.value = profile.classNumber;
   $("cover-lighting").checked = coverLightingEnabled();
   $("startup-enabled").checked = window.PINCON_STARTUP?.enabled !== false;
+  tilt.notify();
   updateAccount(); openDialog($("preferences"));
 };
 $("preferences").querySelector("[data-close]").onclick = () => closeDialog($("preferences"));

@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261010-calendar2";
+const PINCON_SW_VERSION = "20261011-tilt1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -36,6 +36,8 @@ const PINCON_APP_SHELL = [
   "./new/app.css",
   "./new/calendar.js",
   "./new/view-motion.js",
+  "./new/tilt-swipe.js",
+  "./next/assessments/tilt-physics.js",
   "./next/assessments/coverflow.js",
   "./next/assessments/coverflow.css",
   "./next/assessments/attachments.js",
