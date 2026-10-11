@@ -70,7 +70,9 @@ export class TiltSwipe {
     this.active = Boolean(active); this.sync();
   }
   subscribe(handler) {
-    this.reset(); this.handlers.add(handler); this.sync();
+    this.reset();
+    if (this.listeners) this.phase = "waiting";
+    this.handlers.add(handler); this.sync();
     return () => { this.handlers.delete(handler); this.sync(); };
   }
   emit(value) {
@@ -85,6 +87,7 @@ export class TiltSwipe {
   pause(milliseconds = 700) {
     this.blockedUntil = performance.now() + milliseconds;
     this.reset();
+    if (this.listeners) { this.phase = "calibrating"; this.notify(); }
   }
   stop() {
     this.listeners?.abort(); this.listeners = null;
@@ -103,7 +106,14 @@ export class TiltSwipe {
       // Orientation events may only fire when an angle changes. Motion events
       // arrive periodically, so holding a tilt keeps accelerating reliably.
       window.addEventListener("devicemotion", this.onMotion, options);
-      const rotate = () => { this.angle = screenAngle(); this.reset(); this.phase = "waiting"; this.notify(); };
+      const rotate = () => {
+        const angle = screenAngle();
+        // Safari can deliver both rotation notifications, or deliver one
+        // after a motion sample has already observed the new display angle.
+        // Only the actual angle change needs a new neutral pose.
+        if (angle === this.angle) return;
+        this.angle = angle; this.reset(); this.phase = "waiting"; this.notify();
+      };
       screen.orientation?.addEventListener("change", rotate, options);
       window.addEventListener("orientationchange", rotate, options);
       this.watchdog = setTimeout(() => this.checkFreshness(), 600);

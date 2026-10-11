@@ -160,11 +160,16 @@ test("landscape uses the horizontal axis and rotation takes a new neutral pose",
   await seed(page); await enable(page);
   await page.locator(".pc-scene").press("PageDown");
   await expect(selected(page)).toHaveAttribute("data-index", "4");
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  await expect(page.locator("#tilt-status")).toHaveText(/처음 자세로 돌리면 멈춰요/);
   await page.evaluate(() => { window.sensorAngle = 90; screen.orientation.dispatchEvent(new Event("change")); });
   await sensor(page, 0, 0);
   await expect(page.locator("#tilt-status")).toHaveText(/처음 자세로 돌리면 멈춰요/);
   await sensor(page, 0, -30);
   await expect.poll(() => index(page), { timeout: 8000 }).toBeGreaterThanOrEqual(6);
+  const continuing = await index(page);
+  await page.evaluate(() => { screen.orientation.dispatchEvent(new Event("change")); window.dispatchEvent(new Event("orientationchange")); });
+  await expect.poll(() => index(page), { timeout: 8000 }).toBeGreaterThan(continuing);
   await sensor(page, 0, 0);
   await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
   await sensor(page, 0, 30);
