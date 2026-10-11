@@ -128,7 +128,10 @@ export class TiltSwipe {
       this.stop(); this.save(false); this.notify(); return;
     }
     if (stale > 450) {
-      this.reset(); this.phase = "waiting"; this.notify();
+      // Pause velocity while samples stall, but retain the neutral pose.
+      // Otherwise a delayed sample can turn a held tilt into the new neutral
+      // position and silently stop browsing after a slow rendering frame.
+      this.filtered = 0; this.emit(0); this.phase = "waiting"; this.notify();
     }
     this.watchdog = setTimeout(() => this.checkFreshness(), 600);
   }

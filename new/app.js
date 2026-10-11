@@ -8,7 +8,7 @@ import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009
 import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
 import { assessmentCalendarMarkup, calendarDate, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261011-tilt1";
 import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261010-calendar1";
-import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt2";
+import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt3";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));

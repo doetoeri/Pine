@@ -21,8 +21,11 @@ async function seed(page, permission = "granted") {
     } });
     if (result === null) delete window.DeviceMotionEvent.requestPermission;
     window.sensorAngle = 0;
-    if (!screen.orientation) Object.defineProperty(screen, "orientation", { value: new EventTarget() });
-    Object.defineProperty(screen.orientation, "angle", { configurable: true, get: () => window.sensorAngle });
+    const display = screen, orientation = new EventTarget();
+    Object.defineProperty(orientation, "angle", { get: () => window.sensorAngle });
+    // Keep synthetic rotation independent of WebKit's native viewport events.
+    Object.defineProperty(display, "orientation", { configurable: true, value: orientation });
+    Object.defineProperty(window, "screen", { configurable: true, value: display });
     window.sensorHidden = false;
     Object.defineProperty(document, "hidden", { configurable: true, get: () => window.sensorHidden });
     window.sendTilt = () => {
@@ -163,6 +166,7 @@ test("landscape uses the horizontal axis and rotation takes a new neutral pose",
   await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
   await expect(page.locator("#tilt-status")).toHaveText(/처음 자세로 돌리면 멈춰요/);
   await page.evaluate(() => { window.sensorAngle = 90; screen.orientation.dispatchEvent(new Event("change")); });
+  expect(await page.evaluate(() => screen.orientation.angle)).toBe(90);
   await sensor(page, 0, 0);
   await expect(page.locator("#tilt-status")).toHaveText(/처음 자세로 돌리면 멈춰요/);
   await sensor(page, 0, -30);
@@ -195,8 +199,13 @@ test("lost sensor readings stop safely and missing hardware leaves Beta off", as
   await page.evaluate(() => { clearInterval(window.sensorTimer); window.sensorTimer = 0; });
   await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
   const stopped = await index(page);
+  await sensor(page, 28);
+  await expect.poll(() => index(page), { timeout: 8000 }).toBeGreaterThan(stopped);
+  await page.evaluate(() => { clearInterval(window.sensorTimer); window.sensorTimer = 0; });
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+  const stoppedAgain = await index(page);
   await expect(page.locator("#tilt-enabled")).not.toBeChecked({ timeout: 5000 });
-  expect(await index(page)).toBe(stopped);
+  expect(await index(page)).toBe(stoppedAgain);
   expect(await idleMutations(page)).toBe(0);
 });
 
