@@ -209,7 +209,7 @@ function notificationBody() {
   const rows = ["LOW","MID","HIGH"].map((condition) => [condition, conditionMetrics(condition)]);
   const counts = currentNotificationCounts();
   return `
-    <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>${esc(counts.periodInfo.phase)} · Period ${counts.periodInfo.period || 0}</span><span>참여자 ${bundle.assignments.length}</span><span>LOW ${counts.LOW} · MID ${counts.MID} · HIGH ${counts.HIGH}</span><span>설문 ${bundle.surveys.length}</span></div>
+    <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>${esc(counts.periodInfo.phase)} · Period ${counts.periodInfo.period || 0}</span><span>실제 계정 ${roster.length}명 · 사전배정 ${bundle.assignments.length}명</span><span>LOW ${counts.LOW} · MID ${counts.MID} · HIGH ${counts.HIGH}</span><span>설문 ${bundle.surveys.length}</span></div>
     <div class="experiment-comparison experiment-comparison--notification">
       ${conditionBar("알림 클릭률", rows, "clickRate")}
       ${conditionBar("Target View", rows, "targetRate")}
@@ -217,7 +217,7 @@ function notificationBody() {
     <div class="experiment-table-wrap"><table class="experiment-table"><thead><tr><th>조건</th><th>FCM accepted</th><th>Click</th><th>1h open</th><th>Target</th><th>피로도</th><th>유용성</th></tr></thead><tbody>
     ${rows.map(([name,m]) => `<tr><td>${name}</td><td>${m.sent}</td><td>${percent(m.clickRate)}</td><td>${percent(m.open1hRate)}</td><td>${percent(m.targetRate)}</td><td>${Number.isFinite(m.annoyance) ? m.annoyance.toFixed(2) : "–"}</td><td>${Number.isFinite(m.usefulness) ? m.usefulness.toFixed(2) : "–"}</td></tr>`).join("")}
     </tbody></table></div>
-    <div class="experiment-actions"><button data-exp-action="seed-notification">설정 생성</button><button class="primary" data-exp-action="start-notification">실험 시작</button><button data-exp-action="pause-notification">Pause</button><button data-exp-action="csv">CSV</button><button data-exp-action="json">JSON</button></div>
+    <div class="experiment-note">연구 조건: A 0회 / B 1회 / C 3회. 실제 발송은 서버 자동화와 Android 알림 권한이 모두 활성화되어야 합니다.</div><div class="experiment-actions"><button data-exp-action="seed-notification">설정 생성</button><button class="primary" data-exp-action="start-notification">실험 시작</button><button data-exp-action="pause-notification">Pause</button><button data-exp-action="csv">CSV</button><button data-exp-action="json">JSON</button></div>
     <p class="experiment-note">Critical 알림은 실험에서 제외됩니다. sent는 실제 기기 도착이 아니라 FCM 발송 수락을 뜻합니다.</p>`;
 }
 function markup() {
@@ -264,17 +264,15 @@ async function load() {
   try {
     const [nextBundle, accountResult] = await Promise.all([
       platform.adminReadExperiment(currentId),
-      currentId === "pincon-next-ui"
-        ? accountRequest("/api/accounts/manage").catch(() => ({ accounts: [] }))
-        : Promise.resolve({ accounts: [] }),
+      accountRequest("/api/accounts/manage").catch(() => ({ accounts: [] })),
     ]);
     bundle = nextBundle;
-    roster = currentId === "pincon-next-ui" ? activeStudentRoster(accountResult.accounts || []) : [];
+    roster = activeStudentRoster(accountResult.accounts || []);
   } finally { loading=false; render(); }
 }
 
 const uiDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"legacy",promotedVariant:"",rolloutPercent:0,allocation:{nextPercent:50},canarySize:7,publicBetaEnabled:false });
-const notificationDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"next",promotedVariant:"",rolloutPercent:0,startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:1,midPerDay:3,highPerDay:4} });
+const notificationDefaults = () => ({ status:"DRAFT",version:2,stableVariant:"next",promotedVariant:"",rolloutPercent:0,startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:0,midPerDay:1,highPerDay:3} });
 
 function targetUids(max = 7) {
   return String(document.querySelector("#experimentTargetUids")?.value || "").split(",").map((value) => value.trim()).filter(Boolean).slice(0, max);
