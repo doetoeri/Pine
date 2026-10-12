@@ -88,7 +88,7 @@ export function conditionFor(sequence = [], config = {}, now = new Date()) {
 }
 
 export function dailyBudget(condition, config = {}) {
-  const defaults = { LOW: 1, MID: 3, HIGH: 4 };
+  const defaults = { LOW: 0, MID: 1, HIGH: 3 };
   const field = condition === "LOW" ? "lowPerDay" : condition === "MID" ? "midPerDay" : "highPerDay";
   return Math.max(0, Math.min(4, Math.trunc(Number(config?.frequency?.[field] ?? defaults[condition] ?? 0))));
 }
