@@ -9,7 +9,7 @@ import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../
 import { assessmentCalendarMarkup, assessmentDate, assessmentCalendarAnchor, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261013-grid1";
 import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261013-grid1";
 import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt3";
-import { mountNoticeImage } from "./notice-image.js?v=20261013-notice1";
+import { mountNoticeImage } from "./notice-image.js?v=20261013-notice2";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));

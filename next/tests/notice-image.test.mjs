@@ -2,6 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { noticeModel, noticeDateLabel } from "../../new/notice-data.js";
 import { noticeLayout, noticeWrap } from "../../new/notice-renderer.js";
+import { waitNoticeFonts } from "../../new/notice-image.js";
+
+test("font rejection or a stalled CDN cannot leave PNG generation waiting forever", async () => {
+  assert.equal(await waitNoticeFonts({ load: () => Promise.resolve([]) }, 25), true);
+  assert.equal(await waitNoticeFonts({ load: () => Promise.reject(new Error("offline")) }, 25), false);
+  assert.equal(await waitNoticeFonts({ load: () => new Promise(() => {}) }, 25), false);
+  assert.equal(await waitNoticeFonts(null), false);
+});
 
 const now = Date.parse("2026-10-13T12:00:00Z");
 const snapshot = rows => ({ ready: true, online: true, profile: { grade: 1, classNumber: 8, classKey: "1-8" }, data: { classAssignments: rows } });

@@ -5,6 +5,19 @@ import { prepareDialog, openDialog, closeDialog } from "../next/assessments/dial
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const blobOf = canvas => new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("이미지 저장에 실패했어요. 다시 만들어 주세요.")), "image/png"));
 
+export async function waitNoticeFonts(fonts, timeoutMs = 2200) {
+  if (!fonts?.load) return false;
+  let timeout;
+  try {
+    return await Promise.race([
+      Promise.allSettled([400, 500, 600, 700].map(weight => fonts.load(`${weight} 38px "PinCon OpenAI Sans"`, "PinCon 수행 공지 내일")))
+        .then(results => results.every(result => result.status === "fulfilled")),
+      new Promise(resolve => { timeout = setTimeout(() => resolve(false), timeoutMs); }),
+    ]);
+  } catch { return false; }
+  finally { clearTimeout(timeout); }
+}
+
 export function mountNoticeImage(gateway) {
   const dialog = document.getElementById("notice-image"), trigger = document.getElementById("notice-open");
   const $ = id => dialog.querySelector(`#${id}`);
@@ -52,7 +65,7 @@ export function mountNoticeImage(gateway) {
       $("notice-source").textContent = model.pending ? "수행 자료 연결을 기다리는 중이에요." : `${model.classLabel} · ${model.emptyText}${model.cached ? " · 저장된 자료 기준" : ""}`;
       if (model.pending) { release(); showPage(); $("notice-status").textContent = "자료가 연결되면 자동으로 만들어요. 설정에서 자료를 다시 연결할 수 있어요."; return; }
       // Await both Latin and Hangul faces before measuring or drawing.
-      await Promise.allSettled([400, 500, 600, 700].map(weight => document.fonts.load(`${weight} 38px "PinCon OpenAI Sans"`, "PinCon 수행 공지 내일")));
+      const fontsLoaded = await waitNoticeFonts(document.fonts);
       if (version !== revision || !dialog.open) return;
       const measure = document.createElement("canvas").getContext("2d");
       const pages = noticeLayout(measure, nextModel), nextArtifacts = [];
@@ -66,7 +79,7 @@ export function mountNoticeImage(gateway) {
       } catch (error) { nextArtifacts.forEach(item => URL.revokeObjectURL(item.url)); throw error; }
       if (version !== revision || !dialog.open) { nextArtifacts.forEach(item => URL.revokeObjectURL(item.url)); return; }
       release(); artifacts = nextArtifacts; page = Math.min(page, artifacts.length - 1); showPage();
-      $("notice-status").textContent = `${artifacts.length}장 준비됐어요. 저장은 현재 장, 공유는 전체 장을 보내요.`;
+      $("notice-status").textContent = `${artifacts.length}장 준비됐어요. 저장은 현재 장, 공유는 전체 장을 보내요.${fontsLoaded ? "" : " 서체 연결이 늦어 기본 서체를 사용했어요."}`;
     } catch (error) {
       if (version !== revision) return;
       release(); showPage(); $("notice-status").textContent = error.message || "이미지를 만들지 못했어요. 다시 만들어 주세요.";
