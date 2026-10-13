@@ -9,9 +9,10 @@
   <link rel="icon" href="../next/assets/pincon-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261010-intro1">
   <link rel="stylesheet" href="./app.css?v=20261013-switch1">
+  <link rel="stylesheet" href="./notice-image.css?v=20261013-notice1">
   <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261009-paper1">
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
-  <script src="../registerSW.js?v=20261013-switch1" defer></script>
+  <script src="../registerSW.js?v=20261013-notice1" defer></script>
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2" />
   <style>
     /* A self-contained greeting: no image, font or module download to await. */
@@ -84,9 +85,32 @@
     })();
   </script>
   <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="view-toggle" aria-label="달력 보기" title="달력 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg></button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
+  <button type="button" id="notice-open" class="notice-launch" aria-label="수행 공지 이미지 만들기" title="수행 공지 이미지 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><span>공지 이미지</span></button>
   <p id="view-status" class="sr-only" role="status" aria-live="polite"></p>
   <p id="connection" class="connection" role="status" hidden></p>
   <dialog id="details" aria-labelledby="detail-title"></dialog>
+  <dialog id="notice-image" aria-labelledby="notice-title">
+    <header><div><h1 id="notice-title">오늘 밤, 수행 공지</h1><p class="notice-intro">PinCon의 수행 목록을 카톡에 올릴 이미지로 만들어요.</p></div><button type="button" id="notice-close" aria-label="공지 이미지 닫기">×</button></header>
+    <div class="notice-workspace">
+      <div class="notice-controls">
+        <div class="fields"><label>공지 올리는 날짜<input id="notice-day" type="date" min="2000-01-01" max="2100-12-31" required></label><label>내일부터 볼 기간<select id="notice-horizon"><option value="1">내일만</option><option value="7" selected>7일</option><option value="14">14일</option></select></label></div>
+        <label class="check"><input id="notice-materials" type="checkbox" checked>준비물 표시</label>
+        <label class="check"><input id="notice-undated" type="checkbox">날짜 확인이 필요한 수행 포함</label>
+        <label>추가 메시지<textarea id="notice-message" rows="2" maxlength="80" placeholder="예: 안내문을 확인하고 준비물을 챙겨 주세요."></textarea><small>최대 80자 · 이미지와 공지 문구에 함께 표시해요.</small></label>
+        <div class="notice-list-head"><h2>공지할 수행</h2><div><button type="button" id="notice-all">전체 선택</button><button type="button" id="notice-none">선택 해제</button></div></div>
+        <p id="notice-selection"></p><div id="notice-list" aria-label="공지할 수행 선택"></div>
+      </div>
+      <div class="notice-preview-area">
+        <p id="notice-source"></p>
+        <div class="notice-preview-frame"><img id="notice-preview" alt="수행 공지 미리보기" hidden></div>
+        <nav id="notice-pages" class="notice-pages" aria-label="공지 이미지 페이지" hidden><button type="button" id="notice-prev" aria-label="이전 이미지">‹</button><span id="notice-page-label"></span><button type="button" id="notice-next" aria-label="다음 이미지">›</button></nav>
+        <div id="notice-cache-warning" class="notice-cache-warning" hidden>저장된 자료를 사용하고 있어요. 최신 일정이 달라졌을 수 있어요.<label class="check"><input id="notice-cache-ok" type="checkbox">저장된 자료임을 확인했어요.</label></div>
+        <div class="notice-actions"><button type="button" id="notice-save" class="primary" disabled>PNG 저장</button><button type="button" id="notice-share" disabled>이미지 공유</button><button type="button" id="notice-copy" disabled>문구 복사</button></div>
+        <p id="notice-status" role="status" aria-live="polite"></p>
+        <p class="notice-hint">1080 × 1440 PNG · 항목이 많으면 여러 장으로 나눠요.<br>휴대폰 공유 창에서 카카오톡과 채팅방을 선택해 주세요.</p>
+      </div>
+    </div>
+  </dialog>
   <dialog id="preferences" aria-labelledby="preferences-title">
     <header><h1 id="preferences-title">설정</h1><button type="button" data-close aria-label="닫기">×</button></header>
     <div class="dialog-body">
@@ -107,6 +131,6 @@
     </div>
   </dialog>
   <noscript>PinCon을 사용하려면 JavaScript를 켜 주세요.</noscript>
-  <script type="module" src="./app.js?v=20261013-grid1"></script>
+  <script type="module" src="./app.js?v=20261013-notice1"></script>
 </body>
 </html>

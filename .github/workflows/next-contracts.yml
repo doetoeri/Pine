@@ -53,6 +53,9 @@ jobs:
           for file in \
             new/app.js \
             new/calendar.js \
+            new/notice-data.js \
+            new/notice-renderer.js \
+            new/notice-image.js \
             new/view-motion.js \
             new/tilt-swipe.js \
             next/app.js \
@@ -129,6 +132,7 @@ jobs:
           next/tests/contracts.test.mjs
           next/tests/assessment-attachments.test.mjs
           next/tests/assessment-calendar.test.mjs
+          next/tests/notice-image.test.mjs
           next/tests/assessment-tilt.test.mjs
           next/tests/admin-policy.test.mjs
           next/tests/today-open-write.test.mjs
