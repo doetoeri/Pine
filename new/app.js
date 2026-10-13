@@ -9,6 +9,7 @@ import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../
 import { assessmentCalendarMarkup, assessmentDate, assessmentCalendarAnchor, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261013-grid1";
 import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261013-grid1";
 import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt3";
+import { mountNoticeImage } from "./notice-image.js?v=20261013-notice1";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -38,11 +39,11 @@ tilt.onchange = ({ enabled, status }) => {
 };
 $("tilt-enabled").onchange = event => tilt.setEnabled(event.target.checked);
 function syncTiltActivity() {
-  tilt.setActive(view === "covers" && !$("covers").hasAttribute("aria-busy") && !$("details").open && !$("preferences").open && window.PINCON_STARTUP?.finished !== false);
+  tilt.setActive(view === "covers" && !$("covers").hasAttribute("aria-busy") && !$("details").open && !$("preferences").open && !$("notice-image").open && window.PINCON_STARTUP?.finished !== false);
   tilt.notify();
 }
 const tiltDialogs = new MutationObserver(syncTiltActivity);
-for (const dialog of [$("details"), $("preferences")]) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+for (const dialog of [$("details"), $("preferences"), $("notice-image")]) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
 tiltDialogs.observe($("covers"), { attributes: true, attributeFilter: ["aria-busy"] });
 document.addEventListener("pincon-startup-end", syncTiltActivity);
 tilt.notify();
@@ -345,6 +346,7 @@ $("google-login").onclick = () => accountAction(async () => {
 $("logout").onclick = () => accountAction(async () => { const { signOutStudent } = await import("../next/core/student-auth.js"); await signOutStudent(); });
 $("retry").onclick = () => accountAction(() => gateway.retry(), false);
 mountAttachmentViewer(gateway);
+mountNoticeImage(gateway);
 gateway.addEventListener("change", render);
 render();
 gateway.start().catch(() => render());
