@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { assessmentCalendar, assessmentCalendarMarkup, calendarDate, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "../../new/calendar.js";
+import { assessmentCalendar, assessmentCalendarMarkup, assessmentDate, assessmentCalendarAnchor, calendarDate, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "../../new/calendar.js";
 
 test("calendar dates reject rollover and preserve leap days", () => {
   for (const date of ["2026-02-29", "2024-02-30", "2026-13-01", "2026-00-10", "2026-01-00", "2026-1-2", "unknown"]) assert.equal(calendarDate(date), "");
@@ -53,4 +53,47 @@ test("calendar escapes content and exposes every task on a crowded date", () => 
   assert.ok(html.includes("&lt;script&gt;"));
   assert.ok(html.includes("수행평가 5개 모두 보기"));
   for (const row of rows) assert.ok(html.includes(`data-assessment-id="${row.id}"`));
+});
+
+test("deadline recognition normalizes written dates and stale undecided state", () => {
+  const now = Date.parse("2026-10-13T00:00:00Z");
+  for (const dueDate of ["2026-11-13", "2026.11.13", "2026/11/13", "2026년 11월 13일", "11월 13일 (금)", "11.13"]) {
+    assert.equal(assessmentDate({ dueDate, dateType: "undecided" }, now), "2026-11-13");
+  }
+  assert.equal(assessmentDate({ dueAtMs: Date.parse("2026-11-12T15:00:00Z") }, now), "2026-11-13");
+  assert.equal(assessmentDate({ description: "준비물: 필기도구\n제출일: 11월 13일 (금)까지", announcedDate: "2026-10-01" }, now), "2026-11-13");
+  assert.equal(assessmentDate({ description: "마감: 1월 5일", announcedDate: "2026-12-21" }, now), "2027-01-05");
+  assert.equal(assessmentDate({ description: "제출 기한: 2026년 11월 13일" }, now), "2026-11-13");
+  assert.equal(assessmentDate({ dueDate: "2026-11-13", description: "제출일: 11월 20일" }, now), "2026-11-13");
+});
+
+test("automatic dates reject tentative, conflicting, invalid and incidental dates", () => {
+  const now = Date.parse("2026-10-13T00:00:00Z");
+  for (const row of [
+    { description: "발표 연습: 11월 13일" },
+    { title: "11월 13일 발표 연습" },
+    { description: "제출일: 11월 13일 예정" },
+    { description: "마감: 11월 13일 ~ 11월 20일" },
+    { description: "제출일: 11월 13일\n마감일: 11월 20일" },
+    { dueDate: "2026-02-30", description: "제출일: 11월 13일" },
+    { dueDate: "2026-11-13", dateType: "month" },
+    { dueDate: "2026-11-13", dateType: "range" },
+    { dueAtMs: Infinity },
+    { dueAtMs: 9e15 },
+    { createdAtMs: 9e15 },
+    { dueAtMs: Date.parse("2026-11-13"), dateType: "undecided" },
+  ]) assert.equal(assessmentDate(row, now), "", JSON.stringify(row));
+});
+
+test("each calendar entry follows the chosen cover and keeps it visible on a crowded day", () => {
+  const now = Date.parse("2026-10-13T00:00:00Z");
+  const rows = Array.from({ length: 5 }, (_, i) => ({ id: `task-${i}`, title: `보고서 ${i}`, dueDate: "2027-01-05" }));
+  const anchor = assessmentCalendarAnchor(rows, "task-4", now);
+  assert.deepEqual(anchor, { id: "task-4", date: "2027-01-05", month: "2027-01" });
+  const html = assessmentCalendarMarkup(rows, anchor.month, "", now, anchor);
+  assert.match(html, /is-anchor" data-date="2027-01-05"/);
+  assert.match(html, /data-assessment-id="task-4" data-calendar-anchor="true"/);
+  assert.ok(!html.includes("pc-calendar-agenda"));
+  assert.deepEqual(assessmentCalendarAnchor([{ id: "undated" }], "undated", now), { id: "undated", date: "", month: "2026-10" });
+  assert.deepEqual(assessmentCalendarAnchor([{ id: "draft", published: false, dueDate: "2027-01-05" }], "draft", now), { id: "", date: "", month: "2026-10" });
 });

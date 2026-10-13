@@ -6,8 +6,8 @@ import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
 import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
-import { assessmentCalendarMarkup, calendarDate, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261011-tilt1";
-import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261010-calendar1";
+import { assessmentCalendarMarkup, assessmentDate, assessmentCalendarAnchor, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261013-grid1";
+import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261013-grid1";
 import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt3";
 
 const $ = id => document.getElementById(id);
@@ -15,7 +15,7 @@ const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&
 if (!readClassProfile()) saveClassProfile(1, 8);
 const gateway = new NextDataGateway(), service = new ContentServiceV2(gateway);
 let signature = "", detailId = "", detailTrigger = null, saving = false, editing = false;
-let view = "covers", month = currentCalendarMonth(), selectedDay = "", calendarOpened = false, stopViewMotion = () => {};
+let view = "covers", month = currentCalendarMonth(), selectedDay = "", calendarAnchor = {}, stopViewMotion = () => {};
 prepareDialog($("details"), () => !saving);
 prepareDialog($("preferences"));
 const tilt = new TiltSwipe();
@@ -38,11 +38,12 @@ tilt.onchange = ({ enabled, status }) => {
 };
 $("tilt-enabled").onchange = event => tilt.setEnabled(event.target.checked);
 function syncTiltActivity() {
-  tilt.setActive(view === "covers" && !$("details").open && !$("preferences").open && window.PINCON_STARTUP?.finished !== false);
+  tilt.setActive(view === "covers" && !$("covers").hasAttribute("aria-busy") && !$("details").open && !$("preferences").open && window.PINCON_STARTUP?.finished !== false);
   tilt.notify();
 }
 const tiltDialogs = new MutationObserver(syncTiltActivity);
 for (const dialog of [$("details"), $("preferences")]) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+tiltDialogs.observe($("covers"), { attributes: true, attributeFilter: ["aria-busy"] });
 document.addEventListener("pincon-startup-end", syncTiltActivity);
 tilt.notify();
 $("cover-lighting").checked = coverLightingEnabled();
@@ -64,29 +65,39 @@ const record = id => (gateway.snapshot().data?.classAssignments || []).find(row 
 function render({ transition = false } = {}) {
   const snapshot = gateway.snapshot();
   const rows = (snapshot.data?.classAssignments || []).filter(row => !row.deleted && row.published !== false && (!row.type || row.type === "assessment") && (!row.classKey || row.classKey === snapshot.profile?.classKey))
-    .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"))
-    .map(row => ({ ...row, detailKey: row.id, kind: row.evaluationMethod || "수행평가" }));
+    .map(row => ({ ...row, dueDate: assessmentDate(row) || row.dueDate, detailKey: row.id, kind: row.evaluationMethod || "수행평가" }))
+    .sort((a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999"));
   // Realtime timestamps, attachment metadata and detail-only edits must not
   // replace the scene (and interrupt an in-progress scroll) when covers match.
   const pending = !rows.length && !snapshot.ready && !snapshot.usingCache;
-  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, month, selectedDay, view === "calendar" ? seoulToday() : "", rows.map(row => [
+  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, month, selectedDay, calendarAnchor.id, calendarAnchor.date, view === "calendar" ? seoulToday() : "", rows.map(row => [
     row.id, row.title, row.subject, row.kind, row.dueDate, row.dateType,
     Boolean(row.confirmed || row.verificationStatus === "verified"),
     Boolean(row.noticeAttachment), Boolean(row.worksheetPack),
   ])]);
   if (next !== signature) {
-    stopViewMotion();
     const before = transition ? captureAssessmentTiles($("covers")) : [];
+    stopViewMotion();
     const scrollTop = $("covers").querySelector(".pc-calendar")?.scrollTop || 0;
     signature = next;
     $("covers").innerHTML = pending
       ? '<section class="pc-flow pc-flow-empty" aria-label="수행평가"><p>수행평가</p></section>'
-      : view === "calendar" ? assessmentCalendarMarkup(rows, month, selectedDay) : coverflowMarkup(rows, snapshot.profile?.classKey || "");
+      : view === "calendar" ? assessmentCalendarMarkup(rows, month, selectedDay, undefined, calendarAnchor) : coverflowMarkup(rows, snapshot.profile?.classKey || "");
     $("covers").setAttribute("aria-label", view === "calendar" ? "수행평가 달력" : "수행평가 커버플로우");
     if (window.PINCON_STARTUP?.mode === "full" && !window.PINCON_STARTUP.finished) {
       document.documentElement.style.setProperty("--pc-startup-elapsed", `${performance.now() - window.PINCON_STARTUP.startAt}ms`);
     }
     mountCoverflow($("covers"), openDetail, { startup: window.PINCON_STARTUP, tilt });
+    if (transition && view === "calendar" && calendarAnchor.id) {
+      const target = $("covers").querySelector('[data-calendar-anchor="true"]');
+      const calendar = $("covers").querySelector(".pc-calendar");
+      if (target && calendar) {
+        const rect = target.getBoundingClientRect(), bounds = calendar.getBoundingClientRect();
+        if (rect.bottom > bounds.bottom - 88 || rect.top < bounds.top + 16) {
+          calendar.scrollTop += rect.top - bounds.top - Math.max(24, (calendar.clientHeight - rect.height) / 2);
+        }
+      }
+    }
     if (transition) stopViewMotion = animateAssessmentView($("covers"), before);
     else if (view === "calendar") $("covers").querySelector(".pc-calendar")?.scrollTo(0, scrollTop);
   }
@@ -115,12 +126,10 @@ function updateViewButton() {
 updateViewButton();
 $("view-toggle").onclick = () => {
   window.PINCON_STARTUP?.dismiss?.();
-  stopViewMotion();
-  if (view === "covers" && !calendarOpened) {
+  if (view === "covers") {
     const selected = $("covers").querySelector('.pc-cover[aria-pressed="true"]');
-    const row = selected && record(selected.dataset.assessmentId);
-    if (row && (!row.dateType || row.dateType === "exact") && calendarDate(row.dueDate)) month = row.dueDate.slice(0, 7);
-    calendarOpened = true;
+    calendarAnchor = assessmentCalendarAnchor(gateway.snapshot().data?.classAssignments || [], selected?.dataset.assessmentId);
+    month = calendarAnchor.month; selectedDay = "";
   }
   view = view === "covers" ? "calendar" : "covers";
   updateViewButton(); render({ transition: true });
@@ -133,7 +142,7 @@ $("covers").addEventListener("click", event => {
   if (navigation) {
     const value = navigation.dataset.calendarMonth;
     month = value === "today" ? currentCalendarMonth() : shiftCalendarMonth(month, Number(value));
-    selectedDay = ""; render({ transition: true });
+    selectedDay = ""; calendarAnchor = {}; render({ transition: true });
     $("covers").querySelector(`[data-calendar-month="${value}"]`)?.focus({ preventScroll: true });
     $("view-status").textContent = `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월`;
     return;
@@ -165,7 +174,7 @@ $("covers").addEventListener("keydown", event => {
 
 function fillDetail(row) {
   $("details").innerHTML = `<header><h1 id="detail-title">${escape(row.title)}</h1><button type="button" data-close aria-label="닫기">×</button></header><div class="dialog-body">
-    <p class="detail-meta">${escape(row.subject || "수행평가")} · ${escape(row.evaluationMethod || "수행평가")} · ${escape(row.dueDate || "날짜 미정")}</p>
+    <p class="detail-meta">${escape(row.subject || "수행평가")} · ${escape(row.evaluationMethod || "수행평가")} · ${escape(assessmentDate(row) || row.dueDate || "날짜 미정")}</p>
     <p class="detail-description">${escape(row.description || "등록된 상세 내용이 없습니다.")}</p>
     ${row.evaluationRange ? `<p><strong>평가 범위</strong><br>${escape(row.evaluationRange)}</p>` : ""}
     ${row.materials ? `<p><strong>준비물</strong><br>${escape(row.materials)}</p>` : ""}
@@ -265,6 +274,8 @@ $("details").addEventListener("submit", async event => {
   try {
     const values = { ...current, type: "assessment", published: data.has("published") };
     for (const key of ["title", "subject", "evaluationMethod", "dueDate", "description", "evaluationRange", "materials"]) values[key] = data.get(key) || "";
+    if (!values.dueDate) values.dateType = "undecided";
+    else if (values.dueDate !== current.dueDate || !current.dateType || current.dateType === "undecided") values.dateType = "exact";
     const result = await service.save("classAssignments", values, { id: detailId, noticeFile: form.elements.noticeFile.files[0] || null, packFile: form.elements.packFile.files[0] || null, removeNotice: data.has("removeNotice"), removePack: data.has("removePack"), fileConfirmed: data.has("fileConfirmed"), onProgress: progress => {
       $("save-status").textContent = progress.phase === "upload" ? `${progress.fileName} · 업로드 ${Math.round(progress.transferred / progress.totalBytes * 100)}%` : progress.phase === "save" ? "업로드 완료 · 수행평가 내용을 저장하는 중…" : "서버 저장을 확인하는 중…";
     } });

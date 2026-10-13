@@ -32,7 +32,7 @@ dialog{width:min(680px,calc(100vw - 28px));max-height:calc(100dvh - 32px);paddin
 .pc-calendar-day{min-width:0;min-height:94px;padding:0 3px 6px;background:#f8f9fc;scroll-margin:16px}
 .pc-calendar-number{display:grid;place-items:center;width:100%;min-height:44px;border:0;background:transparent;color:#536174;font-size:14px;font-variant-numeric:tabular-nums;padding:0}
 .pc-calendar-number span{display:grid;place-items:center;min-width:28px;height:28px;border-radius:50%}
-.is-outside .pc-calendar-number{color:#a4aebc}.is-today .pc-calendar-number span{background:#344963;color:#fff}.is-selected .pc-calendar-number span{outline:1px solid #7a8fad;outline-offset:3px}
+.is-outside .pc-calendar-number{color:#a4aebc}.is-today .pc-calendar-number span{background:#344963;color:#fff}.is-selected .pc-calendar-number span,.is-anchor .pc-calendar-number span{outline:1px solid #7a8fad;outline-offset:3px}
 .pc-calendar-day-tiles{display:flex;flex-direction:column;gap:4px}
 .pc-calendar-tile{--tile-paper:#d9dfe8;width:100%;min-width:0;min-height:44px;margin:0;padding:5px 4px;border:0;border-radius:3px;background:linear-gradient(125deg,#ffffffb3,var(--tile-paper));box-shadow:0 1px 3px #2739530c;display:flex;flex-direction:column;gap:3px;text-align:left;color:#344158;overflow:hidden}
 .pc-calendar-tile.pc-theme-0{--tile-paper:#c1d2f4}.pc-calendar-tile.pc-theme-1{--tile-paper:#e0c5d6}.pc-calendar-tile.pc-theme-2{--tile-paper:#bdd7ce}.pc-calendar-tile.pc-theme-3{--tile-paper:#ddc6a2}.pc-calendar-tile.pc-theme-4{--tile-paper:#cfcaed}.pc-calendar-tile.pc-theme-5{--tile-paper:#bac5d4}
@@ -46,9 +46,9 @@ dialog{width:min(680px,calc(100vw - 28px));max-height:calc(100dvh - 32px);paddin
 .pc-calendar-tile-full{min-height:76px;padding:14px 16px;border-radius:5px;gap:6px}
 .pc-calendar-tile-full .pc-calendar-subject{font-size:12px}.pc-calendar-tile-full .pc-calendar-title{font-size:16px;line-height:1.4;-webkit-line-clamp:3}
 .pc-calendar-empty{text-align:center;padding:18px;font-size:14px;color:#687489}
-.pc-view-transition{position:fixed;inset:0;z-index:3;pointer-events:none}
+.pc-view-transition{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden}
 .pc-view-hidden{visibility:hidden!important}
-.pc-view-proxy{position:absolute;transform-origin:0 0;will-change:transform;pointer-events:none;overflow:hidden;border-radius:1px}
+.pc-view-proxy{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform,opacity;pointer-events:none;overflow:hidden;border-radius:1px}
 .pc-view-skin{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
 .pc-view-skin>.pc-face,.pc-view-skin>.pc-calendar-tile{width:100%;height:100%;min-height:0;margin:0;pointer-events:none}
 .pc-view-proxy .pc-face,.pc-view-proxy .pc-date{font-family:inherit}
