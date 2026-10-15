@@ -1,126 +1,584 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#eaf4fc">
-<meta name="description" content="푸른병 실험의 측정, 기록과 분석을 위한 교실 탐구 도구">
-<title>BLUE BOTTLE LAB | PinCon</title>
-<link rel="stylesheet" href="./visual.css?v=2">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f9f9ff">
+  <meta name="description" content="Material Design 3 기반 푸른병 과학 실험 측정, 기록 및 분석">
+  <title>푸른병 실험 | PinCon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Outlined" rel="stylesheet">
+  <style>
+/* Material Design 3: visual controls are exclusively official @material/web components.
+   Custom CSS only provides layout, document typography, surfaces and data tables. */
+:root {
+  color-scheme: light;
+  font-family: Roboto, 'Noto Sans KR', system-ui, sans-serif;
+  --md-ref-typeface-plain: Roboto, 'Noto Sans KR', sans-serif;
+  --md-ref-typeface-brand: Roboto, 'Noto Sans KR', sans-serif;
+  --md-sys-typescale-body-large-font: Roboto, 'Noto Sans KR', sans-serif;
+  --md-sys-typescale-label-large-font: Roboto, 'Noto Sans KR', sans-serif;
+  --md-sys-color-primary: #375e99;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d7e3ff;
+  --md-sys-color-on-primary-container: #001b3e;
+  --md-sys-color-secondary: #565f71;
+  --md-sys-color-secondary-container: #dae2f9;
+  --md-sys-color-on-secondary-container: #131c2b;
+  --md-sys-color-tertiary: #705573;
+  --md-sys-color-on-tertiary-container: #29132c;
+  --md-sys-color-surface: #f9f9ff;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f3fa;
+  --md-sys-color-surface-container: #eceef5;
+  --md-sys-color-surface-container-high: #e7e8f0;
+  --md-sys-color-surface-container-highest: #e2e3eb;
+  --md-sys-color-on-surface: #1a1b20;
+  --md-sys-color-on-surface-variant: #44474f;
+  --md-sys-color-outline: #747781;
+  --md-sys-color-outline-variant: #c4c6d0;
+  --md-sys-color-inverse-surface: #2f3036;
+  --md-sys-color-inverse-on-surface: #f1f0f7;
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 999px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { min-width: 320px; }
+body { margin: 0; color: var(--md-sys-color-on-surface); background: var(--md-sys-color-surface); font-size: 14px; line-height: 1.55; }
+.app-shell { max-width: 1450px; margin: 0 auto; padding: 0 clamp(16px, 3.2vw, 48px) 32px; }
+.app-bar { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.brand { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.brand-mark { width: 46px; height: 46px; display: grid; place-items: center; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border-radius: 16px; flex: none; }
+.brand-mark md-icon { --md-icon-size: 26px; }
+.brand-label { font-size: 17px; font-weight: 800; letter-spacing: -.035em; white-space: nowrap; }
+.brand-label span { color: var(--md-sys-color-primary); }
+.brand-caption { color: var(--md-sys-color-on-surface-variant); font-size: 11px; margin-top: 2px; }
+.bar-meta { display: flex; align-items: center; gap: 12px; }
+.date-label { color: var(--md-sys-color-on-surface-variant); font-size: 12px; }
+.page-heading { display: flex; justify-content: space-between; gap: 16px; align-items: end; padding: 28px 0 24px; }
+.overline { margin: 0 0 7px; color: var(--md-sys-color-primary); font-weight: 700; font-size: 11px; letter-spacing: .11em; }
+.page-heading h1 { margin: 0 0 4px; font-family: 'Noto Sans KR',Roboto,sans-serif; font-weight: 800; font-size: clamp(26px, 2.8vw, 36px); letter-spacing: -.055em; }
+.subtitle { margin: 0; font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+.heading-stats { display: flex; gap: 10px; }
+.mini-stat { min-width: 123px; border-radius: 16px; background: var(--md-sys-color-secondary-container); padding: 12px 17px; display: flex; flex-direction: column; }
+.mini-stat:nth-child(2) { background: var(--md-sys-color-surface-container-high); }
+.mini-stat strong { color: var(--md-sys-color-on-secondary-container); font-size: 22px; font-weight: 750; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.mini-stat span { font-size: 11px; color: var(--md-sys-color-on-surface-variant); }
+.workspace { display: grid; grid-template-columns: minmax(254px, 304px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.settings-column,.content-column { display: grid; gap: 16px; min-width: 0; }
+.surface { background: var(--md-sys-color-surface-container-low); border-radius: 24px; padding: 22px; }
+.surface-tonal { background: var(--md-sys-color-secondary-container); }
+.section-heading { display: flex; align-items: center; gap: 10px; color: var(--md-sys-color-on-surface); }
+.section-heading>md-icon { color: var(--md-sys-color-primary); --md-icon-size: 22px; }
+.section-heading h2 { margin: 0; font-weight: 700; }
+.supporting { font-size: 12px; line-height: 1.65; color: var(--md-sys-color-on-surface-variant); margin: 7px 0 16px; }
+.body-copy { font-size: 13px; margin: 12px 0 0; line-height: 1.8; }
+.count-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 12px; }
+.count-inputs>*, .conditions>*, .target-fields>*, #memo, #report { min-width: 0; width: 100%; }
+.field-caption { font-size: 12px; color: var(--md-sys-color-on-surface-variant); margin: 17px 0 12px; }
+.conditions { display: grid; gap: 12px; margin: 0 0 18px; }
+.controls-end { display: flex; justify-content: flex-end; }
+.safety-line { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
+.safety-line label { cursor: pointer; color: var(--md-sys-color-on-secondary-container); padding-top: 2px; font-size: 13px; line-height: 1.8; }
+.safety-line md-checkbox { flex: none; }
+.overview .supporting { margin-bottom: 0; }
+.content-surface { background: var(--md-sys-color-surface-container-lowest); border-radius: 28px; overflow: hidden; min-height: 540px; }
+md-tabs { --md-primary-tab-container-color: var(--md-sys-color-surface-container-lowest); --md-primary-tab-active-indicator-color: var(--md-sys-color-primary); border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+.tab-panel { padding: 26px 34px 31px; min-width: 0; }
+.content-heading { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 24px; align-items: start; }
+.content-heading h2 { margin: 0; letter-spacing: -.025em; }
+.content-heading .supporting { margin: 5px 0 0; }
+.heading-icon { color: var(--md-sys-color-outline); }
+.target-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 680px; margin: 0 auto; }
+.stopwatch { margin: 24px auto 20px; max-width: 720px; text-align: center; border-radius: 28px; background: var(--md-sys-color-primary-container); padding: 33px 16px 23px; color: var(--md-sys-color-on-primary-container); position: relative; overflow: hidden; }
+.timer-helper { font-size: 12px; font-weight: 700; opacity: .8; }
+.clock-face { font-family: Roboto,system-ui,sans-serif; font-variant-numeric: tabular-nums; font-size: clamp(50px, 7vw, 94px); letter-spacing: -.035em; line-height: 1.42; font-weight: 500; white-space: nowrap; }
+.timer-unit { font-size: 11px; opacity: .8; }
+.stopwatch md-linear-progress { margin: 22px 0 -23px; width: 100%; }
+.timer-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.timer-controls>md-filled-button { min-width: 144px; }
+.timer-controls>md-filled-tonal-button, .timer-controls>md-outlined-button { min-width: 114px; }
+.rule { border-bottom: 1px solid var(--md-sys-color-outline-variant); margin: 28px 0 22px; }
+.tab-panel h3 { font-weight: 650; margin: 0 0 3px; }
+#memo { display: block; margin: 16px 0; }
+.record-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.analysis-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 8px 0 25px; }
+.analysis-summary>div { border-radius: 16px; background: var(--md-sys-color-surface-container); padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+.analysis-summary span { font-size: 12px; color: var(--md-sys-color-on-surface-variant); }
+.analysis-summary strong { font-size: 25px; font-weight: 600; color: var(--md-sys-color-primary); font-variant-numeric: tabular-nums; }
+.table-scroller { overflow-x: auto; max-width: 100%; border: 1px solid var(--md-sys-color-outline-variant); border-radius: 16px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 12px; }
+table caption { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+thead { background: var(--md-sys-color-surface-container); }
+th { font-size: 11px; font-weight: 700; color: var(--md-sys-color-on-surface-variant); }
+th,td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--md-sys-color-outline-variant); }
+tbody tr:last-child td { border-bottom: 0; }
+td { overflow-wrap: anywhere; }
+td:nth-child(4) { font-variant-numeric: tabular-nums; white-space: nowrap; }
+td:last-child { white-space: nowrap; }
+.empty-cell { text-align: center; padding: 38px 12px; color: var(--md-sys-color-on-surface-variant); }
+.subsection { margin: 27px 0 14px !important; }
+.note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; }
+.note md-icon { --md-icon-size: 18px; flex: none; }
+.export-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 24px; }
+.report-guidance { display: flex; gap: 12px; border-radius: 16px; padding: 16px 18px; background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); margin-bottom: 24px; }
+.report-guidance md-icon { flex: none; }
+.report-guidance strong { font-size: 13px; }
+.report-guidance p { font-size: 12px; margin: 5px 0 0; }
+#report { display: block; }
+.save-status { color: var(--md-sys-color-on-surface-variant); font-size: 11px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin: 0 5px; }
+.save-status md-icon { --md-icon-size: 16px; }
+footer { text-align: center; font-size: 11px; color: var(--md-sys-color-on-surface-variant); padding-top: 30px; }
+@media (max-width: 1050px) { .heading-stats { display: none; } .workspace { grid-template-columns: 258px minmax(0,1fr); gap: 14px; } .tab-panel { padding: 23px 24px 28px; } .surface { padding: 19px; } .clock-face { font-size: clamp(45px, 7vw, 75px); } .overview { display: none; } }
+@media (max-width: 790px) { .workspace { grid-template-columns: 1fr; } .settings-column { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; } .overview { display: none; } .page-heading { padding: 22px 0 19px; } .content-surface { min-height: 480px; } .clock-face { font-size: clamp(55px, 9vw, 80px); } }
+@media (max-width: 570px) { .app-shell { padding: 0 12px 25px; } .app-bar { min-height: 68px; } .brand-mark { width: 40px; height: 40px; border-radius: 14px; } .brand-label { font-size: 15px; } .brand-caption { font-size: 10px; } .date-label { display: none; } .page-heading { padding: 20px 4px 18px; } .page-heading h1 { font-size: 29px; } .subtitle { font-size: 12px; } .overline { font-size: 10px; } .settings-column { grid-template-columns: 1fr; } .surface { border-radius: 20px; } .content-surface { border-radius: 22px; } .tab-panel { padding: 21px 17px 25px; } .content-heading { margin-bottom: 18px; } .content-heading h2 { font-size: 20px; } .target-fields { gap: 10px; } .stopwatch { padding: 24px 9px 19px; border-radius: 22px; margin: 20px auto 18px; } .clock-face { font-size: clamp(45px, 11vw, 64px); } .timer-controls { gap: 8px; } .timer-controls>md-filled-button { min-width: 100px; } .timer-controls>md-filled-tonal-button,.timer-controls>md-outlined-button { min-width: 0; } .record-controls { gap: 8px; } .analysis-summary { gap: 6px; } .analysis-summary>div { padding: 11px; } .analysis-summary span { font-size: 10px; } .analysis-summary strong { font-size: 20px; } .export-controls { gap: 8px; } }
+@media print { :root { color-scheme: light; } body { background: #fff; } .app-shell { max-width: none; padding: 0; } .app-bar, .settings-column, .heading-stats, md-tabs, .save-status, footer, .timer-controls,.record-controls,.export-controls,.report-guidance { display: none !important; } .page-heading { padding: 0 0 12px; } .workspace { display: block; } .content-surface { border: none; min-height: 0; } .tab-panel { display: block !important; padding: 0; margin-bottom: 20px; break-inside: avoid; } #measurePanel { display: none !important; } #recordsPanel, #reportPanel { display: block !important; } .content-heading { margin: 0 0 8px; } .analysis-summary { display: grid; margin: 0 0 10px; } .analysis-summary>div { padding: 8px; background:#f4f4f4; } .table-scroller { overflow: visible; border-radius: 0; border-color: #ddd; } table { min-width: 0; } th,td { padding: 6px; } #report { display:none!important; } #printReport { display:block; min-height:180px; } }
+
+</style>
+  <script type="importmap">
+    {"imports":{"@material/web/":"https://esm.run/@material/web@2.5.0/"}}
+  </script>
+  <script type="module">
+    import '@material/web/all.js';
+    import {styles as typography} from '@material/web/typography/md-typescale-styles.js';
+    document.adoptedStyleSheets.push(typography.styleSheet);
+    document.documentElement.dataset.material = 'ready';
+  </script>
+  <script type="module">
+// Google's official Material Color Utilities generate the Material You tonal system.
+// CSS includes Google M3 token fallback values in case the CDN is unavailable.
+try {
+  const {argbFromHex, themeFromSourceColor, applyTheme} = await import('https://esm.run/@material/material-color-utilities@0.4.0');
+  const theme = themeFromSourceColor(argbFromHex('#3567B7'));
+  const query = window.matchMedia('(prefers-color-scheme: dark)');
+  const update = () => {
+    applyTheme(theme, {target: document.documentElement, dark: query.matches});
+    document.documentElement.style.colorScheme = query.matches ? 'dark' : 'light';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', query.matches ? '#121318' : '#f9f9ff');
+  };
+  update();
+  query.addEventListener('change', update);
+} catch (error) {
+  console.warn('Material dynamic color was unavailable; built-in M3 tokens are active.', error);
+}
+
+</script>
+  <script type="module">
+/** Pure measurement helpers. Retains compatibility with blue-bottle-lab-v1. */
+const STORAGE_KEY = 'blue-bottle-lab-v1';
+const STATES = Object.freeze({measured: '측정 완료', none: '미탈색', timeout: '시간 초과', fail: '측정 실패'});
+const initialData = () => ({
+  conditions: Array.from({length: 4}, (_, i) => ({name: String.fromCharCode(65 + i), concentration: ''})),
+  reps: 3,
+  records: [],
+  report: ''
+});
+function validateData(input) {
+  if (!input || typeof input !== 'object' || !Array.isArray(input.conditions) || !Array.isArray(input.records)) throw new Error('백업 형식이 올바르지 않습니다.');
+  if (!Number.isInteger(input.reps) || input.reps < 1 || input.reps > 6) throw new Error('반복 횟수가 잘못되었습니다.');
+  if (input.conditions.length < 2 || input.conditions.length > 6) throw new Error('조건 수는 2~6개여야 합니다.');
+  if (input.records.length > 1500) throw new Error('기록 수가 너무 많습니다.');
+  const names = input.conditions.map(c => c?.name);
+  if (new Set(names).size !== names.length || input.conditions.some(c => !c || !/^[A-F]$/.test(c.name) || typeof c.concentration !== 'string' || c.concentration.length > 100)) throw new Error('조건이 잘못되었습니다.');
+  if (input.records.some(r => !r || typeof r.id !== 'string' || typeof r.condition !== 'string' || !Number.isInteger(r.repeat) || r.repeat < 1 || r.repeat > 6 || !Object.keys(STATES).includes(r.kind) || (r.kind === 'measured' ? !Number.isFinite(r.ms) || r.ms < 0 || r.ms > 86400000 : r.ms != null) || typeof (r.memo ?? '') !== 'string' || (r.memo ?? '').length > 3000)) throw new Error('측정 데이터가 잘못되었습니다.');
+  return {
+    conditions: input.conditions.map(c => ({name:c.name, concentration:c.concentration})),
+    reps: input.reps,
+    records: input.records.map(r => ({id:r.id, condition:r.condition, repeat:r.repeat, kind:r.kind, ms:r.ms, memo:r.memo ?? '', updated:typeof r.updated === 'string' ? r.updated : '', history: Array.isArray(r.history) ? r.history.slice(-12) : []})),
+    report: typeof input.report === 'string' ? input.report.slice(0,30000) : ''
+  };
+}
+
+/** Import snapshots written by the earlier four-role experiment prototype. */
+function migrateLegacySnapshot(raw) {
+  if (!raw || raw.schema !== 1 || !Array.isArray(raw.conditions) || !raw.records || Array.isArray(raw.records) || typeof raw.records !== 'object') return raw;
+  const conditions = raw.conditions.map(c => ({name: c.id, concentration: String(c.concentration ?? '').slice(0,100)}));
+  const states = {measured:'measured', no_fade:'none', timeout:'timeout', failed:'fail'};
+  const records = Object.entries(raw.records).flatMap(([id,r]) => {
+    const [condition,repeatText] = id.split('-');
+    const repeat = Number(repeatText);
+    if (!r || !states[r.status] || !Number.isInteger(repeat) || repeat < 1 || repeat > 6) return [];
+    return [{id,condition,repeat,kind:states[r.status],ms:r.status==='measured'?Math.round(Number(r.seconds)*1000):null,memo:String(r.note??'').slice(0,3000),updated:String(r.at??''),history:[]}];
+  });
+  const notes=raw.notes||{};
+  const report = Object.values(notes).filter(s=>typeof s==='string' && s).join('\n\n').slice(0,30000);
+  return {conditions,reps:raw.repeats,records,report};
+}
+
+const slotKey = (condition, repeat) => `${condition}-${repeat}`;
+function timeLabel(ms) {
+  const cs = Math.floor(Math.max(0,ms) / 10);
+  return `${String(Math.floor(cs/6000)).padStart(2,'0')}:${String(Math.floor(cs%6000/100)).padStart(2,'0')}.${String(cs%100).padStart(2,'0')}`;
+}
+function getStats(records, conditions) {
+  return conditions.map(c => {
+    const values = records.filter(r => r.condition === c.name && r.kind === 'measured' && Number.isFinite(r.ms) && r.ms >= 0).map(r => r.ms/1000);
+    const n = values.length;
+    const mean = n ? values.reduce((a,b) => a+b, 0)/n : null;
+    const sd = n > 1 ? Math.sqrt(values.reduce((sum,val)=>sum+(val-mean)**2,0)/(n-1)) : null;
+    return {condition:c.name, concentration:c.concentration, n, mean, sd};
+  });
+}
+function toCSV(data) {
+  const rows = [
+    ['조건','포도당 농도','반복 회차','상태','측정 시간(초)','관찰 메모'],
+    ...data.records.map(r => [r.condition, data.conditions.find(c=>c.name===r.condition)?.concentration || '', r.repeat, STATES[r.kind] || r.kind, r.kind==='measured'?(r.ms/1000).toFixed(2):'', r.memo])
+  ];
+  function safe(value) {
+    let string = String(value ?? '');
+    if (/^\s*[=+@\-\t\r]/.test(string)) string = `'${string}`;
+    return `"${string.replace(/"/g,'""')}"`;
+  }
+  return '\ufeff' + rows.map(row => row.map(safe).join(',')).join('\r\n');
+}
+
+
+const $ = id => document.getElementById(id);
+let data;
+try {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  data = stored ? validateData(migrateLegacySnapshot(JSON.parse(stored))) : initialData();
+} catch (e) {
+  console.warn('Previous storage could not be parsed; leaving it untouched until a new save.',e);
+  data = initialData();
+}
+
+let t0 = null;
+let accumulated = 0;
+let timerInterval = null;
+let selectedCondition = data.conditions[0].name;
+let selectedRepeat = 1;
+let dialogResolver = null;
+
+function showStatus(message) {
+  $('saveStatusText').textContent = message;
+}
+function persist() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showStatus('✓ 이 기기에 자동 저장되었습니다.');
+  } catch (e) {
+    showStatus('저장 실패: 저장 공간이나 브라우저 설정을 확인하세요.');
+    console.error(e);
+  }
+}
+function md(tag, text, attrs={}) {
+  const element = document.createElement(tag);
+  if (text != null) element.textContent = String(text);
+  for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, String(value));
+  return element;
+}
+function showDialog(title, message, {cancel=false, confirmLabel='확인'}={}) {
+  return new Promise(async resolve => {
+    if (!customElements.get('md-dialog')) {
+      showStatus(`${title}: ${message}`);
+      resolve(false);
+      return;
+    }
+    if (dialogResolver) {dialogResolver(false); dialogResolver = null;}
+    $('dialogTitle').textContent = title;
+    $('dialogText').textContent = message;
+    $('dialogCancel').hidden = !cancel;
+    $('dialogConfirm').textContent = confirmLabel;
+    dialogResolver = resolve;
+    await $('messageDialog').show();
+  });
+}
+function resolveDialog(answer) {
+  if (dialogResolver) {const complete = dialogResolver; dialogResolver=null; complete(answer);}
+  $('messageDialog').close();
+}
+$('dialogConfirm').addEventListener('click', () => resolveDialog(true));
+$('dialogCancel').addEventListener('click', () => resolveDialog(false));
+$('messageDialog').addEventListener('closed', () => {if (dialogResolver) {dialogResolver(false);dialogResolver=null;}});
+
+function option(value, label, selected) {
+  const o = md('md-select-option', null, {value});
+  if (selected) o.setAttribute('selected', '');
+  const headline = md('div', label, {slot:'headline'});
+  o.append(headline);
+  return o;
+}
+function renderInputs() {
+  $('count').value = String(data.conditions.length);
+  $('reps').value = String(data.reps);
+  $('conditions').replaceChildren(...data.conditions.map((c,i) => {
+    const f = md('md-outlined-text-field',null, {label: `조건 ${c.name} · 농도/단위`, 'aria-label':`조건 ${c.name}의 포도당 농도와 단위`, maxlength: '100'});
+    f.value = c.concentration;
+    f.dataset.conditionIndex = String(i);
+    f.addEventListener('change', () => {
+      data.conditions[i].concentration = f.value.trim().slice(0,100);
+      persist();
+      renderRecords();
+    });
+    return f;
+  }));
+  if (!data.conditions.some(c => c.name===selectedCondition)) selectedCondition=data.conditions[0].name;
+  selectedRepeat = Math.min(Math.max(1, selectedRepeat),data.reps);
+  $('conditionSelect').replaceChildren(...data.conditions.map(c=> option(c.name,`조건 ${c.name} ${c.concentration?`· ${c.concentration}`:''}`,c.name===selectedCondition)));
+  $('repeatSelect').replaceChildren(...Array.from({length:data.reps},(_,i)=>option(String(i+1),`${i+1}회차`,i+1===selectedRepeat)));
+  $('conditionSelect').value=selectedCondition;
+  $('repeatSelect').value=String(selectedRepeat);
+  renderRecords();
+}
+function renderRecords() {
+  const total = data.conditions.length * data.reps;
+  const valid = data.records.filter(r=>r.kind==='measured').length;
+  $('progressValue').textContent = `${data.records.length} / ${total}`;
+  $('validValue').textContent = valid;
+  $('resultCount').textContent = data.records.length;
+  $('resultValid').textContent = valid;
+  $('resultConditions').textContent = data.conditions.length;
+  const rowElements=data.records.slice().sort((a,b)=>a.condition.localeCompare(b.condition)||a.repeat-b.repeat).map(r=>{
+    const tr=document.createElement('tr');
+    const concentration=data.conditions.find(c=>c.name===r.condition)?.concentration||'—';
+    const cells=[r.condition,concentration,`${r.repeat}회`,r.kind==='measured'?`${(r.ms/1000).toFixed(2)}초`:(STATES[r.kind]||r.kind),r.memo||'—'];
+    for(const value of cells) tr.append(md('td',value));
+    const action=document.createElement('td');
+    const del=md('md-text-button','삭제');
+    del.setAttribute('aria-label',`조건 ${r.condition} ${r.repeat}회 기록 삭제`);
+    del.addEventListener('click',async()=>{
+      if (await showDialog('기록 삭제',`조건 ${r.condition} ${r.repeat}회 데이터를 삭제할까요?`,{cancel:true,confirmLabel:'삭제'})) {
+        data.records=data.records.filter(x=>x.id!==r.id);
+        persist();renderRecords();
+      }
+    });
+    action.append(del);tr.append(action);return tr;
+  });
+  if(!rowElements.length){const row=document.createElement('tr');const empty=md('td','아직 측정 기록이 없습니다.',{colspan:'6',class:'empty-cell'});row.append(empty);rowElements.push(row);}
+  $('rows').replaceChildren(...rowElements);
+  $('stats').replaceChildren(...getStats(data.records,data.conditions).map(s=>{
+    const tr=document.createElement('tr');
+    const values=[s.condition,s.concentration||'—',`${s.n}회`,s.mean===null?'—':`${s.mean.toFixed(2)}초`,s.sd===null?'—':`${s.sd.toFixed(2)}초`];
+    for (const v of values)tr.append(md('td',v));
+    return tr;
+  }));
+}
+function elapsed() {return accumulated+(t0===null?0:performance.now()-t0);}
+function tick(){ $('clock').textContent = timeLabel(elapsed()); }
+function syncTimerButtons(){
+  const running=t0!==null;
+  $('start').disabled=running;
+  $('stop').disabled=!running;
+  $('runningIndicator').hidden=!running;
+}
+function stopTimer(){
+  if(t0!==null){accumulated=elapsed();t0=null;clearInterval(timerInterval);timerInterval=null;}
+  tick();syncTimerButtons();
+}
+$('start').addEventListener('click', async () => {
+  if(!$('safety').checked) {await showDialog('안전 점검 필요','실험을 시작하기 전에 지도교사의 안전 지침을 확인하고 체크박스를 선택하세요.');return;}
+  if(t0!==null)return;
+  t0=performance.now(); timerInterval=window.setInterval(tick,30);syncTimerButtons();
+});
+$('stop').addEventListener('click',stopTimer);
+$('reset').addEventListener('click',()=>{stopTimer();accumulated=0;tick();});
+$('conditionSelect').addEventListener('change',event=>{selectedCondition=event.target.value||selectedCondition;});
+$('repeatSelect').addEventListener('change',event=>{selectedRepeat=Number(event.target.value)||selectedRepeat;});
+async function record(kind){
+  stopTimer();
+  const ms=kind==='measured'?Math.round(accumulated):null;
+  if(kind==='measured'&&(!ms||ms<=0)){await showDialog('측정값이 없습니다','먼저 시간을 측정한 뒤 정지하세요.');return;}
+  selectedCondition=$('conditionSelect').value||selectedCondition;
+  selectedRepeat=Number($('repeatSelect').value)||selectedRepeat;
+  const id=slotKey(selectedCondition,selectedRepeat);
+  const existing=data.records.find(r=>r.id===id);
+  if(existing&&!(await showDialog('기록 덮어쓰기',`조건 ${selectedCondition}, ${selectedRepeat}회차 기록을 새 결과로 바꿀까요? 이전 데이터는 변경 이력에 보관됩니다.`,{cancel:true,confirmLabel:'변경'})))return;
+  const newRecord={id,condition:selectedCondition,repeat:selectedRepeat,kind,ms,memo:$('memo').value.slice(0,3000),updated:new Date().toISOString(),history:existing?[...(existing.history||[]),{...existing,history:undefined}].slice(-12):[]};
+  data.records=data.records.filter(r=>r.id!==id);
+  data.records.push(newRecord);
+  persist();renderRecords();
+  accumulated=0;tick();$('memo').value='';
+  showStatus(`✓ 조건 ${selectedCondition} ${selectedRepeat}회차가 저장되었습니다.`);
+}
+for (const [id,kind] of [['record','measured'],['none','none'],['timeout','timeout'],['fail','fail']]) $(id).addEventListener('click',()=>record(kind));
+$('applySetup').addEventListener('click',async()=>{
+  const n=Number($('count').value),r=Number($('reps').value);
+  if (!Number.isInteger(n)||n<2||n>6||!Number.isInteger(r)||r<1||r>6) {
+    await showDialog('설정 범위 확인','조건은 2~6개, 반복은 1~6회로 설정하세요.');return;
+  }
+  const hasData=data.records.length>0 && (n!==data.conditions.length||r!==data.reps);
+  if(hasData&&!(await showDialog('실험 설정 변경', '기존 기록은 유지되지만 조건 수나 반복 횟수와 일치하지 않는 기록이 남을 수 있습니다. 변경할까요?',{cancel:true,confirmLabel:'변경'})))return;
+  data.conditions=Array.from({length:n},(_,i)=>data.conditions[i]||{name:String.fromCharCode(65+i),concentration:''});
+  data.reps=r;
+  persist();renderInputs();
+});
+function selectTab(index){
+  $('views').activeTabIndex=index;
+  ['measurePanel','recordsPanel','reportPanel'].forEach((id,i)=>{$(id).hidden=i!==index;});
+}
+$('views').addEventListener('change',event=>selectTab(event.target.activeTabIndex));
+$('goRecords').addEventListener('click',()=>selectTab(1));
+$('report').value=data.report||'';
+$('report').addEventListener('input',()=>{data.report=$('report').value.slice(0,30000);persist();});
+function download(name,content,type){
+  const url=URL.createObjectURL(new Blob([content],{type}));
+  const anchor=document.createElement('a');anchor.href=url;anchor.download=name;document.body.append(anchor);anchor.click();anchor.remove();window.setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+$('csv').addEventListener('click',()=>download('blue-bottle-results.csv',toCSV(data),'text/csv;charset=utf-8'));
+$('json').addEventListener('click',()=>download('blue-bottle-backup.json',JSON.stringify(data,null,2),'application/json;charset=utf-8'));
+$('restore').addEventListener('click',()=>$('restoreInput').click());
+$('restoreInput').addEventListener('change',async event=>{
+  const file=event.target.files?.[0]; if(!file)return;
+  try{
+    if(file.size>2_000_000)throw new Error('백업 파일이 너무 큽니다.');
+    const restored=validateData(migrateLegacySnapshot(JSON.parse(await file.text())));
+    if (await showDialog('백업 복원', '현재 이 기기에 저장된 기록과 보고서가 백업 데이터로 바뀝니다. 복원할까요?',{cancel:true,confirmLabel:'복원'})){
+      data=restored;selectedCondition=data.conditions[0].name;selectedRepeat=1;
+      stopTimer();accumulated=0;tick();$('report').value=data.report;
+      persist();renderInputs();
+    }
+  }catch(e){await showDialog('복원 실패',e.message||'JSON 백업을 확인하세요.');}
+  event.target.value='';
+});
+$('print').addEventListener('click',()=>window.print());
+window.addEventListener('beforeprint',()=>{
+  const existing=$('printReport');if(existing)existing.remove();
+  const p=md('div',data.report||'아직 작성된 보고서가 없습니다.',{id:'printReport'});
+  p.style.cssText='white-space:pre-wrap;font-size:13px;line-height:1.8;';
+  $('reportPanel').append(p);
+});
+window.addEventListener('afterprint',()=>$('printReport')?.remove());
+renderInputs();tick();syncTimerButtons();selectTab(0);
+
+</script>
 </head>
 <body>
-<div class="app">
-  <header class="topbar">
-    <div class="identity">
-      <div class="mark" aria-hidden="true">B</div>
-      <div class="wordmark">BLUE BOTTLE <small>PINCON / RESEARCH EDITION</small></div>
-    </div>
-    <div class="topstatus">
-      <span class="pill pill-blue" id="status" aria-live="polite">단독 모드 · 기기 내 저장</span>
-      <span class="pill hide-mobile">2026. 10. 16 · 과학 탐구</span>
-    </div>
-  </header>
+  <div class="app-shell">
+    <header class="app-bar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><md-icon>science</md-icon></div>
+        <div><div class="brand-label">BLUE BOTTLE <span>LAB</span></div><div class="brand-caption">PinCon · Science workspace</div></div>
+      </div>
+      <div class="bar-meta">
+        <span class="date-label">2026. 10. 16 · 과학동아리</span>
+        <md-assist-chip label="기기 내 저장" aria-label="현재 로컬 저장 모드"><md-icon slot="icon">cloud_off</md-icon></md-assist-chip>
+      </div>
+    </header>
 
-  <div class="hero">
-    <div>
-      <div class="eyebrow">CHEMISTRY / OBSERVATION LAB</div>
-      <h1>푸른병 실험 <span style="color:#148be7">●</span></h1>
-      <p>포도당 농도에 따른 파란색의 변화 시간을 측정하고 비교하는 실험실</p>
+    <div class="page-heading">
+      <div>
+        <p class="overline">EXPERIMENT WORKSPACE / BLUE BOTTLE</p>
+        <h1 class="md-typescale-headline-large">푸른병 실험</h1>
+        <p class="subtitle">실험 조건 설정부터 시간 측정, 기록, 분석까지 한 화면에서 관리하세요.</p>
+      </div>
+      <div class="heading-stats" aria-label="실험 진행 상황">
+        <div class="mini-stat"><strong id="progressValue">0 / 12</strong><span>기록된 측정</span></div>
+        <div class="mini-stat"><strong id="validValue">0</strong><span>유효 측정</span></div>
+      </div>
     </div>
-    <div class="hero-stats">
-      <div class="stat-pill"><b id="recordCount">0/12</b><small>전체 측정 진행</small></div>
-      <div class="stat-pill"><b id="measuredCount">0</b><small>유효한 측정값</small></div>
-    </div>
-  </div>
 
-  <div class="workspace">
-    <aside class="sidebar">
-      <section class="panel" aria-labelledby="settingsHeading">
-        <div class="panel-head"><h2 id="settingsHeading"><span class="index">01</span> 실험 조건</h2><span class="pill">SETUP</span></div>
-        <p class="hint">교사가 승인한 조건과 반복 횟수를 설정하세요. 모든 측정 기록은 이 기기에 보관됩니다.</p>
-        <div class="row-fields">
-          <label class="field"><span>조건 수</span><input type="number" id="count" min="2" max="6" value="4" inputmode="numeric"></label>
-          <label class="field"><span>반복 횟수</span><input type="number" id="reps" min="1" max="6" value="3" inputmode="numeric"></label>
-        </div>
-        <div class="input-rule">조건별 포도당 농도 (단위 포함)</div>
-        <div id="conditions"></div>
-        <button class="glass-btn sm" id="setup" type="button">조건 적용 ↗</button>
-        <p class="note">조건 변경 시 기존 기록은 유지됩니다. 변경 전 기록을 확인하세요.</p>
-      </section>
-      <section class="panel" aria-labelledby="safetyHeading">
-        <div class="panel-head"><h2 id="safetyHeading"><span class="index">02</span> 안전 확인</h2><span class="pill">CHECK</span></div>
-        <label class="safety-check"><input type="checkbox" id="safe"><span><strong>안전 사항을 확인했습니다.</strong><br>지도교사가 승인한 절차와 보호구, 용기 밀폐 및 폐액 처리 지침을 확인했습니다.</span></label>
-        <p class="note">실험은 지도교사의 감독 아래 진행하세요. 이 앱은 시약 제조법을 제공하지 않습니다.</p>
-      </section>
-      <section class="panel science" aria-labelledby="scienceHeading">
-        <div class="panel-head"><h2 id="scienceHeading"><span class="index">03</span> 탐구 가설</h2><span class="pill">HYPOTHESIS</span></div>
-        <div class="hypothesis"><strong>예상</strong><p>포도당 농도가 증가하면 파란색이 사라지는 데 걸리는 시간이 짧아질 것이다.</p></div>
-        <p class="note">온도, 용기, 총부피, 혼합 방식과 관찰 기준을 가능한 한 동일하게 유지합니다.</p>
-      </section>
-    </aside>
+    <div class="workspace">
+      <aside class="settings-column" aria-label="실험 준비">
+        <section class="surface" aria-labelledby="settingsTitle">
+          <div class="section-heading"><md-icon aria-hidden="true">tune</md-icon><h2 id="settingsTitle" class="md-typescale-title-medium">실험 설정</h2></div>
+          <p class="supporting">조건과 반복 횟수를 입력한 뒤 적용하세요.</p>
+          <div class="count-inputs">
+            <md-outlined-text-field id="count" label="조건 수" type="number" min="2" max="6" value="4" required></md-outlined-text-field>
+            <md-outlined-text-field id="reps" label="반복 횟수" type="number" min="1" max="6" value="3" required></md-outlined-text-field>
+          </div>
+          <p class="field-caption">포도당 농도 / 단위</p>
+          <div id="conditions" class="conditions"></div>
+          <div class="controls-end"><md-filled-tonal-button id="applySetup"><md-icon slot="icon">check</md-icon>설정 적용</md-filled-tonal-button></div>
+        </section>
 
-    <main class="maincol">
-      <section class="panel measure" aria-labelledby="measureHeading">
-        <div class="measure-head">
-          <div class="measure-title"><h2 id="measureHeading"><span class="index">04</span> 시간 측정</h2><p>시작 후 파란색이 거의 사라지는 순간 정지하세요.</p></div>
-          <span class="pill pill-blue"><span class="status-dot" aria-hidden="true" style="display:inline-block;vertical-align:middle;margin-right:7px"></span>LOCAL TIMER</span>
-        </div>
-        <div class="measure-controls">
-          <label>측정 조건<select id="cond" aria-label="측정 조건"></select></label>
-          <label>반복 회차<select id="repeat" aria-label="반복 회차"></select></label>
-        </div>
-        <div class="digital-box">
-          <div class="clock" id="clock" role="timer" aria-live="off">00:00.00</div>
-          <div class="digital-caption">MIN : SEC . CENTISEC</div>
-        </div>
-        <div class="measure-actions">
-          <button class="glass-btn primary" id="start" type="button">▶ 시작</button>
-          <button class="glass-btn" id="stop" type="button">Ⅱ 정지</button>
-          <button class="glass-btn" id="reset" type="button">↺ 초기화</button>
-        </div>
-        <div class="action-divider"></div>
-        <div class="capture-grid">
-          <label class="field" style="margin:0"><span>관찰 메모</span><textarea id="memo" rows="2" placeholder="관찰한 색 변화나 특이사항 기록"></textarea></label>
-          <div>
-            <div class="input-rule" style="margin:0 0 8px">측정 결과 확정</div>
-            <div class="capture-actions">
-              <button class="glass-btn primary sm" type="button" id="record">시간 기록</button>
-              <button class="glass-btn sm" type="button" id="none">미탈색</button>
-              <button class="glass-btn sm" type="button" id="timeout">시간 초과</button>
-              <button class="glass-btn sm" type="button" id="fail">측정 실패</button>
+        <section class="surface surface-tonal" aria-labelledby="safetyTitle">
+          <div class="section-heading"><md-icon aria-hidden="true">verified_user</md-icon><h2 id="safetyTitle" class="md-typescale-title-medium">안전 점검</h2></div>
+          <div class="safety-line"><md-checkbox id="safety" touch-target="wrapper" aria-label="안전 수칙 확인"></md-checkbox><label for="safety">교사의 지침 및 보호구, 용기 취급, 폐액 처리 방법을 확인했습니다.</label></div>
+          <p class="supporting" style="margin:12px 0 0">타이머 시작 전 안전 수칙을 확인해야 합니다.</p>
+        </section>
+
+        <section class="surface overview" aria-labelledby="hypothesisTitle">
+          <div class="section-heading"><md-icon aria-hidden="true">experiment</md-icon><h2 id="hypothesisTitle" class="md-typescale-title-medium">탐구 가설</h2></div>
+          <p class="body-copy">포도당 농도가 높아질수록 파란색이 사라지는 데 걸리는 시간이 짧아질 것이다.</p>
+          <p class="supporting">다른 조건을 가능한 한 동일하게 유지하고 실제 결과를 통해 검토합니다.</p>
+        </section>
+      </aside>
+
+      <main class="content-column">
+        <div class="content-surface">
+          <md-tabs id="views" aria-label="실험 기능 선택">
+            <md-primary-tab id="measureTab" aria-controls="measurePanel" active inline-icon><md-icon slot="icon">timer</md-icon>측정</md-primary-tab>
+            <md-primary-tab id="recordsTab" aria-controls="recordsPanel" inline-icon><md-icon slot="icon">table_chart</md-icon>기록 및 분석</md-primary-tab>
+            <md-primary-tab id="reportTab" aria-controls="reportPanel" inline-icon><md-icon slot="icon">description</md-icon>보고서</md-primary-tab>
+          </md-tabs>
+
+          <div id="measurePanel" role="tabpanel" aria-labelledby="measureTab" class="tab-panel">
+            <div class="content-heading"><div><h2 class="md-typescale-title-large">탈색 시간 측정</h2><p class="supporting">한 번의 측정에 하나의 조건과 반복 회차를 배정합니다.</p></div><md-icon class="heading-icon" aria-hidden="true">schedule</md-icon></div>
+            <div class="target-fields">
+              <md-outlined-select id="conditionSelect" label="측정 조건" required></md-outlined-select>
+              <md-outlined-select id="repeatSelect" label="반복 회차" required></md-outlined-select>
+            </div>
+            <div class="stopwatch" aria-label="실험 시간">
+              <div class="timer-helper">경과 시간</div>
+              <div id="clock" class="clock-face" role="timer" aria-live="off">00:00.00</div>
+              <div class="timer-unit">분 : 초 . 1/100초</div>
+              <md-linear-progress id="runningIndicator" indeterminate hidden aria-label="시간 측정 중"></md-linear-progress>
+            </div>
+            <div class="timer-controls">
+              <md-filled-button id="start"><md-icon slot="icon">play_arrow</md-icon>시작</md-filled-button>
+              <md-filled-tonal-button id="stop"><md-icon slot="icon">pause</md-icon>정지</md-filled-tonal-button>
+              <md-outlined-button id="reset"><md-icon slot="icon">restart_alt</md-icon>초기화</md-outlined-button>
+            </div>
+            <div class="rule"></div>
+            <h3 class="md-typescale-title-medium">결과 기록</h3>
+            <p class="supporting">파란색이 거의 사라지는 순간 정지하고 결과를 확정하세요.</p>
+            <md-outlined-text-field id="memo" label="관찰 메모 (선택)" type="textarea" rows="2" placeholder="관찰한 변화나 특이사항을 적으세요"></md-outlined-text-field>
+            <div class="record-controls">
+              <md-filled-button id="record"><md-icon slot="icon">save</md-icon>측정값 기록</md-filled-button>
+              <md-outlined-button id="none">미탈색</md-outlined-button>
+              <md-outlined-button id="timeout">시간 초과</md-outlined-button>
+              <md-outlined-button id="fail">측정 실패</md-outlined-button>
+            </div>
+          </div>
+
+          <div id="recordsPanel" role="tabpanel" aria-labelledby="recordsTab" class="tab-panel" hidden>
+            <div class="content-heading"><div><h2 class="md-typescale-title-large">기록 및 분석</h2><p class="supporting">기록은 이 브라우저에 자동 저장됩니다. 다른 기기와 동기화되지 않습니다.</p></div><md-icon class="heading-icon" aria-hidden="true">analytics</md-icon></div>
+            <div class="analysis-summary"><div><span>기록 수</span><strong id="resultCount">0</strong></div><div><span>평균 계산에 사용된 값</span><strong id="resultValid">0</strong></div><div><span>조건 수</span><strong id="resultConditions">4</strong></div></div>
+            <div class="table-scroller"><table><caption>푸른병 실험 측정 데이터</caption><thead><tr><th scope="col">조건</th><th scope="col">농도</th><th scope="col">회차</th><th scope="col">상태 및 시간</th><th scope="col">관찰 메모</th><th scope="col">관리</th></tr></thead><tbody id="rows"><tr><td colspan="6" class="empty-cell">기록이 없습니다.</td></tr></tbody></table></div>
+            <h3 class="md-typescale-title-medium subsection">조건별 통계</h3>
+            <div class="table-scroller"><table><caption>조건별 평균과 표본 표준편차</caption><thead><tr><th scope="col">조건</th><th scope="col">농도</th><th scope="col">유효 횟수</th><th scope="col">평균</th><th scope="col">표본 표준편차</th></tr></thead><tbody id="stats"></tbody></table></div>
+            <p class="supporting note"><md-icon aria-hidden="true">info</md-icon>미탈색·시간 초과·측정 실패는 기록으로 남지만 평균과 표준편차에는 포함되지 않습니다.</p>
+            <div class="export-controls">
+              <md-filled-tonal-button id="csv"><md-icon slot="icon">download</md-icon>CSV 내려받기</md-filled-tonal-button>
+              <md-outlined-button id="json"><md-icon slot="icon">backup</md-icon>JSON 백업</md-outlined-button>
+              <md-outlined-button id="restore"><md-icon slot="icon">upload_file</md-icon>JSON 복원</md-outlined-button>
+              <input type="file" id="restoreInput" accept="application/json,.json" hidden>
+            </div>
+          </div>
+
+          <div id="reportPanel" role="tabpanel" aria-labelledby="reportTab" class="tab-panel" hidden>
+            <div class="content-heading"><div><h2 class="md-typescale-title-large">실험 보고서</h2><p class="supporting">평가에 필요한 해석과 결론을 직접 작성합니다. 내용은 자동 저장됩니다.</p></div><md-icon class="heading-icon" aria-hidden="true">edit_document</md-icon></div>
+            <div class="report-guidance"><md-icon aria-hidden="true">lightbulb</md-icon><div><strong>보고서 작성 도움말</strong><p>관찰 결과 → 가설 검토 → 오차 원인 → 개선할 점 → 후속 탐구 순서로 정리하세요.</p></div></div>
+            <md-outlined-text-field id="report" label="해석 · 오차 · 결론" type="textarea" rows="11" placeholder="실제 기록을 바탕으로 탐구 결과를 작성하세요."></md-outlined-text-field>
+            <div class="export-controls">
+              <md-filled-button id="print"><md-icon slot="icon">print</md-icon>인쇄 / PDF 저장</md-filled-button>
+              <md-outlined-button id="goRecords"><md-icon slot="icon">table_chart</md-icon>기록 확인</md-outlined-button>
             </div>
           </div>
         </div>
-      </section>
-
-      <section class="panel data-panel" aria-labelledby="resultsHeading">
-        <div class="panel-head"><h2 id="resultsHeading"><span class="index">05</span> 측정 결과</h2><span class="pill">AUTO SAVE</span></div>
-        <div class="table-scroll">
-          <table aria-label="측정 결과표">
-            <thead><tr><th>조건</th><th>농도</th><th>회차</th><th>결과</th><th>관찰 메모</th><th>관리</th></tr></thead>
-            <tbody id="rows"></tbody>
-          </table>
-        </div>
-        <h3>조건별 평균 및 표본 표준편차</h3>
-        <div id="stats" aria-live="polite"></div>
-        <p class="note">미탈색·시간 초과·측정 실패는 평균 계산에서 제외하고 기록에는 남깁니다.</p>
-        <div class="section-actions">
-          <div class="buttons">
-            <button class="glass-btn sm" id="csv" type="button">CSV 내보내기</button>
-            <button class="glass-btn sm" id="json" type="button">JSON 백업</button>
-            <button class="glass-btn sm" id="print" type="button">인쇄 / PDF</button>
-          </div>
-          <label class="field" style="margin:0;font-size:11px;min-width:160px"><span>기록 복원</span><input type="file" id="restore" accept=".json,application/json" style="font-size:10px"></label>
-        </div>
-      </section>
-
-      <section class="panel report" aria-labelledby="reportHeading">
-        <div class="panel-head"><h2 id="reportHeading"><span class="index">06</span> 탐구 보고서</h2><span class="pill">MY NOTES</span></div>
-        <p class="hint">결과를 보고 오차 원인, 가설의 타당성, 다음 탐구 계획을 직접 정리하세요.</p>
-        <textarea id="report" aria-label="탐구 보고서" placeholder="결과 해석 · 오차 원인 · 개선할 점 · 결론을 작성하세요."></textarea>
-      </section>
-    </main>
+        <p class="save-status" role="status" aria-live="polite"><md-icon aria-hidden="true">check_circle</md-icon><span id="saveStatusText">이 기기에 자동 저장됩니다.</span></p>
+      </main>
+    </div>
+    <footer>BLUE BOTTLE LAB · Material Design 3 · 오프라인·공유 데이터베이스는 아직 연결되지 않았습니다.</footer>
   </div>
-  <footer>BLUE BOTTLE LAB · PINCON RESEARCH EDITION · 본 서비스는 단독 기록 모드이며 기기 간 실시간 동기화를 지원하지 않습니다.</footer>
-</div>
-<script>const $=id=>document.getElementById(id),key='blue-bottle-lab-v1';let data;try{data=JSON.parse(localStorage.getItem(key))}catch{}data=data&&Array.isArray(data.conditions)&&Array.isArray(data.records)?data:{conditions:Array.from({length:4},(_,i)=>({name:String.fromCharCode(65+i),concentration:''})),reps:3,records:[],report:''};let startAt=null,elapsed=0,interval=null;function save(){localStorage.setItem(key,JSON.stringify(data))}function escapeText(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function setupUI(){$('count').value=data.conditions.length;$('reps').value=data.reps;$('conditions').innerHTML=data.conditions.map((c,i)=>'<label>'+escapeText(c.name)+' 포도당 농도/단위 <input data-i="'+i+'" value="'+escapeText(c.concentration)+'" placeholder="교사 승인 값"></label> ').join('');document.querySelectorAll('[data-i]').forEach(x=>x.onchange=()=>{data.conditions[+x.dataset.i].concentration=x.value;save();render()});$('cond').innerHTML=data.conditions.map(c=>'<option>'+escapeText(c.name)+'</option>').join('');$('repeat').innerHTML=Array.from({length:data.reps},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'회</option>').join('');render()}function time(ms){let n=Math.floor(ms/10);return String(Math.floor(n/6000)).padStart(2,'0')+':'+String(Math.floor(n%6000/100)).padStart(2,'0')+'.'+String(n%100).padStart(2,'0')}function tick(){$('clock').textContent=time(elapsed+(startAt===null?0:performance.now()-startAt))}function halt(){if(startAt!==null){elapsed+=performance.now()-startAt;startAt=null;clearInterval(interval)}tick()}$('start').onclick=()=>{if(!$('safe').checked){alert('먼저 안전 사항을 확인하세요.');return}if(startAt===null){startAt=performance.now();interval=setInterval(tick,35)}};$('stop').onclick=halt;$('reset').onclick=()=>{halt();elapsed=0;tick()};function add(kind){halt();let condition=$('cond').value,repeat=+$('repeat').value,id=condition+'-'+repeat;if(data.records.some(r=>r.id===id)&&!confirm('이 조건·반복 기록을 수정하시겠습니까?'))return;let ms=kind==='measured'?Math.round(elapsed):null;if(kind==='measured'&&(!ms||ms<=0)){alert('측정 시간을 확인하세요.');return}let previous=data.records.find(r=>r.id===id),record={id,condition,repeat,kind,ms,memo:$('memo').value,updated:new Date().toISOString(),history:previous?[...(previous.history||[]),{...previous,history:undefined}]:[]};data.records=data.records.filter(r=>r.id!==id);data.records.push(record);save();render();elapsed=0;tick()}$('record').onclick=()=>add('measured');$('none').onclick=()=>add('none');$('timeout').onclick=()=>add('timeout');$('fail').onclick=()=>add('fail');$('setup').onclick=()=>{let n=+$('count').value,r=+$('reps').value;if(n<2||n>6||r<1||r>6)return alert('조건 2~6개, 반복 1~6회');if(!confirm('조건 설정을 변경하시겠습니까? 기존 기록은 보존됩니다.'))return;data.conditions=Array.from({length:n},(_,i)=>data.conditions[i]||{name:String.fromCharCode(65+i),concentration:''});data.reps=r;save();setupUI()};function render(){let valid=data.records.filter(r=>r.kind==='measured').length;$('recordCount').textContent=data.records.length+'/'+(data.conditions.length*data.reps);$('measuredCount').textContent=valid;$('rows').innerHTML=data.records.sort((a,b)=>a.id.localeCompare(b.id)).map(r=>'<tr><td>'+escapeText(r.condition)+'</td><td>'+escapeText(data.conditions.find(c=>c.name===r.condition)?.concentration)+'</td><td>'+r.repeat+'</td><td>'+(r.kind==='measured'? (r.ms/1000).toFixed(2)+'초':({none:'미탈색',timeout:'시간 초과',fail:'측정 실패'}[r.kind]||r.kind))+'</td><td>'+escapeText(r.memo)+'</td><td><button data-delete="'+escapeText(r.id)+'">삭제</button></td></tr>').join('');document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('기록을 삭제하시겠습니까?')){data.records=data.records.filter(r=>r.id!==b.dataset.delete);save();render()}});$('stats').innerHTML=data.conditions.map(c=>{let a=data.records.filter(r=>r.condition===c.name&&r.kind==='measured').map(r=>r.ms/1000),n=a.length,avg=n?a.reduce((x,y)=>x+y,0)/n:null,sd=n>1?Math.sqrt(a.reduce((s,v)=>s+(v-avg)**2,0)/(n-1)):null;return '<p><b>'+escapeText(c.name)+'</b>: '+(n?avg.toFixed(2)+'초 (n='+n+', 표본 SD '+(sd===null?'계산 불가':sd.toFixed(2))+')':'측정값 없음')+'</p>'}).join('')}function download(name,body,type){let a=document.createElement('a'),url=URL.createObjectURL(new Blob([body],{type}));a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}$('json').onclick=()=>download('blue-bottle-backup.json',JSON.stringify(data,null,2),'application/json');$('csv').onclick=()=>{let rows=[['조건','농도','반복','상태','시간(초)','메모'],...data.records.map(r=>[r.condition,data.conditions.find(c=>c.name===r.condition)?.concentration||'',r.repeat,r.kind,r.ms===null?'':r.ms/1000,r.memo])];download('blue-bottle.csv','\ufeff'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv')};$('restore').onchange=async e=>{try{let d=JSON.parse(await e.target.files[0].text());if(!Array.isArray(d.conditions)||!Array.isArray(d.records)||!Number.isInteger(d.reps))throw Error('형식 오류');if(confirm('현재 데이터를 복원 파일로 교체하시겠습니까?')){data=d;save();setupUI()}}catch(err){alert('복원 실패: '+err.message)}};$('report').value=data.report||'';$('report').oninput=()=>{data.report=$('report').value;save()};$('print').onclick=()=>window.print();setupUI();tick();</script></html>
+
+  <md-dialog id="messageDialog" aria-label="안내">
+    <div slot="headline" id="dialogTitle">안내</div>
+    <div slot="content" id="dialogText"></div>
+    <div slot="actions"><md-text-button id="dialogCancel">취소</md-text-button><md-filled-button id="dialogConfirm">확인</md-filled-button></div>
+  </md-dialog>
+  <noscript>이 앱을 사용하려면 JavaScript가 필요합니다.</noscript>
+</body>
+</html>
