@@ -52,13 +52,9 @@ async function startExperiments() {
   const gateway = new NextDataGateway();
   gateway.addEventListener("change", (event) => reportDataGatewaySnapshot(event.detail));
   reportDataGatewaySnapshot(gateway.snapshot());
-  if (experimentPlatform.uiContext?.variant === "next") {
-    await import("./experiments/pincon-next-ui.js?v=20261007-light2").catch((error) => {
-      document.body.dataset.pinconVariant = "legacy";
-      experimentPlatform.log("js_error", { errorType: "variant_boot", source: "pincon-next-ui" });
-      console.error("[PinCon Experiment]", error);
-    });
-  }
+  // Always use the original PinCon home. The experimental Presence × Quiet Flux
+  // interface is retired and must not replace the production app.
+  document.body.dataset.pinconVariant = "legacy";
   await Promise.all([
     import("./experiments/public-beta.js?v=20260914-beta1"),
     import("./experiments/ui-satisfaction.js?v=20260914-exp1"),
