@@ -175,6 +175,7 @@ try {
 
 </script>
   <script type="module">
+import {freshExtension,validateExtension,extensionCSV,initExtension} from "./advanced.js";
 /** Pure measurement helpers. Retains compatibility with blue-bottle-lab-v1. */
 const STORAGE_KEY = 'blue-bottle-lab-v1';
 const STATES = Object.freeze({measured: '측정 완료', none: '미탈색', timeout: '시간 초과', fail: '측정 실패'});
@@ -182,7 +183,8 @@ const initialData = () => ({
   conditions: Array.from({length: 4}, (_, i) => ({name: String.fromCharCode(65 + i), concentration: ''})),
   reps: 3,
   records: [],
-  report: ''
+  report: '',
+  extension: freshExtension()
 });
 function validateData(input) {
   if (!input || typeof input !== 'object' || !Array.isArray(input.conditions) || !Array.isArray(input.records)) throw new Error('백업 형식이 올바르지 않습니다.');
@@ -196,7 +198,8 @@ function validateData(input) {
     conditions: input.conditions.map(c => ({name:c.name, concentration:c.concentration})),
     reps: input.reps,
     records: input.records.map(r => ({id:r.id, condition:r.condition, repeat:r.repeat, kind:r.kind, ms:r.ms, memo:r.memo ?? '', updated:typeof r.updated === 'string' ? r.updated : '', history: Array.isArray(r.history) ? r.history.slice(-12) : []})),
-    report: typeof input.report === 'string' ? input.report.slice(0,30000) : ''
+    report: typeof input.report === 'string' ? input.report.slice(0,30000) : '',
+    extension: validateExtension(input.extension)
   };
 }
 
@@ -233,7 +236,8 @@ function getStats(records, conditions) {
 function toCSV(data) {
   const rows = [
     ['조건','포도당 농도','반복 회차','상태','측정 시간(초)','관찰 메모'],
-    ...data.records.map(r => [r.condition, data.conditions.find(c=>c.name===r.condition)?.concentration || '', r.repeat, STATES[r.kind] || r.kind, r.kind==='measured'?(r.ms/1000).toFixed(2):'', r.memo])
+    ...data.records.map(r => [r.condition, data.conditions.find(c=>c.name===r.condition)?.concentration || '', r.repeat, STATES[r.kind] || r.kind, r.kind==='measured'?(r.ms/1000).toFixed(2):'', r.memo]),
+    ...extensionCSV(data)
   ];
   function safe(value) {
     let string = String(value ?? '');
@@ -260,6 +264,7 @@ let timerInterval = null;
 let selectedCondition = data.conditions[0].name;
 let selectedRepeat = 1;
 let dialogResolver = null;
+let extensionController = null;
 
 function showStatus(message) {
   $('saveStatusText').textContent = message;
@@ -364,6 +369,7 @@ function renderRecords() {
     for (const v of values)tr.append(md('td',v));
     return tr;
   }));
+  extensionController?.render();
 }
 function elapsed() {return accumulated+(t0===null?0:performance.now()-t0);}
 function tick(){ $('clock').textContent = timeLabel(elapsed()); }
@@ -383,7 +389,8 @@ $('start').addEventListener('click', async () => {
   t0=performance.now(); timerInterval=window.setInterval(tick,30);syncTimerButtons();
 });
 $('stop').addEventListener('click',stopTimer);
-$('reset').addEventListener('click',()=>{stopTimer();accumulated=0;tick();});
+function resetTimer(){stopTimer();accumulated=0;tick();}
+$('reset').addEventListener('click',resetTimer);
 $('conditionSelect').addEventListener('change',event=>{selectedCondition=event.target.value||selectedCondition;});
 $('repeatSelect').addEventListener('change',event=>{selectedRepeat=Number(event.target.value)||selectedRepeat;});
 async function record(kind){
@@ -416,7 +423,7 @@ $('applySetup').addEventListener('click',async()=>{
 });
 function selectTab(index){
   $('views').activeTabIndex=index;
-  ['measurePanel','recordsPanel','reportPanel'].forEach((id,i)=>{$(id).hidden=i!==index;});
+  ['measurePanel','recordsPanel','advancedPanel','reportPanel'].forEach((id,i)=>{$(id).hidden=i!==index;});
 }
 $('views').addEventListener('change',event=>selectTab(event.target.activeTabIndex));
 $('goRecords').addEventListener('click',()=>selectTab(1));
@@ -450,7 +457,8 @@ window.addEventListener('beforeprint',()=>{
   $('reportPanel').append(p);
 });
 window.addEventListener('afterprint',()=>$('printReport')?.remove());
-renderInputs();tick();syncTimerButtons();selectTab(0);
+extensionController=initExtension({getData:()=>data,persist,dialog:showDialog,elapsed,stopTimer,resetTimer,selectTab});
+renderInputs();extensionController.render();tick();syncTimerButtons();selectTab(0);
 
 </script>
 </head>
