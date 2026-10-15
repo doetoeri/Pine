@@ -51,7 +51,66 @@ function predict(points,label){
   if(!Number.isFinite(t)||t<=0)return {error:'양의 탈색 시간을 예측하지 못했습니다.'};
   return {seconds:t,concentration:label,signature:sign(points),anchors:[{condition:lo.name,concentration:lo.c.n,seconds:lo.t},{condition:hi.name,concentration:hi.c.n,seconds:hi.t}]};
 }
+
+function installExtensionUI(){
+  const tab=document.createElement('md-primary-tab');
+  tab.id='advancedTab';tab.setAttribute('aria-controls','advancedPanel');tab.setAttribute('inline-icon','');
+  tab.innerHTML='<md-icon slot="icon">functions</md-icon>심화 검증';
+  $('reportTab').before(tab);
+  const panel=document.createElement('div');
+  panel.id='advancedPanel';panel.className='tab-panel';panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby','advancedTab');panel.hidden=true;
+  panel.innerHTML=String.raw`
+    <div class="content-heading"><div><h2 class="md-typescale-title-large">심화 실험 · 예측 모델 검증</h2><p class="supporting">포도당 농도와 평균 탈색 시간을 이용해 E 농도의 시간을 예측하고 실측값으로 검증합니다.</p></div><md-icon class="heading-icon" aria-hidden="true">functions</md-icon></div>
+    <div class="report-guidance"><md-icon aria-hidden="true">info</md-icon><div><strong>전자기기 사용 범위</strong><p>타이머·계산·기록만 사용합니다. 색 변화는 사람이 직접 관찰하고, 시료는 지도교사가 승인한 방법으로 준비합니다.</p></div></div>
+    <h3 class="md-typescale-title-medium">1 · 경험적 속도 지표 1/t</h3>
+    <p class="supporting">본실험 A~D의 농도별 평균 탈색 시간을 계산합니다. 1/t는 경험적 지표이지 엄밀한 반응속도상수가 아닙니다.</p>
+    <div class="table-scroller"><table><caption>농도별 평균과 탈색 시간의 역수</caption><thead><tr><th>조건</th><th>농도</th><th>유효 측정 수</th><th>평균 t</th><th>1/t (1/초)</th></tr></thead><tbody id="eRateRows"></tbody></table></div>
+    <p id="eRateNote" class="supporting" role="status"></p>
+    <h3 class="md-typescale-title-medium subsection">2 · E 농도 예측</h3>
+    <p class="supporting">측정한 두 농도 사이의 E 농도를 선택합니다. 선형 보간으로 구한 예측값을 실제 E를 관찰하기 <strong>전에</strong> 확정하세요. 농도 단위를 동일하게 입력해야 합니다(예: 1%, 2%, 3%).</p>
+    <div class="prediction-row"><md-outlined-text-field id="eConc" label="E 농도 · 예: 1.5%" maxlength="60"></md-outlined-text-field><md-filled-button id="eLock"><md-icon slot="icon">lock</md-icon>예측값 확정</md-filled-button><md-outlined-button id="eClear">검증 초기화</md-outlined-button></div>
+    <div id="ePreview" class="prediction-preview" role="status">본실험 기록을 입력하면 예측값이 표시됩니다.</div>
+    <p id="eChanged" class="source-warning" hidden>예측값 확정 후 본실험 자료가 변경되었습니다. 예측값은 고정되며, 자료 변경 사실을 보고서에 기록하세요.</p>
+    <h3 class="md-typescale-title-medium subsection">3 · E 실제 측정</h3>
+    <p class="supporting">측정 탭의 같은 타이머를 이용하고 E 전용 기록 버튼으로 최대 3회 기록합니다. E 결과는 본실험 평균에 합치지 않습니다.</p>
+    <md-filled-tonal-button id="eGoMeasure"><md-icon slot="icon">timer</md-icon>타이머로 이동</md-filled-tonal-button>
+    <div class="table-scroller e-trial-table"><table><caption>E 검증 기록</caption><thead><tr><th>회차</th><th>상태</th><th>실측 시간</th><th>관찰 메모</th><th>관리</th></tr></thead><tbody id="eTrialRows"></tbody></table></div>
+    <h3 class="md-typescale-title-medium subsection">4 · 예측 오차 분석</h3>
+    <div class="analysis-summary extension-stats"><div><span>측정 진행</span><strong id="eCount">0/3회</strong></div><div><span>예측 시간</span><strong id="ePred">—</strong></div><div><span>실측 평균</span><strong id="eActual">—</strong></div><div><span>절대 오차</span><strong id="eDiff">—</strong></div><div><span>상대 오차</span><strong id="ePercent">—</strong></div></div>
+    <p id="eResultNote" class="supporting" role="status"></p>
+    <p class="supporting">상대 오차 = |실측 평균 − 예측값| / 실측 평균 × 100%. E 기록은 JSON 및 CSV 백업에 포함됩니다.</p>
+  `;
+  $('reportPanel').before(panel);
+  const extra=document.createElement('div');
+  extra.className='e-capture';
+  extra.innerHTML='<strong>추가 실험 E</strong><p class="supporting">심화 검증에서 예측값을 확정한 후 같은 타이머로 E를 측정해 별도 저장합니다.</p><div class="record-controls"><md-filled-tonal-button id="eSave">E 측정값 기록</md-filled-tonal-button><md-outlined-button id="eNone">E 미탈색</md-outlined-button><md-outlined-button id="eTimeout">E 시간 초과</md-outlined-button><md-outlined-button id="eFail">E 측정 실패</md-outlined-button></div>';
+  $('measurePanel').append(extra);
+  const handoff=document.createElement('div');
+  handoff.className='handoff-hint';
+  handoff.innerHTML='<strong>연속 측정 분업</strong><span>김선우 · 다음 시료 확인 → 김호준 · 반응 관찰 → 김도영 · 공식 타이머 → 송준혁 · 기록</span><small>다음 시료는 미리 확인하되, 산소 공급을 미리 시작하지 마세요.</small>';
+  $('memo').before(handoff);
+  const styles=document.createElement('style');
+  styles.textContent=String.raw`
+.handoff-hint,.e-capture{border-radius:16px;background:var(--md-sys-color-surface-container-low);padding:15px 17px;margin:16px 0}
+.handoff-hint strong,.e-capture strong{display:block;font-size:12px;margin-bottom:5px}
+.handoff-hint span,.handoff-hint small{display:block;color:var(--md-sys-color-on-surface-variant);font-size:12px;line-height:1.65}
+.handoff-hint small{font-size:11px;margin-top:5px}.e-capture{margin-top:19px;background:var(--md-sys-color-secondary-container)}
+.e-capture .supporting{margin:5px 0 12px}
+.prediction-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.prediction-row md-outlined-text-field{flex:1 1 210px;min-width:0}
+.prediction-preview{padding:17px;border-radius:16px;background:var(--md-sys-color-primary-container);font-weight:650;margin:10px 0 12px}
+.source-warning{padding:12px;border-radius:12px;color:var(--md-sys-color-on-error-container);background:var(--md-sys-color-error-container);font-size:12px}
+.e-trial-table{margin-top:20px}.extension-stats{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:15px}
+.extension-stats strong{font-size:clamp(13px,1.6vw,21px)}
+@media(max-width:1100px){.extension-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:570px){.extension-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{#advancedPanel{display:block!important}.e-capture,.handoff-hint,.prediction-row,#eGoMeasure{display:none!important}}
+`;
+  document.head.append(styles);
+}
+
 export function initExtension({getData,persist,dialog,elapsed,stopTimer,resetTimer,selectTab}){
+  installExtensionUI();
   const current=()=>getData().extension;
   function render(){
     const d=getData(),v=current(),s=summary(d),out=measured(s);
