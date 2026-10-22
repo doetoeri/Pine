@@ -32,7 +32,7 @@
   },
   "automatedTests": {
     "app": {
-      "pass": 40,
+      "pass": 45,
       "fail": 0
     },
     "selectedPincon": {
@@ -53,5 +53,76 @@
     "transientDisconnectAndAutomaticRecoveryObserved": true,
     "stepEnabledAfterRecovery": true,
     "physicalDevicesTested": false
+  },
+  "roomCreationFollowup": {
+    "checkedAt": "2026-10-22T14:55:40.774567+00:00",
+    "remotePRHeadBeforeChange": "53fd6dff77310d1a158cb3d38bfa3029440bcf93",
+    "reproduction": {
+      "phase": "room creation after valid health check",
+      "after100ms": "still-pending",
+      "postCount": 1,
+      "hasAbortSignal": false,
+      "soloWorldPreserved": true
+    },
+    "requestTimeoutMs": 10000,
+    "coversHeadersAndBody": true,
+    "automaticPOSTRetries": 0,
+    "responseCodeAndRoleTokenValidatedBeforeJoin": true,
+    "newRegressionTests": 5,
+    "tests": {
+      "appPassed": 45,
+      "selectedPinconPassed": 58,
+      "failed": 0
+    },
+    "browser": {
+      "normalServerRoomCreation": true,
+      "sharedStateReceived": true,
+      "appConsoleErrorsObserved": 0,
+      "sharedStepClock": "D0 06:00",
+      "sharedStepEnabled": true
+    },
+    "physicalDevicesTested": false,
+    "productionDeployed": false,
+    "publicPaths": {
+      "checkedAt": "2026-10-22T14:54:40.443458+00:00",
+      "responses": [
+        {
+          "path": "nationwide/",
+          "status": 200,
+          "type": "text/html; charset=utf-8",
+          "bodyPresent": true
+        },
+        {
+          "path": "engineering/",
+          "status": 200,
+          "type": "text/html; charset=utf-8",
+          "bodyPresent": true
+        },
+        {
+          "path": "biology/",
+          "status": 200,
+          "type": "text/html; charset=utf-8",
+          "bodyPresent": true
+        },
+        {
+          "path": "research/",
+          "status": 200,
+          "type": "text/html; charset=utf-8",
+          "bodyPresent": true
+        },
+        {
+          "path": "modules/app.mjs",
+          "status": 200,
+          "type": "text/javascript; charset=utf-8",
+          "bodyPresent": true
+        },
+        {
+          "path": "data/nationwide.json",
+          "status": 200,
+          "type": "application/json; charset=utf-8",
+          "bodyPresent": true
+        }
+      ]
+    }
   }
 }

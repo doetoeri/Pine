@@ -2,7 +2,7 @@ const eventId=()=>globalThis.crypto?.randomUUID?.()??Array.from(crypto.getRandom
 import {DualWorld} from './engine.mjs';
 import {viewOf} from './view.mjs';
 import {validatePlan} from './experiments.mjs';
-import {CollaborationAvailability,resolveServerBase} from './collaboration-availability.mjs';
+import {CollaborationAvailability,resolveServerBase,createSharedRoom} from './collaboration-availability.mjs';
 const sessionRead=k=>{try{return sessionStorage.getItem(k);}catch{return null;}};
 const sessionWrite=(k,v)=>{try{sessionStorage.setItem(k,v);}catch{}};
 const serverBase=resolveServerBase;
@@ -24,7 +24,7 @@ export class LabClient extends EventTarget{
  async checkServer(options){this.availability??=new CollaborationAvailability();return this.serverAvailability=await this.availability.check(options);}
  async requireServer(){const status=await this.checkServer();if(!status.ready)throw Error(status.message);}
  async joinAvailable(code,role){if(!/^[A-F0-9]{6}$/.test(code))throw Error('실험실 코드는 영문·숫자 6자리입니다.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();return this.join(code,role);}
- async create(role='engineering'){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();const r=await fetch(new URL('/bloodflow/api/rooms',serverBase()),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:Object.fromEntries(Object.entries(this.state?.world?.c??{}).filter(([key])=>!['realNodes','roadHours','regions'].includes(key)))})});if(!r.headers.get('content-type')?.includes('application/json'))throw Error('공통 서버가 없는 정적 주소입니다. 동봉한 서버의 주소에서 접속하세요.');const v=await r.json();if(!r.ok)throw Error(v.error);return this.join(v.experimentId,role,v.tokens[role]);}
+ async create(role='engineering'){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();const config=Object.fromEntries(Object.entries(this.state?.world?.c??{}).filter(([key])=>!['realNodes','roadHours','regions'].includes(key)));const v=await createSharedRoom(config,role);return this.join(v.experimentId,role,v.tokens[role]);}
  join(code,role,token){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!/^[A-F0-9]{6}$/.test(code))throw Error('실험실 코드는 영문·숫자 6자리입니다.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');
   this.reconnect=false;clearTimeout(this.reconnectTimer);const previous=this.socket;this.socket=null;previous?.close();this.pending.clear();
   this.running=false;this.mode='shared';this.ready=false;this.role=role;this.code=code;this.sharedState=null;this.authorityId=null;this.reconnectAttempt=0;this.reconnect=true;this.token=token??localStorage.getItem('bf-token:'+code+':'+role)??'';this.connection='공통 서버 연결 중';this.connect();this.emit();

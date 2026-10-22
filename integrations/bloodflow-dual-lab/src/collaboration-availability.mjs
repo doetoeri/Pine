@@ -8,6 +8,26 @@ export function resolveServerBase(context=globalThis){
  return url;
 }
 
+export const ROOM_REQUEST_TIMEOUT_MS=10000;
+const uncertainCreation='생성 결과를 확인할 수 없어 자동으로 다시 요청하지 않습니다. 기존 연구를 계속할 수 있습니다.';
+export async function createSharedRoom(config,role,{fetchImpl=(...args)=>fetch(...args),context=globalThis,timeoutMs=ROOM_REQUEST_TIMEOUT_MS}={}){
+ if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');
+ const url=new URL('/bloodflow/api/rooms',resolveServerBase(context));
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeoutMs);
+ const interrupted=()=>Error((controller.signal.aborted?'실험실 생성 응답 시간이 초과되었습니다. ':'네트워크 오류로 실험실 생성 응답을 받지 못했습니다. ')+uncertainCreation);
+ try{
+  let response;
+  try{response=await fetchImpl(url,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({config})});}
+  catch{throw interrupted();}
+  if(!response.headers.get('content-type')?.includes('application/json'))throw Error('공통 서버의 생성 응답이 JSON 형식이 아닙니다. '+uncertainCreation);
+  let value;
+  try{value=await response.json();}catch{if(controller.signal.aborted)throw interrupted();throw Error('실험실 생성 응답을 읽을 수 없습니다. '+uncertainCreation);}
+  if(!response.ok)throw Error(typeof value?.error==='string'?value.error:`실험실을 만들지 못했습니다 (HTTP ${response.status}).`);
+  if(!/^[A-F0-9]{6}$/.test(value?.experimentId??'')||typeof value?.tokens?.[role]!=='string'||!value.tokens[role])throw Error('응답에서 올바른 실험실 코드와 역할 정보를 확인하지 못했습니다. '+uncertainCreation);
+  return value;
+ }finally{clearTimeout(timer);}
+}
+
 export class CollaborationAvailability{
  constructor({fetchImpl=(...args)=>fetch(...args),context=()=>globalThis,timeoutMs=5000,cacheMs=15000,now=()=>Date.now()}={}){
   Object.assign(this,{fetchImpl,context,timeoutMs,cacheMs,now});this.pending=null;this.cached=null;
