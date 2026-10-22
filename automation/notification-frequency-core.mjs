@@ -169,8 +169,8 @@ export function candidateIndexForSlot({
   return (offset + ordinal) % count;
 }
 
-export function notificationId({ anonymousParticipant, date, period, slotIndex, candidateKey }) {
-  return `nexp_${digest(`${anonymousParticipant}:${date}:p${period}:s${slotIndex}:${candidateKey}`, 28)}`;
+export function notificationId({ anonymousParticipant, date, period, slotIndex, candidateKey, experimentVersion = 1 }) {
+  return `nexp_${digest(`${anonymousParticipant}:${date}:v${experimentVersion}:p${period}:s${slotIndex}:${candidateKey}`, 28)}`;
 }
 
 /**
