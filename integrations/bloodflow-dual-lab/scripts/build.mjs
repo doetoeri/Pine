@@ -1,6 +1,6 @@
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),publicDir=path.join(root,'public'),dist=path.join(root,'dist');
-const modules=['biology.mjs','legacy-core.mjs','geography.mjs','engine.mjs','experiments.mjs','compute-worker.mjs','view.mjs','collaboration-availability.mjs','client.mjs','map-requests.mjs','map-layer.mjs','nationwide-ui.mjs','app.mjs'];
+const modules=['biology.mjs','legacy-core.mjs','geography.mjs','engine.mjs','experiments.mjs','compute-worker.mjs','view.mjs','collaboration-availability.mjs','client.mjs','map-requests.mjs','map-layer.mjs','nationwide-ui.mjs','data-loader.mjs','app.mjs'];
 const source=Object.fromEntries(modules.map(n=>[n,fs.readFileSync(path.join(root,'src',n),'utf8')]));
 const data={facilities:JSON.parse(fs.readFileSync(path.join(publicDir,'data/facilities.json'))),routes:JSON.parse(fs.readFileSync(path.join(publicDir,'data/routes.json'))),roads:JSON.parse(fs.readFileSync(path.join(publicDir,'data/roads.geojson'))),nationwide:JSON.parse(fs.readFileSync(path.join(publicDir,'data/nationwide.json'))),regions:JSON.parse(fs.readFileSync(path.join(publicDir,'data/regions.geojson')))};
 if(Object.keys(data.routes.routes).length!==12)throw Error('Expected all 12 directed road routes.');
