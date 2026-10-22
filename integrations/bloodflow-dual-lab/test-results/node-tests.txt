@@ -1,0 +1,29 @@
+✔ new receipts remain unavailable during the hypothetical 2-hour inspection (41.364787ms)
+✔ worker-thread COMPUTE returns the same values as the common engine and reports progress (438.432774ms)
+✔ longer histories checkpoint terminal packs compactly without changing conservation (333.183926ms)
+✔ persistent client sequence prevents replay even after the event response cache evicts an old ID (436.259745ms)
+✔ COMPUTE pause preserves pair progress and resumes without changing paired outcomes (1336.36079ms)
+✔ two real WebSocket clients: sync, permissions, conflicts, deduplication, disconnect, rejoin, disk restore and isolated routes (960.779907ms)
+✔ preserved 5.1-model extraction: original deterministic conservation baseline (70.913131ms)
+✔ directed GIS cache is complete and actual route geometry is retained (0.370306ms)
+✔ same seed reproduces all numerical outcomes (209.970248ms)
+✔ mass is conserved across demand, dispatch, return, expiry and quarantine (103.061508ms)
+✔ ABO/RhD rules distinguish RBC, platelets and plasma (1.329884ms)
+✔ incompatible packs cannot meet a demand even if stock exists (10.035609ms)
+✔ in-transit packs are excluded from facility inventory until arrival (5.181632ms)
+✔ failed dispatch restores removed stock transactionally (10.37381ms)
+✔ component expiry clocks and synthetic temperature holds are distinct (6.126462ms)
+✔ JSON checkpoint resumes deterministically and rejects corrupt inventory (223.243652ms)
+✔ paired policy runs use identical exogenous demand and give zero difference for identical settings (170.86494ms)
+✔ changing safety inventory does not consume or perturb the demand RNG (121.677484ms)
+✔ statistics use sample SD and Student t interval; null denominator stays undefined (3.229529ms)
+✔ non-finite inputs, invalid categories and impossible plan sizes are rejected (4.50631ms)
+✔ CSV quotes commas, quotes and newlines correctly (0.357071ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2781.654758

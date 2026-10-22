@@ -1,0 +1,10 @@
+.git
+node_modules
+data
+dist
+original
+originals
+test-results
+examples
+public/offline.html
+public/qa.html

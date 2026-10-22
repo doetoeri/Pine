@@ -1,0 +1,5 @@
+{
+ "name":"bloodflow-dual-lab","version":"2.0.0","private":true,"type":"module","engines":{"node":">=22"},
+ "scripts":{"dev":"node server/server.mjs --port 4173 --qa","start":"node server/server.mjs","build":"node scripts/build.mjs","test":"node --test tests/*.test.mjs"},
+ "description":"Collaborative educational blood-supply research platform; preserved 5.1 model lineage"
+}

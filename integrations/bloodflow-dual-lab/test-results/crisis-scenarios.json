@@ -1,0 +1,1457 @@
+{
+  "scenario": "first hospital x3 demand from hour 24 to 72, seed 20261021",
+  "cases": [
+    {
+      "product": "MIX",
+      "pairs": [
+        {
+          "repeat": 1,
+          "seed": 20261021,
+          "control": {
+            "created": 156,
+            "served": 55,
+            "requested": 113,
+            "unmet": 58,
+            "expired": 13,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 27,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 79,
+            "held": 0,
+            "inTransit": 9,
+            "shortageRate": 0.5132743362831859,
+            "wasteRate": 0.08333333333333333,
+            "averageInventory": 83.90143359498941,
+            "meanTransportHours": 0.10136111111111062,
+            "demandFingerprint": 2344558465,
+            "verification": {
+              "active": 88,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 156,
+            "served": 90,
+            "requested": 113,
+            "unmet": 23,
+            "expired": 9,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 23,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 53,
+            "held": 0,
+            "inTransit": 4,
+            "shortageRate": 0.20353982300884957,
+            "wasteRate": 0.057692307692307696,
+            "averageInventory": 68.76711181572672,
+            "meanTransportHours": 0.1290396825396829,
+            "demandFingerprint": 2344558465,
+            "verification": {
+              "active": 57,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        },
+        {
+          "repeat": 2,
+          "seed": 20365750,
+          "control": {
+            "created": 160,
+            "served": 37,
+            "requested": 75,
+            "unmet": 38,
+            "expired": 7,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 17,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 111,
+            "held": 0,
+            "inTransit": 3,
+            "shortageRate": 0.5066666666666667,
+            "wasteRate": 0.04375,
+            "averageInventory": 90.67717688395791,
+            "meanTransportHours": 0.0868388888888876,
+            "demandFingerprint": 2617597808,
+            "verification": {
+              "active": 116,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 160,
+            "served": 59,
+            "requested": 75,
+            "unmet": 16,
+            "expired": 7,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 26,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 83,
+            "held": 0,
+            "inTransit": 9,
+            "shortageRate": 0.21333333333333335,
+            "wasteRate": 0.04375,
+            "averageInventory": 79.45117534074808,
+            "meanTransportHours": 0.11617708333333271,
+            "demandFingerprint": 2617597808,
+            "verification": {
+              "active": 94,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "shortageRate": {
+          "control": {
+            "n": 2,
+            "mean": 0.5099705014749263,
+            "sd": 0.004672327993681006,
+            "ci95": [
+              0.4679919764011801,
+              0.5519490265486724
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.20843657817109146,
+            "sd": 0.006925057562062945,
+            "ci95": [
+              0.146218407079646,
+              0.2706547492625369
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -0.3015339233038348,
+            "sd": 0.01159738555574399,
+            "ci95": [
+              -0.4057306194690268,
+              -0.19733722713864288
+            ]
+          }
+        },
+        "wasteRate": {
+          "control": {
+            "n": 2,
+            "mean": 0.06354166666666666,
+            "sd": 0.027989643421967504,
+            "ci95": [
+              -0.18793125,
+              0.3150145833333333
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.050721153846153846,
+            "sd": 0.009858700314620139,
+            "ci95": [
+              -0.037854326923076956,
+              0.13929663461538466
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -0.012820512820512817,
+            "sd": 0.018130943107347367,
+            "ci95": [
+              -0.17571794871794866,
+              0.150076923076923
+            ]
+          }
+        },
+        "averageInventory": {
+          "control": {
+            "n": 2,
+            "mean": 87.28930523947366,
+            "sd": 4.791174027208867,
+            "ci95": [
+              44.24300812465678,
+              130.33560235429053
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 74.1091435782374,
+            "sd": 7.554773769170451,
+            "ci95": [
+              6.233288003776707,
+              141.9849991526981
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -13.180161661236262,
+            "sd": 2.7635997419615848,
+            "ci95": [
+              -38.009720120880075,
+              11.649396798407551
+            ]
+          }
+        },
+        "meanTransportHours": {
+          "control": {
+            "n": 2,
+            "mean": 0.09409999999999911,
+            "sd": 0.01026876181123187,
+            "ci95": [
+              0.0018403222222162785,
+              0.18635967777778195
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.1226083829365078,
+            "sd": 0.009095231122494923,
+            "ci95": [
+              0.04089229017856506,
+              0.20432447569445056
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0.02850838293650869,
+            "sd": 0.0011735306887369471,
+            "ci95": [
+              0.017964797916668603,
+              0.03905196795634877
+            ]
+          }
+        },
+        "unmet": {
+          "control": {
+            "n": 2,
+            "mean": 48,
+            "sd": 14.142135623730951,
+            "ci95": [
+              -79.05999999999999,
+              175.06
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 19.5,
+            "sd": 4.949747468305833,
+            "ci95": [
+              -24.970999999999997,
+              63.971
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -28.5,
+            "sd": 9.192388155425117,
+            "ci95": [
+              -111.08899999999998,
+              54.088999999999984
+            ]
+          }
+        },
+        "expired": {
+          "control": {
+            "n": 2,
+            "mean": 10,
+            "sd": 4.242640687119285,
+            "ci95": [
+              -28.117999999999995,
+              48.117999999999995
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 8,
+            "sd": 1.4142135623730951,
+            "ci95": [
+              -4.7059999999999995,
+              20.706
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -2,
+            "sd": 2.8284271247461903,
+            "ci95": [
+              -27.412,
+              23.412
+            ]
+          }
+        },
+        "available": {
+          "control": {
+            "n": 2,
+            "mean": 95,
+            "sd": 22.627416997969522,
+            "ci95": [
+              -108.29599999999999,
+              298.296
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 68,
+            "sd": 21.213203435596427,
+            "ci95": [
+              -122.58999999999997,
+              258.59
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -27,
+            "sd": 1.4142135623730951,
+            "ci95": [
+              -39.706,
+              -14.294
+            ]
+          }
+        },
+        "held": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "product": "RBC",
+      "pairs": [
+        {
+          "repeat": 1,
+          "seed": 20261021,
+          "control": {
+            "created": 156,
+            "served": 85,
+            "requested": 113,
+            "unmet": 28,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 22,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 61,
+            "held": 0,
+            "inTransit": 10,
+            "shortageRate": 0.24778761061946902,
+            "wasteRate": 0,
+            "averageInventory": 77.17930169753087,
+            "meanTransportHours": 0.10693128654970738,
+            "demandFingerprint": 3466165242,
+            "verification": {
+              "active": 71,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 156,
+            "served": 105,
+            "requested": 113,
+            "unmet": 8,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 17,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 47,
+            "held": 0,
+            "inTransit": 4,
+            "shortageRate": 0.07079646017699115,
+            "wasteRate": 0,
+            "averageInventory": 67.5630640432099,
+            "meanTransportHours": 0.14430381944444423,
+            "demandFingerprint": 3466165242,
+            "verification": {
+              "active": 51,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        },
+        {
+          "repeat": 2,
+          "seed": 20365750,
+          "control": {
+            "created": 160,
+            "served": 49,
+            "requested": 75,
+            "unmet": 26,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 14,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 103,
+            "held": 0,
+            "inTransit": 6,
+            "shortageRate": 0.3466666666666667,
+            "wasteRate": 0,
+            "averageInventory": 90.70293055555555,
+            "meanTransportHours": 0.08670833333333257,
+            "demandFingerprint": 2085369381,
+            "verification": {
+              "active": 111,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 160,
+            "served": 70,
+            "requested": 75,
+            "unmet": 5,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 27,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 79,
+            "held": 0,
+            "inTransit": 9,
+            "shortageRate": 0.06666666666666667,
+            "wasteRate": 0,
+            "averageInventory": 78.51070177469136,
+            "meanTransportHours": 0.11798111111111075,
+            "demandFingerprint": 2085369381,
+            "verification": {
+              "active": 90,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "shortageRate": {
+          "control": {
+            "n": 2,
+            "mean": 0.2972271386430678,
+            "sd": 0.06991805104829815,
+            "ci95": [
+              -0.3309515044247787,
+              0.9254057817109144
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.0687315634218289,
+            "sd": 0.0029202049960506387,
+            "ci95": [
+              0.04249498525073746,
+              0.09496814159292034
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -0.22849557522123895,
+            "sd": 0.0728382560443488,
+            "ci95": [
+              -0.8829107964601771,
+              0.42591964601769916
+            ]
+          }
+        },
+        "wasteRate": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        },
+        "averageInventory": {
+          "control": {
+            "n": 2,
+            "mean": 83.94111612654322,
+            "sd": 9.562649671759337,
+            "ci95": [
+              -1.9744980084875579,
+              169.856730261574
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 73.03688290895063,
+            "sd": 7.741148877904245,
+            "ci95": [
+              3.4865404008489946,
+              142.58722541705225
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -10.904233217592584,
+            "sd": 1.8215007938550913,
+            "ci95": [
+              -27.26950484452172,
+              5.4610384093365525
+            ]
+          }
+        },
+        "meanTransportHours": {
+          "control": {
+            "n": 2,
+            "mean": 0.09681980994151998,
+            "sd": 0.014299787354916929,
+            "ci95": [
+              -0.03165661184210916,
+              0.22529623172514912
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.13114246527777748,
+            "sd": 0.018612965561695755,
+            "ci95": [
+              -0.03608570076389017,
+              0.29837063131944513
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0.034322655336257515,
+            "sd": 0.004313178206778823,
+            "ci95": [
+              -0.004429088921780962,
+              0.07307439959429599
+            ]
+          }
+        },
+        "unmet": {
+          "control": {
+            "n": 2,
+            "mean": 27,
+            "sd": 1.4142135623730951,
+            "ci95": [
+              14.294,
+              39.706
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 6.5,
+            "sd": 2.1213203435596424,
+            "ci95": [
+              -12.558999999999997,
+              25.558999999999997
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -20.5,
+            "sd": 0.7071067811865476,
+            "ci95": [
+              -26.853,
+              -14.147
+            ]
+          }
+        },
+        "expired": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        },
+        "available": {
+          "control": {
+            "n": 2,
+            "mean": 82,
+            "sd": 29.698484809834994,
+            "ci95": [
+              -184.82599999999996,
+              348.82599999999996
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 63,
+            "sd": 22.627416997969522,
+            "ci95": [
+              -140.296,
+              266.296
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -19,
+            "sd": 7.0710678118654755,
+            "ci95": [
+              -82.53,
+              44.529999999999994
+            ]
+          }
+        },
+        "held": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "product": "PLT",
+      "pairs": [
+        {
+          "repeat": 1,
+          "seed": 20261021,
+          "control": {
+            "created": 156,
+            "served": 66,
+            "requested": 113,
+            "unmet": 47,
+            "expired": 19,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 22,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 61,
+            "held": 0,
+            "inTransit": 10,
+            "shortageRate": 0.415929203539823,
+            "wasteRate": 0.12179487179487179,
+            "averageInventory": 77.33535397363977,
+            "meanTransportHours": 0.1045146198830409,
+            "demandFingerprint": 2850457565,
+            "verification": {
+              "active": 71,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 156,
+            "served": 97,
+            "requested": 113,
+            "unmet": 16,
+            "expired": 11,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 17,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 44,
+            "held": 0,
+            "inTransit": 4,
+            "shortageRate": 0.1415929203539823,
+            "wasteRate": 0.07051282051282051,
+            "averageInventory": 65.67796194083209,
+            "meanTransportHours": 0.14430381944444423,
+            "demandFingerprint": 2850457565,
+            "verification": {
+              "active": 48,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        },
+        {
+          "repeat": 2,
+          "seed": 20365750,
+          "control": {
+            "created": 160,
+            "served": 40,
+            "requested": 75,
+            "unmet": 35,
+            "expired": 21,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 17,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 90,
+            "held": 0,
+            "inTransit": 7,
+            "shortageRate": 0.4666666666666667,
+            "wasteRate": 0.13125,
+            "averageInventory": 87.28965236429718,
+            "meanTransportHours": 0.0815218253968243,
+            "demandFingerprint": 2358780712,
+            "verification": {
+              "active": 99,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 160,
+            "served": 65,
+            "requested": 75,
+            "unmet": 10,
+            "expired": 15,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 25,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 69,
+            "held": 0,
+            "inTransit": 9,
+            "shortageRate": 0.13333333333333333,
+            "wasteRate": 0.09375,
+            "averageInventory": 73.99464431687406,
+            "meanTransportHours": 0.13032702020202022,
+            "demandFingerprint": 2358780712,
+            "verification": {
+              "active": 80,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "shortageRate": {
+          "control": {
+            "n": 2,
+            "mean": 0.44129793510324483,
+            "sd": 0.03587680423719358,
+            "ci95": [
+              0.11896283185840695,
+              0.7636330383480827
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.1374631268436578,
+            "sd": 0.005840409992101277,
+            "ci95": [
+              0.08498997050147492,
+              0.1899362831858407
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -0.30383480825958703,
+            "sd": 0.04171721422929488,
+            "ci95": [
+              -0.678643067846608,
+              0.07097345132743393
+            ]
+          }
+        },
+        "wasteRate": {
+          "control": {
+            "n": 2,
+            "mean": 0.1265224358974359,
+            "sd": 0.0066857852708343485,
+            "ci95": [
+              0.06645400641025637,
+              0.18659086538461542
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.08213141025641026,
+            "sd": 0.016431167191033557,
+            "ci95": [
+              -0.06549439102564102,
+              0.22975721153846151
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -0.04439102564102564,
+            "sd": 0.009745381920199208,
+            "ci95": [
+              -0.1319483974358974,
+              0.043166346153846104
+            ]
+          }
+        },
+        "averageInventory": {
+          "control": {
+            "n": 2,
+            "mean": 82.31250316896848,
+            "sd": 7.038751893988194,
+            "ci95": [
+              19.072845493121932,
+              145.55216084481503
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 69.83630312885307,
+            "sd": 5.880782505073923,
+            "ci95": [
+              17.000419993858472,
+              122.67218626384768
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -12.476200040115401,
+            "sd": 1.1579693889142704,
+            "ci95": [
+              -22.87997458096733,
+              -2.0724254992634723
+            ]
+          }
+        },
+        "meanTransportHours": {
+          "control": {
+            "n": 2,
+            "mean": 0.09301822263993259,
+            "sd": 0.016258360899632413,
+            "ci95": [
+              -0.05305500073100142,
+              0.2390914460108666
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.13731541982323223,
+            "sd": 0.009883089523601018,
+            "ci95": [
+              0.0485208142361125,
+              0.22611002541035197
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0.04429719718329963,
+            "sd": 0.0063752713760313945,
+            "ci95": [
+              -0.012981420600514638,
+              0.1015758149671139
+            ]
+          }
+        },
+        "unmet": {
+          "control": {
+            "n": 2,
+            "mean": 41,
+            "sd": 8.48528137423857,
+            "ci95": [
+              -35.23599999999999,
+              117.23599999999999
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 13,
+            "sd": 4.242640687119285,
+            "ci95": [
+              -25.117999999999995,
+              51.117999999999995
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -28,
+            "sd": 4.242640687119285,
+            "ci95": [
+              -66.118,
+              10.117999999999995
+            ]
+          }
+        },
+        "expired": {
+          "control": {
+            "n": 2,
+            "mean": 20,
+            "sd": 1.4142135623730951,
+            "ci95": [
+              7.2940000000000005,
+              32.706
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 13,
+            "sd": 2.8284271247461903,
+            "ci95": [
+              -12.411999999999999,
+              38.412
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -7,
+            "sd": 1.4142135623730951,
+            "ci95": [
+              -19.706,
+              5.7059999999999995
+            ]
+          }
+        },
+        "available": {
+          "control": {
+            "n": 2,
+            "mean": 75.5,
+            "sd": 20.506096654409877,
+            "ci95": [
+              -108.73699999999997,
+              259.73699999999997
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 56.5,
+            "sd": 17.67766952966369,
+            "ci95": [
+              -102.32499999999999,
+              215.325
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -19,
+            "sd": 2.8284271247461903,
+            "ci95": [
+              -44.412,
+              6.411999999999999
+            ]
+          }
+        },
+        "held": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "product": "FFP",
+      "pairs": [
+        {
+          "repeat": 1,
+          "seed": 20261021,
+          "control": {
+            "created": 156,
+            "served": 97,
+            "requested": 113,
+            "unmet": 16,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 26,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 48,
+            "held": 0,
+            "inTransit": 11,
+            "shortageRate": 0.1415929203539823,
+            "wasteRate": 0,
+            "averageInventory": 72.41289814814816,
+            "meanTransportHours": 0.1083973429951688,
+            "demandFingerprint": 2018175453,
+            "verification": {
+              "active": 59,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 156,
+            "served": 108,
+            "requested": 113,
+            "unmet": 5,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 17,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 78,
+            "available": 44,
+            "held": 0,
+            "inTransit": 4,
+            "shortageRate": 0.04424778761061947,
+            "wasteRate": 0,
+            "averageInventory": 65.85473070987653,
+            "meanTransportHours": 0.14430381944444423,
+            "demandFingerprint": 2018175453,
+            "verification": {
+              "active": 48,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        },
+        {
+          "repeat": 2,
+          "seed": 20365750,
+          "control": {
+            "created": 160,
+            "served": 52,
+            "requested": 75,
+            "unmet": 23,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 15,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 100,
+            "held": 0,
+            "inTransit": 6,
+            "shortageRate": 0.30666666666666664,
+            "wasteRate": 0,
+            "averageInventory": 88.41628009259256,
+            "meanTransportHours": 0.07891880341880235,
+            "demandFingerprint": 3639961380,
+            "verification": {
+              "active": 108,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          },
+          "treatment": {
+            "created": 160,
+            "served": 73,
+            "requested": 75,
+            "unmet": 2,
+            "expired": 0,
+            "rejected": 0,
+            "quality": 0,
+            "review": 0,
+            "shipments": 27,
+            "interhospital": 0,
+            "timeHours": 72,
+            "initialInventory": 78,
+            "receipts": 82,
+            "available": 76,
+            "held": 0,
+            "inTransit": 9,
+            "shortageRate": 0.02666666666666667,
+            "wasteRate": 0,
+            "averageInventory": 77.38570177469137,
+            "meanTransportHours": 0.11798111111111075,
+            "demandFingerprint": 3639961380,
+            "verification": {
+              "active": 87,
+              "balance": 0,
+              "errors": 0,
+              "passed": true
+            }
+          }
+        }
+      ],
+      "metrics": {
+        "shortageRate": {
+          "control": {
+            "n": 2,
+            "mean": 0.22412979351032447,
+            "sd": 0.11672476541356694,
+            "ci95": [
+              -0.8245837168141591,
+              1.272843303834808
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.03545722713864307,
+            "sd": 0.01243172984032986,
+            "ci95": [
+              -0.07623563421828905,
+              0.1471500884955752
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -0.1886725663716814,
+            "sd": 0.1291564952538968,
+            "ci95": [
+              -1.349078938053097,
+              0.9717338053097343
+            ]
+          }
+        },
+        "wasteRate": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        },
+        "averageInventory": {
+          "control": {
+            "n": 2,
+            "mean": 80.41458912037035,
+            "sd": 11.316099894834991,
+            "ci95": [
+              -21.254896372684897,
+              182.0840746134256
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 71.62021624228396,
+            "sd": 8.153627833596435,
+            "ci95": [
+              -1.6360429324846848,
+              144.8764754170526
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -8.794372878086406,
+            "sd": 3.1624720612385566,
+            "ci95": [
+              -37.207599196373025,
+              19.618853440200212
+            ]
+          }
+        },
+        "meanTransportHours": {
+          "control": {
+            "n": 2,
+            "mean": 0.09365807320698558,
+            "sd": 0.020844475233924735,
+            "ci95": [
+              -0.09361908872167049,
+              0.28093523513564167
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0.13114246527777748,
+            "sd": 0.018612965561695755,
+            "ci95": [
+              -0.03608570076389017,
+              0.29837063131944513
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0.03748439207079191,
+            "sd": 0.002231509672228982,
+            "ci95": [
+              0.017435396183803478,
+              0.057533387957780346
+            ]
+          }
+        },
+        "unmet": {
+          "control": {
+            "n": 2,
+            "mean": 19.5,
+            "sd": 4.949747468305833,
+            "ci95": [
+              -24.970999999999997,
+              63.971
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 3.5,
+            "sd": 2.1213203435596424,
+            "ci95": [
+              -15.558999999999997,
+              22.558999999999997
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -16,
+            "sd": 7.0710678118654755,
+            "ci95": [
+              -79.53,
+              47.529999999999994
+            ]
+          }
+        },
+        "expired": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        },
+        "available": {
+          "control": {
+            "n": 2,
+            "mean": 74,
+            "sd": 36.76955262170047,
+            "ci95": [
+              -256.35599999999994,
+              404.35599999999994
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 60,
+            "sd": 22.627416997969522,
+            "ci95": [
+              -143.296,
+              263.296
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": -14,
+            "sd": 14.142135623730951,
+            "ci95": [
+              -141.06,
+              113.05999999999999
+            ]
+          }
+        },
+        "held": {
+          "control": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "treatment": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          },
+          "pairedDifference": {
+            "n": 2,
+            "mean": 0,
+            "sd": 0,
+            "ci95": [
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

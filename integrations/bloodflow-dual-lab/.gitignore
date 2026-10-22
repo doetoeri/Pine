@@ -1,0 +1,6 @@
+/data/
+/dist/
+node_modules/
+public/offline.html
+.openai/
+__pycache__/

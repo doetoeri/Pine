@@ -1,0 +1,42 @@
+✔ new receipts remain unavailable during the hypothetical 2-hour inspection (27.859847ms)
+✔ worker-thread COMPUTE returns the same values as the common engine and reports progress (258.409938ms)
+✔ longer histories checkpoint terminal packs compactly without changing conservation (191.528193ms)
+✔ persistent client sequence prevents replay even after the event response cache evicts an old ID (338.42947ms)
+✔ COMPUTE pause preserves pair progress and resumes without changing paired outcomes (551.139368ms)
+✔ client accepts a restarted authority checkpoint, cancels stale commands and ignores an old room socket (16.012692ms)
+✔ incheon two real WebSocket clients: sync, permissions, conflicts, deduplication, disconnect, rejoin, disk restore and isolated routes (615.066339ms)
+✔ nationwide two real WebSocket clients: sync, permissions, conflicts, deduplication, disconnect, rejoin, disk restore and isolated routes (940.321231ms)
+✔ preserved 5.1-model extraction: original deterministic conservation baseline (52.239462ms)
+✔ directed GIS cache is complete and actual route geometry is retained (0.360464ms)
+✔ same seed reproduces all numerical outcomes (111.883785ms)
+✔ mass is conserved across demand, dispatch, return, expiry and quarantine (22.552518ms)
+✔ ABO/RhD rules distinguish RBC, platelets and plasma (0.231108ms)
+✔ incompatible packs cannot meet a demand even if stock exists (1.51115ms)
+✔ in-transit packs are excluded from facility inventory until arrival (2.221832ms)
+✔ failed dispatch restores removed stock transactionally (1.248874ms)
+✔ component expiry clocks and synthetic temperature holds are distinct (1.939126ms)
+✔ JSON checkpoint resumes deterministically and rejects corrupt inventory (108.326414ms)
+✔ paired policy runs use identical exogenous demand and give zero difference for identical settings (64.201791ms)
+✔ changing safety inventory does not consume or perturb the demand RNG (48.396513ms)
+✔ statistics use sample SD and Student t interval; null denominator stays undefined (1.168493ms)
+✔ non-finite inputs, invalid categories and impossible plan sizes are rejected (1.759956ms)
+✔ CSV quotes commas, quotes and newlines correctly (0.193993ms)
+✔ a503 tile retries with exponential backoff then recovers and preserves actual response metadata (11.733744ms)
+✔ persistent503 opens the circuit after three requests and never polls the failed server indefinitely (3.623907ms)
+✔ provider429 is never retried or bypassed; network error does not get mislabelled503 (1.106991ms)
+✔ same request is deduplicated, queue concurrency bounded and offscreen queued tiles cancelled (5.29493ms)
+✔ view budget and a server disconnect abort requests without starting more queued work (2.61153ms)
+✔ 100-node geography keeps 96 synthetic nodes and original four facilities with all12 directed road caches (3.445423ms)
+✔ national inventory, regional denominators and transit are conserved for all three supply policies (886.078902ms)
+✔ national checkpoint restores compacted units, future events and transport without changing results (543.953405ms)
+✔ three national policy arms share exogenous requests and statistics include a valid C minus A interval (1292.999059ms)
+✔ duplicate cargo IDs cannot create a shipment or duplicate stock (9.816942ms)
+✔ authoritative restore rejects tampered regions, coordinates, counters, UID and future truck events (220.351495ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3132.732376

@@ -1,0 +1,169 @@
+{
+  "recordedAt": "2026-10-22T01:44:20.740644+00:00",
+  "method": "Actual CUA Chrome observations recorded by the developer; not automated Playwright result output",
+  "baseline": {
+    "onlineTiles": 10,
+    "allNaturalWidth": 256,
+    "userOriginal503Reproduced": false
+  },
+  "normalOnlineMap": {
+    "url": "https://tile.openstreetmap.org/6/56/24.png",
+    "status": 200,
+    "logicalFetchRequests": 15,
+    "successful": 15,
+    "retries": 0,
+    "headers": {
+      "content-type": "image/png",
+      "cache-control": "max-age=92508, stale-while-revalidate=604800, stale-if-error=604800",
+      "expires": "Thu, 22 Oct 2026 05:00:05 GMT"
+    },
+    "browserObserved": true
+  },
+  "oneTime503": {
+    "syntheticFixture": true,
+    "url": "/bloodflow/qa/tiles/6/54/25.svg?case=once&run=qa-once-final",
+    "requests": 16,
+    "successful": 15,
+    "retries": 1,
+    "onlineRecovered": true
+  },
+  "persistent503": {
+    "syntheticFixture": true,
+    "url": "/bloodflow/qa/tiles/6/54/25.svg?case=down&run=qa-down-final",
+    "httpStatus": 503,
+    "headers": {
+      "content-type": "text/plain",
+      "cache-control": "no-store",
+      "x-bloodflow-fixture": "synthetic-503"
+    },
+    "requestsAtCircuitOpen": 4,
+    "successful": 0,
+    "retries": 2,
+    "fallback": "stored vector polygons and roads",
+    "simulationAfterFallback": "D0 06:00"
+  },
+  "nationwideViewportS8": {
+    "viewport": [
+      1280,
+      800
+    ],
+    "documentClientWidth": 1265,
+    "documentScrollWidth": 1265,
+    "mapTop": 425.984375,
+    "mapBottom": 790.984375,
+    "mapHeight": 365,
+    "regionButtons": 17,
+    "openDialogs": 0,
+    "buttonsUnder44px": 0
+  },
+  "regionalNavigation": {
+    "clickedRegion": "28",
+    "timeBefore": "D0 06:00",
+    "timeAfter": "D0 06:00",
+    "network": "nationwide",
+    "visibleRegionNodeRows": 10,
+    "preservesWorld": true,
+    "zoomInAndFitConfirmed": true,
+    "positiveScrollResetConfirmed": true
+  },
+  "twoBrowsers": {
+    "roles": [
+      "engineering",
+      "biology"
+    ],
+    "network": "nationwide",
+    "bothClocks": "D0 06:00",
+    "biologyChangedProduct": "PLT",
+    "biologyCannotChangeScope": true,
+    "biologyCanWriteOwnInterpretation": true,
+    "biologyCannotWriteEngineeringInterpretation": true,
+    "biologyRanNCompute": {
+      "days": 3,
+      "repeats": 2,
+      "policies": 3,
+      "allConservationPassed": true,
+      "allDemandStreamsMatched": true,
+      "savedResultShowsPLT": true
+    }
+  },
+  "serverDisconnect": {
+    "actualPreviewServerStopped": true,
+    "bothClientsLocked": true,
+    "clockAtDisconnect": "D0 06:40",
+    "clockAfterFurtherActions": "D0 06:40",
+    "clientForkedWorld": false
+  },
+  "standalone": {
+    "loadedAs": "single self-contained HTML over HTTP",
+    "computeUsingBlobWorker": true,
+    "firstNCompute": {
+      "days": 3,
+      "repeats": 2,
+      "allPoliciesPassed": true
+    },
+    "afterServerStopped": {
+      "stepTo": "D0 12:00",
+      "NCompute": {
+        "days": 4,
+        "repeats": 2,
+        "allConservationPassed": true,
+        "allDemandStreamsMatched": true
+      }
+    },
+    "reloadRestoresOwnTabNationwideResult": {
+      "days": 2,
+      "repeats": 2,
+      "policies": 3,
+      "passed": true
+    }
+  },
+  "notTested": [
+    "Actual Galaxy Tab S8/S8+ hardware",
+    "Android file:// opening",
+    "Actual school LAN",
+    "OS-level whole-internet disconnection",
+    "Service-worker cold offline navigation reload",
+    "Docker image execution",
+    "Production deployment and HTTPS websocket host"
+  ],
+  "serverReconnect": {
+    "protocolVersion": 2,
+    "authorityIdChangesOnRestart": true,
+    "actualBrowserAutomaticReconnectPassed": true,
+    "bothPaused": true,
+    "bothDisplayedClock": "D0 06:31 (before floating point minute display correction)",
+    "notice": "Server restart detected; restored latest durable checkpoint; pending commands cancelled",
+    "checkpointRecoveryMayLoseLastUnsavedTicks": true,
+    "clientLowerVersionEpochRegressionTest": "tests/client-reconnect.test.mjs"
+  },
+  "biologyViewportS8Plus": {
+    "viewport": [
+      1400,
+      876
+    ],
+    "documentClientWidth": 1385,
+    "documentScrollWidth": 1385,
+    "productCards": 3,
+    "buttonsUnder44px": 0,
+    "nationwideScope": true
+  },
+  "mapControls": {
+    "regionalZoomInClicked": true,
+    "fitRegionClicked": true,
+    "sameWorldPreserved": true,
+    "manualTouchDragOnPhysicalTabletTested": false
+  },
+  "engineeringViewportS8": {
+    "viewport": [
+      1280,
+      800
+    ],
+    "documentClientWidth": 1265,
+    "documentScrollWidth": 1265,
+    "mapTop": 441.78125,
+    "mapBottom": 781.78125,
+    "mapHeight": 340,
+    "nodeRows": 10,
+    "buttonsUnder44px": 0
+  }
+}

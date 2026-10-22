@@ -1,0 +1,21 @@
+{
+  "baselineCommit": "d7faa3c7d6b9e0562fac838675b706a3b21ef0c2",
+  "baseline": {
+    "tests": 50,
+    "pass": 49,
+    "fail": 1,
+    "failingNames": [
+      "✖ PWA and bootstrap include experiment modules and stable fallback"
+    ]
+  },
+  "integration": {
+    "tests": 50,
+    "pass": 49,
+    "fail": 1,
+    "failingNames": [
+      "✖ PWA and bootstrap include experiment modules and stable fallback"
+    ]
+  },
+  "newFailures": 0,
+  "existingTrackedFilesModified": 0
+}

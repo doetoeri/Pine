@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-22T01:04:51.834633+00:00",
+  "url": "https://bloodinfo.net/knrcbs/cm/cntnts/cntntsView.do?cntntsId=1126&mi=1049",
+  "httpStatus": 200,
+  "selectedProducts": {
+    "RBC": {
+      "life": "35 days after collection",
+      "temperatureC": [
+        1,
+        6
+      ]
+    },
+    "PLT": {
+      "life": "120h after manufacture",
+      "temperatureC": [
+        20,
+        24
+      ],
+      "agitation": true
+    },
+    "FFP": {
+      "life": "1 year after collection",
+      "maximumTemperatureC": -18
+    }
+  },
+  "compatibilityURL": "https://www.lifeblood.com.au/health-professionals/products/component-compatibility",
+  "compatibilityUpdated": "April 2026",
+  "scope": "Conservative educational selection; no clinical release rule"
+}

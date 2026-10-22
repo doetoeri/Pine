@@ -1,0 +1,33 @@
+{
+  "performedAt": "2026-10-22",
+  "passed": true,
+  "regionCount": 17,
+  "nodeCount": 100,
+  "virtual": 96,
+  "real": 4,
+  "centers": 18,
+  "hospitals": 82,
+  "deterministicRegenerationBytes": true,
+  "allVirtualPointsInsideRegion": true,
+  "realBaselineFieldsPreservedExceptArrayID": true,
+  "sourceGeometryPreserved": true,
+  "adjacencySymmetric": true,
+  "realFacilityMap": {
+    "0": 17,
+    "1": 97,
+    "2": 98,
+    "3": 99
+  },
+  "files": [
+    {
+      "path": "public/data/nationwide.json",
+      "bytes": 64693,
+      "sha256": "8da70f75a422153bea6cbb40375b1c87c049c8ce110c66540abad7e42768b13a"
+    },
+    {
+      "path": "public/data/regions.geojson",
+      "bytes": 166883,
+      "sha256": "64143705c61a04fa917c5540e944e9bab8ea4bfae07e34b810a8facaf00a2cc4"
+    }
+  ]
+}
