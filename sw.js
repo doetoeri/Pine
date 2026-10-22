@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261013-notice2";
+const PINCON_SW_VERSION = "20261022-pwa-new1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
