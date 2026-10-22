@@ -102,7 +102,7 @@ export const SLOTS = Object.freeze([
 
 export function currentSlot(now = new Date()) {
   const clock = kstClock(now);
-  if (clock.minute > 35) return null;
+  if (clock.minute > 55) return null;
   return SLOTS.find((slot) => slot.hour === clock.hour) || null;
 }
 
@@ -169,6 +169,30 @@ export function candidateIndexForSlot({
   return (offset + ordinal) % count;
 }
 
-export function notificationId({ anonymousParticipant, date, period, slotIndex, candidateKey }) {
-  return `nexp_${digest(`${anonymousParticipant}:${date}:p${period}:s${slotIndex}:${candidateKey}`, 28)}`;
+export function notificationId({ anonymousParticipant, date, period, slotIndex, candidateKey, experimentVersion = 1 }) {
+  return `nexp_${digest(`${anonymousParticipant}:${date}:v${experimentVersion}:p${period}:s${slotIndex}:${candidateKey}`, 28)}`;
+}
+
+/**
+ * Pick at most one enabled push token per account.
+ * Explicit experiment opt-out on ANY registered device blocks the entire account.
+ * Receives plain records to permit regression tests without Firebase credentials.
+ */
+export function canonicalSubscriptionIds(records = []) {
+  const optedOut = new Set(records
+    .filter((record) => record?.preferences?.notificationExperiment === false)
+    .map((record) => String(record.ownerUid || ""))
+    .filter(Boolean));
+  const byOwner = new Map();
+  for (const record of records) {
+    const uid = String(record?.ownerUid || "");
+    if (!uid || optedOut.has(uid) || record.enabled !== true || !record.id || !record.token) continue;
+    const current = byOwner.get(uid);
+    const oldMs = Number(current?.updatedAtMs || 0);
+    const newMs = Number(record.updatedAtMs || 0);
+    if (!current || newMs > oldMs || (newMs === oldMs && String(record.id) > String(current.id))) {
+      byOwner.set(uid, record);
+    }
+  }
+  return [...byOwner.values()].map((record) => record.id);
 }

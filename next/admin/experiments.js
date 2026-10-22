@@ -245,16 +245,11 @@ function experimentViewOpen() {
   return document.querySelector("#adminApp .admin-workspace")?.classList.contains("admin-workspace--experiments") === true;
 }
 function activeStudentRoster(accounts = []) {
-  const classKey = "";
-  return accounts.filter((account) => {
-    const roles = Array.isArray(account.roles) ? account.roles : ["STUDENT"];
-    return account?.uid
-      && account.status === "ACTIVE"
-      && roles.includes("STUDENT")
-      && !roles.includes("ADMIN")
-      && !roles.includes("TEACHER");
-  });
+  // This is only the roster visible to the logged-in operator. Server automation
+  // checks the full active school roster independently, including absent users.
+  return accounts.filter((account) => account?.uid && account.status === "ACTIVE");
 }
+
 
 async function load() {
   if (loading) return;
@@ -270,7 +265,7 @@ async function load() {
 }
 
 const uiDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"legacy",promotedVariant:"",rolloutPercent:0,allocation:{nextPercent:50},canarySize:7,publicBetaEnabled:false });
-const notificationDefaults = () => ({ status:"DRAFT",version:2,stableVariant:"next",promotedVariant:"",rolloutPercent:0,targetClassKeys:[gateway.snapshot().profile?.classKey].filter(Boolean),startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:0,midPerDay:1,highPerDay:3} });
+const notificationDefaults = () => ({ status:"DRAFT",version:2,stableVariant:"next",promotedVariant:"",rolloutPercent:0,targetClassKeys:[],startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:0,midPerDay:1,highPerDay:3} });
 
 function targetUids(max = 7) {
   return String(document.querySelector("#experimentTargetUids")?.value || "").split(",").map((value) => value.trim()).filter(Boolean).slice(0, max);
@@ -326,11 +321,15 @@ async function run(action, value) {
     await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "start-notification") {
     const config = {...notificationDefaults(),...(bundle.config||{})};
-    const target = gateway.snapshot().profile?.classKey;
-    if (!target || !Array.isArray(config.targetClassKeys) || config.targetClassKeys.length !== 1 || config.targetClassKeys[0] !== target) throw new Error("현재 학급 하나만 실험 대상으로 설정해야 합니다.");
-    if (!roster.length) throw new Error("실제 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
-    if (!confirm(`${target} 학급의 ${roster.length}개 활성 학생 계정이 대상입니다. 실제 푸시가 발송될 수 있습니다. 계속할까요?`)) return;
-    await platform.adminSetExperiment("notification-frequency",{...config,status:"ACTIVE"});
+    if (!roster.length) throw new Error("활성 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
+    if (config.status === "ACTIVE") throw new Error("이미 실행 중인 실험입니다.");
+    if (config.status === "COMPLETED") throw new Error("종료된 실험을 다시 시작하려면 새 버전으로 설정하세요.");
+    const ui = await platform.adminReadExperiment("pincon-next-ui");
+    if (ui.config?.status !== "COMPLETED" || ui.config?.promotedVariant !== "next") {
+      throw new Error("UI 실험이 Next로 완료되기 전에는 알림 실험을 시작할 수 없습니다.");
+    }
+    if (!confirm(`학교 전체 활성 계정은 서버에서 사전배정합니다 (현재 관리자 화면 조회 ${roster.length}개). 실제 푸시 구독이 있는 계정에만 알림이 전송됩니다. 실험을 시작할까요?`)) return;
+    await platform.adminSetExperiment("notification-frequency",{...config,startDate:config.status === "PAUSED" ? config.startDate : kstDateKey(),targetClassKeys:[],frequency:{lowPerDay:0,midPerDay:1,highPerDay:3},status:"ACTIVE"});
     await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "pause-notification") {
     await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"});

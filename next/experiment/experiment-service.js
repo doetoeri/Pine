@@ -523,6 +523,25 @@ export class ExperimentPlatform {
     };
   }
 
+  async notificationExperimentEnabled() {
+    if (!this.api) await this.start();
+    if (!this.user) throw new Error("실험 알림 설정을 변경하려면 로그인이 필요합니다.");
+    const snapshot = await this.api.getDoc(this.api.doc(this.api.db,
+      "schools", SCHOOL.id, "notificationExperimentPreferences", this.user.uid));
+    return !snapshot.exists() || snapshot.data()?.enabled !== false;
+  }
+
+  async setNotificationExperimentEnabled(enabled) {
+    if (!this.api) await this.start();
+    if (!this.user) throw new Error("실험 알림 설정을 변경하려면 로그인이 필요합니다.");
+    await this.api.setDoc(this.api.doc(this.api.db, "schools", SCHOOL.id,
+      "notificationExperimentPreferences", this.user.uid), {
+      enabled: Boolean(enabled),
+      updatedAtMs: Date.now(),
+    }, { merge: true });
+    return { enabled: Boolean(enabled) };
+  }
+
   async adminSetExperiment(experimentId, patch) {
     const ref = this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId);
     await this.api.setDoc(ref, {

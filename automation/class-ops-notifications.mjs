@@ -178,15 +178,18 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
       queryRows(root.collection("announcements"), "classKey", "==", classKey),
     ]);
 
-    if (morning && !classFrequencyControlled) {
+    if (morning) {
       const items = assignments.filter((item) => !item.deleted && item.dueDate === clock.date).flatMap((item) => {
         if (item.type === "assessment" || item.type === "exam") return [{ preference: "assessmentToday", line: `${item.subject ? `${item.subject} ` : ""}${item.title}`, urgent: true }];
         if (item.type === "preparation" && item.important) return [{ preference: "importantPreparation", line: `준비물: ${item.title}`, urgent: true }];
         return [];
       });
       items.push(...events.filter((item) => !item.deleted && item.status === "open" && (item.date || dateFromMs(item.startsAtMs)) === clock.date).map((item) => ({ preference: "eventStart", line: `행사: ${item.title}` })));
-      sent += await sendOnce({ root, messaging, classKey, key: `morning:${clock.date}:${items.map((item) => item.line).join("|")}`, title: "오늘 우리 반", items, subscriptionDocs });
-      if (items.length) windows.push(`${classKey}:morning`);
+      // Critical due-today assessment/preparation alerts are outside the
+      // noncritical frequency budget; suppress only ordinary digest items.
+      const eligibleItems = classFrequencyControlled ? items.filter((item) => item.urgent === true) : items;
+      sent += await sendOnce({ root, messaging, classKey, key: `morning:${clock.date}:${eligibleItems.map((item) => item.line).join("|")}`, title: "오늘 우리 반", items: eligibleItems, subscriptionDocs });
+      if (eligibleItems.length) windows.push(`${classKey}:morning`);
     }
 
     if (evening && !classFrequencyControlled) {
