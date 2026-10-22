@@ -105,8 +105,8 @@ test("Notification experiment honors baseline, periods, and frequency budgets", 
   assert.equal(dailyBudget("LOW", config), 1);
   assert.equal(dailyBudget("MID", config), 3);
   assert.equal(dailyBudget("HIGH", config), 4);
-  const slot = currentSlot(new Date("2026-09-14T03:05:00Z"));
-  assert.equal(slot?.hour, 12);
+  const slot = currentSlot(new Date("2026-09-14T04:05:00Z"));
+  assert.equal(slot?.hour, 13);
   assert.equal(eligibleForSlot("LOW", slot, config), false);
   assert.equal(eligibleForSlot("MID", slot, config), true);
 
@@ -193,9 +193,8 @@ test("PWA and bootstrap include experiment modules and stable fallback", async (
   ]);
   assert.match(sw, /cachedAsset/);
   assert.match(bootstrap, /experiment\/bootstrap\.js/);
-  assert.match(bootstrap, /experiments\/pincon-next-ui\.js/);
   assert.match(bootstrap, /experiments\/public-beta\.js/);
   assert.match(bootstrap, /initExperimentPlatform/);
   assert.match(bootstrap, /dataset\.pinconVariant = "legacy"/);
-  assert.match(bootstrap, /experimentPlatform\.uiContext\?\.variant === "next"/);
+  assert.match(bootstrap, /experiments\/notification-frequency\.js/);
 });

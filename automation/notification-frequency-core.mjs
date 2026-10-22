@@ -95,8 +95,8 @@ export function dailyBudget(condition, config = {}) {
 
 export const SLOTS = Object.freeze([
   Object.freeze({ index: 0, hour: 8, categoryHint: "daily_summary" }),
-  Object.freeze({ index: 1, hour: 12, categoryHint: "schedule" }),
-  Object.freeze({ index: 2, hour: 16, categoryHint: "assignment" }),
+  Object.freeze({ index: 1, hour: 13, categoryHint: "schedule" }),
+  Object.freeze({ index: 2, hour: 17, categoryHint: "assignment" }),
   Object.freeze({ index: 3, hour: 19, categoryHint: "materials" }),
 ]);
 
