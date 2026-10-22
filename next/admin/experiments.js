@@ -245,16 +245,11 @@ function experimentViewOpen() {
   return document.querySelector("#adminApp .admin-workspace")?.classList.contains("admin-workspace--experiments") === true;
 }
 function activeStudentRoster(accounts = []) {
-  const classKey = "";
-  return accounts.filter((account) => {
-    const roles = Array.isArray(account.roles) ? account.roles : ["STUDENT"];
-    return account?.uid
-      && account.status === "ACTIVE"
-      && roles.includes("STUDENT")
-      && !roles.includes("ADMIN")
-      && !roles.includes("TEACHER");
-  });
+  // This is only the roster visible to the logged-in operator. Server automation
+  // checks the full active school roster independently, including absent users.
+  return accounts.filter((account) => account?.uid && account.status === "ACTIVE");
 }
+
 
 async function load() {
   if (loading) return;
@@ -329,8 +324,12 @@ async function run(action, value) {
     if (!roster.length) throw new Error("활성 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
     if (config.status === "ACTIVE") throw new Error("이미 실행 중인 실험입니다.");
     if (config.status === "COMPLETED") throw new Error("종료된 실험을 다시 시작하려면 새 버전으로 설정하세요.");
-    if (!confirm(`전체 활성 학생 계정 ${roster.length}개를 대상으로 알림 빈도 실험을 시작합니다. 실제 푸시가 발송될 수 있습니다. 참여 동의 및 중단 안내를 확인했나요?`)) return;
-    await platform.adminSetExperiment("notification-frequency",{...config,targetClassKeys:[],status:"ACTIVE"});
+    const ui = await platform.adminReadExperiment("pincon-next-ui");
+    if (ui.config?.status !== "COMPLETED" || ui.config?.promotedVariant !== "next") {
+      throw new Error("UI 실험이 Next로 완료되기 전에는 알림 실험을 시작할 수 없습니다.");
+    }
+    if (!confirm(`학교 전체 활성 계정은 서버에서 사전배정합니다 (현재 관리자 화면 조회 ${roster.length}개). 실제 푸시 구독이 있는 계정에만 알림이 전송됩니다. 실험을 시작할까요?`)) return;
+    await platform.adminSetExperiment("notification-frequency",{...config,startDate:config.status === "PAUSED" ? config.startDate : kstDateKey(),targetClassKeys:[],status:"ACTIVE"});
     await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "pause-notification") {
     await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"});
