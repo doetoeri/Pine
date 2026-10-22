@@ -6,11 +6,33 @@ async function start(port,directory){const p=spawn(process.execPath,['server/ser
 async function stop(p){if(!p||p.exitCode!==null)return;const done=once(p,'exit');p.kill('SIGTERM');await done;}
 async function join(port,code,role){const socket=new WebSocket(`ws://127.0.0.1:${port}/bloodflow/ws`),messages=[];socket.addEventListener('message',e=>messages.push(JSON.parse(e.data)));await once(socket,'open');socket.send(JSON.stringify({type:'join',experimentId:code,role}));await waitFor(()=>messages.find(m=>m.type==='state'));return {socket,messages,state:()=>messages.filter(m=>m.type==='state').at(-1)};}
 const command=(client,code,type,props={},revision=client.state().revision)=>{const id=crypto.randomUUID();const m={type,eventId:id,experimentId:code,expectedRevision:revision,expectedVersion:client.state().version,timestamp:new Date().toISOString(),...props};client.socket.send(JSON.stringify(m));return m;};
+test('real server rejects invalid joins once with a terminal phase and closes; a corrected join still works',async t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bloodflow-join-test-')),port=await freePort();const server=await start(port,dir),sockets=[];
+ t.after(async()=>{for(const socket of sockets)socket.close();await stop(server);fs.rmSync(dir,{recursive:true,force:true});});
+ const created=await (await fetch(`http://127.0.0.1:${port}/bloodflow/api/rooms`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
+ const missing=created.experimentId==='000000'?'111111':'000000';
+ for(const message of [
+  {type:'join',experimentId:missing,role:'engineering'},
+  {type:'join',experimentId:created.experimentId,role:'biology',token:'incorrect-token'},
+  {type:'join',experimentId:created.experimentId,role:'invalid-role'},
+  {type:'heartbeat',experimentId:created.experimentId}
+ ]){
+  const socket=new WebSocket(`ws://127.0.0.1:${port}/bloodflow/ws`),messages=[];sockets.push(socket);let closeCode;
+  socket.addEventListener('message',e=>messages.push(JSON.parse(e.data)));socket.addEventListener('close',e=>closeCode=e.code);await once(socket,'open');socket.send(JSON.stringify(message));socket.send(JSON.stringify({type:'heartbeat'}));
+  await waitFor(()=>closeCode,2000);assert.equal(closeCode,1008);assert.equal(messages.length,1);assert.equal(messages[0].type,'error');assert.equal(messages[0].phase,'join');assert.equal(messages[0].retryable,false);assert.equal(messages.some(m=>m.type==='state'),false);
+ }
+ const idle=new WebSocket(`ws://127.0.0.1:${port}/bloodflow/ws`),idleMessages=[];sockets.push(idle);let idleCloseCode;
+ idle.addEventListener('message',e=>idleMessages.push(JSON.parse(e.data)));idle.addEventListener('close',e=>idleCloseCode=e.code);await once(idle,'open');await waitFor(()=>idleCloseCode,12000);assert.equal(idleCloseCode,1008);assert.equal(idleMessages.length,1);assert.equal(idleMessages[0].phase,'join');assert.equal(idleMessages[0].retryable,false);
+ for(const file of ['startup.js','modules/app.mjs','modules/client.mjs']){const response=await fetch(`http://127.0.0.1:${port}/bloodflow/${file}`);assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/javascript/);assert.ok((await response.text()).length>100);}
+ const corrected=await join(port,created.experimentId,'biology');sockets.push(corrected.socket);assert.equal(corrected.state().world.t,0);assert.deepEqual(corrected.state().peers,['biology']);
+ const illegal=command(corrected,created.experimentId,'configure',{patch:{safetyDays:8}});await waitFor(()=>corrected.messages.some(m=>m.type==='error'&&m.eventId===illegal.eventId));assert.equal(corrected.socket.readyState,1);assert.equal(corrected.messages.at(-1).phase,undefined);
+ const allowed=command(corrected,created.experimentId,'notes',{patch:{biology:'접속 뒤 독립 연구 해석'}});await waitFor(()=>corrected.messages.some(m=>m.type==='ack'&&m.eventId===allowed.eventId));assert.equal(corrected.state().notes.biology,'접속 뒤 독립 연구 해석');
+});
 for(const network of ['incheon','nationwide'])test(network+' two real WebSocket clients: sync, permissions, conflicts, deduplication, disconnect, rejoin, disk restore and isolated routes',async t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'bloodflow-test-')),port=await freePort();let server=await start(port,dir),a,b,c;
  t.after(async()=>{a?.socket.close();b?.socket.close();c?.socket.close();await stop(server);fs.rmSync(dir,{recursive:true,force:true});});
  const res=await fetch(`http://127.0.0.1:${port}/bloodflow/api/rooms`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:{network}})}).catch(e=>{throw Error(e.message+'; server output: '+server?.readOutput?.());});assert.equal(res.status,201);const created=await res.json(),code=created.experimentId;
- for(const lab of ['nationwide','engineering','biology','research'])assert.equal((await fetch(`http://127.0.0.1:${port}/bloodflow/${lab}`)).status,200);
+ for(const lab of ['','nationwide','engineering','biology','research'])assert.equal((await fetch(`http://127.0.0.1:${port}/bloodflow/${lab}`)).status,200);
  const preflight=await fetch(`http://127.0.0.1:${port}/bloodflow/api/rooms`,{method:'OPTIONS',headers:{Origin:'https://pincon.app','Access-Control-Request-Method':'POST'}});assert.equal(preflight.status,204);assert.equal(preflight.headers.get('Access-Control-Allow-Origin'),'https://pincon.app');
  assert.equal((await fetch(`http://127.0.0.1:${port}/bloodflow/api/rooms`,{method:'POST',headers:{Origin:'https://untrusted.example','Content-Type':'application/json'},body:'{}'})).status,403);
  assert.equal((await fetch(`http://127.0.0.1:${port}/new`)).status,404);assert.equal((await fetch(`http://127.0.0.1:${port}/`)).status,404);assert.equal((await fetch(`http://127.0.0.1:${port}/bloodflow/../package.json`)).status,404);

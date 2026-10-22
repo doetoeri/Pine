@@ -48,6 +48,6 @@ test('a missing collaboration backend cannot replace or lock the current solo wo
 test('validated server health allows a guarded join and uses the configured server origin',async t=>{
  const keys=['window','location','fetch','WebSocket','localStorage'],old=Object.fromEntries(keys.map(k=>[k,globalThis[k]]));let target;
  Object.assign(globalThis,{...context(),window:{BLOODFLOW_RUNTIME:{serverOrigin:'https://shared.example'}},fetch:async url=>{target=url;return healthy();},WebSocket:class{constructor(url){this.url=url;this.readyState=0;}close(){}},localStorage:{getItem:()=>null}});
- const client=new LabClient(data);t.after(()=>{client.reconnect=false;clearTimeout(client.reconnectTimer);for(const k of ['loop','saveLoop','watch'])clearInterval(client[k]);for(const [k,v]of Object.entries(old))if(v===undefined)delete globalThis[k];else globalThis[k]=v;});
+ const client=new LabClient(data);t.after(()=>{client.reconnect=false;clearTimeout(client.reconnectTimer);clearTimeout(client.joinTimer);for(const k of ['loop','saveLoop','watch'])clearInterval(client[k]);for(const [k,v]of Object.entries(old))if(v===undefined)delete globalThis[k];else globalThis[k]=v;});
  await client.restoreAutosave();await client.joinAvailable('ABC123','biology');assert.equal(target,'https://shared.example/bloodflow/api/health');assert.equal(client.socket.url,'wss://shared.example/bloodflow/ws');assert.equal(client.mode,'shared');assert.equal(client.ready,false);
 });

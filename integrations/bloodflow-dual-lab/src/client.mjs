@@ -9,7 +9,7 @@ const sessionRead=k=>{try{return sessionStorage.getItem(k);}catch{return null;}}
 const sessionWrite=(k,v)=>{try{sessionStorage.setItem(k,v);}catch{}};
 const serverBase=resolveServerBase;
 export class LabClient extends EventTarget{
- constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS}={}){super();this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={...DEFAULT_NOTES};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
+ constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS,joinTimeoutMs=10000}={}){super();this.joinTimeoutMs=joinTimeoutMs;this.connectionIssue='';this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={...DEFAULT_NOTES};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
  emit(){this.dispatchEvent(new Event('change'));}
  error(message){this.dispatchEvent(new CustomEvent('notice',{detail:message}));}
  get state(){if(this.mode==='shared')return this.sharedState;return {version:this.version,revision:this.revision,world:viewOf(this.world),notes:this.notes,result:this.result,logs:this.logs,job:this.job?{progress:this.job.progress,plan:this.job.plan,paused:!!this.job.paused}:null,running:this.running,speed:this.speed,mode:this.clockMode,peers:[]};}
@@ -48,32 +48,41 @@ export class LabClient extends EventTarget{
  }
  tick(){if(this.mode==='solo'&&this.running){try{this.world.advance(Math.min(24*365,this.world.t+this.speed/60));this.version++;if(this.world.t>=24*365)this.running=false;this.emit();}catch(e){this.running=false;this.error(e.message);}}
   // Application heartbeat prevents silently running disconnected shared clients.
-  if(this.mode==='shared'&&this.socket?.readyState===1)this.socket.send(JSON.stringify({type:'heartbeat',experimentId:this.code}));
+  if(this.mode==='shared'&&this.ready&&this.socket?.readyState===1)this.socket.send(JSON.stringify({type:'heartbeat',experimentId:this.code}));
  }
  async checkServer(options){this.availability??=new CollaborationAvailability();return this.serverAvailability=await this.availability.check(options);}
  async requireServer(){const status=await this.checkServer();if(!status.ready)throw Error(status.message);}
  async joinAvailable(code,role){if(!/^[A-F0-9]{6}$/.test(code))throw Error('실험실 코드는 영문·숫자 6자리입니다.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();return this.join(code,role);}
  async create(role='engineering'){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();const config=Object.fromEntries(Object.entries(this.state?.world?.c??{}).filter(([key])=>!['realNodes','roadHours','regions'].includes(key)));const v=await createSharedRoom(config,role);return this.join(v.experimentId,role,v.tokens[role]);}
  join(code,role,token){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!/^[A-F0-9]{6}$/.test(code))throw Error('실험실 코드는 영문·숫자 6자리입니다.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');
-  this.reconnect=false;clearTimeout(this.reconnectTimer);const previous=this.socket;this.socket=null;previous?.close();this.pending.clear();
-  this.running=false;this.mode='shared';this.ready=false;this.role=role;this.code=code;this.sharedState=null;this.authorityId=null;this.reconnectAttempt=0;this.reconnect=true;this.token=token??localStorage.getItem('bf-token:'+code+':'+role)??'';this.connection='공통 서버 연결 중';this.connect();this.emit();
+  this.reconnect=false;clearTimeout(this.reconnectTimer);clearTimeout(this.joinTimer);const previous=this.socket;this.socket=null;previous?.close();this.pending.clear();
+  this.running=false;this.mode='shared';this.ready=false;this.role=role;this.code=code;this.sharedState=null;this.authorityId=null;this.reconnectAttempt=0;this.reconnect=true;this.token=token??localStorage.getItem('bf-token:'+code+':'+role)??'';this.connectionIssue='';this.connection='공통 서버 연결 중';this.connect();this.emit();
  }
- connect(){if(!this.reconnect)return;const base=serverBase(),protocol=base.protocol==='https:'?'wss:':'ws:';const socket=new WebSocket(protocol+'//'+base.host+'/bloodflow/ws');this.socket=socket;
-  socket.onopen=()=>socket.send(JSON.stringify({type:'join',experimentId:this.code,role:this.role,token:this.token}));
-  socket.onmessage=e=>{if(this.socket!==socket)return;try{const m=JSON.parse(e.data);if(m.type==='joined'){this.token=m.token;localStorage.setItem('bf-token:'+this.code+':'+this.role,m.token);}
+ connect(){if(!this.reconnect)return;const base=serverBase(),protocol=base.protocol==='https:'?'wss:':'ws:';const socket=new WebSocket(protocol+'//'+base.host+'/bloodflow/ws');this.socket=socket;let joined=false,rejected=false;
+  this.joinTimer=setTimeout(()=>{if(this.socket!==socket||this.ready||rejected)return;this.connectionIssue='공통 서버의 실험 상태를 제한 시간 안에 받지 못했습니다. 조작을 잠그고 자동 재접속을 기다립니다.';this.emit();socket.close();},this.joinTimeoutMs);
+  socket.onopen=()=>{if(this.socket===socket&&!rejected&&socket.readyState===1)socket.send(JSON.stringify({type:'join',experimentId:this.code,role:this.role,token:this.token}));};
+  socket.onmessage=e=>{if(this.socket!==socket||rejected||socket.readyState!==1)return;try{const m=JSON.parse(e.data);if(m.type==='joined'){joined=true;this.token=m.token;localStorage.setItem('bf-token:'+this.code+':'+this.role,m.token);}
    else if(m.type==='state'){
     if(this.authorityId!==m.authorityId){if(this.authorityId){this.pending.clear();this.error('서버 재시작 감지: 마지막 서버 저장 상태로 복구했습니다. 대기 조작을 취소했으며 일시정지 상태를 확인하세요.');}this.authorityId=m.authorityId;this.sharedState=null;}
-    if(this.sharedState&&m.version<this.sharedState.version)return;if(this.sharedState&&m.version===this.sharedState.version&&m.world.t!==this.sharedState.world.t){this.error('상태 버전 불일치: 서버에 다시 연결합니다.');socket.close();return;}this.sharedState=m;this.reconnectAttempt=0;this.ready=true;this.lastStateAt=Date.now();this.connection='동기화됨 · '+this.code;this.emit();
+    if(this.sharedState&&m.version<this.sharedState.version)return;if(this.sharedState&&m.version===this.sharedState.version&&m.world.t!==this.sharedState.world.t){this.error('상태 버전 불일치: 서버에 다시 연결합니다.');socket.close();return;}clearTimeout(this.joinTimer);this.connectionIssue='';this.sharedState=m;this.reconnectAttempt=0;this.ready=true;this.lastStateAt=Date.now();this.connection='동기화됨 · '+this.code;this.emit();
     for(const p of this.pending.values())if(!p.sent){socket.send(JSON.stringify(p.message));p.sent=true;}
    }else if(m.type==='heartbeat'){this.lastStateAt=Date.now();}
    else if(m.type==='ack'){const sent=this.pending.get(m.eventId)?.message;this.pending.delete(m.eventId);this.dispatchEvent(new CustomEvent('ack',{detail:sent}));}
    else if(m.type==='conflict'){this.pending.delete(m.eventId);this.error(m.error);}
-   else if(m.type==='error'){if(m.eventId)this.pending.delete(m.eventId);this.error(m.error);}
+   else if(m.type==='error'){
+    // Old servers do not tag join errors. Before membership/state, an uncorrelated error is a join refusal.
+    if(m.phase==='join'||(!joined&&!this.ready&&!m.eventId)){
+     rejected=true;this.reconnect=false;clearTimeout(this.reconnectTimer);clearTimeout(this.joinTimer);this.ready=false;this.connection='접속 거절 · 조작 잠금';this.connectionIssue='접속 거절: '+m.error+' 자동 재접속을 멈췄습니다. 실험실 연결에서 코드·역할을 확인한 뒤 다시 접속하세요.';socket.close();this.emit();this.error(this.connectionIssue);
+    }else{if(m.eventId)this.pending.delete(m.eventId);this.error(m.error);}
+   }
    else if(m.type==='export'){this.dispatchEvent(new CustomEvent('export',{detail:{format:'BLOODFLOW-LAB-FILE-1',snapshot:m.snapshot,notes:m.notes,result:m.result}}));}
   }catch(e){this.error('메시지를 복구할 수 없습니다: '+e.message);}};
-  socket.onerror=()=>{};socket.onclose=()=>{if(this.socket!==socket)return;this.ready=false;this.connection='연결 끊김 · 시간·조건 조작 잠금';for(const p of this.pending.values())p.sent=false;this.emit();if(this.reconnect)this.reconnectTimer=setTimeout(()=>this.connect(),Math.min(15000,1000*2**Math.min(4,this.reconnectAttempt++)));};
+  socket.onerror=()=>{};socket.onclose=()=>{if(this.socket!==socket)return;clearTimeout(this.joinTimer);this.ready=false;
+   if(this.reconnect){this.connection='연결 끊김 · 시간·조건 조작 잠금';this.connectionIssue||='공통 서버 연결이 끊겼습니다. 마지막 확인 상태를 표시하며 자동 재접속을 기다립니다. 서버의 최신 상태를 받은 뒤 조작을 재개합니다.';}
+   for(const p of this.pending.values())p.sent=false;this.emit();if(this.reconnect)this.reconnectTimer=setTimeout(()=>this.connect(),Math.min(15000,1000*2**Math.min(4,this.reconnectAttempt++)));
+  };
  }
- leave(){this.reconnect=false;clearTimeout(this.reconnectTimer);this.socket?.close();this.socket=null;this.pending.clear();this.mode='solo';this.role='local';this.sharedState=null;this.world=new DualWorld({},this.data);this.running=false;this.ready=true;this.connection='새 단독 연구 · 일시정지';this.emit();}
+ leave(){this.reconnect=false;clearTimeout(this.reconnectTimer);clearTimeout(this.joinTimer);const previous=this.socket;this.socket=null;previous?.close();this.connectionIssue='';this.pending.clear();this.mode='solo';this.role='local';this.sharedState=null;this.world=new DualWorld({},this.data);this.running=false;this.ready=true;this.connection='새 단독 연구 · 일시정지';this.emit();}
  command(type,props={}){
   if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 조작하세요.');
   if(this.mode==='solo'&&this.job&&['configure','restore','review','compute'].includes(type))throw Error('반복 계산을 중단한 뒤 조건을 변경하세요.');
