@@ -219,10 +219,16 @@ function eventRecord({
 
 function canonicalSubscriptions(documents = []) {
   const byOwner = new Map();
+  const optedOut = new Set(documents
+    .filter((document) => document.data()?.preferences?.notificationExperiment === false)
+    .map((document) => String(document.data()?.ownerUid || ""))
+    .filter(Boolean));
   for (const document of documents) {
     const data = document.data();
     const uid = String(data?.ownerUid || "");
-    if (!uid || data?.enabled !== true || data?.preferences?.notificationExperiment === false) continue;
+    // An account-level experiment opt-out on any registered device applies to
+    // every token for that account. An older device must not bypass the choice.
+    if (!uid || optedOut.has(uid) || data?.enabled !== true) continue;
     const current = byOwner.get(uid);
     const currentMs = Number(current?.data()?.updatedAtMs || 0);
     const nextMs = Number(data?.updatedAtMs || 0);
@@ -262,7 +268,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     };
   }
 
-  const subscriptions = await root.collection("pushSubscriptions").where("enabled","==",true).get();
+  const subscriptions = await root.collection("pushSubscriptions").get();
   const targetClassKeys = new Set(
     (Array.isArray(ready.config.targetClassKeys) ? ready.config.targetClassKeys : [])
       .map((value) => String(value || "").trim())
