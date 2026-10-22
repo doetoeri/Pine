@@ -1,3 +1,4 @@
+import { mountBanners } from "./banners.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
 import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261011-tilt1";
@@ -345,6 +346,7 @@ $("google-login").onclick = () => accountAction(async () => {
 });
 $("logout").onclick = () => accountAction(async () => { const { signOutStudent } = await import("../next/core/student-auth.js"); await signOutStudent(); });
 $("retry").onclick = () => accountAction(() => gateway.retry(), false);
+mountBanners(gateway);
 mountAttachmentViewer(gateway);
 mountNoticeImage(gateway);
 gateway.addEventListener("change", render);
