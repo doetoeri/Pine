@@ -617,6 +617,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Account-level notification-study preference is separate from FCM tokens,
+    // so switching devices cannot silently re-enable experiment notifications.
+    match /schools/{schoolId}/notificationExperimentPreferences/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['enabled', 'updatedAtMs'])
+        && request.resource.data.enabled is bool
+        && request.resource.data.updatedAtMs is int;
+      allow delete: if false;
+    }
+
     // 방문자 통계: 각 사용자는 자기 세션만 기록할 수 있고, 전체 원자료는 학교 운영자만 읽는다.
     match /schools/{schoolId}/visits/{visitId} {
       allow read: if schoolAdmin(schoolId);
