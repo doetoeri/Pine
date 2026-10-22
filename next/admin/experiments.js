@@ -329,7 +329,7 @@ async function run(action, value) {
       throw new Error("UI 실험이 Next로 완료되기 전에는 알림 실험을 시작할 수 없습니다.");
     }
     if (!confirm(`학교 전체 활성 계정은 서버에서 사전배정합니다 (현재 관리자 화면 조회 ${roster.length}개). 실제 푸시 구독이 있는 계정에만 알림이 전송됩니다. 실험을 시작할까요?`)) return;
-    await platform.adminSetExperiment("notification-frequency",{...config,startDate:config.status === "PAUSED" ? config.startDate : kstDateKey(),targetClassKeys:[],status:"ACTIVE"});
+    await platform.adminSetExperiment("notification-frequency",{...config,startDate:config.status === "PAUSED" ? config.startDate : kstDateKey(),targetClassKeys:[],frequency:{lowPerDay:0,midPerDay:1,highPerDay:3},status:"ACTIVE"});
     await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "pause-notification") {
     await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"});
