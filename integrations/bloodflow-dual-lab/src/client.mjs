@@ -2,9 +2,10 @@ const eventId=()=>globalThis.crypto?.randomUUID?.()??Array.from(crypto.getRandom
 import {DualWorld} from './engine.mjs';
 import {viewOf} from './view.mjs';
 import {validatePlan} from './experiments.mjs';
+import {CollaborationAvailability,resolveServerBase} from './collaboration-availability.mjs';
 const sessionRead=k=>{try{return sessionStorage.getItem(k);}catch{return null;}};
 const sessionWrite=(k,v)=>{try{sessionStorage.setItem(k,v);}catch{}};
-function serverBase(){const raw=window.BLOODFLOW_RUNTIME?.serverOrigin||location.origin;let u;try{u=new URL(raw);}catch{throw Error('공통 서버 주소를 사용할 수 없습니다. 동봉 서버 주소로 접속하세요.');}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw Error('올바른 공통 서버 주소가 아닙니다.');if(location.protocol==='https:'&&u.protocol!=='https:')throw Error('HTTPS 화면에서는 HTTPS 협업 서버가 필요합니다.');return u;}
+const serverBase=resolveServerBase;
 export class LabClient extends EventTarget{
  constructor(data,initialConfig={}){super();this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={question:'혈액 부족과 혈액제제 폐기 문제를 함께 줄이기 위한 공급관리 개선 방안',hypothesis:'',engineering:'',biology:'',limitations:'',improvements:''};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
  emit(){this.dispatchEvent(new Event('change'));}
@@ -20,7 +21,10 @@ export class LabClient extends EventTarget{
   // Application heartbeat prevents silently running disconnected shared clients.
   if(this.mode==='shared'&&this.socket?.readyState===1)this.socket.send(JSON.stringify({type:'heartbeat',experimentId:this.code}));
  }
- async create(role='engineering'){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');const r=await fetch(new URL('/bloodflow/api/rooms',serverBase()),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:Object.fromEntries(Object.entries(this.state?.world?.c??{}).filter(([key])=>!['realNodes','roadHours','regions'].includes(key)))})});if(!r.headers.get('content-type')?.includes('application/json'))throw Error('공통 서버가 없는 정적 주소입니다. 동봉한 서버의 주소에서 접속하세요.');const v=await r.json();if(!r.ok)throw Error(v.error);return this.join(v.experimentId,role,v.tokens[role]);}
+ async checkServer(options){this.availability??=new CollaborationAvailability();return this.serverAvailability=await this.availability.check(options);}
+ async requireServer(){const status=await this.checkServer();if(!status.ready)throw Error(status.message);}
+ async joinAvailable(code,role){if(!/^[A-F0-9]{6}$/.test(code))throw Error('실험실 코드는 영문·숫자 6자리입니다.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();return this.join(code,role);}
+ async create(role='engineering'){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');await this.requireServer();const r=await fetch(new URL('/bloodflow/api/rooms',serverBase()),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({config:Object.fromEntries(Object.entries(this.state?.world?.c??{}).filter(([key])=>!['realNodes','roadHours','regions'].includes(key)))})});if(!r.headers.get('content-type')?.includes('application/json'))throw Error('공통 서버가 없는 정적 주소입니다. 동봉한 서버의 주소에서 접속하세요.');const v=await r.json();if(!r.ok)throw Error(v.error);return this.join(v.experimentId,role,v.tokens[role]);}
  join(code,role,token){if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 접속하세요.');if(!/^[A-F0-9]{6}$/.test(code))throw Error('실험실 코드는 영문·숫자 6자리입니다.');if(!['engineering','biology'].includes(role))throw Error('연구 역할을 선택하세요.');
   this.reconnect=false;clearTimeout(this.reconnectTimer);const previous=this.socket;this.socket=null;previous?.close();this.pending.clear();
   this.running=false;this.mode='shared';this.ready=false;this.role=role;this.code=code;this.sharedState=null;this.authorityId=null;this.reconnectAttempt=0;this.reconnect=true;this.token=token??localStorage.getItem('bf-token:'+code+':'+role)??'';this.connection='공통 서버 연결 중';this.connect();this.emit();

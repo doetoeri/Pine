@@ -1,0 +1,57 @@
+{
+  "checkedAt": "2026-10-22T14:03:37.159215+00:00",
+  "baseCommit": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+  "productionObservation": {
+    "pagesDeployment": "PR130 merged; Pages workflow succeeded",
+    "page": "https://pincon.app/bloodflow/nationwide?network=nationwide",
+    "pageRendered": true,
+    "stepHours": 6,
+    "sharedHealthURL": "https://pincon.app/bloodflow/api/health",
+    "sharedHealthStatus": 404,
+    "collaborationHostConfigured": false,
+    "roomErrorPreviouslyHiddenOutsideDialog": true
+  },
+  "fix": {
+    "healthTimeoutMs": 5000,
+    "cacheMs": 15000,
+    "concurrentChecksDeduplicated": true,
+    "sharedControlsDisabledUntilVerified": true,
+    "errorKeptInsideDialog": true,
+    "soloContinuePreservesWorld": true,
+    "guardedJoinPreservesSoloOnFailure": true
+  },
+  "browserStaticQA": {
+    "serverHealthStatus": 404,
+    "noticeVisibleInsideDialog": true,
+    "createDisabled": true,
+    "joinDisabled": true,
+    "clockBeforeDialog": "D0 06:00",
+    "clockAfterContinueAndStep": "D0 12:00",
+    "dialogClosedAfterContinue": true,
+    "connectionAfterContinue": "단독 연구"
+  },
+  "automatedTests": {
+    "app": {
+      "pass": 40,
+      "fail": 0
+    },
+    "selectedPincon": {
+      "pass": 58,
+      "fail": 0
+    }
+  },
+  "limits": [
+    "No production collaboration backend was provisioned",
+    "No physical tablet or school LAN test",
+    "Production source not updated until review PR is approved and merged"
+  ],
+  "browserNodeQA": {
+    "healthReadyMessage": true,
+    "createEnabledAfterCheck": true,
+    "roomCreated": true,
+    "sharedWorldStateReceived": true,
+    "transientDisconnectAndAutomaticRecoveryObserved": true,
+    "stepEnabledAfterRecovery": true,
+    "physicalDevicesTested": false
+  }
+}

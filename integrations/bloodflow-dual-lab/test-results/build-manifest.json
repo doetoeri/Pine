@@ -1,14 +1,14 @@
 {
-  "builtAt": "2026-10-22T01:48:42.949Z",
+  "builtAt": "2026-10-22T13:59:17.061Z",
   "version": "2.0.0",
   "hashes": {
-    "dist/BLOODFLOW_Dual_Lab_Offline.html": "4d67c41c02a4cfddb4fead23086783b070754ae6410e7c7248fbcf9f5d096f9d",
+    "dist/BLOODFLOW_Dual_Lab_Offline.html": "bb2e79a42845582063871a4ec560f0d0cb0bca4690d85cafc2c41356327d25f5",
     "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
     "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
     "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
   },
-  "moduleCount": 12,
+  "moduleCount": 13,
   "directedRoutes": 12,
   "roadWays": 1394,
-  "offlineBytes": 1122466
+  "offlineBytes": 1127329
 }
