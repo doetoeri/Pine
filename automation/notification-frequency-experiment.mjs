@@ -31,8 +31,17 @@ async function ensureParticipant(root, uid) {
     return snap.data().anonymousParticipant;
   }
   const anonymousParticipant = `participant_${randomUUID().replaceAll("-","").slice(0,24)}`;
-  await ref.set({ schemaVersion: 1, anonymousParticipant, createdAtMs: Date.now() }, { merge: false });
-  return anonymousParticipant;
+  try {
+    await ref.create({ schemaVersion: 1, anonymousParticipant, createdAtMs: Date.now() });
+    return anonymousParticipant;
+  } catch (error) {
+    // Two runners (or a participant's browser) can initialize the same UID concurrently.
+    // Create-only prevents replacing an existing anonymous identity.
+    if (Number(error?.code) !== 6 && String(error?.code) !== "already-exists") throw error;
+    const existing = await ref.get();
+    if (!existing.exists || !String(existing.data()?.anonymousParticipant || "").startsWith("participant_")) throw error;
+    return existing.data().anonymousParticipant;
+  }
 }
 
 async function ensureAssignment(root, uid, anonymousParticipant, config) {
@@ -50,9 +59,55 @@ async function ensureAssignment(root, uid, anonymousParticipant, config) {
     assignedAtMs: Date.now(),
     experimentVersion: version,
     anonymousParticipant,
+    assignmentSource: "crossover",
   };
+  if (!snap.exists) {
+    try {
+      await ref.create(record);
+      return record;
+    } catch (error) {
+      if (Number(error?.code) !== 6 && String(error?.code) !== "already-exists") throw error;
+      const existing = await ref.get();
+      if (existing.exists && Number(existing.data()?.experimentVersion || 0) === version) return existing.data();
+      throw error;
+    }
+  }
   await ref.set(record, { merge: false });
   return record;
+}
+
+// Import active accounts independently of push subscriptions. A student who has
+// never opened the app still gets an immutable crossover assignment.
+async function preassignActiveAccounts(root, config) {
+  const snapshot = await root.collection("users").where("status", "==", "ACTIVE").get();
+  const allowedClasses = new Set((Array.isArray(config.targetClassKeys) ? config.targetClassKeys : [])
+    .map((value) => String(value || "").trim()).filter(Boolean));
+  const accounts = snapshot.docs.map((doc) => ({
+    uid: doc.id,
+    profile: doc.data(),
+  })).filter(({ uid, profile }) =>
+    uid && String(profile?.uid || uid) === uid
+    && (!allowedClasses.size || allowedClasses.has(String(profile?.classKey || ""))));
+  const byUid = new Map(accounts.map(({ uid, profile }) => [uid, profile]));
+  let cursor = 0;
+  let assigned = 0;
+  let failed = 0;
+  const workers = Array.from({ length: Math.min(12, accounts.length) }, async () => {
+    while (cursor < accounts.length) {
+      const { uid } = accounts[cursor++];
+      try {
+        const participant = await ensureParticipant(root, uid);
+        await ensureAssignment(root, uid, participant, config);
+        assigned += 1;
+      } catch (error) {
+        failed += 1;
+        console.warn(JSON.stringify({ warning: "NOTIFICATION_PREASSIGN_FAILED", uid, code: String(error?.code || "unknown") }));
+      }
+    }
+  });
+  await Promise.all(workers);
+  if (failed) throw new Error(`알림 실험 사전배정 실패: ${failed}/${accounts.length}`);
+  return { accounts: byUid, assigned, total: accounts.length };
 }
 
 async function experimentReady(root) {
@@ -177,7 +232,7 @@ function isInvalidTokenError(error) {
 
 function canRetryReceipt(data = {}) {
   if (!data || !Object.keys(data).length) return true;
-  if (data.status === "fcm-accepted" || data.status === "permanent-failure") return false;
+  if (["fcm-accepted", "permanent-failure", "sending", "send-uncertain"].includes(data.status)) return false;
   return Number(data.attemptCount || 0) < MAX_SEND_ATTEMPTS;
 }
 
@@ -194,6 +249,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     return { active: true, sent: 0, phase: period.phase, slot: slot?.index ?? null };
   }
 
+  const preassignment = await preassignActiveAccounts(root, ready.config);
   const subscriptions = await root.collection("pushSubscriptions").where("enabled","==",true).get();
   const targetClassKeys = new Set(
     (Array.isArray(ready.config.targetClassKeys) ? ready.config.targetClassKeys : [])
@@ -201,7 +257,12 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       .filter(Boolean),
   );
   const eligibleSubscriptions = canonicalSubscriptions(subscriptions.docs)
-    .filter((document) => !targetClassKeys.size || targetClassKeys.has(String(document.data()?.classKey || "")));
+    .filter((document) => {
+      const data = document.data();
+      const profile = preassignment.accounts.get(String(data?.ownerUid || ""));
+      return profile && String(profile.classKey || "") === String(data?.classKey || "")
+        && (!targetClassKeys.size || targetClassKeys.has(String(data?.classKey || "")));
+    });
   const date = kstDate(now);
   const candidateCache = new Map();
   let sent = 0;
@@ -259,12 +320,6 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       candidateKey: candidate.key,
     });
     const receipt = root.collection("notificationExperimentReceipts").doc(id);
-    const receiptSnap = await receipt.get();
-    const priorReceipt = receiptSnap.exists ? receiptSnap.data() : null;
-    if (!canRetryReceipt(priorReceipt)) continue;
-
-    const scheduledAtMs = Number(priorReceipt?.scheduledAtMs || now.getTime());
-    const attemptCount = Number(priorReceipt?.attemptCount || 0) + 1;
     const budget = dailyBudget(condition, ready.config);
     const plannedSlots = plannedSlotIndexes({
       anonymousParticipant: participant,
@@ -273,61 +328,56 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       condition,
       config: ready.config,
     });
-    const metadata = {
-      notificationId: id,
-      anonymousParticipant: participant,
-      experimentId: EXPERIMENT_ID,
-      experimentVersion: Number(ready.config.version || 1),
-      period: state.period,
-      condition,
-      category: candidate.category,
-      priority: "normal",
-      experimentEligible: true,
-      targetRoute: candidate.targetRoute,
-      createdAtMs: scheduledAtMs,
-      scheduledAtMs,
-      slotIndex: slot.index,
-      plannedSlots,
-      dailyBudget: budget,
-      candidateKey: candidate.key,
-    };
-
-    if (!receiptSnap.exists) {
-      const batch = db.batch();
-      batch.set(root.collection("experimentNotifications").doc(id), metadata);
-      batch.set(
-        root.collection("experimentEvents").doc(`server_${digest(`notification_scheduled:${id}`,28)}`),
-        eventRecord({
-          anonymousParticipant: participant,
-          config: ready.config,
-          condition,
-          period: state.period,
-          type: "notification_scheduled",
-          notificationId: id,
-          category: candidate.category,
-          targetRoute: candidate.targetRoute,
-          slotIndex: slot.index,
-          now,
-        }),
-      );
-      batch.set(receipt, {
-        ...metadata,
-        status: "scheduled",
-        attemptCount: 0,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      await batch.commit();
-      scheduled += 1;
-    } else {
-      retried += 1;
-    }
-
     const attemptedAtMs = Date.now();
-    await receipt.set({
-      status: "sending",
-      attemptCount,
-      lastAttemptAtMs: attemptedAtMs,
-    }, { merge: true });
+    const claim = await db.runTransaction(async (tx) => {
+      const snapshot = await tx.get(receipt);
+      const previous = snapshot.exists ? snapshot.data() : null;
+      if (!canRetryReceipt(previous)) return null;
+      const scheduledAtMs = Number(previous?.scheduledAtMs || now.getTime());
+      const attemptCount = Number(previous?.attemptCount || 0) + 1;
+      const metadata = {
+        notificationId: id,
+        anonymousParticipant: participant,
+        experimentId: EXPERIMENT_ID,
+        experimentVersion: Number(ready.config.version || 1),
+        period: state.period,
+        condition,
+        category: candidate.category,
+        priority: "normal",
+        experimentEligible: true,
+        targetRoute: candidate.targetRoute,
+        createdAtMs: scheduledAtMs,
+        scheduledAtMs,
+        slotIndex: slot.index,
+        plannedSlots,
+        dailyBudget: budget,
+        candidateKey: candidate.key,
+      };
+      // Atomic claim: a second dispatcher cannot issue another send while
+      // the first is running. Uncertain sends stay locked (at-most-once).
+      tx.set(receipt, {
+        ...metadata,
+        status: "sending",
+        attemptCount,
+        lastAttemptAtMs: attemptedAtMs,
+        createdAt: previous?.createdAt || FieldValue.serverTimestamp(),
+      }, { merge: true });
+      if (!snapshot.exists) {
+        tx.set(root.collection("experimentNotifications").doc(id), metadata);
+        tx.set(root.collection("experimentEvents").doc(`server_${digest(`notification_scheduled:${id}`,28)}`),
+          eventRecord({
+            anonymousParticipant: participant, config: ready.config,
+            condition, period: state.period, type: "notification_scheduled",
+            notificationId: id, category: candidate.category,
+            targetRoute: candidate.targetRoute, slotIndex: slot.index, now,
+          }));
+      }
+      return { attemptCount, scheduledAtMs, isNew: !snapshot.exists };
+    });
+    if (!claim) continue;
+    const { attemptCount, scheduledAtMs } = claim;
+    if (claim.isNew) scheduled += 1;
+    else retried += 1;
 
     try {
       await messaging.send({
@@ -415,6 +465,8 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     rawSubscriptions: subscriptions.size,
     targetClassKeys: [...targetClassKeys],
     participants: eligibleSubscriptions.length,
+    rosterAccounts: preassignment.total,
+    preassigned: preassignment.assigned,
     scheduled,
     sent,
     retried,
