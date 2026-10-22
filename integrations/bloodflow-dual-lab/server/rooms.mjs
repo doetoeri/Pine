@@ -2,17 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {Worker} from 'node:worker_threads';
-import {geographyConfig} from '../src/geography.mjs';
 import {DualWorld,DEFAULTS} from '../src/engine.mjs';
 import {validatePlan} from '../src/experiments.mjs';
+import {DEFAULT_NOTES,prepareResearchRestore} from '../src/research-state.mjs';
 import {viewOf} from '../src/view.mjs';
 export const PERMISSIONS={engineering:['network','redistribution','safetyDays','policy','volatility','delay','reviewPeriod','sharing','scenario','seed'],biology:['product','compatibility','shelfFraction','excursion','agitation','seed']};
 const safe=(s,n)=>typeof s==='string'&&s.length<=n;
 export class Rooms{
  constructor(data,directory){this.authorityId=randomUUID();this.data=data;this.directory=directory;this.rooms=new Map();fs.mkdirSync(directory,{recursive:true});this.load();}
- load(){for(const file of fs.readdirSync(this.directory).filter(f=>/^[A-Z0-9]{6}\.json$/.test(f))){try{const s=JSON.parse(fs.readFileSync(path.join(this.directory,file),'utf8')),world=DualWorld.restore(s.snapshot,this.data);this.rooms.set(s.code,{...s,world,running:false,mode:'LIVE',speed:1,peers:new Set(),job:null,seen:new Map(s.seen??[]),lastSequences:s.lastSequences??{}});}catch(e){console.error('Room restore failed:',file,e.message);}}}
+ load(){for(const file of fs.readdirSync(this.directory).filter(f=>/^[A-Z0-9]{6}\.json$/.test(f))){try{const s=JSON.parse(fs.readFileSync(path.join(this.directory,file),'utf8')),restored=prepareResearchRestore(s,this.data);this.rooms.set(s.code,{...s,...restored,running:false,mode:'LIVE',speed:1,peers:new Set(),job:null,seen:new Map(s.seen??[]),lastSequences:s.lastSequences??{}});}catch(e){console.error('Room restore failed:',file,e.message);}}}
  persist(r){const file=path.join(this.directory,r.code+'.json'),s={code:r.code,tokens:r.tokens,version:r.version,revision:r.revision,notes:r.notes,logs:r.logs.slice(-200),result:r.result,seen:[...r.seen].slice(-150),lastSequences:r.lastSequences,snapshot:r.world.snapshot()};fs.writeFileSync(file+'.tmp',JSON.stringify(s));fs.renameSync(file+'.tmp',file);}
- create(config={}){if(this.rooms.size>=12)throw Error('실험실 수 한도에 도달했습니다.');let code;do{code=randomBytes(5).toString('hex').slice(0,6).toUpperCase();}while(this.rooms.has(code));const r={code,world:new DualWorld(config,this.data),tokens:{engineering:randomBytes(24).toString('hex'),biology:randomBytes(24).toString('hex')},version:0,revision:0,notes:{question:'혈액 부족과 혈액제제 폐기 문제를 함께 줄이기 위한 공급관리 개선 방안',hypothesis:'',engineering:'',biology:'',limitations:'',improvements:''},logs:[],result:null,peers:new Set(),seen:new Map(),lastSequences:{},running:false,mode:'LIVE',speed:1,job:null};this.rooms.set(code,r);this.persist(r);return r;}
+ create(config={}){if(this.rooms.size>=12)throw Error('실험실 수 한도에 도달했습니다.');let code;do{code=randomBytes(5).toString('hex').slice(0,6).toUpperCase();}while(this.rooms.has(code));const r={code,world:new DualWorld(config,this.data),tokens:{engineering:randomBytes(24).toString('hex'),biology:randomBytes(24).toString('hex')},version:0,revision:0,notes:{...DEFAULT_NOTES},logs:[],result:null,peers:new Set(),seen:new Map(),lastSequences:{},running:false,mode:'LIVE',speed:1,job:null};this.rooms.set(code,r);this.persist(r);return r;}
  authenticate(code,token){const r=this.rooms.get(code);if(!r)return null;const role=Object.keys(r.tokens).find(k=>r.tokens[k]===token);return role?{room:r,role}:null;}
  publicState(r){return {type:'state',protocolVersion:2,authorityId:this.authorityId,experimentId:r.code,eventId:randomUUID(),version:r.version,revision:r.revision,timestamp:new Date().toISOString(),running:r.running,mode:r.mode,speed:r.speed,world:viewOf(r.world),notes:r.notes,logs:r.logs.slice(-80),result:r.result,peers:[...r.peers].map(p=>p.role),job:r.job?{progress:r.job.progress,plan:r.job.plan,paused:!!r.job.paused}:null};}
  send(p,value){if(p.socket.readyState===1)p.socket.send(JSON.stringify(value));}
@@ -46,10 +46,9 @@ export class Rooms{
   }else if(m.type==='review'){
    if(p.role!=='biology')throw Error('생명과학 역할에서 검토 기록을 작성하세요.');r.world.resolveReview(m.id,m.decision,m.note);r.revision++;
   }else if(m.type==='restore'){
-   if(r.running)throw Error('일시정지 후 복원하세요.');const restored=DualWorld.restore(m.snapshot,this.data);for(const key of [...PERMISSIONS.engineering,...PERMISSIONS.biology])if(!PERMISSIONS[p.role].includes(key)&&JSON.stringify(restored.c[key])!==JSON.stringify(r.world.c[key]))throw Error('다른 역할의 조건을 바꾸는 복원은 허용하지 않습니다.');r.world=restored;
-   // Geography is bound to the installed dataset, never to an uploaded endpoint.
-   if(m.notes){const allowed=['question','hypothesis',p.role,'limitations','improvements'];for(const k of allowed)if(safe(m.notes[k],6000))r.notes[k]=m.notes[k];}if(m.result?.format==='BLOODFLOW-PAIRED-1')r.result=m.result;
-   Object.assign(r.world.c,geographyConfig(this.data,r.world.c.network));r.revision++;
+   if(r.running)throw Error('일시정지 후 복원하세요.');const restored=prepareResearchRestore(m,this.data,r.notes,{role:p.role});for(const key of [...PERMISSIONS.engineering,...PERMISSIONS.biology])if(!PERMISSIONS[p.role].includes(key)&&JSON.stringify(restored.world.c[key])!==JSON.stringify(r.world.c[key]))throw Error('다른 역할의 조건을 바꾸는 복원은 허용하지 않습니다.');
+   // The world is already bound to installed geography. Commit only after all checks succeed.
+   Object.assign(r,restored);r.revision++;
   }else if(m.type==='clock'){
    if(!['LIVE','TIMELAPSE','COMPUTE'].includes(m.mode)||![1,6,24,96,240].includes(m.speed)||typeof m.running!=='boolean')throw Error('시간 모드·속도를 확인하세요.');
    r.mode=m.mode;r.speed=m.speed;r.running=m.running;

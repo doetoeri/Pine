@@ -1,5 +1,6 @@
 const eventId=()=>globalThis.crypto?.randomUUID?.()??Array.from(crypto.getRandomValues(new Uint8Array(16)),v=>v.toString(16).padStart(2,'0')).join('');
 import {DualWorld} from './engine.mjs';
+import {DEFAULT_NOTES,prepareResearchRestore} from './research-state.mjs';
 import {viewOf} from './view.mjs';
 import {validatePlan} from './experiments.mjs';
 import {CollaborationAvailability,resolveServerBase,createSharedRoom} from './collaboration-availability.mjs';
@@ -8,7 +9,7 @@ const sessionRead=k=>{try{return sessionStorage.getItem(k);}catch{return null;}}
 const sessionWrite=(k,v)=>{try{sessionStorage.setItem(k,v);}catch{}};
 const serverBase=resolveServerBase;
 export class LabClient extends EventTarget{
- constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS}={}){super();this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={question:'혈액 부족과 혈액제제 폐기 문제를 함께 줄이기 위한 공급관리 개선 방안',hypothesis:'',engineering:'',biology:'',limitations:'',improvements:''};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
+ constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS}={}){super();this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={...DEFAULT_NOTES};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
  emit(){this.dispatchEvent(new Event('change'));}
  error(message){this.dispatchEvent(new CustomEvent('notice',{detail:message}));}
  get state(){if(this.mode==='shared')return this.sharedState;return {version:this.version,revision:this.revision,world:viewOf(this.world),notes:this.notes,result:this.result,logs:this.logs,job:this.job?{progress:this.job.progress,plan:this.job.plan,paused:!!this.job.paused}:null,running:this.running,speed:this.speed,mode:this.clockMode,peers:[]};}
@@ -23,9 +24,8 @@ export class LabClient extends EventTarget{
    const network=this.world.c.network,saved=await readCheckpoint(await this.db(),this.clientId,network,{timeoutMs:this.storageTimeoutMs});
    if(saved!=null){
     if(typeof saved!=='object'||Array.isArray(saved)||(saved.snapshot?.c?.network??'incheon')!==network)throw Error('자동 저장 자료의 공급망 범위가 일치하지 않습니다.');
-    const world=DualWorld.restore(saved.snapshot,this.data),notes={...this.notes};
-    if(saved.notes!=null){if(typeof saved.notes!=='object'||Array.isArray(saved.notes))throw Error('자동 저장 연구 기록의 형식이 올바르지 않습니다.');for(const key of Object.keys(notes))if(key in saved.notes){if(typeof saved.notes[key]!=='string'||saved.notes[key].length>6000)throw Error('자동 저장 연구 기록의 형식이 올바르지 않습니다.');notes[key]=saved.notes[key];}}
-    if(this.mode==='solo'&&this.initializing){this.world=world;this.notes=notes;this.result=saved.result??null;this.running=false;this.connection='단독 연구 · 자동 저장 복원';}
+    const restored=prepareResearchRestore(saved,this.data,this.notes);
+    if(this.mode==='solo'&&this.initializing){Object.assign(this,restored);this.running=false;this.connection='단독 연구 · 자동 저장 복원';}
    }
    this.autosaveAllowed=true;this.storageChanged({kind:'ready',restored:saved!=null,message:'기기 저장 자료 확인 완료'});
   }catch(error){
@@ -87,7 +87,7 @@ export class LabClient extends EventTarget{
   else if(type==='step'){this.running=false;this.world.advance(this.world.t+props.hours);}
   else if(type==='notes'){this.notes={...this.notes,...props.patch};this.revision++;}
   else if(type==='review'){this.world.resolveReview(props.id,props.decision,props.note);this.revision++;}
-  else if(type==='restore'){if(this.running)throw Error('일시정지 후 복원하세요.');this.world=DualWorld.restore(props.snapshot,this.data);if(props.notes)this.notes=props.notes;if(props.result)this.result=props.result;this.revision++;}
+  else if(type==='restore'){if(this.running)throw Error('일시정지 후 복원하세요.');const restored=prepareResearchRestore(props,this.data,this.notes);Object.assign(this,restored);this.revision++;}
   else if(type==='export'){this.dispatchEvent(new CustomEvent('export',{detail:{format:'BLOODFLOW-LAB-FILE-1',snapshot:this.world.snapshot(),notes:this.notes,result:this.result}}));return;}
   else if(type==='compute'){this.compute(props.plan);return;}
   else if(type==='pause-compute'||type==='resume-compute'){if(!this.job)throw Error('진행 중인 반복 실험이 없습니다.');this.job.paused=type==='pause-compute';this.worker.postMessage({type:this.job.paused?'pause':'resume'});}

@@ -1,0 +1,279 @@
+{
+  "checkedAt": "2026-10-22T18:53:28Z",
+  "localDate": "2026-10-23 KST",
+  "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+  "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+  "reviewHeadBefore": "e3590c3cce81cd6f9320efbdb5873fa1bcba1c33",
+  "production": {
+    "pagesDeployment": "success",
+    "http": [
+      {
+        "path": "/bloodflow",
+        "url": "https://pincon.app/bloodflow/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/biology",
+        "url": "https://pincon.app/bloodflow/biology/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/research",
+        "url": "https://pincon.app/bloodflow/research/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "status": 200,
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "serverOrigin": ""
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404
+      }
+    ],
+    "production503Observed": false,
+    "productionCorruptFileObserved": false
+  },
+  "baseline": {
+    "source": "Reviewed tree 5272aaf04383cda4a7b347aa0372fdd8c68cede1; synthetic Node reproduction.",
+    "emptyResultFileKeptPreviousResult": true,
+    "invalidNumericNoteAccepted": true,
+    "truncatedResultAccepted": true,
+    "worldChangedToHours": 24
+  },
+  "changes": {
+    "commonRestoreValidator": [
+      "solo manual file",
+      "solo automatic checkpoint",
+      "shared role file restore",
+      "server disk recovery"
+    ],
+    "validateBeforeAssigningWorldNotesResult": true,
+    "nullOrOmittedResultClearsOldResult": true,
+    "omittedNotesRetainCurrentFields": true,
+    "sharedOtherRoleNotesPreserved": true,
+    "existingConfigurationPermissionsPreserved": true,
+    "pairedResultVersions": [
+      "1.0.0",
+      "2.0.0"
+    ],
+    "validateResultSchemaCountsDenominatorsSeedsRegionsAndStoredStatistics": true,
+    "statisticsMethodReused": "Existing summarize() / statistics(), no replacement of stored result values.",
+    "numericRelativeTolerance": 1e-10,
+    "resultRenderCacheIncludesStateRevision": true,
+    "simulationEngineOrBiologicalRulesChanged": false
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome; copied application with real Node/WebSocket server and native IndexedDB. Synthetic state files and isolated DB bloodflow-file-qa-20261023; no production storage or server touched.",
+    "fileChooserUsed": true,
+    "soloRejectedFiles": {
+      "cases": [
+        "numeric engineering note",
+        "statistic changed from its raw pairs",
+        "truncated result object"
+      ],
+      "clockHoursBefore": 6,
+      "clockHoursAfterEach": 6,
+      "engineeringNote": "첫 파일 산업공학 해석",
+      "biologyNote": "첫 파일 생명과학 해석",
+      "originalChartTextPreserved": true,
+      "visibleDiagnostic": true
+    },
+    "sameTimestampResults": {
+      "firstExperiment": "A",
+      "firstWorldHours": 6,
+      "secondExperiment": "B",
+      "secondWorldHours": 24,
+      "sameCreatedAt": true,
+      "chartAndBothNotesUpdated": true
+    },
+    "emptyResult": {
+      "worldHours": 12,
+      "previousChartRemoved": true,
+      "emptyAfterReload": true,
+      "notesRestoredAfterReload": true
+    },
+    "legacyFile": {
+      "snapshotSource": "Preserved offline 1.0 embedded engine, advanced 12 hours.",
+      "resultSource": "tests/fixtures/legacy-paired.json, produced by preserved experiments.mjs.",
+      "wholeFileAccepted": true,
+      "worldHours": 12,
+      "experiment": "A"
+    },
+    "snapshotOnly": {
+      "worldHours": 18,
+      "previousResultCleared": true,
+      "omittedNotesPreserved": true
+    },
+    "sharedTwoBrowsers": {
+      "roles": [
+        "engineering",
+        "biology"
+      ],
+      "engineeringRestoreHours": 6,
+      "biologyOwnNotePreserved": "친구가 작성한 생명과학 해석",
+      "biologyRestoredFileHours": 24,
+      "engineeringOwnNotePreserved": "첫 파일 산업공학 해석",
+      "sameTimestampResultUpdatedOnBoth": "B",
+      "badResultRejectedOnBothWithoutStateChange": true,
+      "emptyResultClearedOnBothAtHours": 12,
+      "biologyOwnFieldEnabledAndEngineeringFieldDisabled": true
+    },
+    "disconnectAndRecovery": {
+      "serverStopLockedBothBrowsers": true,
+      "lastVisibleHoursOnDisconnect": 12,
+      "supervisorStopStartRestoredRoom": false,
+      "supervisorRestartDiskRecordsObserved": 0,
+      "limitation": "A new managed preview had zero test room files after supervisor stop/start. This lifecycle did not verify durable host storage and is not counted as a passed browser process-restart recovery.",
+      "followupTest": "QA-only button closes peers and recreates the actual Rooms manager from existing disk files inside one live Node process. No production QA endpoint was added.",
+      "diskRecordsBefore": 1,
+      "diskRecordsAfter": 1,
+      "newAuthorityObserved": true,
+      "bothBrowsersAutomaticallyRejoined": true,
+      "hoursRestoredOnBoth": 12,
+      "engineeringNoteRestored": "결과 없는 파일 산업공학 해석",
+      "biologyNoteRestored": "재접속 뒤 보존할 생명과학 해석",
+      "rolePermissionsAndEmptyResultRestored": true,
+      "actualNodeProcessRestartCoverage": "Automated collaboration tests restart Node for both Incheon and nationwide networks."
+    },
+    "standalone": {
+      "format": "HTTP-served single HTML with 16 embedded modules. Not actual file:// or airplane mode.",
+      "validFileHours": 6,
+      "badFilePreservedHours": 6,
+      "emptyFileHours": 12,
+      "afterStepHours": 18,
+      "resultEmpty": true,
+      "actualDownloadedJSONVerified": {
+        "format": "BLOODFLOW-LAB-FILE-1",
+        "hours": 18,
+        "result": null,
+        "engineering": "결과 없는 파일 산업공학 해석",
+        "biology": "결과 없는 파일 생명과학 해석",
+        "bytes": 213364
+      }
+    },
+    "corruptAutomaticResult": {
+      "nativeSeededHours": 48,
+      "truncatedResult": true,
+      "initialRestoreRejectedWithoutPartialWorldOrNotes": true,
+      "temporaryResearchHours": 6,
+      "actualJSONDownloadEventObserved": true,
+      "manualReloadStillRejectsPriorCorruptCheckpoint": true,
+      "automaticSaveRemainedBlocked": true
+    },
+    "appScriptConsoleErrors": [],
+    "consoleScope": "Application/embedded blob script errors were checked; browser extension metadata errors were excluded."
+  },
+  "automated": {
+    "appPassed": 85,
+    "appFailed": 0,
+    "newResearchRestoreTests": 15,
+    "existingRealWebSocketNetworkTestsExtended": 2,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "build": "passed",
+    "tests": [
+      "Current A/B/C/N results round-trip exactly, including timestamps and statistics.",
+      "All four existing example results remain unchanged and supported.",
+      "Genuine preserved offline 1.0 result, identified by source SHA256.",
+      "Reject malformed plans, counts, seeds, non-finite values, raw ratios, statistics and regional data.",
+      "Manual restore clears absent results; failed validation preserves full state/revisions/logs and performs no save.",
+      "Valid independent experiment results and both interpretations restore together; deterministic continuation.",
+      "Corrupt automatic result blocks overwriting without replacing the active research.",
+      "Both roles preserve the other researcher and existing configuration permissions.",
+      "Server disk recovery accepts valid results and retains invalid records unchanged.",
+      "Two real WebSocket clients per network receive consistent result clearing, failure handling and persisted states."
+    ]
+  },
+  "performance": {
+    "scope": "Node educational nationwide result validation, not tablet benchmark",
+    "days": 30,
+    "repeats": 2,
+    "policies": 3,
+    "nodes": 100,
+    "computeMs": 4454.9687300000005,
+    "validationMs": 4.8332790000004024,
+    "bytes": 65133,
+    "unchanged": true,
+    "allConservationChecksPassed": true
+  },
+  "publishedExamples": [
+    {
+      "file": "experiment-A.json",
+      "version": "1.0.0",
+      "passed": true
+    },
+    {
+      "file": "experiment-B.json",
+      "version": "1.0.0",
+      "passed": true
+    },
+    {
+      "file": "experiment-C.json",
+      "version": "1.0.0",
+      "passed": true
+    },
+    {
+      "file": "experiment-N.json",
+      "version": "2.0.0",
+      "passed": true
+    }
+  ],
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "htmlEntryPaths": 5,
+    "wholePageLabs": 4,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourceAndPublishedMatch": true,
+    "startupCopyMatches": true,
+    "qaHooksPublished": false
+  },
+  "preserved": [
+    "Original HTMLs, Incheon 4 institutions / 12 directed routes, 1394 saved road ways and nationwide datasets.",
+    "Engine outcomes, biological rules, existing statistical formulas, role permissions and equal independent experiments.",
+    "Four whole-page labs and LIVE / TIMELAPSE / COMPUTE.",
+    "Other PinCon paths, root service worker, domains and Firebase rules."
+  ],
+  "limits": [
+    "Review branch only; no main mutation, merge or manual production deployment.",
+    "Production collaboration health is still 404 and serverOrigin is empty.",
+    "Shape, arithmetic and stored-statistic consistency checks do not authenticate external files or establish real medical accuracy.",
+    "No physical Galaxy Tab, real file://, airplane mode, device memory/performance or long wall-clock test.",
+    "Managed supervisor stop/start persistence was not verified; its restarted preview had no test disk records.",
+    "Browser recovery after authority change was verified through a test-only in-process manager replacement; actual process restarts were tested separately with Node/WebSocket automation.",
+    "QA pages, downloaded synthetic files and server control hooks are outside the repository and are not published."
+  ]
+}
