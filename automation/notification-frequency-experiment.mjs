@@ -49,8 +49,14 @@ async function ensureAssignment(root, uid, anonymousParticipant, config) {
   const ref = root.collection("experiments").doc(EXPERIMENT_ID).collection("assignments").doc(uid);
   const snap = await ref.get();
   const version = Number(config.version || 1);
-  if (snap.exists && Number(snap.data()?.experimentVersion || 0) === version && Array.isArray(snap.data()?.sequence)) {
-    return snap.data();
+  if (snap.exists && Number(snap.data()?.experimentVersion || 0) === version && Array.isArray(snap.data()?.sequence)
+    && snap.data().sequence.length === 3) {
+    const existing = snap.data();
+    if (existing.anonymousParticipant !== anonymousParticipant) {
+      await ref.update({ anonymousParticipant });
+      return { ...existing, anonymousParticipant };
+    }
+    return existing;
   }
   const generated = sequenceFor(uid, EXPERIMENT_ID, version);
   const record = {
@@ -320,6 +326,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       period: state.period,
       slotIndex: slot.index,
       candidateKey: candidate.key,
+      experimentVersion: Number(ready.config.version || 1),
     });
     const receipt = root.collection("notificationExperimentReceipts").doc(id);
     const budget = dailyBudget(condition, ready.config);
