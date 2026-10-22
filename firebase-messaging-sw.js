@@ -7,7 +7,7 @@ function notificationOptions(payload = {}) {
   const data = payload.data || {};
   const urgency = String(data.urgency || "normal");
   const timestamp = Number(data.timestampMs || Date.now());
-  const link = data.link || "./next/#today";
+  const link = data.link || "./new/";
   const tag = data.tag || `pincon-${data.kind || "school-update"}`;
 
   return {
