@@ -1,0 +1,140 @@
+✔ brand tagline defaults hidden and follows student-friendly classSettings (1.480952ms)
+✔ legacy product labels never reappear as class taglines (0.844805ms)
+✔ brand tagline may be hidden and rejects overlong text (0.483071ms)
+✔ notification feed combines canonical class sources and excludes hidden records (2.360894ms)
+✔ authenticated class manager receives audited write permissions (0.681518ms)
+✔ school authority maps to system-admin and can manage roles while signed in (0.201272ms)
+✔ write permission never opens for signed-out or viewer access (0.147338ms)
+✔ audit and recovery contracts retain actor and time metadata (0.731321ms)
+✔ student auth uses Firebase email/password without storing PIN locally (65.61574ms)
+✔ authorized API requests reuse a valid token and only force-refresh after a 401 (2.830287ms)
+✔ account API can use the verified Identity v2 alias while main is missing routes (8.398519ms)
+✔ PWA separates code caching from configuration revalidation (4.453539ms)
+✔ account entry keeps login failures generic and validates locally (2.033748ms)
+✔ first login forces a PIN change without an old PIN lookup path (3.971816ms)
+✔ PIN change reauthenticates after Firebase invalidates the previous credential (1.286069ms)
+✔ first login claims a staged identity with a one-time activation code (6.505575ms)
+✔ legacy Google administrators retain a migration login path (1.659899ms)
+✔ student account center owns profile security and logout (5.397838ms)
+✔ account readiness precedes the app, which precedes experiments (13.553881ms)
+✔ test-only authentication bypass is restricted to localhost (1.100909ms)
+✔ degraded mode requires matching public cache and only transient auth failures (10.816277ms)
+✔ forced read-only downgrades manager access and blocks brand writes (0.984693ms)
+✔ simple account gate keeps invalid sessions gated but degrades on transient infrastructure failures (7.613451ms)
+✔ KST 날짜가 기기 시간대와 무관하게 계산된다 (6.357961ms)
+✔ NEIS 학사일정은 선택한 학년에 해당하는 행사만 표시한다 (2.182086ms)
+✔ 오늘 피드는 긴급 공지와 오늘 수행평가를 먼저 배치한다 (1.854826ms)
+✔ 시험기간 모드는 14일 이내 시험만 감지한다 (1.114341ms)
+✔ 행사와 투표는 마감 시각 이후 자동으로 닫힌 것으로 계산한다 (0.542751ms)
+✔ 패치노트 초안은 완료·검토 의견과 변경을 자동 분류한다 (1.245184ms)
+✔ 패치노트 버전은 최근 월의 부 버전을 자동으로 올린다 (21.091989ms)
+✔ 오늘 피드는 지난 일정과 준비 중인 행사를 노출하지 않는다 (1.303659ms)
+✔ 오늘 피드는 이번 주 학사일정·행사를 포함하고 오래된 기존 공지를 제외한다 (0.633734ms)
+✔ 오늘 피드는 배열형 NEIS 식단을 읽기 쉬운 메뉴로 표시한다 (0.871852ms)
+✔ 익명 행사 응답은 같은 답을 빈도순으로 집계한다 (1.56696ms)
+✔ 통합 검색은 삭제된 항목을 제외하고 모든 자료형을 찾는다 (0.933823ms)
+✔ 묶음 알림은 사용자가 끈 알림 종류를 제외한다 (0.717638ms)
+✔ 시험 일정도 수행평가 알림 설정에 따라 묶인다 (0.738287ms)
+✔ 외부 링크는 HTTP(S)만 허용한다 (0.269002ms)
+✔ UI assignment is deterministic and sticky (2.983908ms)
+✔ Canary exposes Next only to explicit targets (0.451224ms)
+✔ Public beta stays separate from controlled A-B and respects admin fallback (0.331009ms)
+✔ Rollout buckets are monotonic and 100 percent promotes Next (0.660119ms)
+✔ Crossover sequences always contain LOW MID HIGH exactly once (3.134063ms)
+✔ Notification experiment honors baseline, periods, and frequency budgets (1.911282ms)
+✔ Notification experiment counts only school days when enabled (3.370814ms)
+✔ Notification frequency rotates time slots and never repeats a candidate within a day plan (1.535693ms)
+✔ Firestore contract keeps experiment settings admin-only and raw events anonymous (27.310571ms)
+✖ PWA and bootstrap include experiment modules and stable fallback (3.652243ms)
+✔ buildClassNotice composes class information and omits unapproved resources (42.249008ms)
+✔ buildClassNotice provides an editable empty-state message (0.452314ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 49
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 595.951701
+
+✖ failing tests:
+
+test at tests/experiment-platform.test.mjs:189:1
+✖ PWA and bootstrap include experiment modules and stable fallback (3.652243ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /experiments\/pincon-next-ui\.js/. Input:
+  
+  'import { enableForcedReadonly, savedClassProfile } from "./core/degraded-readonly.js?v=20260905-readonly1";\n' +
+    '\n' +
+    'function hasOfflineClassProfile() {\n' +
+    '  return !navigator.onLine && Boolean(savedClassProfile());\n' +
+    '}\n' +
+    '\n' +
+    'let accountReady = Promise.resolve(null);\n' +
+    'if (hasOfflineClassProfile()) {\n' +
+    '  const detail = { mode: "offline-readonly", user: null, account: null };\n' +
+    '  enableForcedReadonly(detail.mode);\n' +
+    '  globalThis.PINCON_ACCOUNT = detail;\n' +
+    '  window.dispatchEvent(new CustomEvent("pincon-account-ready", { detail }));\n' +
+    '} else {\n' +
+    '  ({ accountReady } = await import("./simple-account-gate.js?v=20260905-readonly1"));\n' +
+    '}\n' +
+    '\n' +
+    'try {\n' +
+    '  await accountReady;\n' +
+    '} catch (error) {\n' +
+    '  try { localStorage.setItem("pincon-experiment-login-failure-pending-v1", "1"); } catch {}\n' +
+    '  throw error;\n' +
+    '}\n' +
+    '// Mount the usable app before experiment configuration and analytics.\n' +
+    'document.body.dataset.pinconVariant = "legacy";\n' +
+    'await import("./evaluation-plans/service.js");\n' +
+    'await import("./personal-notification-filter.js?v=20260830-personal1");\n' +
+    'await import("./loading-resilience.js?v=20261007-light2");\n' +
+    'await import("./app.js?v=20261009-new1");\n' +
+    'await import("./app-interactions.js?v=20261007-light2");\n' +
+    'await import("./theme.js?v=20261007-light2");\n' +
+    '\n' +
+    'await Promise.all([\n' +
+    '  import("./readonly-notice.js?v=20260905-readonly1"),\n' +
+    '  import("./write-mode.js"),\n' +
+    '  import("./evaluation-plans/student.js"),\n' +
+    '  import("./admin-visibility.js"),\n' +
+    '  import("./account-center.js"),\n' +
+    '  import("./student-ops.js?v=20261007-light2"),\n' +
+    '  import("./classroom-entry.js?v=20260906-officer1"),\n' +
+    '  import("./detail-history-stability.js?v=20260831-history1"),\n' +
+    '  import("./dialog-focus-stability.js?v=20260903-focus1"),\n' +
+    ']);\n' +
+    '\n' +
+    'async function startExperiments() {\n' +
+    '  const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20261007-light2");\n' +
+    '  const experimentPlatform = await initExperimentPlatform();\n' +
+    '  if (localStorage.getItem("pincon-experiment-login-failure-pending-v1") === "1") {\n' +
+    '    experimentPlatform.log("login_failure", { errorType: "account_gate", source: "previous_session" });\n' +
+    '    localStorage.removeItem("pincon-experiment-login-failure-pending-v1");\n' +
+    '  }\n' +
+    '  const { NextDataGateway } = await import("./core/data-gateway.js");\n' +
+    '  const gateway = new NextDataGateway();\n' +
+    '  gateway.addEventListener("change", (event) => reportDataGatewaySnapshot(event.detail));\n' +
+    '  reportDataGatewaySnapshot(gateway.snapshot());\n' +
+    '  // Always use the original PinCon home. The experimental Presence × Quiet Flux\n' +
+    '  // interface is retired and must not replace the production app.\n' +
+    '  document.body.dataset.pinconVariant = "legacy";\n' +
+    '  await Promise.all([\n' +
+    '    import("./experiments/public-beta.js?v=20260914-beta1"),\n' +
+    '    import("./experiments/ui-satisfaction.js?v=20260914-exp1"),\n' +
+    '    import("./experiments/notification-frequency.js?v=20260914-exp1"),\n' +
+    '  ]);\n' +
+    '}\n' +
+    'startExperiments().catch((error) => console.warn("[PinCon Experiment]", error));\n'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/4a3ab6d0cc6e/pincon-integration/tests/experiment-platform.test.mjs:196:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'import { enableForcedReadonly, savedClassProfile } from "./core/degraded-readonly.js?v=20260905-readonly1";\n\nfunction hasOfflineClassProfile() {\n  return !navigator.onLine && Boolean(savedClassProfile());\n}\n\nlet accountReady = Promise.resolve(null);\nif (hasOfflineClassProfile()) {\n  const detail = { mode: "offline-readonly", user: null, account: null };\n  enableForcedReadonly(detail.mode);\n  globalThis.PINCON_ACCOUNT = detail;\n  window.dispatchEvent(new CustomEvent("pincon-account-ready", { detail }));\n} else {\n  ({ accountReady } = await import("./simple-account-gate.js?v=20260905-readonly1"));\n}\n\ntry {\n  await accountReady;\n} catch (error) {\n  try { localStorage.setItem("pincon-experiment-login-failure-pending-v1", "1"); } catch {}\n  throw error;\n}\n// Mount the usable app before experiment configuration and analytics.\ndocument.body.dataset.pinconVariant = "legacy";\nawait import("./evaluation-plans/service.js");\nawait import("./personal-notification-filter.js?v=20260830-personal1");\nawait import("./loading-resilience.js?v=20261007-light2");\nawait import("./app.js?v=20261009-new1");\nawait import("./app-interactions.js?v=20261007-light2");\nawait import("./theme.js?v=20261007-light2");\n\nawait Promise.all([\n  import("./readonly-notice.js?v=20260905-readonly1"),\n  import("./write-mode.js"),\n  import("./evaluation-plans/student.js"),\n  import("./admin-visibility.js"),\n  import("./account-center.js"),\n  import("./student-ops.js?v=20261007-light2"),\n  import("./classroom-entry.js?v=20260906-officer1"),\n  import("./detail-history-stability.js?v=20260831-history1"),\n  import("./dialog-focus-stability.js?v=20260903-focus1"),\n]);\n\nasync function startExperiments() {\n  const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20261007-light2");\n  const experimentPlatform = await initExperimentPlatform();\n  if (localStorage.getItem("pincon-experiment-login-failure-pending-v1") === "1") {\n    experimentPlatform.log("login_failure", { errorType: "account_gate", source: "previous_session" });\n    localStorage.removeItem("pincon-experiment-login-failure-pending-v1");\n  }\n  const { NextDataGateway } = await import("./core/data-gateway.js");\n  const gateway = new NextDataGateway();\n  gateway.addEventListener("change", (event) => reportDataGatewaySnapshot(event.detail));\n  reportDataGatewaySnapshot(gateway.snapshot());\n  // Always use the original PinCon home. The experimental Presence × Quiet Flux\n  // interface is retired and must not replace the production app.\n  document.body.dataset.pinconVariant = "legacy";\n  await Promise.all([\n    import("./experiments/public-beta.js?v=20260914-beta1"),\n    import("./experiments/ui-satisfaction.js?v=20260914-exp1"),\n    import("./experiments/notification-frequency.js?v=20260914-exp1"),\n  ]);\n}\nstartExperiments().catch((error) => console.warn("[PinCon Experiment]", error));\n',
+    expected: /experiments\/pincon-next-ui\.js/,
+    operator: 'match',
+    diff: 'simple'
+  }

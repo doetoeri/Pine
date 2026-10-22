@@ -1,0 +1,4 @@
+import fs from 'node:fs';import {runExperiment} from '../src/experiments.mjs';
+const data={facilities:JSON.parse(fs.readFileSync(new URL('../public/data/facilities.json',import.meta.url))),routes:JSON.parse(fs.readFileSync(new URL('../public/data/routes.json',import.meta.url)))};
+const cases=[];for(const product of ['MIX','RBC','PLT','FFP']){const r=runExperiment({scenario:'crisis',product},data,{experiment:'A',days:3,repeats:2,seed:20261021});if(!r.pairs.every(p=>p.control.verification.passed&&p.treatment.verification.passed&&p.control.demandFingerprint===p.treatment.demandFingerprint))throw Error('crisis verification failed');cases.push({product,pairs:r.pairs,metrics:r.metrics});}
+fs.writeFileSync(new URL('../test-results/crisis-scenarios.json',import.meta.url),JSON.stringify({scenario:'first hospital x3 demand from hour 24 to 72, seed 20261021',cases},null,2));console.log('Crisis scenario: all four product configurations passed.');

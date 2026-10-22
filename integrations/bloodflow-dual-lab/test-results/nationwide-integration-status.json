@@ -1,0 +1,41 @@
+{
+  "status": "공개 게시 승인 완료 · 게시 직전 검증 스냅샷; 운영 미배포",
+  "repository": "doetoeri/Pine",
+  "baselineCommit": "d4d94fcb8335a688cafba637a332be21c2dc0496",
+  "allowedPrefixes": [
+    "bloodflow/",
+    "integrations/bloodflow-dual-lab/"
+  ],
+  "productionDeployed": false,
+  "remoteBranchCreated": false,
+  "approval": "User approved public source, examples and preserved input HTML publication on 2026-10-22; production deployment approval remains pending",
+  "addedFiles": 148,
+  "existingFilesModified": 0,
+  "staticFiles": 29,
+  "sourceFiles": 119,
+  "baselineRegression": {
+    "pass": 50,
+    "fail": 0
+  },
+  "integratedRegression": {
+    "pass": 50,
+    "fail": 0
+  },
+  "appTests": {
+    "pass": 34,
+    "fail": 0
+  },
+  "integratedAppTests": {
+    "pass": 34,
+    "fail": 0
+  },
+  "localBranch": "codex/bloodflow-nationwide-20261022",
+  "patchValidation": "Original delivered patch was checked against 9a55183; review branch rebased without conflict onto d4d94fcb8335a688cafba637a332be21c2dc0496 and all 34 app / 50 selected PinCon tests passed again.",
+  "testCommands": {
+    "app": "node --test tests/*.test.mjs",
+    "pincon": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+  },
+  "statusAsOf": "2026-10-22T05:14:40.997564+00:00",
+  "previousValidatedBaseline": "9a55183cd70d3ea66b59a86733b8cda36d1364e9",
+  "publicPublicationApproved": true
+}

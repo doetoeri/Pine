@@ -1,0 +1,51 @@
+{
+  "recordedAt": "2026-10-21T23:36:05+09:00",
+  "method": "Recorded observations from a CUA-controlled cloud Chromium session; iframe viewport checks, not physical Android tests. This record is not rerun by report generation.",
+  "observations": [
+    {
+      "check": "Engineering Lab browser navigation, step and map rendering",
+      "result": "passed"
+    },
+    {
+      "check": "Two browser tabs join same room as engineering and biology; common D0 06:00 observed",
+      "result": "passed"
+    },
+    {
+      "check": "Biology product selection and shared condition reset",
+      "result": "passed"
+    },
+    {
+      "check": "Shared Research COMPUTE, 7 days x 3 paired repetitions",
+      "result": "passed"
+    },
+    {
+      "check": "Self-contained HTML served as one file; embedded map, autosave restore, Blob worker compute 3 days x 2 pairs",
+      "result": "passed"
+    },
+    {
+      "check": "Engineering iframe 1280 x 800",
+      "result": "passed",
+      "documentWidth": 1265,
+      "horizontalOverflow": false,
+      "mapTop": 447.375,
+      "mapBottom": 787.375,
+      "mapHeight": 340
+    },
+    {
+      "check": "Biology iframe 1400 x 876",
+      "result": "passed",
+      "documentWidth": 1385,
+      "horizontalOverflow": false,
+      "productCards": 3,
+      "visibleButtonsBelow44pxHeight": 0
+    },
+    {
+      "check": "Actual Galaxy Tab S8/S8+ hardware, physical touch, Android file handling",
+      "result": "not-tested"
+    },
+    {
+      "check": "Full 180-second browser presentation timer; service-worker offline reload under network emulation",
+      "result": "not-tested"
+    }
+  ]
+}

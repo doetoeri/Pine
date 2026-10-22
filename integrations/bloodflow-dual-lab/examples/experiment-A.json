@@ -1,0 +1,996 @@
+{
+  "format": "BLOODFLOW-PAIRED-1",
+  "modelVersion": "1.0.0",
+  "createdAt": "2026-10-21T14:13:11.768Z",
+  "plan": {
+    "experiment": "A",
+    "factor": "safetyDays",
+    "control": 1,
+    "treatment": 6,
+    "days": 30,
+    "repeats": 12,
+    "seed": 20261021
+  },
+  "config": {},
+  "metrics": {
+    "shortageRate": {
+      "control": {
+        "n": 12,
+        "mean": 0.45477574342537624,
+        "sd": 0.04664763549121286,
+        "ci95": [
+          0.42513705001421986,
+          0.4844144368365326
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 0.14412538322147198,
+        "sd": 0.033590769810731724,
+        "ci95": [
+          0.12278268240971173,
+          0.1654680840332322
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": -0.3106503602039043,
+        "sd": 0.05613915784776729,
+        "ci95": [
+          -0.3463197198678881,
+          -0.2749810005399205
+        ]
+      }
+    },
+    "wasteRate": {
+      "control": {
+        "n": 12,
+        "mean": 0.2105128284827584,
+        "sd": 0.017645764504730946,
+        "ci95": [
+          0.1993011690137655,
+          0.22172448795175131
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 0.13410053020101767,
+        "sd": 0.010131205982978838,
+        "ci95": [
+          0.1276634256221297,
+          0.14053763477990563
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": -0.07641229828174075,
+        "sd": 0.01391990790985907,
+        "ci95": [
+          -0.0852566454497673,
+          -0.06756795111371419
+        ]
+      }
+    },
+    "averageInventory": {
+      "control": {
+        "n": 12,
+        "mean": 225.76395165501802,
+        "sd": 24.475096930599346,
+        "ci95": [
+          210.21311212166125,
+          241.31479118837478
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 156.39858401205086,
+        "sd": 22.919542405991624,
+        "ci95": [
+          141.83610333447942,
+          170.9610646896223
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": -69.3653676429672,
+        "sd": 7.54368234038801,
+        "ci95": [
+          -74.1584270493766,
+          -64.5723082365578
+        ]
+      }
+    },
+    "meanTransportHours": {
+      "control": {
+        "n": 12,
+        "mean": 0.09984288344233355,
+        "sd": 0.002659146443669961,
+        "ci95": [
+          0.09815333100630177,
+          0.10153243587836533
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 0.10523537219210556,
+        "sd": 0.002865626159787438,
+        "ci95": [
+          0.10341462791886306,
+          0.10705611646534806
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": 0.0053924887497720266,
+        "sd": 0.001304255878405806,
+        "ci95": [
+          0.004563798512792063,
+          0.00622117898675199
+        ]
+      }
+    },
+    "unmet": {
+      "control": {
+        "n": 12,
+        "mean": 308.75,
+        "sd": 31.25881693800385,
+        "ci95": [
+          288.8889613457368,
+          328.6110386542632
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 99.83333333333333,
+        "sd": 29.24452810770631,
+        "ci95": [
+          81.25212137240707,
+          118.41454529425958
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": -208.91666666666666,
+        "sd": 21.26652655031262,
+        "ci95": [
+          -222.42886409548737,
+          -195.40446923784594
+        ]
+      }
+    },
+    "expired": {
+      "control": {
+        "n": 12,
+        "mean": 196.08333333333334,
+        "sd": 16.69762276674755,
+        "ci95": [
+          185.47409844570436,
+          206.69256822096233
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 124.91666666666667,
+        "sd": 9.624385064968456,
+        "ci95": [
+          118.80158290716408,
+          131.03175042616925
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": -71.16666666666667,
+        "sd": 13.023289162345302,
+        "ci95": [
+          -79.44132562039431,
+          -62.89200771293903
+        ]
+      }
+    },
+    "available": {
+      "control": {
+        "n": 12,
+        "mean": 357.4166666666667,
+        "sd": 46.8352204947076,
+        "ci95": [
+          327.6587866268942,
+          387.1745467064392
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 218.33333333333334,
+        "sd": 42.76220364534621,
+        "ci95": [
+          191.16334218408,
+          245.5033244825867
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": -139.08333333333334,
+        "sd": 12.87321626361093,
+        "ci95": [
+          -147.26263987341616,
+          -130.90402679325052
+        ]
+      }
+    },
+    "held": {
+      "control": {
+        "n": 12,
+        "mean": 0,
+        "sd": 0,
+        "ci95": [
+          0,
+          0
+        ]
+      },
+      "treatment": {
+        "n": 12,
+        "mean": 0,
+        "sd": 0,
+        "ci95": [
+          0,
+          0
+        ]
+      },
+      "pairedDifference": {
+        "n": 12,
+        "mean": 0,
+        "sd": 0,
+        "ci95": [
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "pairs": [
+    {
+      "repeat": 1,
+      "seed": 20261021,
+      "control": {
+        "created": 937,
+        "served": 331,
+        "requested": 693,
+        "unmet": 362,
+        "expired": 203,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 267,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 859,
+        "available": 394,
+        "held": 0,
+        "inTransit": 4,
+        "shortageRate": 0.5223665223665224,
+        "wasteRate": 0.21664887940234792,
+        "averageInventory": 236.4749166697788,
+        "meanTransportHours": 0.10044821802934652,
+        "demandFingerprint": 1658386665,
+        "verification": {
+          "active": 403,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 937,
+        "served": 569,
+        "requested": 693,
+        "unmet": 124,
+        "expired": 118,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 294,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 859,
+        "available": 240,
+        "held": 0,
+        "inTransit": 5,
+        "shortageRate": 0.17893217893217894,
+        "wasteRate": 0.12593383137673425,
+        "averageInventory": 155.32435025679146,
+        "meanTransportHours": 0.10357030060882556,
+        "demandFingerprint": 1658386665,
+        "verification": {
+          "active": 250,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 2,
+      "seed": 20365750,
+      "control": {
+        "created": 927,
+        "served": 250,
+        "requested": 530,
+        "unmet": 280,
+        "expired": 212,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 262,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 849,
+        "available": 457,
+        "held": 0,
+        "inTransit": 5,
+        "shortageRate": 0.5283018867924528,
+        "wasteRate": 0.22869471413160733,
+        "averageInventory": 288.6886888983321,
+        "meanTransportHours": 0.09388685113684907,
+        "demandFingerprint": 950731453,
+        "verification": {
+          "active": 465,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 927,
+        "served": 481,
+        "requested": 530,
+        "unmet": 49,
+        "expired": 121,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 291,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 849,
+        "available": 313,
+        "held": 0,
+        "inTransit": 9,
+        "shortageRate": 0.09245283018867924,
+        "wasteRate": 0.13052858683926646,
+        "averageInventory": 219.25769132888837,
+        "meanTransportHours": 0.09966174768518424,
+        "demandFingerprint": 950731453,
+        "verification": {
+          "active": 325,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 3,
+      "seed": 20470479,
+      "control": {
+        "created": 956,
+        "served": 344,
+        "requested": 631,
+        "unmet": 287,
+        "expired": 222,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 286,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 878,
+        "available": 389,
+        "held": 0,
+        "inTransit": 1,
+        "shortageRate": 0.4548335974643423,
+        "wasteRate": 0.23221757322175732,
+        "averageInventory": 252.51104611252376,
+        "meanTransportHours": 0.10293099415204393,
+        "demandFingerprint": 649473879,
+        "verification": {
+          "active": 390,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 956,
+        "served": 570,
+        "requested": 631,
+        "unmet": 61,
+        "expired": 130,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 287,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 878,
+        "available": 255,
+        "held": 0,
+        "inTransit": 1,
+        "shortageRate": 0.09667194928684628,
+        "wasteRate": 0.13598326359832635,
+        "averageInventory": 179.31353734997597,
+        "meanTransportHours": 0.10995260295260109,
+        "demandFingerprint": 649473879,
+        "verification": {
+          "active": 256,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 4,
+      "seed": 20575208,
+      "control": {
+        "created": 921,
+        "served": 426,
+        "requested": 726,
+        "unmet": 300,
+        "expired": 192,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 297,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 843,
+        "available": 301,
+        "held": 0,
+        "inTransit": 2,
+        "shortageRate": 0.4132231404958678,
+        "wasteRate": 0.20846905537459284,
+        "averageInventory": 201.8326925291727,
+        "meanTransportHours": 0.1024886448948932,
+        "demandFingerprint": 1376686060,
+        "verification": {
+          "active": 303,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 921,
+        "served": 601,
+        "requested": 726,
+        "unmet": 125,
+        "expired": 135,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 291,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 843,
+        "available": 183,
+        "held": 0,
+        "inTransit": 2,
+        "shortageRate": 0.1721763085399449,
+        "wasteRate": 0.1465798045602606,
+        "averageInventory": 145.36975558963312,
+        "meanTransportHours": 0.1090961168781216,
+        "demandFingerprint": 1376686060,
+        "verification": {
+          "active": 185,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 5,
+      "seed": 20679937,
+      "control": {
+        "created": 920,
+        "served": 358,
+        "requested": 699,
+        "unmet": 341,
+        "expired": 209,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 284,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 842,
+        "available": 350,
+        "held": 0,
+        "inTransit": 3,
+        "shortageRate": 0.48783977110157367,
+        "wasteRate": 0.22717391304347825,
+        "averageInventory": 221.01120493037254,
+        "meanTransportHours": 0.09620778964017174,
+        "demandFingerprint": 4277359354,
+        "verification": {
+          "active": 353,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 920,
+        "served": 569,
+        "requested": 699,
+        "unmet": 130,
+        "expired": 134,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 302,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 842,
+        "available": 213,
+        "held": 0,
+        "inTransit": 4,
+        "shortageRate": 0.1859799713876967,
+        "wasteRate": 0.14565217391304347,
+        "averageInventory": 156.4340966711756,
+        "meanTransportHours": 0.1028133333333311,
+        "demandFingerprint": 4277359354,
+        "verification": {
+          "active": 217,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 6,
+      "seed": 20784666,
+      "control": {
+        "created": 957,
+        "served": 372,
+        "requested": 635,
+        "unmet": 263,
+        "expired": 220,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 299,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 879,
+        "available": 358,
+        "held": 0,
+        "inTransit": 2,
+        "shortageRate": 0.4141732283464567,
+        "wasteRate": 0.22988505747126436,
+        "averageInventory": 216.16687147754288,
+        "meanTransportHours": 0.1004730639730616,
+        "demandFingerprint": 3647005939,
+        "verification": {
+          "active": 365,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 957,
+        "served": 576,
+        "requested": 635,
+        "unmet": 59,
+        "expired": 146,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 307,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 879,
+        "available": 224,
+        "held": 0,
+        "inTransit": 6,
+        "shortageRate": 0.09291338582677165,
+        "wasteRate": 0.15256008359456635,
+        "averageInventory": 148.393857563666,
+        "meanTransportHours": 0.10435069444444232,
+        "demandFingerprint": 3647005939,
+        "verification": {
+          "active": 235,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 7,
+      "seed": 20889395,
+      "control": {
+        "created": 957,
+        "served": 457,
+        "requested": 740,
+        "unmet": 283,
+        "expired": 185,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 299,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 879,
+        "available": 308,
+        "held": 0,
+        "inTransit": 5,
+        "shortageRate": 0.3824324324324324,
+        "wasteRate": 0.19331243469174503,
+        "averageInventory": 202.49644561499562,
+        "meanTransportHours": 0.10212912912912592,
+        "demandFingerprint": 2956387852,
+        "verification": {
+          "active": 315,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 957,
+        "served": 641,
+        "requested": 740,
+        "unmet": 99,
+        "expired": 123,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 294,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 879,
+        "available": 186,
+        "held": 0,
+        "inTransit": 5,
+        "shortageRate": 0.13378378378378378,
+        "wasteRate": 0.12852664576802508,
+        "averageInventory": 140.38939243913478,
+        "meanTransportHours": 0.10755146499238655,
+        "demandFingerprint": 2956387852,
+        "verification": {
+          "active": 193,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 8,
+      "seed": 20994124,
+      "control": {
+        "created": 893,
+        "served": 332,
+        "requested": 611,
+        "unmet": 279,
+        "expired": 179,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 276,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 815,
+        "available": 381,
+        "held": 0,
+        "inTransit": 1,
+        "shortageRate": 0.45662847790507366,
+        "wasteRate": 0.20044792833146696,
+        "averageInventory": 221.9095459188047,
+        "meanTransportHours": 0.09939202020201719,
+        "demandFingerprint": 197849495,
+        "verification": {
+          "active": 382,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 893,
+        "served": 521,
+        "requested": 611,
+        "unmet": 90,
+        "expired": 122,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 284,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 815,
+        "available": 245,
+        "held": 0,
+        "inTransit": 5,
+        "shortageRate": 0.14729950900163666,
+        "wasteRate": 0.1366181410974244,
+        "averageInventory": 152.4351707809262,
+        "meanTransportHours": 0.10339373270066882,
+        "demandFingerprint": 197849495,
+        "verification": {
+          "active": 250,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 9,
+      "seed": 21098853,
+      "control": {
+        "created": 899,
+        "served": 412,
+        "requested": 751,
+        "unmet": 339,
+        "expired": 191,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 290,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 821,
+        "available": 292,
+        "held": 0,
+        "inTransit": 4,
+        "shortageRate": 0.45139813581890814,
+        "wasteRate": 0.21245828698553948,
+        "averageInventory": 212.57793893094154,
+        "meanTransportHours": 0.1013824490580533,
+        "demandFingerprint": 3310861012,
+        "verification": {
+          "active": 296,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 899,
+        "served": 624,
+        "requested": 751,
+        "unmet": 127,
+        "expired": 123,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 297,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 821,
+        "available": 147,
+        "held": 0,
+        "inTransit": 5,
+        "shortageRate": 0.16910785619174434,
+        "wasteRate": 0.13681868743047831,
+        "averageInventory": 145.63676230261774,
+        "meanTransportHours": 0.10712410546139138,
+        "demandFingerprint": 3310861012,
+        "verification": {
+          "active": 152,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 10,
+      "seed": 21203582,
+      "control": {
+        "created": 939,
+        "served": 383,
+        "requested": 709,
+        "unmet": 326,
+        "expired": 175,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 285,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 861,
+        "available": 378,
+        "held": 0,
+        "inTransit": 3,
+        "shortageRate": 0.459802538787024,
+        "wasteRate": 0.18636847710330137,
+        "averageInventory": 230.63301161669935,
+        "meanTransportHours": 0.10096087636932462,
+        "demandFingerprint": 175636563,
+        "verification": {
+          "active": 381,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 939,
+        "served": 597,
+        "requested": 709,
+        "unmet": 112,
+        "expired": 113,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 301,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 861,
+        "available": 225,
+        "held": 0,
+        "inTransit": 4,
+        "shortageRate": 0.15796897038081806,
+        "wasteRate": 0.12034078807241747,
+        "averageInventory": 153.83469086395866,
+        "meanTransportHours": 0.10500938312894667,
+        "demandFingerprint": 175636563,
+        "verification": {
+          "active": 229,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 11,
+      "seed": 21308311,
+      "control": {
+        "created": 979,
+        "served": 469,
+        "requested": 780,
+        "unmet": 311,
+        "expired": 176,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 301,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 901,
+        "available": 327,
+        "held": 0,
+        "inTransit": 7,
+        "shortageRate": 0.39871794871794874,
+        "wasteRate": 0.1797752808988764,
+        "averageInventory": 213.660601117972,
+        "meanTransportHours": 0.09961167039522444,
+        "demandFingerprint": 1794107309,
+        "verification": {
+          "active": 334,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 979,
+        "served": 657,
+        "requested": 780,
+        "unmet": 123,
+        "expired": 120,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 304,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 901,
+        "available": 196,
+        "held": 0,
+        "inTransit": 6,
+        "shortageRate": 0.1576923076923077,
+        "wasteRate": 0.12257405515832483,
+        "averageInventory": 150.08992427899332,
+        "meanTransportHours": 0.10553580657068817,
+        "demandFingerprint": 1794107309,
+        "verification": {
+          "active": 202,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    },
+    {
+      "repeat": 12,
+      "seed": 21413040,
+      "control": {
+        "created": 897,
+        "served": 351,
+        "requested": 685,
+        "unmet": 334,
+        "expired": 189,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 288,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 819,
+        "available": 354,
+        "held": 0,
+        "inTransit": 3,
+        "shortageRate": 0.48759124087591244,
+        "wasteRate": 0.21070234113712374,
+        "averageInventory": 211.2044560430808,
+        "meanTransportHours": 0.09820289432789106,
+        "demandFingerprint": 4237658723,
+        "verification": {
+          "active": 357,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      },
+      "treatment": {
+        "created": 897,
+        "served": 586,
+        "requested": 685,
+        "unmet": 99,
+        "expired": 114,
+        "rejected": 0,
+        "quality": 0,
+        "review": 0,
+        "shipments": 293,
+        "interhospital": 0,
+        "timeHours": 720,
+        "initialInventory": 78,
+        "receipts": 819,
+        "available": 193,
+        "held": 0,
+        "inTransit": 4,
+        "shortageRate": 0.14452554744525548,
+        "wasteRate": 0.12709030100334448,
+        "averageInventory": 130.30377871884914,
+        "meanTransportHours": 0.1047651775486794,
+        "demandFingerprint": 4237658723,
+        "verification": {
+          "active": 197,
+          "balance": 0,
+          "errors": 0,
+          "passed": true
+        }
+      }
+    }
+  ],
+  "method": "반복별 비율의 평균. 표본 표준편차(n−1), Student t 95% 구간. 정책 차이는 동일 시드의 실험군−기준군을 짝지어 계산. 확률 모형 안의 표본 불확실성이며 실제 혈액 공급망의 예측 오차가 아니다."
+}
