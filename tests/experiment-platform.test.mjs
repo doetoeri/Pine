@@ -105,8 +105,8 @@ test("Notification experiment honors baseline, periods, and frequency budgets", 
   assert.equal(dailyBudget("LOW", config), 1);
   assert.equal(dailyBudget("MID", config), 3);
   assert.equal(dailyBudget("HIGH", config), 4);
-  const slot = currentSlot(new Date("2026-09-14T03:05:00Z"));
-  assert.equal(slot?.hour, 12);
+  const slot = currentSlot(new Date("2026-09-14T04:05:00Z"));
+  assert.equal(slot?.hour, 13);
   assert.equal(eligibleForSlot("LOW", slot, config), false);
   assert.equal(eligibleForSlot("MID", slot, config), true);
 
