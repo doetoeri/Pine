@@ -159,7 +159,7 @@ async function classCandidates(root, classKey, date) {
     if (![date,tomorrow].includes(due)) continue;
     rows.push({
       key: `event:${doc.id}`,
-      category: "class_notice",
+      category: "schedule",
       title: "학급 일정 확인",
       body: String(item.title || item.question || "다가오는 학급 일정").slice(0,220),
       targetRoute: "classroom",
@@ -173,7 +173,7 @@ async function classCandidates(root, classKey, date) {
     if (createdAtMs < Date.now() - 24 * 60 * 60 * 1000) continue;
     rows.push({
       key: `notice:${doc.id}`,
-      category: "class_notice",
+      category: "daily_summary",
       title: "새 학급 공지",
       body: String(item.title || "새 공지가 있습니다.").slice(0,220),
       targetRoute: "classroom",
@@ -182,6 +182,15 @@ async function classCandidates(root, classKey, date) {
   }
   return rows.sort((a,b) => String(a.due).localeCompare(String(b.due)) || a.key.localeCompare(b.key));
 }
+
+// Stable, truthful check-in prompts preserve the assigned exposure budget on
+// quiet days. They do not claim that an assignment or announcement exists.
+const FALLBACK_BY_SLOT = Object.freeze([
+  Object.freeze({ key: "check-in:daily", category: "daily_summary", title: "PinCon 아침 확인", body: "오늘의 학급 일정과 공지를 확인해 보세요.", targetRoute: "today" }),
+  Object.freeze({ key: "check-in:schedule", category: "schedule", title: "PinCon 일정 확인", body: "남은 학급 일정과 변경 사항을 확인해 보세요.", targetRoute: "schedule" }),
+  Object.freeze({ key: "check-in:assignment", category: "assignment", title: "PinCon 수행평가 확인", body: "예정된 수행평가와 제출 기한을 확인해 보세요.", targetRoute: "schedule" }),
+  Object.freeze({ key: "check-in:materials", category: "materials", title: "PinCon 준비물 확인", body: "학급 준비물과 학습 자료를 확인해 보세요.", targetRoute: "classroom" }),
+]);
 
 function eventRecord({
   anonymousParticipant, config, condition, period, type, notificationId: id, category, targetRoute = "", slotIndex = -1, now,
@@ -296,20 +305,17 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       candidates = await classCandidates(root, classKey, date);
       candidateCache.set(classKey, candidates);
     }
+    const relevant = candidates.filter((item) => item.category === slot.categoryHint);
     const candidateIndex = candidateIndexForSlot({
       anonymousParticipant: participant,
       date,
       period: state.period,
       condition,
       slotIndex: slot.index,
-      candidateCount: candidates.length,
+      candidateCount: relevant.length,
       config: ready.config,
     });
-    if (candidateIndex < 0) {
-      skippedNoCandidate += 1;
-      continue;
-    }
-    const candidate = candidates[candidateIndex];
+    const candidate = relevant[candidateIndex] || FALLBACK_BY_SLOT[slot.index];
     if (!candidate) {
       skippedNoCandidate += 1;
       continue;
