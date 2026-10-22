@@ -243,13 +243,16 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     return { active: false, sent: 0, reason: !ready.uiDone ? "ui-experiment-not-completed" : "inactive" };
   }
 
+  const preassignment = await preassignActiveAccounts(root, ready.config);
   const period = conditionFor(["LOW","MID","HIGH"], ready.config, now);
   const slot = currentSlot(now);
   if (period.phase !== "EXPERIMENT" || !slot) {
-    return { active: true, sent: 0, phase: period.phase, slot: slot?.index ?? null };
+    return {
+      active: true, sent: 0, phase: period.phase, slot: slot?.index ?? null,
+      rosterAccounts: preassignment.total, preassigned: preassignment.assigned,
+    };
   }
 
-  const preassignment = await preassignActiveAccounts(root, ready.config);
   const subscriptions = await root.collection("pushSubscriptions").where("enabled","==",true).get();
   const targetClassKeys = new Set(
     (Array.isArray(ready.config.targetClassKeys) ? ready.config.targetClassKeys : [])
@@ -379,6 +382,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     if (claim.isNew) scheduled += 1;
     else retried += 1;
 
+    let fcmAccepted = false;
     try {
       await messaging.send({
         token: sub.token,
@@ -400,6 +404,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
         },
         webpush: { headers: { Urgency: "normal", TTL: "3600" } },
       });
+      fcmAccepted = true;
       sent += 1;
       const acceptedAt = new Date();
       await Promise.all([
@@ -425,6 +430,16 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
         ),
       ]);
     } catch (error) {
+      if (fcmAccepted) {
+        // FCM accepted the send; recording failure is NOT a reason to
+        // send it again. Keep the receipt blocked for manual reconciliation.
+        await receipt.set({
+          status: "send-uncertain",
+          acceptedAtMs: Date.now(),
+          errorCode: "receipt-write-failed",
+        }, { merge: true }).catch(() => {});
+        throw error;
+      }
       failed += 1;
       const errorCode = String(error?.code || "unknown").slice(0,80);
       const permanent = isInvalidTokenError(error);
