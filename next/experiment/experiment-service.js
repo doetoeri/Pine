@@ -526,9 +526,9 @@ export class ExperimentPlatform {
   async notificationExperimentEnabled() {
     if (!this.api) await this.start();
     if (!this.user) throw new Error("실험 알림 설정을 변경하려면 로그인이 필요합니다.");
-    const preference = await readOptional(this.api, "schools", SCHOOL.id,
-      "notificationExperimentPreferences", this.user.uid);
-    return preference?.enabled !== false;
+    const snapshot = await this.api.getDoc(this.api.doc(this.api.db,
+      "schools", SCHOOL.id, "notificationExperimentPreferences", this.user.uid));
+    return !snapshot.exists() || snapshot.data()?.enabled !== false;
   }
 
   async setNotificationExperimentEnabled(enabled) {
