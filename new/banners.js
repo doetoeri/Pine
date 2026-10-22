@@ -24,8 +24,9 @@ export function mountBanners(gateway) {
   const host = document.createElement("section");
   host.id = "pinconBanners";
   host.setAttribute("aria-label","PinCon 안내 배너");
-  const anchor = document.querySelector("main") || document.querySelector("#app") || document.body;
-  anchor.prepend(host);
+  const anchor = document.querySelector("#covers") || document.querySelector("main");
+  if (anchor?.parentNode) anchor.parentNode.insertBefore(host, anchor);
+  else document.body.prepend(host);
   let busy = false;
   const render = () => {
     const snap = gateway.snapshot();
