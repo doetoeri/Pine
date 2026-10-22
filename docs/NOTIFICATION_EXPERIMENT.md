@@ -98,6 +98,7 @@ MID  -> LOW  -> HIGH
 서버는 `schools/gochon-high/users`에서 `status=ACTIVE`인 모든 계정을 스캔해 익명 참가자 ID와 교차 순서를 미리 등록한다. 기존에 한 번도 로그인하지 않았어도 배정된다.
 발송할 때는 활성 계정의 `classKey`와 구독 문서의 `classKey`가 같은지 재검증한다.
 구독 `preferences.notificationExperiment=false`가 어느 기기에든 기록된 계정은 **모든 기기에서 실험 알림을 제외**한다.
+참가자는 `/experiments/`의 **연구 알림 수신** 메뉴에서 계정 단위로 언제든 중지하거나 다시 허용할 수 있다. 이 값은 `notificationExperimentPreferences/{uid}`에 사용자 본인만 쓰기 가능하며 서버가 발송 직전에 재확인한다.
 `enabled=false` 또는 OS 푸시 허용이 없는 계정에는 실험 알림이 발송되지 않는다.
 실험을 중단하면 관리자 `Pause`로 `ACTIVE` 상태와 발송 flag를 해제한다. 예기치 못한 중복 실행 방지를 위해 Firestore 트랜잭션으로 발송 receipt를 먼저 선점한다.
 Firebase FCM 수락 이후 DB 기록 실패가 발생한 발송은 자동 재발송하지 않고 수동 확인 대상으로 남긴다.
