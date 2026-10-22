@@ -270,7 +270,7 @@ async function load() {
 }
 
 const uiDefaults = () => ({ status:"DRAFT",version:1,stableVariant:"legacy",promotedVariant:"",rolloutPercent:0,allocation:{nextPercent:50},canarySize:7,publicBetaEnabled:false });
-const notificationDefaults = () => ({ status:"DRAFT",version:2,stableVariant:"next",promotedVariant:"",rolloutPercent:0,targetClassKeys:[gateway.snapshot().profile?.classKey].filter(Boolean),startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:0,midPerDay:1,highPerDay:3} });
+const notificationDefaults = () => ({ status:"DRAFT",version:2,stableVariant:"next",promotedVariant:"",rolloutPercent:0,targetClassKeys:[],startDate:kstDateKey(),baselineDays:2,periodDays:4,frequency:{lowPerDay:0,midPerDay:1,highPerDay:3} });
 
 function targetUids(max = 7) {
   return String(document.querySelector("#experimentTargetUids")?.value || "").split(",").map((value) => value.trim()).filter(Boolean).slice(0, max);
@@ -326,10 +326,8 @@ async function run(action, value) {
     await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "start-notification") {
     const config = {...notificationDefaults(),...(bundle.config||{})};
-    const target = gateway.snapshot().profile?.classKey;
-    if (!target || !Array.isArray(config.targetClassKeys) || config.targetClassKeys.length !== 1 || config.targetClassKeys[0] !== target) throw new Error("현재 학급 하나만 실험 대상으로 설정해야 합니다.");
-    if (!roster.length) throw new Error("실제 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
-    if (!confirm(`${target} 학급의 ${roster.length}개 활성 학생 계정이 대상입니다. 실제 푸시가 발송될 수 있습니다. 계속할까요?`)) return;
+    if (!roster.length) throw new Error("활성 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
+    if (!confirm(`전체 활성 학생 계정 ${roster.length}개를 대상으로 알림 빈도 실험을 시작합니다. 실제 푸시가 발송될 수 있습니다. 참여 동의 및 중단 안내를 확인했나요?`)) return;
     await platform.adminSetExperiment("notification-frequency",{...config,status:"ACTIVE"});
     await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "pause-notification") {
