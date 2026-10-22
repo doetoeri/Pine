@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import {
   candidateIndexForSlot,
+  canonicalSubscriptionIds,
   conditionFor,
   currentSlot,
   dailyBudget,
@@ -218,25 +219,11 @@ function eventRecord({
 }
 
 function canonicalSubscriptions(documents = []) {
-  const byOwner = new Map();
-  const optedOut = new Set(documents
-    .filter((document) => document.data()?.preferences?.notificationExperiment === false)
-    .map((document) => String(document.data()?.ownerUid || ""))
-    .filter(Boolean));
-  for (const document of documents) {
-    const data = document.data();
-    const uid = String(data?.ownerUid || "");
-    // An account-level experiment opt-out on any registered device applies to
-    // every token for that account. An older device must not bypass the choice.
-    if (!uid || optedOut.has(uid) || data?.enabled !== true) continue;
-    const current = byOwner.get(uid);
-    const currentMs = Number(current?.data()?.updatedAtMs || 0);
-    const nextMs = Number(data?.updatedAtMs || 0);
-    if (!current || nextMs > currentMs || (nextMs === currentMs && document.id > current.id)) {
-      byOwner.set(uid, document);
-    }
-  }
-  return [...byOwner.values()];
+  const ids = new Set(canonicalSubscriptionIds(documents.map((document) => ({
+    ...document.data(),
+    id: document.id,
+  }))));
+  return documents.filter((document) => ids.has(document.id));
 }
 
 function isInvalidTokenError(error) {
