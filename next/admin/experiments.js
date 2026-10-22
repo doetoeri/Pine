@@ -327,8 +327,10 @@ async function run(action, value) {
   } else if (action === "start-notification") {
     const config = {...notificationDefaults(),...(bundle.config||{})};
     if (!roster.length) throw new Error("활성 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
+    if (config.status === "ACTIVE") throw new Error("이미 실행 중인 실험입니다.");
+    if (config.status === "COMPLETED") throw new Error("종료된 실험을 다시 시작하려면 새 버전으로 설정하세요.");
     if (!confirm(`전체 활성 학생 계정 ${roster.length}개를 대상으로 알림 빈도 실험을 시작합니다. 실제 푸시가 발송될 수 있습니다. 참여 동의 및 중단 안내를 확인했나요?`)) return;
-    await platform.adminSetExperiment("notification-frequency",{...config,status:"ACTIVE"});
+    await platform.adminSetExperiment("notification-frequency",{...config,targetClassKeys:[],status:"ACTIVE"});
     await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
   } else if (action === "pause-notification") {
     await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"});
