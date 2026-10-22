@@ -261,7 +261,13 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     };
   }
 
-  const subscriptions = await root.collection("pushSubscriptions").get();
+  const [subscriptions, preferences] = await Promise.all([
+    root.collection("pushSubscriptions").get(),
+    root.collection("notificationExperimentPreferences").get(),
+  ]);
+  const accountOptOuts = new Set(preferences.docs
+    .filter((document) => document.data()?.enabled === false)
+    .map((document) => document.id));
   const targetClassKeys = new Set(
     (Array.isArray(ready.config.targetClassKeys) ? ready.config.targetClassKeys : [])
       .map((value) => String(value || "").trim())
@@ -271,7 +277,8 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     .filter((document) => {
       const data = document.data();
       const profile = preassignment.accounts.get(String(data?.ownerUid || ""));
-      return profile && String(profile.classKey || "") === String(data?.classKey || "")
+      return profile && !accountOptOuts.has(String(data?.ownerUid || ""))
+        && String(profile.classKey || "") === String(data?.classKey || "")
         && (!targetClassKeys.size || targetClassKeys.has(String(data?.classKey || "")));
     });
   const date = kstDate(now);
@@ -488,6 +495,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     participants: eligibleSubscriptions.length,
     rosterAccounts: preassignment.total,
     preassigned: preassignment.assigned,
+    accountsOptedOut: accountOptOuts.size,
     scheduled,
     sent,
     retried,
