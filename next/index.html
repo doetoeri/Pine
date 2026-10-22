@@ -2,6 +2,15 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      // Existing installed PWAs may retain the old /next/#today launch URL.
+      // Only migrate that standalone entry; ordinary /next/ legacy links remain available.
+      if (window.matchMedia("(display-mode: standalone)").matches &&
+          location.hash === "#today" &&
+          !new URLSearchParams(location.search).has("legacy")) {
+        location.replace(new URL("../new/", location.href).href);
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f5f7f6" />
     <meta name="description" content="공지·시간표·일정·급식을 자연스럽게 탐색하는 PinCon Beta 학교 정보 서비스" />
