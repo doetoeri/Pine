@@ -79,3 +79,19 @@ test("independent workflow is not blocked by timetable sync failures", async () 
   assert.match(dispatch, /FALLBACK_BY_SLOT/);
   assert.match(dispatch, /"PinCon 아침 확인"/);
 });
+
+test("per-account opt-out is private, persistent and checked by dispatch", async () => {
+  const [rules, sender, service, page, script] = await Promise.all([
+    read("../firestore.rules"),
+    read("../automation/notification-frequency-experiment.mjs"),
+    read("../next/experiment/experiment-service.js"),
+    read("../experiments/index.html"),
+    read("../experiments/preferences.js"),
+  ]);
+  assert.match(rules, /notificationExperimentPreferences\/\{userId\}/);
+  assert.match(rules, /request\.auth\.uid == userId/);
+  assert.match(sender, /accountOptOuts\.has/);
+  assert.match(service, /async setNotificationExperimentEnabled\(enabled\)/);
+  assert.match(page, /experiment-notification-toggle/);
+  assert.match(script, /platform\.setNotificationExperimentEnabled/);
+});
