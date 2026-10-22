@@ -14,9 +14,9 @@ Experiment ID: `notification-frequency`
 
 기본 빈도 상한:
 
-- LOW: 하루 약 1회
-- MID: 하루 약 3회
-- HIGH: 하루 약 4회
+- LOW: 하루 0회
+- MID: 하루 최대 1회
+- HIGH: 하루 최대 3회
 
 값은 experiment config에서 변경할 수 있다.
 
@@ -55,9 +55,9 @@ MID  -> LOW  -> HIGH
 
 ## 자동 실행
 
-알림 실험 dispatcher는 기존 학교 동기화 자동화에서 함께 호출된다. GitHub Actions는 30분 간격으로 실행되고, 현재 KST 슬롯이 실험 대상인지 확인한 뒤 참가자별 조건과 그날의 발송 계획을 결정한다.
+알림 실험 dispatcher는 **학교 급식/시간표 동기화와 분리된** GitHub Actions `.github/workflows/notification-frequency.yml`에서 30분 간격으로 실행된다. 학교 동기화가 실패해도 실험 dispatcher는 독립적으로 실행된다. 현재 KST 슬롯이 실험 대상인지 확인한 뒤 참가자별 조건과 그날의 발송 계획을 결정한다.
 
-따라서 실험 설정이 `ACTIVE`이고 `notification_experiment` flag가 켜져 있으며 UI 실험 종료 조건을 만족하면, 운영자가 매 알림을 직접 보내지 않아도 LOW/MID/HIGH 조건에 따라 자동으로 발송·기록된다.
+따라서 실험 설정이 `ACTIVE`이고 `notification_experiment` flag가 켜져 있으며 UI 실험 종료 조건을 만족하면, 운영자가 매 알림을 직접 보내지 않아도 LOW/MID/HIGH 조건에 따라 자동으로 발송·기록된다. **자동 등록은 활성 계정 전체의 교차 조건 사전배정**을 뜻하며, 푸시 발송은 OS 권한이 허용되고 유효한 FCM 구독이 있는 계정에 한정된다. 참여 동의는 사전에 확보됐다고 가정하지만 브라우저 권한은 별도다.
 
 ## 알림 후보
 
@@ -80,6 +80,27 @@ MID  -> LOW  -> HIGH
 - targetRoute
 - createdAtMs
 - scheduledAtMs
+
+## 알림 문구와 시간대
+
+| 한국 시간 | 유형 | 새 콘텐츠가 없을 때 사용하는 중립적 확인 메시지 |
+| --- | --- | --- |
+| 08:00 | 하루 공지 | 오늘의 학급 일정과 공지를 확인해 보세요. |
+| 13:00 | 일정 | 남은 학급 일정과 변경 사항을 확인해 보세요. |
+| 17:00 | 수행평가 | 예정된 수행평가와 제출 기한을 확인해 보세요. |
+| 19:00 | 준비물 | 학급 준비물과 학습 자료를 확인해 보세요. |
+
+새로 공개된 공지/행사/과제 중 해당 시간대에 맞는 항목이 있으면 실제 제목과 내용을 우선한다.
+데이터가 없는 날짜에도 거짓으로 새 소식이 있다고 말하지 않는 중립적 확인 메시지로 노출 횟수를 유지한다.
+
+## 참여자 범위와 수신 거부
+
+서버는 `schools/gochon-high/users`에서 `status=ACTIVE`인 모든 계정을 스캔해 익명 참가자 ID와 교차 순서를 미리 등록한다. 기존에 한 번도 로그인하지 않았어도 배정된다.
+발송할 때는 활성 계정의 `classKey`와 구독 문서의 `classKey`가 같은지 재검증한다.
+구독 `preferences.notificationExperiment=false`가 어느 기기에든 기록된 계정은 **모든 기기에서 실험 알림을 제외**한다.
+`enabled=false` 또는 OS 푸시 허용이 없는 계정에는 실험 알림이 발송되지 않는다.
+실험을 중단하면 관리자 `Pause`로 `ACTIVE` 상태와 발송 flag를 해제한다. 예기치 못한 중복 실행 방지를 위해 Firestore 트랜잭션으로 발송 receipt를 먼저 선점한다.
+Firebase FCM 수락 이후 DB 기록 실패가 발생한 발송은 자동 재발송하지 않고 수동 확인 대상으로 남긴다.
 
 ## Critical 제외
 
@@ -190,10 +211,17 @@ JSON export도 제공한다.
 - 17:00 (7교시 종료 후)
 - 19:00
 
-GitHub Actions dispatcher는 30분 간격으로 실행되며 각 슬롯의 00~35분 구간만 처리한다. 동일 notificationId receipt로 중복 발송을 방지한다.
+GitHub Actions dispatcher는 30분 간격으로 실행되며 각 슬롯의 00~35분 구간만 처리한다. 동일 notificationId receipt에 대한 트랜잭션 선점으로 동시 중복 발송을 방지한다. FCM 수락 후 결과 기록 실패는 자동 재시도하지 않아 이중 발송 위험을 피한다.
 
 ## 알려진 제한
 
 - OS 수준 delivery receipt는 Web Push만으로 완전하게 확인할 수 없다.
 - 여러 기기에 동일 계정 push subscription이 존재하면 기기 수 기준 중복 발송 가능성을 운영 데이터에서 확인해야 한다.
 - 실험 시작 전에 각 참여자의 ownerUid가 연결된 push subscription이 정상인지 확인해야 한다.
+
+## 운영 검증
+
+- `node --test tests/*.test.mjs` 및 `node --check automation/notification-frequency-experiment.mjs` 통과 확인
+- 배포 뒤 Actions `Notification frequency dispatcher` 실행 로그에서 `rosterAccounts`, `preassigned`, `sent` 확인
+- 실험 설정과 flag, Next UI 실험의 `COMPLETED / next` 선행조건 확인
+- 반드시 실제 기기에서 Android/브라우저 푸시 권한 및 수신을 시험할 것. FCM accepted는 도착 증명이 아니다.
