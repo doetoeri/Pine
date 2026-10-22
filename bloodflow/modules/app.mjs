@@ -6,6 +6,7 @@ import {geographyConfig,routeFor,NATIONAL_POLICIES} from './geography.mjs';
 import {createOnlineLayer,onlineProvider} from './map-layer.mjs';
 import {ResearchDataLoader} from './data-loader.mjs';
 import {nationwideHTML,nationalMetrics,regionRows,nationalResultHTML,nationalRegionRows,nationalPlot} from './nationwide-ui.mjs';
+window.dispatchEvent(new Event('bloodflow:module-started'));
 const singleFile=!!window.BLOODFLOW_STANDALONE;
 const $=id=>document.getElementById(id),q=(s,root=document)=>root.querySelector(s),qa=(s,root=document)=>[...root.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
