@@ -5,6 +5,7 @@ import {
   canonicalSubscriptionIds,
   currentSlot,
   dailyBudget,
+  notificationId,
   plannedSlotIndexes,
 } from "../automation/notification-frequency-core.mjs";
 
@@ -26,6 +27,11 @@ test("only the four KST clock hours are eligible, including late scheduler start
   assert.equal(currentSlot(new Date("2026-10-26T08:45:00Z"))?.hour, 17);
   assert.equal(currentSlot(new Date("2026-10-26T10:45:00Z"))?.hour, 19);
   assert.equal(currentSlot(new Date("2026-10-26T00:00:00Z")), null);
+});
+
+test("same day and slot in a newer experiment version gets a new receipt", () => {
+  const base = { anonymousParticipant: "participant_x", date: "2026-10-26", period: 1, slotIndex: 2, candidateKey: "check-in:assignment" };
+  assert.notEqual(notificationId({ ...base, experimentVersion: 1 }), notificationId({ ...base, experimentVersion: 2 }));
 });
 
 test("account-wide opt-out prevents delivery via any stale device", () => {
