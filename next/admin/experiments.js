@@ -6,7 +6,7 @@ import { accountRequest } from "../core/student-auth.js";
 const gateway = new NextDataGateway();
 await gateway.start();
 const platform = await getExperimentPlatform();
-let currentId = "pincon-next-ui";
+let currentId = "notification-frequency";
 let bundle = { config: null, assignments: [], events: [], participants: [], betaEnrollments: [], surveys: [] };
 let roster = [];
 let loading = false;
@@ -245,13 +245,11 @@ function experimentViewOpen() {
   return document.querySelector("#adminApp .admin-workspace")?.classList.contains("admin-workspace--experiments") === true;
 }
 function activeStudentRoster(accounts = []) {
-  const classKey = String(gateway.snapshot().profile?.classKey || "");
+  const classKey = "";
   return accounts.filter((account) => {
     const roles = Array.isArray(account.roles) ? account.roles : ["STUDENT"];
     return account?.uid
       && account.status === "ACTIVE"
-      && /^\d{5}$/.test(String(account.studentNumber || ""))
-      && (!classKey || account.classKey === classKey)
       && roles.includes("STUDENT")
       && !roles.includes("ADMIN")
       && !roles.includes("TEACHER");
