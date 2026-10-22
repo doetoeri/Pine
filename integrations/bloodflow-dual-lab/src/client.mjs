@@ -3,20 +3,49 @@ import {DualWorld} from './engine.mjs';
 import {viewOf} from './view.mjs';
 import {validatePlan} from './experiments.mjs';
 import {CollaborationAvailability,resolveServerBase,createSharedRoom} from './collaboration-availability.mjs';
+import {openStateDatabase,readCheckpoint,writeCheckpoint,STORAGE_TIMEOUT_MS} from './solo-storage.mjs';
 const sessionRead=k=>{try{return sessionStorage.getItem(k);}catch{return null;}};
 const sessionWrite=(k,v)=>{try{sessionStorage.setItem(k,v);}catch{}};
 const serverBase=resolveServerBase;
 export class LabClient extends EventTarget{
- constructor(data,initialConfig={}){super();this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={question:'혈액 부족과 혈액제제 폐기 문제를 함께 줄이기 위한 공급관리 개선 방안',hypothesis:'',engineering:'',biology:'',limitations:'',improvements:''};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
+ constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS}={}){super();this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={question:'혈액 부족과 혈액제제 폐기 문제를 함께 줄이기 위한 공급관리 개선 방안',hypothesis:'',engineering:'',biology:'',limitations:'',improvements:''};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
  emit(){this.dispatchEvent(new Event('change'));}
  error(message){this.dispatchEvent(new CustomEvent('notice',{detail:message}));}
  get state(){if(this.mode==='shared')return this.sharedState;return {version:this.version,revision:this.revision,world:viewOf(this.world),notes:this.notes,result:this.result,logs:this.logs,job:this.job?{progress:this.job.progress,plan:this.job.plan,paused:!!this.job.paused}:null,running:this.running,speed:this.speed,mode:this.clockMode,peers:[]};}
- async db(){if(this._db)return this._db;this._db=await new Promise((resolve,reject)=>{const q=indexedDB.open('bloodflow-dual-lab-v1',1);q.onupgradeneeded=()=>q.result.createObjectStore('states');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});return this._db;}
- async restoreAutosave(){try{const db=await this.db(),read=key=>new Promise((resolve,reject)=>{const q=db.transaction('states').objectStore('states').get(key);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});const network=this.world.c.network;let s=await read('solo:'+this.clientId+':'+network);if(!s){const latest=await read('latest:'+network);if(typeof latest?.slotKey==='string'&&latest.slotKey.startsWith('solo:')&&latest.slotKey.length<200)s=await read(latest.slotKey);}if(!s)s=await read('solo:'+network);
-  if(!s){const legacy=await read('solo');if(legacy&&(legacy.snapshot?.c?.network??'incheon')===this.world.c.network)s=legacy;}
-  if(s&&this.mode==='solo'&&this.initializing){this.world=DualWorld.restore(s.snapshot,this.data);this.notes=s.notes;this.result=s.result;this.running=false;this.connection='단독 연구 · 자동 저장 복원';}
- }catch(e){this.error('자동 저장 복원 불가: '+e.message);}finally{this.initializing=false;if(this.mode==='solo')this.ready=true;this.emit();}}
- async autosave(){if(this.mode!=='solo'||this.initializing)return;try{const db=await this.db();await new Promise((resolve,reject)=>{const tx=db.transaction('states','readwrite');const slotKey='solo:'+this.clientId+':'+this.world.c.network;tx.objectStore('states').put({snapshot:this.world.snapshot(),notes:this.notes,result:this.result},slotKey);tx.objectStore('states').put({slotKey},'latest:'+this.world.c.network);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});this.savedAt=Date.now();this.dispatchEvent(new Event('saved'));}catch(e){this.error('자동 저장 불가. 상태 파일을 직접 내려받으세요. '+e.message);}}
+ storageChanged(status){this.storageStatus=status;this.dispatchEvent(new Event('storage'));}
+ async db(){
+  if(this._db)return this._db;
+  if(!this._dbPending)this._dbPending=openStateDatabase({timeoutMs:this.storageTimeoutMs}).then(db=>{this._db=db;db.onversionchange=()=>{db.close();if(this._db===db)this._db=null;};db.onclose=()=>{if(this._db===db)this._db=null;};return db;}).finally(()=>{this._dbPending=null;});
+  return this._dbPending;
+ }
+ async restoreAutosave(){
+  try{
+   const network=this.world.c.network,saved=await readCheckpoint(await this.db(),this.clientId,network,{timeoutMs:this.storageTimeoutMs});
+   if(saved!=null){
+    if(typeof saved!=='object'||Array.isArray(saved)||(saved.snapshot?.c?.network??'incheon')!==network)throw Error('자동 저장 자료의 공급망 범위가 일치하지 않습니다.');
+    const world=DualWorld.restore(saved.snapshot,this.data),notes={...this.notes};
+    if(saved.notes!=null){if(typeof saved.notes!=='object'||Array.isArray(saved.notes))throw Error('자동 저장 연구 기록의 형식이 올바르지 않습니다.');for(const key of Object.keys(notes))if(key in saved.notes){if(typeof saved.notes[key]!=='string'||saved.notes[key].length>6000)throw Error('자동 저장 연구 기록의 형식이 올바르지 않습니다.');notes[key]=saved.notes[key];}}
+    if(this.mode==='solo'&&this.initializing){this.world=world;this.notes=notes;this.result=saved.result??null;this.running=false;this.connection='단독 연구 · 자동 저장 복원';}
+   }
+   this.autosaveAllowed=true;this.storageChanged({kind:'ready',restored:saved!=null,message:'기기 저장 자료 확인 완료'});
+  }catch(error){
+   this.autosaveAllowed=false;this.connection='단독 연구 · 파일 저장 필요';this.storageChanged({kind:'blocked',message:'자동 저장 복원 불가: '+error.message});this.error(this.storageStatus.message);
+  }finally{this.initializing=false;if(this.mode==='solo')this.ready=true;this.emit();}
+ }
+ async autosave(){
+  if(this.mode!=='solo'||this.initializing||!this.autosaveAllowed)return;
+  if(this._autosavePending){this._autosaveQueued=true;return this._autosavePending;}
+  this.storageChanged({kind:'saving',message:'자동 저장 중'});
+  this._autosavePending=(async()=>{
+   try{
+    // Snapshot fields contain mutable engine references; copy before waiting for the database.
+    const record=structuredClone({snapshot:this.world.snapshot(),notes:this.notes,result:this.result});
+    await writeCheckpoint(await this.db(),this.clientId,record,{timeoutMs:this.storageTimeoutMs});this.savedAt=Date.now();
+    if(!this._autosaveQueued){this.storageChanged({kind:'ready',message:'자동 저장 완료'});this.dispatchEvent(new Event('saved'));}
+   }catch(error){this.autosaveAllowed=false;this.storageChanged({kind:'blocked',message:'자동 저장 불가: '+error.message});this.error(this.storageStatus.message);}
+  })().finally(()=>{this._autosavePending=null;const queued=this._autosaveQueued;this._autosaveQueued=false;if(queued&&this.autosaveAllowed&&this.mode==='solo')this.autosave();});
+  return this._autosavePending;
+ }
  tick(){if(this.mode==='solo'&&this.running){try{this.world.advance(Math.min(24*365,this.world.t+this.speed/60));this.version++;if(this.world.t>=24*365)this.running=false;this.emit();}catch(e){this.running=false;this.error(e.message);}}
   // Application heartbeat prevents silently running disconnected shared clients.
   if(this.mode==='shared'&&this.socket?.readyState===1)this.socket.send(JSON.stringify({type:'heartbeat',experimentId:this.code}));

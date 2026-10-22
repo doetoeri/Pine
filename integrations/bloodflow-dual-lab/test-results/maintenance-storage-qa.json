@@ -1,0 +1,224 @@
+{
+  "checkedAt": "2026-10-22T18:18:32Z",
+  "localDate": "2026-10-23 KST",
+  "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+  "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+  "reviewHeadBefore": "472ad10fe1a9ae327f345576c6afc2c64526989f",
+  "production": {
+    "pagesDeployment": "success",
+    "http": [
+      {
+        "path": "/bloodflow",
+        "url": "https://pincon.app/bloodflow/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/biology",
+        "url": "https://pincon.app/bloodflow/biology/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/research",
+        "url": "https://pincon.app/bloodflow/research/",
+        "status": 200,
+        "contentType": "text/html; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "status": 200,
+        "contentType": "text/javascript; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "server": "envoy"
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "status": 200,
+        "contentType": "application/javascript; charset=utf-8",
+        "server": "envoy",
+        "serverOriginEmpty": true,
+        "serverOrigin": ""
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "url": "https://pincon.app/bloodflow/api/health",
+        "status": 404,
+        "contentType": "text/html; charset=utf-8",
+        "server": "envoy"
+      }
+    ],
+    "productionStorageCorruptionObserved": false,
+    "production503Reproduced": false
+  },
+  "baseline": {
+    "source": "Previous reviewed tree f09dcbe9e1a8eae3fd5bd8223b2ce2a334ce53a8; Node fault injection, not a user device.",
+    "stalledRestore": {
+      "initializing": true,
+      "ready": false,
+      "commandsBlocked": true
+    },
+    "failedRestore": {
+      "writesAfterFailure": 2,
+      "previousRecordOverwritten": true,
+      "ready": true
+    }
+  },
+  "changes": {
+    "timeoutMsPerStage": 5000,
+    "openAndReadAreSeparateStages": true,
+    "readFailureDisablesAllAutosave": true,
+    "writeFailureDisablesAllAutosave": true,
+    "writesAreSerializedAndCoalesced": true,
+    "snapshotCapturedBeforeAwait": true,
+    "snapshotAndLatestPointerAtomic": true,
+    "savedIndicatorAfterTransactionCompleteOnly": true,
+    "originalDatabaseNameAndSchemaUnchanged": true,
+    "automaticRetryOrRecordDeletion": false
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome; isolated HTTP preview. Real native IndexedDB for checkpoint restore/save/preservation. Separate test namespace bloodflow-storage-qa-20261023, production storage untouched.",
+    "corruptCheckpoint": {
+      "syntheticInvalidBloodType": true,
+      "storedHours": 24,
+      "storedEngineeringNote": "보호할 기존 연구 메모",
+      "temporaryResearchFromHours": 0,
+      "temporaryResearchToHours": 6,
+      "stepEnabled": true,
+      "persistentWarningVisible": true,
+      "saveLabel": "파일 저장 필요",
+      "actualJSONDownloadEventObserved": true,
+      "nativeRecordFingerprintBefore": "fnv1a64:b96bbab6d5d8ba9d",
+      "nativeRecordFingerprintAfter": "fnv1a64:b96bbab6d5d8ba9d",
+      "recordUnchanged": true,
+      "fingerprintMethod": "FNV-1a 64-bit of all JSON bytes, non-cryptographic; unit test separately checks exact JSON equality."
+    },
+    "healthyCheckpoint": {
+      "nativeRestoredHours": 24,
+      "afterStepHours": 30,
+      "saveLabelAfterCommit": "저장됨",
+      "originalNotePreserved": true,
+      "beforeFingerprint": "fnv1a64:de23db7a0acfa2bd",
+      "afterFingerprint": "fnv1a64:86ba35b28c8c6787",
+      "modelRestoreAndMassValidationPassed": true
+    },
+    "unresponsiveOpen": {
+      "fault": "QA page supplies an IndexedDB open request that never invokes callbacks; synthetic browser fault, not observed OS failure.",
+      "timeoutGuidanceVisible": true,
+      "stepEnabledAfterFailure": true,
+      "temporaryResearchToHours": 6,
+      "saveLabel": "파일 저장 필요",
+      "healthyRecordRestoredOnSubsequentNormalNavigationHours": 30
+    },
+    "nativeKeyboardNotes": {
+      "committedOnBlur": true,
+      "engineering": " · 복구 뒤 기록보호할 기존 연구 메모",
+      "persistedAndRestored": true
+    },
+    "standalone": {
+      "format": "HTTP-served single HTML, embedded modules and data; isolated storage namespace only substitution.",
+      "lab": "biology",
+      "productCards": 3,
+      "restoredHours": 30,
+      "stepToHours": 36,
+      "savedIndicator": true,
+      "nativeRecordValid": true,
+      "recordFingerprint": "fnv1a64:fec0bbee7a4dc174",
+      "engineeringNotePreserved": true,
+      "actualFileProtocolOrAirplaneModeTested": false
+    },
+    "manualRecovery": {
+      "faultRecordReplacedByExplicitTestSeedInAnotherTab": true,
+      "actualStorageReloadButtonUsed": true,
+      "restoredHours": 24,
+      "warningHidden": true,
+      "saveLabel": "자동 저장 복원",
+      "applicationDeletedRecordsOrCaches": false
+    },
+    "connectDialogAcknowledgesTemporarySoloState": true,
+    "appScriptConsoleErrors": [],
+    "fixtureIssue": "The initial QA-only fingerprint attempted crypto.subtle on HTTP where it is unavailable. Replaced that test helper with FNV-1a, then repeated verification. The application source did not use that QA code. Browser extension errors were excluded.",
+    "networkIsolation": {
+      "freshTabFollowsLatestIncheonHours": 24,
+      "nationwideNodes": 100,
+      "nationwideStepHours": 6,
+      "nationwideReloadHours": 6,
+      "nationwideReloadSaveLabel": "자동 저장 복원",
+      "incheonRecordRetainedOnReturnHours": 24,
+      "appScriptConsoleErrors": []
+    }
+  },
+  "automated": {
+    "appPassed": 70,
+    "appFailed": 0,
+    "newStorageTests": 11,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "build": "passed",
+    "offlineBytes": 1142488,
+    "tests": [
+      "Bounded and deduplicated database opens; blocked/late open and upgrade cleanup.",
+      "Network-aware own/latest/regional/legacy checkpoint priority in one read transaction.",
+      "Read timeouts release temporary solo controls without any writes, including late callbacks.",
+      "Corrupt snapshots, wrong network, malformed notes never replace active state or overwrite stored checkpoints.",
+      "Valid restores advance deterministically and commit snapshot/latest pointer together.",
+      "Write failures/timeouts abort, never announce saved, and stop automatic retry.",
+      "Queued writes copy engine references before awaits and eventually retain latest notes/state."
+    ]
+  },
+  "staticBuildChecks": {
+    "modules": 15,
+    "htmlEntryPaths": 5,
+    "wholePageLabs": 4,
+    "cachePaths": 32,
+    "missingPaths": 0,
+    "sourceAndPublishedModulesMatch": true,
+    "startupCopyMatches": true,
+    "routes": 12,
+    "roadWays": 1394,
+    "relativeModuleReferences": 22,
+    "staticImports": 21
+  },
+  "preserved": [
+    "Original HTMLs and Incheon 4 institutions / 12 directed routes.",
+    "1394 saved road ways and all geography/data.",
+    "Shared engine, biology rules, reproducibility and statistics.",
+    "Four top-level whole pages and LIVE / TIMELAPSE / COMPUTE.",
+    "Other PinCon paths and root service worker."
+  ],
+  "limits": [
+    "Draft review branch only; no main modification, merge, manual deployment, DNS or new host.",
+    "Production collaboration API remains 404; no configured HTTPS Node/WebSocket host.",
+    "Each database stage has its own 5-second bound; this is not a total 5-second startup deadline.",
+    "Quota/write failures and blocked/late upgrade behavior were tested with a transaction mock, not physical device exhaustion.",
+    "Browser native IndexedDB was exercised on an HTTP fixture with an isolated database name, not production storage.",
+    "HTTP batch against loopback could not reach the managed preview namespace; 32 cache paths were statically resolved, with browser initialization and public production HTTP checked separately.",
+    "No actual Galaxy Tab, file://, airplane mode, long wall-clock run or device performance claim.",
+    "Full statistical result schema validation on restored result objects was not added in this change."
+  ]
+}
