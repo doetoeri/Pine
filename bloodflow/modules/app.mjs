@@ -6,7 +6,7 @@ import {METRIC_DEFINITIONS} from './engine.mjs';
 import {PRESETS,csv,resultRows} from './experiments.mjs';
 import {geographyConfig,routeFor,NATIONAL_POLICIES} from './geography.mjs';
 import {createOnlineLayer,onlineProvider} from './map-layer.mjs';
-import {ResearchDataLoader} from './data-loader.mjs';
+import {ResearchDataLoader,waitForDataRetry} from './data-loader.mjs';
 import {nationwideHTML,nationalMetrics,regionRows,nationalResultHTML,nationalRegionRows,nationalPlot} from './nationwide-ui.mjs';
 window.dispatchEvent(new Event('bloodflow:module-started'));
 const singleFile=!!window.BLOODFLOW_STANDALONE;
@@ -28,8 +28,7 @@ while(!data){
  try{const loaded=await dataLoader.load();data=loaded.data;assetIssues=loaded.issues;}
  catch(e){
   $('app').removeAttribute('aria-busy');
-  $('app').innerHTML=`<section class="card card-body" style="max-width:680px;margin:48px auto" role="alert"><h1>연구 자료를 준비하지 못했습니다.</h1><p>${esc(e.message)}</p><p class="scope">계산 필수 자료 없이 재고·운송을 추정해 실행하지 않습니다. 연결을 확인하고 다시 시도하거나 동봉한 오프라인 HTML을 사용하세요. 파일별 최대 대기 시간은 10초입니다.</p><button id="retry-data" class="primary">자료 다시 받기</button></section>`;
-  await new Promise(resolve=>{$('retry-data').onclick=()=>{$('retry-data').disabled=true;$('retry-data').textContent='자료 확인 중…';resolve();};});
+  await waitForDataRetry({document,host:$('app'),loader:dataLoader,error:e,context:{protocol:location.protocol,origin:location.origin,online:navigator.onLine},download});
  }
 }
 $('app').removeAttribute('aria-busy');
