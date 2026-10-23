@@ -76,12 +76,12 @@ export class LabClient extends EventTarget{
     for(const p of this.pending.values())if(!p.sent){socket.send(JSON.stringify(p.message));p.sent=true;}
    }else if(m.type==='heartbeat'){this.lastStateAt=Date.now();}
    else if(m.type==='ack'){const sent=this.pending.get(m.eventId)?.message;this.pending.delete(m.eventId);this.dispatchEvent(new CustomEvent('ack',{detail:sent}));}
-   else if(m.type==='conflict'){this.pending.delete(m.eventId);this.error(m.error);}
+   else if(m.type==='conflict'){this.pending.delete(m.eventId);this.dispatchEvent(new CustomEvent('command-rejected',{detail:{eventId:m.eventId,error:m.error}}));this.error(m.error);}
    else if(m.type==='error'){
     // Old servers do not tag join errors. Before membership/state, an uncorrelated error is a join refusal.
     if(m.phase==='join'||(!joined&&!this.ready&&!m.eventId)){
      rejected=true;this.reconnect=false;clearTimeout(this.reconnectTimer);clearTimeout(this.joinTimer);this.ready=false;this.connection='접속 거절 · 조작 잠금';this.connectionIssue='접속 거절: '+m.error+' 자동 재접속을 멈췄습니다. 실험실 연결에서 코드·역할을 확인한 뒤 다시 접속하세요.';socket.close();this.emit();this.error(this.connectionIssue);
-    }else{if(m.eventId)this.pending.delete(m.eventId);this.error(m.error);}
+    }else{if(m.eventId){this.pending.delete(m.eventId);this.dispatchEvent(new CustomEvent('command-rejected',{detail:{eventId:m.eventId,error:m.error}}));}this.error(m.error);}
    }
    else if(m.type==='export'){this.dispatchEvent(new CustomEvent('export',{detail:{format:'BLOODFLOW-LAB-FILE-1',snapshot:m.snapshot,notes:m.notes,result:m.result}}));}
   }catch(e){this.error('메시지를 복구할 수 없습니다: '+e.message);}};
@@ -104,7 +104,7 @@ export class LabClient extends EventTarget{
     sequence={clientId:this.commandClientId,clientSequence:++this.commandSequence};
    }
    const id=eventId(),message={type,...props,...sequence,eventId:id,experimentId:this.code,expectedVersion:this.sharedState.version,expectedRevision:this.sharedState.revision,timestamp:new Date().toISOString()};
-   if(type!=='export')this.pending.set(id,{message,sent:true});this.socket.send(JSON.stringify(message));return;
+   if(type!=='export')this.pending.set(id,{message,sent:true});this.socket.send(JSON.stringify(message));return id;
   }
   if(type==='configure'){this.world=new DualWorld({...this.world.c,...props.patch},this.data);this.running=false;this.computeIssue='';this.revision++;}
   else if(type==='clock'){this.clockMode=props.mode;this.speed=props.speed;this.running=props.running;}
