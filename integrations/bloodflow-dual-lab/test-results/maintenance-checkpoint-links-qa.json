@@ -1,0 +1,324 @@
+{
+  "dateKST": "2026-10-23",
+  "repository": "doetoeri/Pine",
+  "pr": 133,
+  "baseline": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewHead": "9708fc259be1b218e5d27d7c8e20a36ccbbf317a",
+    "reviewTree": "5477621b7e5566710ebb1fb7cb68f45eda436d6c",
+    "draft": true,
+    "open": true,
+    "mergeable": true,
+    "reviewCount": 0,
+    "pages": {
+      "run": 39782834193,
+      "conclusion": "success",
+      "sha": "9093baced3a386b2fe3c1c9981c3937cb208c73b"
+    }
+  },
+  "issue": "A dangling latest pointer or null checkpoint was treated as absent, permitting a fresh study to replace the latest pointer and silently hide retained research. An explicit broken latest could also silently select an older regional checkpoint.",
+  "scope": {
+    "source": [
+      "src/solo-storage.mjs"
+    ],
+    "clientServerEngineChanged": false,
+    "schemaKeysDatabaseVersionChanged": false,
+    "deletionsOrPointerRepairs": false,
+    "orphanSlotScanning": false,
+    "productionStorageChanged": false
+  },
+  "behavior": {
+    "undefinedMeansAbsent": true,
+    "nullMeansDamaged": true,
+    "healthyOwnCheckpointTakesPriority": true,
+    "explicitLatestRequiresPresentNonNullTarget": true,
+    "explicitBrokenLatestNeverSilentlyFallsBack": true,
+    "legacyScopePreserved": true,
+    "emptyDatabasePermitsFirstSave": true,
+    "damagedReadBlocksAllAutomaticWrites": true,
+    "temporaryStudyAndJSONExportAllowed": true,
+    "fileImportRepairsDatabase": false,
+    "missingDataReconstructed": false
+  },
+  "regression": {
+    "baselineSelected": {
+      "tests": 5,
+      "pass": 2,
+      "fail": 3,
+      "durationMs": 184.193416,
+      "log": "maintenance-checkpoint-links-baseline.txt"
+    },
+    "targetedStorage": {
+      "tests": 16,
+      "pass": 16,
+      "fail": 0,
+      "durationMs": 394.974298
+    },
+    "app": {
+      "tests": 222,
+      "pass": 222,
+      "fail": 0,
+      "durationMs": 29270.145636,
+      "command": "node --test tests/*.test.mjs",
+      "log": "maintenance-tests.txt"
+    },
+    "pinconSelected": {
+      "tests": 58,
+      "pass": 58,
+      "fail": 0,
+      "durationMs": 335.537846,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs",
+      "log": "maintenance-pincon-tests.txt"
+    },
+    "newTests": 5,
+    "cases": [
+      "missing/null latest target blocks writes and preserves orphan data",
+      "null own/regional/eligible legacy/latest rejects instead of starting a new saved study",
+      "explicit broken latest cannot silently fall back to regional or legacy study",
+      "healthy own slot ignores other tabs broken latest",
+      "genuinely empty DB first atomic save and unrelated legacy network scope"
+    ],
+    "existingConservationCompatibilityExpiryReproducibilityStatisticsServerRestartReconnectTestsPassed": true,
+    "newManualTwoRoleCollaborationRun": false
+  },
+  "browser": {
+    "environment": "Actual Chrome cloud browser; isolated native IndexedDB databases on a local HTTP preview; CUA UI automation",
+    "seed": {
+      "network": "nationwide",
+      "hours": 12,
+      "notes": {
+        "engineering": "보존할 12시간 산업공학 기록",
+        "biology": "보존할 12시간 생명과학 기록"
+      },
+      "experiment": {
+        "kind": "N",
+        "days": 1,
+        "reps": 2,
+        "policies": 3
+      },
+      "retainedKey": "solo:qa-retained:nationwide",
+      "latestTargetKey": "solo:qa-missing:nationwide",
+      "latestTargetExists": false,
+      "conservationPassed": true
+    },
+    "baseline": {
+      "initialHours": 0,
+      "storageWarningVisible": false,
+      "afterStepHours": 6,
+      "saveLabel": "저장됨",
+      "observedAtElapsedMs": 15839,
+      "latestMatchesSeed": false,
+      "latestTargetHours": 6,
+      "retainedHours": 12,
+      "retainedSerializedEquivalent": true,
+      "snapshotRecords": 2,
+      "retainedResearchDeleted": false
+    },
+    "fixed": {
+      "persistentStorageWarning": true,
+      "afterStepHours": 6,
+      "temporaryExportBlobHours": 6,
+      "temporaryExportBlobExperiment": null,
+      "observedAtElapsedMs": 30829,
+      "latestMatchesSeed": true,
+      "latestTargetHours": null,
+      "retainedSerializedEquivalent": true,
+      "snapshotRecords": 1
+    },
+    "manualBackupFileImport": {
+      "implementation": "QA button constructs an actual File/FileList using DataTransfer and invokes the existing input change handler; no native OS picker",
+      "hours": 12,
+      "paused": true,
+      "originalBothNotesRestored": true,
+      "originalNResultRestored": true,
+      "pairedDemandAndConservationLabelsPresent": true,
+      "stateJSONBlobHours": 12,
+      "stateJSONBlobBothNotes": true,
+      "stateJSONBlobExperiment": "N",
+      "storageWarningRemains": true,
+      "observedAtElapsedMs": 74331,
+      "latestMatchesSeed": true,
+      "retainedSerializedEquivalent": true,
+      "snapshotRecords": 1
+    },
+    "reload": {
+      "fixtureNotReseeded": true,
+      "temporaryHours": 0,
+      "storageWarningVisible": true,
+      "automaticWritesBlocked": true,
+      "finalObservedAtElapsedMs": 185305,
+      "latestMatchesSeed": true,
+      "latestTargetHours": null,
+      "retainedHours": 12,
+      "retainedBothNotesAndNResult": true,
+      "retainedSerializedEquivalent": true,
+      "snapshotRecords": 1,
+      "importedTemporaryResearchPersisted": false
+    },
+    "console": {
+      "queryLevels": [
+        "error",
+        "warn"
+      ],
+      "queryLimit": 1000,
+      "applicationErrorsObserved": 0,
+      "chromeExtensionOnly": {
+        "production": 6,
+        "baseline": 2,
+        "fixed": 11
+      }
+    },
+    "qaHelpersFixturesAndDatabasesPublished": false,
+    "nativePickerTested": false,
+    "nativeDiskDownloadCompletionTested": false,
+    "realStoragePermissionOrQuotaChanged": false
+  },
+  "production": {
+    "checkedAt": "2026-10-23T10:59:59.808782+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "url": "https://pincon.app/bloodflow/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/biology",
+        "url": "https://pincon.app/bloodflow/biology/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/research",
+        "url": "https://pincon.app/bloodflow/research/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "status": 200,
+        "bytes": 74410,
+        "type": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "status": 200,
+        "bytes": 12460,
+        "type": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/compute-worker.mjs",
+        "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+        "status": 200,
+        "bytes": 1240,
+        "type": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "status": 200,
+        "bytes": 38728,
+        "type": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "status": 200,
+        "bytes": 380,
+        "type": "application/javascript; charset=utf-8",
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionBrowser": {
+    "fourTopLevelFullPages": true,
+    "nationwideRegions": 17,
+    "nationwideMap": true,
+    "engineeringMap": true,
+    "biologyProducts": 3,
+    "researchFields": 6,
+    "simulationHoursUnchanged": 0,
+    "sharedRoomJoined": false,
+    "onlineTilesEnabled": false,
+    "observed503": false,
+    "observedStorageCorruption": false
+  },
+  "staticPaths": {
+    "modules": 18,
+    "staticImports": 26,
+    "relativeModuleReferences": 27,
+    "entryHTMLs": 5,
+    "cachePaths": 35,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 24,
+    "copiedTrackedStaticFiles": 36,
+    "changedOutsideBloodflow": false
+  },
+  "build": {
+    "builtAt": "2026-10-23T10:57:47.573Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "34f07974411aa67b0284b36f8df4e82223b679e30a6991d67c7aeb64a5f11238",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 18,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1177364
+  },
+  "preserved": [
+    "original HTML and examples",
+    "Incheon 4 institutions / 12 directed routes / 1394 road ways",
+    "100 national hubs / 17 fixed study regions",
+    "four full pages and common top navigation",
+    "common engines, biology and statistics formulas",
+    "equal engineering and biology research functions",
+    "LIVE / TIMELAPSE / COMPUTE",
+    "all other PinCon routes"
+  ],
+  "notVerified": [
+    "real Galaxy Tab S8 or S8+",
+    "native OS file picker and completed disk download",
+    "file:// and actual internet disconnection in this run",
+    "this offline HTML in a browser",
+    "long-running device performance",
+    "production HTTPS collaboration host and durable disk"
+  ],
+  "remaining": [
+    "Missing checkpoint content cannot be reconstructed by this guard; retain backup JSON and investigate the device storage.",
+    "Manual file import does not repair damaged IndexedDB or re-enable automatic saves; export temporary work before closing/reloading.",
+    "No new two-role manual browser collaboration test; existing automated server and reconnect regression passed.",
+    "Production health404 and empty serverOrigin remain; static Pages is not a WebSocket collaboration server.",
+    "No direct main change, merge or manual production deployment."
+  ]
+}

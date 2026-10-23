@@ -33,13 +33,24 @@ export function readCheckpoint(db,clientId,network,{timeoutMs=STORAGE_TIMEOUT_MS
   const own=store.get('solo:'+clientId+':'+network),latest=store.get('latest:'+network),regional=store.get('solo:'+network),legacy=store.get('solo');let linked;
   latest.onsuccess=()=>{
    try{
-    if(own.result!=null||latest.result==null)return;
-    const key=latest.result.slotKey;
+    if(own.result!==undefined||latest.result===undefined)return;
+    const key=latest.result?.slotKey;
     if(typeof key!=='string'||!key.startsWith('solo:')||!key.endsWith(':'+network)||key.length>=200)throw Error('자동 저장 위치 정보가 올바르지 않습니다.');
     linked=store.get(key);
    }catch(error){fail(error);}
   };
-  return ()=>own.result??linked?.result??regional.result??((legacy.result?.snapshot?.c?.network??'incheon')===network?legacy.result:undefined);
+  const record=value=>{if(value===null)throw Error('자동 저장 자료가 비어 있어 기존 저장을 보호했습니다. 보관한 연구 JSON을 확인하세요.');return value;};
+  return ()=>{
+   // Undefined means the key is absent. Null or a dangling latest pointer is damaged storage,
+   // not permission to create a fresh checkpoint or silently select an older study.
+   if(own.result!==undefined)return record(own.result);
+   if(latest.result!==undefined){
+    if(linked?.result==null)throw Error('마지막 자동 저장 위치가 가리키는 자료를 찾을 수 없습니다. 기존 저장을 보호했습니다. 보관한 연구 JSON을 확인하세요.');
+    return linked.result;
+   }
+   if(regional.result!==undefined)return record(regional.result);
+   return (legacy.result?.snapshot?.c?.network??'incheon')===network?record(legacy.result):undefined;
+  };
  },timeoutMs);
 }
 export function writeCheckpoint(db,clientId,record,{timeoutMs=STORAGE_TIMEOUT_MS}={}){

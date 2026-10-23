@@ -20,6 +20,38 @@ function database(records=new Map(),options={}){
 function client(t,db){const c=new LabClient(data,{}, {storageTimeoutMs:20});c.db=async()=>db;t.after(()=>{for(const k of ['loop','saveLoop','watch'])clearInterval(c[k]);});return c;}
 async function drain(c){while(c._autosavePending)await c._autosavePending;}
 
+test('a missing target of the latest checkpoint blocks writes instead of replacing its pointer',async t=>{
+ for(const target of [undefined,null]){
+  const records=new Map([['latest:incheon',{slotKey:'solo:previous:incheon'}],['solo:orphan:incheon',checkpoint()]]);if(target===null)records.set('solo:previous:incheon',null);
+  const before=JSON.stringify([...records]),db=database(records),c=client(t,db);let exported;
+  c.addEventListener('export',e=>exported=e.detail);await c.restoreAutosave();
+  assert.equal(c.ready,true);assert.equal(c.autosaveAllowed,false);assert.equal(c.storageStatus.kind,'blocked');assert.match(c.storageStatus.message,/자동/);
+  c.command('step',{hours:6});c.command('notes',{patch:{engineering:'파일로 보관할 임시 연구'}});c.command('export');await c.autosave();
+  assert.equal(db.stats.writes,0);assert.equal(JSON.stringify([...records]),before);assert.equal(exported.snapshot.t,6);assert.equal(exported.notes.engineering,'파일로 보관할 임시 연구');assert.equal(DualWorld.restore(exported.snapshot,data).verify().passed,true);
+ }
+});
+
+test('null checkpoint records and null latest metadata are corruption rather than an empty database',async t=>{
+ for(const entries of [[['solo:mine:incheon',null]],[['solo:incheon',null]],[['solo',null]],[['latest:incheon',null]]]){
+  const records=new Map(entries),db=database(records),c=client(t,db);c.clientId='mine';await c.restoreAutosave();assert.equal(c.autosaveAllowed,false);assert.equal(c.storageStatus.kind,'blocked');await c.autosave();assert.equal(db.stats.writes,0);assert.deepEqual([...records],entries);
+ }
+});
+
+test('an explicit broken latest pointer does not silently roll back to an older regional record',async t=>{
+ const saved=checkpoint(),records=new Map([['latest:incheon',{slotKey:'solo:missing:incheon'}],['solo:incheon',saved],['solo',saved]]),db=database(records),c=client(t,db);await c.restoreAutosave();assert.equal(c.autosaveAllowed,false);assert.equal(c.world.t,0);assert.equal(db.stats.writes,0);assert.deepEqual(records.get('solo:incheon'),saved);
+});
+
+test('a healthy own checkpoint keeps priority over broken latest metadata from another tab',async()=>{
+ const own=checkpoint();for(const latest of [null,{slotKey:'solo:missing:incheon'},{slotKey:'invalid'}]){
+  const db=database(new Map([['solo:mine:incheon',own],['latest:incheon',latest]]));assert.deepEqual(await readCheckpoint(db,'mine','incheon'),own);
+ }
+});
+
+test('a genuinely new database still permits its first atomic checkpoint and unrelated legacy data stays scoped',async t=>{
+ const db=database(),c=client(t,db);await c.restoreAutosave();assert.equal(c.autosaveAllowed,true);assert.equal(c.storageStatus.restored,false);c.command('step',{hours:6});await drain(c);assert.equal(db.stats.writes,1);assert.equal(db.records.get('solo:'+c.clientId+':incheon').snapshot.t,6);assert.deepEqual(db.records.get('latest:incheon'),{slotKey:'solo:'+c.clientId+':incheon'});
+ assert.equal(await readCheckpoint(database(new Map([['solo',null]])),'new','nationwide'),undefined);
+});
+
 test('an unresponsive open times out once and a late database connection is closed',async()=>{
  let request,opens=0,closed=0;const pending=openStateDatabase({timeoutMs:20,factory:{open(){opens++;request={};return request;}}});
  await assert.rejects(pending,/열기 대기 시간/);request.result={close(){closed++;}};request.onsuccess();assert.equal(opens,1);assert.equal(closed,1);
