@@ -1,0 +1,282 @@
+{
+  "checkedAt": "2026-10-23T04:11:39.244695+00:00",
+  "base": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewHead": "ee207734e495b696b58b6754c4df6c5d540a1c1e",
+    "draftPR": 133,
+    "reviews": 0,
+    "pagesRun": 39782834193,
+    "pagesConclusion": "success"
+  },
+  "finding": {
+    "behavior": "leave() created a default Incheon world while retaining the pre-join solo notes and independent result. A later autosave could then save this mixed context.",
+    "sourceProbe": {
+      "before": {
+        "network": "nationwide",
+        "hours": 12,
+        "notes": "12시간 전국 단독 연구",
+        "hasResult": true
+      },
+      "after": {
+        "network": "incheon",
+        "hours": 0,
+        "notes": "12시간 전국 단독 연구",
+        "hasResult": true
+      }
+    },
+    "browserBaseline": {
+      "environment": "Isolated Chrome, prior reviewed app/client modules, actual Node WebSocket room",
+      "before": {
+        "network": "nationwide",
+        "hours": 12,
+        "notes": "기준본 전국 12시간 산업공학 기록",
+        "result": "N: 1 day x 2 repeats x 3 policies"
+      },
+      "after": {
+        "network": "incheon",
+        "hours": 0,
+        "notesRetained": true,
+        "oldResultRetained": true
+      },
+      "productionTransitionTested": false
+    }
+  },
+  "changes": [
+    "Return to the existing pre-join solo world object instead of creating a default world. Keep its network, seed/configuration, inventory/time, notes, independent result, logs, version/revision, speed/mode and compute recovery notice together.",
+    "Pause on return, clear shared pending/socket/reconnect work and membership view, and retain existing protection for blocked local storage.",
+    "Leaving in solo mode is a no-op, preserving an already-running local clock or paused computation.",
+    "Rename the connection action to return to the previous solo study; explain that the shared study stays in its room. No automatic copying or merging of shared notes/results into solo state."
+  ],
+  "automated": {
+    "app": {
+      "passed": 171,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs"
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+    },
+    "newTests": {
+      "clientRoomsAdapter": 9,
+      "nativeNetwork": 1,
+      "cases": [
+        "Incheon/nationwide x engineering/biology complete study preservation",
+        "pending handshake and late old events",
+        "repeated room/role changes preserve the latest solo state",
+        "idempotent solo leave with running clock and paused job",
+        "blocked storage protection",
+        "autosave/reopen of the original complete study",
+        "actual two native LabClients/child Node server, independent local progress, rejoin, JSON export and room disk conservation"
+      ]
+    },
+    "nativeNetwork": "Actual health/create HTTP and WebSocket joins with unmodified server code, two independent solo contexts, shared steps/notes, both returns and one rejoin. Disk snapshot restored with shared biology note and conserved inventory; solo export keeps the local result.",
+    "regressions": "Existing seeded reproducibility, conservation, compatibility, expiry, statistics, shared-note isolation, startup/map recovery, storage, reconnect, worker and native server-restart tests all remain in the full suite."
+  },
+  "build": {
+    "builtAt": "2026-10-23T04:04:45.675Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "bff7dc1fc77e8e5d035bb0e68c618018887f5ee45e2be76380caf2597b68bc3e",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 17,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1162018
+  },
+  "static": {
+    "modules": 17,
+    "staticImports": 25,
+    "relativeModuleReferences": 26,
+    "entryHTMLs": 5,
+    "cachePaths": 34,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 23,
+    "copiedTrackedStaticFiles": 35,
+    "changedOutsideBloodflow": false
+  },
+  "browser": {
+    "environment": "Two actual Chrome tabs and Node WebSocket server. A separate IndexedDB name and a read-only checkpoint inspection button exist only in the external QA copy.",
+    "initialSolo": {
+      "A": {
+        "network": "nationwide",
+        "hours": 12,
+        "result": "N 1 day x 2 repeats x 3 policies",
+        "notes": [
+          "A의 전국 12시간 산업공학 연구",
+          "A 단독 모형의 생명과학 해석"
+        ]
+      },
+      "B": {
+        "network": "incheon",
+        "hours": 6,
+        "result": "A 1 day x 2 repeats",
+        "notes": [
+          "B의 인천 6시간 단독 산업공학 기록",
+          "B의 인천 단독 생명과학 기록"
+        ]
+      }
+    },
+    "shared": {
+      "roles": [
+        "engineering",
+        "biology"
+      ],
+      "hours": 12,
+      "notes": [
+        "공유 실험의 산업공학 해석",
+        "공유 실험의 생명과학 해석"
+      ]
+    },
+    "observed": [
+      "A first returned to its nationwide 12h study with both original notes and exactly the original full displayed N result. B stayed shared at 6h.",
+      "A advanced solo to 18h while B advanced the shared study to 12h; neither changed the other.",
+      "A rejoined at shared 12h and saw both shared interpretations, then returned again to its current solo 18h.",
+      "B returned to its own Incheon 6h, notes and exact original displayed A result.",
+      "Actual IndexedDB inspection contained separate nationwide 18h/Incheon 6h records, each with its own notes/result and network-specific pointer.",
+      "Both pages reloaded and restored the same 18h/6h local studies paused; both displayed result texts exactly matched their originals."
+    ],
+    "finalConsole": {
+      "A": {
+        "entries": 105,
+        "extensionExcluded": 105,
+        "appErrors": []
+      },
+      "B": {
+        "entries": 93,
+        "extensionExcluded": 93,
+        "appErrors": []
+      },
+      "production": {
+        "entries": 6,
+        "extensionExcluded": 6,
+        "appErrors": []
+      },
+      "scope": "Bounded final error/warn queries; A and B each reloaded once."
+    },
+    "testHarnessCorrections": [
+      "Initial baseline full-object assertion diagnostics did not complete cleanly; identity assertions were bounded and no complete pre-fix suite count is claimed. The controlled source probe and actual baseline browser transition are the defect evidence.",
+      "The first baseline checkpoint-inspector helper had a QA-only variable-shadowing ReferenceError. It was corrected before the fixed-run IndexedDB inspection. This helper is not app code and is not published. Baseline extension errors: 51."
+    ]
+  },
+  "production": {
+    "checkedAt": "2026-10-23T03:57:32.737232+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/biology/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/research",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/research/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 74410
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 12460
+      },
+      {
+        "path": "/bloodflow/modules/compute-worker.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 1240
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "type": "application/json; charset=utf-8",
+        "bytes": 38728
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "type": "application/javascript; charset=utf-8",
+        "bytes": 380,
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionBrowser": {
+    "fullPages": [
+      "nationwide",
+      "engineering",
+      "biology",
+      "research"
+    ],
+    "topLevelNavigationAndInitialization": true,
+    "nationwideRegions": 17,
+    "maps": [
+      "nationwide",
+      "engineering"
+    ],
+    "biologyCards": 3,
+    "researchInputs": 6,
+    "timeAdvanced": false,
+    "sharedRoomCreated": false
+  },
+  "preserved": [
+    "Original HTML/legacy source and examples unchanged.",
+    "Incheon 4 facilities/12 directed routes/1394 road ways and nationwide 100 nodes/17 fixed study regions unchanged.",
+    "Simulation, biological and statistical formulas, public virtual/estimated labels, equal researcher roles, four full pages and LIVE/TIMELAPSE/COMPUTE unchanged.",
+    "Only bloodflow/ and integrations/bloodflow-dual-lab/ changed; no server, domain, DNS, root service worker, Firebase or other PinCon paths changed."
+  ],
+  "limitations": [
+    "Previous solo memory survives only while the same page remains open. After a reload the existing valid local checkpoint is used; no new durable copy/archive of the pre-join state was introduced.",
+    "Blocked/full storage remains blocked; leaving does not reset storage or falsely announce a save. Export research JSON before closing temporary work.",
+    "Shared state stays in its room; returning to solo does not copy shared notes/results, and offline HTML is not a collaboration server.",
+    "Production health remains 404 with empty serverOrigin; no operational host, actual Galaxy, file://, airplane mode, long-duration tablet performance or hosting-disk lifecycle test in this run.",
+    "Production 503 or production collaboration leave failures were not observed. No main/merge/manual production deployment was performed."
+  ]
+}

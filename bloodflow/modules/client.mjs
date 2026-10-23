@@ -90,7 +90,11 @@ export class LabClient extends EventTarget{
    for(const p of this.pending.values())p.sent=false;this.emit();if(this.reconnect)this.reconnectTimer=setTimeout(()=>this.connect(),Math.min(15000,1000*2**Math.min(4,this.reconnectAttempt++)));
   };
  }
- leave(){this.reconnect=false;clearTimeout(this.reconnectTimer);clearTimeout(this.joinTimer);const previous=this.socket;this.socket=null;previous?.close();this.connectionIssue='';this.tokenStorageIssue='';this.computeIssue='';this.pending.clear();this.mode='solo';this.role='local';this.sharedState=null;this.world=new DualWorld({},this.data);this.running=false;this.ready=true;this.connection='새 단독 연구 · 일시정지';this.emit();}
+ leave(){
+  if(this.mode!=='shared')return;
+  // Shared state is separate; keep the complete pre-join solo study and pause on return.
+  this.reconnect=false;clearTimeout(this.reconnectTimer);clearTimeout(this.joinTimer);const previous=this.socket;this.socket=null;previous?.close();this.connectionIssue='';this.tokenStorageIssue='';this.pending.clear();this.mode='solo';this.role='local';this.sharedState=null;this.running=false;this.ready=true;this.connection='이전 단독 연구 · 일시정지';this.emit();
+ }
  command(type,props={}){
   if(this.initializing)throw Error('자동 저장 복원이 끝난 뒤 조작하세요.');
   if(this.mode==='solo'&&this.job&&['configure','restore','review','compute'].includes(type))throw Error('반복 계산을 중단한 뒤 조건을 변경하세요.');
