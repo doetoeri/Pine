@@ -9,7 +9,7 @@ const sessionRead=k=>{try{return sessionStorage.getItem(k);}catch{return null;}}
 const sessionWrite=(k,v)=>{try{sessionStorage.setItem(k,v);}catch{}};
 const serverBase=resolveServerBase;
 export class LabClient extends EventTarget{
- constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS,joinTimeoutMs=10000}={}){super();this.joinTimeoutMs=joinTimeoutMs;this.connectionIssue='';this.tokenStorageIssue='';this.roleTokens=new Map();this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={...DEFAULT_NOTES};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.job=null;this.computeIssue='';this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
+ constructor(data,initialConfig={}, {storageTimeoutMs=STORAGE_TIMEOUT_MS,joinTimeoutMs=10000}={}){super();this.joinTimeoutMs=joinTimeoutMs;this.connectionIssue='';this.tokenStorageIssue='';this.roleTokens=new Map();this.storageTimeoutMs=storageTimeoutMs;this.autosaveAllowed=false;this.storageStatus={kind:'checking',message:'기기 저장 자료 확인 중'};this.data=data;this.mode='solo';this.role='local';this.ready=false;this.initializing=true;this.version=0;this.revision=0;this.running=false;this.speed=1;this.clockMode='LIVE';this.world=new DualWorld(initialConfig,data);this.notes={...DEFAULT_NOTES};this.result=null;this.logs=[];this.pending=new Map();this.clientId=sessionRead('bf-client-id')??eventId();sessionWrite('bf-client-id',this.clientId);this.commandClientId=eventId();this.commandSequence=0;this.job=null;this.computeIssue='';this.lastStateAt=Date.now();this.connection='단독 연구';this.loop=setInterval(()=>this.tick(),1000);this.saveLoop=setInterval(()=>this.autosave(),10000);this.watch=setInterval(()=>{if(this.mode==='shared'&&this.ready&&Date.now()-this.lastStateAt>5500){this.ready=false;this.connection='연결 확인 중 · 조작 잠금';this.emit();this.socket?.close();}},1000);}
  emit(){this.dispatchEvent(new Event('change'));}
  error(message){this.dispatchEvent(new CustomEvent('notice',{detail:message}));}
  get state(){if(this.mode==='shared')return this.sharedState;return {version:this.version,revision:this.revision,world:viewOf(this.world),notes:this.notes,result:this.result,logs:this.logs,job:this.job?{progress:this.job.progress,plan:this.job.plan,paused:!!this.job.paused}:null,running:this.running,speed:this.speed,mode:this.clockMode,peers:[]};}
@@ -96,7 +96,14 @@ export class LabClient extends EventTarget{
   if(this.mode==='solo'&&this.job&&['configure','restore','review','compute'].includes(type))throw Error('반복 계산을 중단한 뒤 조건을 변경하세요.');
   if(this.mode==='shared'){
    if(!this.ready||this.socket?.readyState!==1)throw Error('연결 복구 후 서버의 최신 상태를 확인하세요.');
-   const seqKey='bf-sequence:'+this.code+':'+this.role,clientSequence=Number(sessionRead(seqKey)||0)+1;sessionWrite(seqKey,String(clientSequence));const id=eventId(),message={type,...props,eventId:id,clientId:this.clientId,clientSequence,experimentId:this.code,expectedVersion:this.sharedState.version,expectedRevision:this.sharedState.revision,timestamp:new Date().toISOString()};
+   // Checkpoint identity may survive a reload or copied tab; command identity must not be shared.
+   // Pending messages retain this in-memory identity and sequence when the same tab reconnects.
+   let sequence;
+   if(type!=='export'){
+    if(!Number.isSafeInteger(this.commandSequence)||this.commandSequence<0||this.commandSequence>=Number.MAX_SAFE_INTEGER)throw Error('현재 연결의 조작 순서를 더 진행할 수 없습니다. 연구 JSON을 보관한 뒤 페이지를 다시 여세요.');
+    sequence={clientId:this.commandClientId,clientSequence:++this.commandSequence};
+   }
+   const id=eventId(),message={type,...props,...sequence,eventId:id,experimentId:this.code,expectedVersion:this.sharedState.version,expectedRevision:this.sharedState.revision,timestamp:new Date().toISOString()};
    if(type!=='export')this.pending.set(id,{message,sent:true});this.socket.send(JSON.stringify(message));return;
   }
   if(type==='configure'){this.world=new DualWorld({...this.world.c,...props.patch},this.data);this.running=false;this.computeIssue='';this.revision++;}
