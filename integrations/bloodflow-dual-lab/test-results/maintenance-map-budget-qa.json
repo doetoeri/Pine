@@ -1,0 +1,327 @@
+{
+  "checkedAt": "2026-10-23T06:06:57.561151+00:00",
+  "base": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewHead": "8a2434dc05fc1911023af21a5a3202fa459f9378",
+    "reviewTree": "697eff2a58e5c4292231d60b33672b0dc9cfe084",
+    "draftPR": 133,
+    "reviews": 0,
+    "mergeable": true,
+    "pagesRun": 39782834193,
+    "pagesConclusion": "success",
+    "reviewStatuses": [
+      "Vercel - pine success",
+      "Vercel - pincon-ai ignored build success"
+    ]
+  },
+  "findings": [
+    {
+      "behavior": "TileScheduler created a separate rolling request history for each map layer. Nationwide/regional navigation reset the advertised 32 attempts per minute.",
+      "sourceProbe": {
+        "firstLayer": 20,
+        "secondLayer": 20,
+        "totalFetchCallsWithinOneMinute": 40,
+        "configuredMinuteBudget": 32
+      },
+      "browserBaseline": {
+        "environment": "Actual Chrome, prior reviewed modules, local Node server. QA-only default provider uses local no-store synthetic 200 tiles.",
+        "navigation": [
+          "nationwide",
+          "engineering",
+          "nationwide",
+          "engineering",
+          "nationwide"
+        ],
+        "elapsedToolCallSeconds": 6.64,
+        "observedServerRequests": 75,
+        "publicTileRequests": 0,
+        "productionFailureReproduced": false
+      }
+    },
+    {
+      "behavior": "The map button onclick passed MouseEvent as the restore flag, so clicking saved-map-only while online skipped removal.",
+      "browserEvidence": {
+        "buttonBeforeClick": "저장 지도만 보기",
+        "buttonAfterClick": "저장 지도만 보기",
+        "statusAfterClick": "온라인 + 저장 지도"
+      }
+    }
+  ],
+  "changes": [
+    "Share one rolling TileRequestWindow per tile-server URL origin in the current page, across map removal, navigation, template/name changes and background toggles. Keep view limit80, concurrency4, default32/min and finite retry behavior.",
+    "Charge every started fetch including failures/retries and sent aborts; do not charge deduplicated requests, canceled queued tiles or a per-view refusal before any fetch. Exact rolling60s expiry only permits a later manual request; no timed replay.",
+    "Expose per-map attempts and per-origin recent minute usage separately. Describe32/min as an app limit, not a provider entitlement.",
+    "Defer layer status notification until Leaflet finishes the current adding stack. Ignore fetch/image callbacks for removed or offscreen tiles, complete active images once, clear unload handlers and revoke tracked Blob URLs.",
+    "Wrap manual map button invocation so its event cannot be interpreted as restore=true. Keep existing explicit restore=true path for navigation."
+  ],
+  "automated": {
+    "app": {
+      "passed": 194,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs"
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+    },
+    "newTests": {
+      "requestWindow": 7,
+      "layerLifecycle": 4,
+      "cases": [
+        "same-origin recreated layers share32 attempts",
+        "overlapping same-origin layers share32",
+        "explicit other origin and unchanged default HTTP cache/referrer",
+        "rolling expiry at59999/60000/70000ms and no automatic restart",
+        "503 retry attempts count across replacement",
+        "deduplication/queued cancellation/sent abort accounting",
+        "per-view ceiling does not consume unsent attempt",
+        "synchronous exhaustion notifies after layer add stack",
+        "late response after removal does not call done or create URL",
+        "unloaded image callbacks suppressed and URL released",
+        "active image completes exactly once and removal suppresses old callback"
+      ]
+    },
+    "focusedMapChecks": {
+      "passed": 16,
+      "failed": 0
+    },
+    "regressions": "Full suite retains seeded policies, conservation, compatibility, expiry, statistics, two native roles/network roundtrip, server restart, storage/restore, pending command replay, role/draft/export and startup/data/map failure checks.",
+    "fixtureCorrection": "The initial lifecycle fixture assumed one setImmediate drained the Node Blob body and checked three assertions too early. It now waits for actual image handlers/pending completion with a bounded deadline. Focused16 and full194 then passed."
+  },
+  "build": {
+    "builtAt": "2026-10-23T06:01:53.480Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "0489edc044722ce1d6d474e85a0c7853579c5a9d80cb7a7414af0c74de2b5b34",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 17,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1167375
+  },
+  "static": {
+    "modules": 17,
+    "staticImports": 25,
+    "relativeModuleReferences": 26,
+    "entryHTMLs": 5,
+    "cachePaths": 34,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 23,
+    "copiedTrackedStaticFiles": 35,
+    "changedOutsideBloodflow": false
+  },
+  "browser": {
+    "environment": "Chrome and a local Node server; external QA-only provider rewrites, counter endpoint/script, isolated IndexedDB and prior-module baseline. No public tile traffic for navigation/toggle/fault tests.",
+    "intermediateDefectAndCorrection": {
+      "requestLimitFirstFix": 32,
+      "observed": "Removing an exhausted layer synchronously during Leaflet add produced getZoomScale status error and late _fadeAnimated done errors.",
+      "corrected": "Deferred status notification and guarded tile completion; new lifecycle regression tests. Final separate tab repeats navigation without these errors. This intermediate failure is not claimed as a successful final verification."
+    },
+    "navigation": {
+      "serverCounterBefore": 107,
+      "serverCounterAfter": 139,
+      "delta": 32,
+      "path": [
+        "nationwide",
+        "engineering",
+        "nationwide",
+        "engineering",
+        "nationwide"
+      ],
+      "fallback": "지도 요청 한도 도달 · 저장된 지도로 계속합니다. 1분 뒤 수동 재연결하세요.",
+      "appErrors": []
+    },
+    "idleAndManualReconnect": {
+      "noAutomaticRequestForMoreThanOneMinute": true,
+      "serverCounterRemained": 139,
+      "manualReconnectAdded": 15,
+      "clockAdvancedFrom0To6WhileSavedMapAvailable": true
+    },
+    "finalToggle": {
+      "sourceReloadedForFinalButtonHandler": true,
+      "serverCounterBefore": 154,
+      "serverCounterAfter": 186,
+      "delta": 32,
+      "sequence": [
+        "on",
+        "off",
+        "on",
+        "off",
+        "on"
+      ],
+      "offButton": "온라인 배경 켜기",
+      "offStatus": "사용자가 저장된 벡터 지도로 전환",
+      "minuteUsage": "32/32",
+      "fallback": true,
+      "followedBy": [
+        "+6h from prior6h to12h",
+        "nationwide to engineering",
+        "zoom in",
+        "zoom out"
+      ],
+      "counterAfterFollowingActions": 186,
+      "storedVectorMapRetained": true
+    },
+    "synthetic503": {
+      "network": "incheon",
+      "startedAttempts": 4,
+      "scheduledRetries": 2,
+      "visibleHTTP503Records": 3,
+      "visibleResponseHeader": {
+        "x-bloodflow-fixture": "synthetic-503",
+        "content-type": "text/plain",
+        "cache-control": "no-store"
+      },
+      "sameLocalServerPath": "/bloodflow/qa/tiles/{z}/{x}/{y}.svg?case=down&run=budget1447",
+      "storedMapRecovered": true,
+      "finalGlobalCounter": 190,
+      "publicServer503Reproduced": false,
+      "appErrors": []
+    },
+    "finalConsole": {
+      "verified": {
+        "entries": 28,
+        "extensionExcluded": 28,
+        "appErrors": []
+      },
+      "synthetic503": {
+        "entries": 2,
+        "extensionExcluded": 2,
+        "appErrors": []
+      },
+      "production": {
+        "entries": 6,
+        "extensionExcluded": 6,
+        "appErrors": []
+      },
+      "scope": "Bounded final error/warn queries; verified tab reloaded once for final button handler. Intermediate-fix errors recorded separately above."
+    }
+  },
+  "production": {
+    "checkedAt": "2026-10-23T05:52:10.994331+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/biology/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/research",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/research/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 74410
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 12460
+      },
+      {
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/map-requests.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 4557
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "type": "application/json; charset=utf-8",
+        "bytes": 38728
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "type": "application/javascript; charset=utf-8",
+        "bytes": 380,
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionBrowser": {
+    "fullPages": [
+      "nationwide",
+      "engineering",
+      "biology",
+      "research"
+    ],
+    "topLevelNavigationAndInitialization": true,
+    "nationwideRegions": 17,
+    "maps": [
+      "nationwide",
+      "engineering"
+    ],
+    "biologyCards": 3,
+    "researchInputs": 6,
+    "timeAdvanced": false,
+    "sharedRoomCreated": false,
+    "publicTilesEnabled": false
+  },
+  "policyReview": {
+    "date": "2026-10-23",
+    "url": "https://operations.osmfoundation.org/policies/tiles/",
+    "retained": "Default browser HTTP cache, attribution and Referer; no prefetch, offline tile archive or automatic provider rotation. The app32/min limit does not replace provider policy or guarantee access."
+  },
+  "preserved": [
+    "Originals/legacy HTML and examples unchanged.",
+    "Incheon4 facilities/12 routes/1394 road ways and nationwide100 nodes/17 fixed study regions unchanged.",
+    "Common engine, biological/statistical formulas, fictional/estimated labels, four full pages, equal researcher functionality and LIVE/TIMELAPSE/COMPUTE unchanged.",
+    "Client/server collaboration code, DNS, domain, root service worker, Firebase and other PinCon paths unchanged.",
+    "External QA routes/provider URL/counter/baseline/separate DB not published."
+  ],
+  "limitations": [
+    "Request window is current-page memory, not a service/IP-wide or cross-tab/device/reload quota. No persistent tile/storage mechanism was added.",
+    "Production health404 and empty serverOrigin still require an approved HTTPS collaboration host and persistent disk. Static Pages does not provide WebSocket collaboration.",
+    "Original user503 and production offscreen-tile failures were not reproduced; synthetic local faults and current HTTP checks are distinguished.",
+    "No actual Internet disconnect, file://, standalone HTML browser execution, Galaxy hardware, long-duration tablet performance, browser disk-download completion or hosting-disk lifecycle verification in this run.",
+    "No main edit, merge or manual production deployment."
+  ]
+}
