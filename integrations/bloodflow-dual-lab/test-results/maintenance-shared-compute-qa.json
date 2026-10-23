@@ -1,0 +1,264 @@
+{
+  "verifiedAt": "2026-10-23T00:08:59.510949+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "priorReviewHead": "3ee4939d96765cd9dda51b1cb98b8b72685a2837",
+    "priorReviewTree": "6342f9063be69cd7852bcf320f8be425507f2b5a",
+    "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+    "reviewsBeforeChange": [],
+    "pagesWorkflow": {
+      "conclusion": "success",
+      "url": "https://github.com/doetoeri/Pine/actions/runs/39782834193"
+    },
+    "production": {
+      "checkedAt": "2026-10-23T00:07:21.808462+00:00",
+      "http": [
+        {
+          "path": "/bloodflow",
+          "url": "https://pincon.app/bloodflow/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/nationwide",
+          "url": "https://pincon.app/bloodflow/nationwide/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/engineering",
+          "url": "https://pincon.app/bloodflow/engineering/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/biology",
+          "url": "https://pincon.app/bloodflow/biology/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/research",
+          "url": "https://pincon.app/bloodflow/research/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/app.mjs",
+          "url": "https://pincon.app/bloodflow/modules/app.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/compute-worker.mjs",
+          "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/data/routes.json",
+          "url": "https://pincon.app/bloodflow/data/routes.json",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/runtime-config.js",
+          "url": "https://pincon.app/bloodflow/runtime-config.js",
+          "status": 200,
+          "contentType": "application/javascript; charset=utf-8",
+          "serverOrigin": ""
+        },
+        {
+          "path": "/bloodflow/api/health",
+          "url": "https://pincon.app/bloodflow/api/health",
+          "status": 404
+        }
+      ]
+    },
+    "production503Observed": false,
+    "productionWorkerFailureObserved": false,
+    "priorDirtyWorktreeLeftUntouched": true
+  },
+  "baseline": {
+    "post": {
+      "error": "Synthetic server postMessage failure",
+      "jobStillPresent": true,
+      "researchPreserved": true
+    },
+    "exit": {
+      "exitCode": 0,
+      "jobStillPresent": true,
+      "lastPublicStateStillHasJob": true,
+      "errorLogged": false,
+      "researchPreserved": true
+    },
+    "malformed": {
+      "previousResultOverwritten": true,
+      "storedResultFormat": "BLOODFLOW-PAIRED-1",
+      "storedResultVersion": null
+    }
+  },
+  "changes": {
+    "currentWorkerOnlySettlement": true,
+    "constructorInitialPostErrorMessageErrorAndResultlessExitCleanup": true,
+    "pauseResumeAndDisconnectPostFailuresHandled": true,
+    "cancelCloseAndCompletionDetachBeforeTermination": true,
+    "terminalResultsValidatedBeforeReplacement": true,
+    "previousWorldResultAndBothNotesPreserved": true,
+    "structuredErrorLogAndVersionBroadcast": true,
+    "sharedFailureNoticePersistedAndReloaded": true,
+    "optionalProtocol2Field": "computeIssue",
+    "internalFactoryInjectionOnly": true,
+    "automaticRetry": false,
+    "authenticationRolePermissionsAndDedupeUnchanged": true,
+    "biologicalAndStatisticalFormulasChanged": false
+  },
+  "automated": {
+    "appPassed": 127,
+    "appFailed": 0,
+    "newSharedComputeTests": 15,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "appCommand": "node --test tests/*.test.mjs",
+    "pinconCommand": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs",
+    "realWorkerExitCodesWithoutResult": [
+      0,
+      7
+    ],
+    "realSuccessfulWorkerCases": {
+      "A": "engineering",
+      "N": "biology"
+    },
+    "realResultComparison": "Entire result equals runExperiment for identical conditions except createdAt.",
+    "worldHoursPreserved": 6,
+    "conservationPassed": true,
+    "diskReload": "New Rooms manager in the same Node process; failure notice and prior research restored, followed by real manual retry.",
+    "existingActualServerProcessRestartRegression": "passed",
+    "synchronousFaultsInjected": [
+      "constructor",
+      "initial postMessage",
+      "pause",
+      "resume",
+      "disconnect"
+    ],
+    "eventsInjected": [
+      "error",
+      "messageerror",
+      "malformed/empty result",
+      "late cancelled worker events"
+    ],
+    "casesNotProduced": "Actual browser/Node deserialization failure; messageerror callback/event injection is synthetic."
+  },
+  "browser": {
+    "environment": "Cloud Chrome with real copied Node/WebSocket server; QA-only Worker factory, scripts and controls outside repository. Native server threads do the normal A/N computation.",
+    "isolatedIndexedDB": "bloodflow-shared-compute-qa-20261023",
+    "roles": [
+      "engineering",
+      "biology"
+    ],
+    "baseline": {
+      "experiment": "A",
+      "days": 1,
+      "repeats": 2,
+      "sharedHours": 6,
+      "bothResultTextsEqual": true,
+      "bothInterpretationsConfirmed": true
+    },
+    "faults": [
+      "synthetic constructor failure",
+      "synthetic initial postMessage failure",
+      "real test worker script exception",
+      "real test worker sends incomplete result",
+      "real test worker exits 0 without a result"
+    ],
+    "allFaults": {
+      "bothFailureNoticesEqual": true,
+      "bothControlsReleased": true,
+      "bothWorldHoursPreserved": 6,
+      "bothInterpretationsAndPriorResultPreserved": true,
+      "rolePermissionsRetained": true
+    },
+    "reconnect": {
+      "bothTabsReloaded": true,
+      "sameCodeAndOwnRoleManuallyRejoined": true,
+      "failureNoticeRetained": true,
+      "hours": 6,
+      "bothNotesAndResultRetained": true,
+      "automaticJoinAfterReloadClaimed": false
+    },
+    "biologyManualRetry": {
+      "experiment": "N",
+      "days": 1,
+      "repeats": 2,
+      "policies": 3,
+      "nodes": 100,
+      "fixedRegions": 17,
+      "bothResultsEqual": true,
+      "bothNoticesCleared": true,
+      "currentIncheonHoursPreserved": 6,
+      "bothNotesPreserved": true,
+      "labelledAsSeparateExperiment": true
+    },
+    "heldWorker": {
+      "bothPauseProgress": 0.25,
+      "resumed": true,
+      "actualThreadTerminated": true,
+      "exitCode": 1,
+      "bothControlsReleased": true,
+      "nationwideResultPreserved": true
+    },
+    "qaControlCorrection": "The first pointer attempt hit the fixed ASIDE covering the QA button; read-only DOM hit inspection confirmed this. Keyboard Enter on that same button actually invoked termination. This fixture issue is not a product failure.",
+    "finalServerCounters": {
+      "health": 4,
+      "roomPosts": 1,
+      "sockets": 4,
+      "workers": 7,
+      "exits": 7,
+      "active": 0,
+      "roomHours": 6,
+      "roomJob": null,
+      "conservation": true
+    },
+    "console": {
+      "applicationErrors": [],
+      "engineeringEntries": 78,
+      "biologyEntries": 65,
+      "extensionEntriesExcluded": 143,
+      "captureLimitPerTab": 1000
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "entryHTMLs": 5,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "dataUnchanged": true,
+    "incheonInstitutions": 4,
+    "directedRoutes": 12,
+    "roads": 1394,
+    "syntaxChecks": 20
+  },
+  "buildManifest": "test-results/build-manifest.json",
+  "offlineBytes": 1153357,
+  "preserved": [
+    "original HTMLs",
+    "Incheon 4 facilities / 12 directed routes / 1394 road ways",
+    "nationwide 100 representative nodes, 17 fixed regions and explicit virtual/estimated labels",
+    "common engine, biological rules, statistics and LIVE/TIMELAPSE/COMPUTE",
+    "four top-level full pages and equal-role research",
+    "other PinCon paths, root service worker, Firebase and domain"
+  ],
+  "limits": [
+    "Review branch only; no main mutation, merge or manual production deployment.",
+    "Production collaboration health remains 404 with empty serverOrigin.",
+    "Faults were created in an isolated test environment, not observed in production.",
+    "The new disk reload test recreates Rooms in the same process; actual server process restart is covered separately by existing automated regressions.",
+    "No physical Galaxy, file://, airplane mode, standalone browser rerun, long wall-clock/performance or real-host disk lifecycle verification.",
+    "QA Worker scripts, factory changes, server controls/counters and isolated DB names are not published."
+  ]
+}
