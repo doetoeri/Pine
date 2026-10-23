@@ -1,0 +1,258 @@
+{
+  "verifiedAt": "2026-10-23T01:10:52.609645+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "priorReviewHead": "860ce125dc1b454b861268042892bd5383fddc32",
+    "priorReviewTree": "ffeca9d1d2f4613aadba0f925a35ce6808cd8b21",
+    "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+    "reviewsBeforeChange": [],
+    "pagesWorkflow": {
+      "conclusion": "success",
+      "url": "https://github.com/doetoeri/Pine/actions/runs/39782834193"
+    },
+    "production": {
+      "checkedAt": "2026-10-23T00:56:45.910184+00:00",
+      "http": [
+        {
+          "path": "/bloodflow",
+          "url": "https://pincon.app/bloodflow/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/nationwide",
+          "url": "https://pincon.app/bloodflow/nationwide/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/engineering",
+          "url": "https://pincon.app/bloodflow/engineering/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/biology",
+          "url": "https://pincon.app/bloodflow/biology/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/research",
+          "url": "https://pincon.app/bloodflow/research/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/app.mjs",
+          "url": "https://pincon.app/bloodflow/modules/app.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/compute-worker.mjs",
+          "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/data/routes.json",
+          "url": "https://pincon.app/bloodflow/data/routes.json",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/runtime-config.js",
+          "url": "https://pincon.app/bloodflow/runtime-config.js",
+          "status": 200,
+          "contentType": "application/javascript; charset=utf-8",
+          "body": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+        },
+        {
+          "path": "/bloodflow/api/health",
+          "status": 404
+        }
+      ]
+    },
+    "production503Observed": false,
+    "productionDiskFailureObserved": false,
+    "priorDirtyWorktreeLeftUntouched": true
+  },
+  "baseline": {
+    "commandError": "EISDIR",
+    "periodicPersistError": "EISDIR",
+    "disconnectError": "EISDIR",
+    "inMemoryNote": "저장 실패 중 작성한 해석",
+    "lastBroadcastNote": "",
+    "ackSent": false,
+    "commandAlreadyDeduped": true,
+    "lastGoodFileUnchanged": true
+  },
+  "changes": {
+    "safeAtomicFileReplacement": true,
+    "lastCompleteFilePreserved": true,
+    "appliedCommandAcknowledgedAndBroadcastDespiteFailedDiskWrite": true,
+    "publicStorageStatus": [
+      "kind",
+      "savedAt",
+      "savedVersion",
+      "message"
+    ],
+    "automaticClockAndComputePauseOnFailure": true,
+    "noAutomaticResumeAfterRecovery": true,
+    "blockedWorldMutationsUntilSaveRecovery": true,
+    "bothRolesMayRecordNotesExportAndRetry": true,
+    "periodicRecoverySeconds": 15,
+    "failedRoomCreationNotRegistered": true,
+    "transientTempFileCleanup": true,
+    "internalErrorTextNotExposed": true,
+    "onlyErrorCodeExposed": true,
+    "storageTransitionLogsBounded": true,
+    "authenticationRolePermissionsAndDedupeUnchanged": true,
+    "biologyAndStatisticalFormulasChanged": false,
+    "ackIncludesStorageSavedFlag": true,
+    "failedCommandAckStorageSaved": false
+  },
+  "automated": {
+    "appPassed": 138,
+    "appFailed": 0,
+    "newPersistenceUnitTests": 10,
+    "newActualServerIntegrationTests": 1,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "appCommand": "node --test tests/*.test.mjs",
+    "pinconCommand": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs",
+    "actualWriteFailure": "EISDIR from a directory deliberately occupying the .json.tmp file path. No real disk exhaustion or production fault.",
+    "syntheticCodes": [
+      "ENOSPC",
+      "EIO"
+    ],
+    "actualServerOutageCase": [
+      "two native WebSocket clients",
+      "15-second periodic save during write failure",
+      "health remains 200",
+      "disconnect and reconnect share memory-only notes",
+      "JSON export",
+      "biology explicit save retry",
+      "actual child Node process restart",
+      "both interpretations and hours restored",
+      "duplicate event does not apply twice"
+    ],
+    "computeFailureCases": [
+      "pause a running worker only once",
+      "recover while still paused",
+      "manual resume by biology",
+      "pause delivery exception settles job",
+      "valid late result remains visible and can be saved"
+    ],
+    "worldHoursInAutomatedCase": 6,
+    "conservationPassed": true
+  },
+  "browser": {
+    "environment": "Cloud Chrome; real copied Node/WebSocket server. QA controls and isolated IndexedDB outside repository.",
+    "isolatedIndexedDB": "bloodflow-persistence-qa-20261023",
+    "roles": [
+      "engineering",
+      "biology"
+    ],
+    "baseline": {
+      "sharedHours": 6,
+      "experiment": "A",
+      "days": 1,
+      "repeats": 2,
+      "bothInterpretationsEntered": true,
+      "bothResultsEqual": true
+    },
+    "actualServerWriteFailure": {
+      "code": "EISDIR",
+      "introducedBy": "Temporary-file path occupied by a QA-only directory",
+      "bothNewInterpretationsShared": true,
+      "bothPriorResultTextsMatch": true,
+      "bothWarningsEqual": true,
+      "bothOwnRolePermissionsPreserved": true,
+      "clockStepAndComputeDisabled": true,
+      "jsonDownloadEventObserved": true,
+      "downloadedFileContentsInspected": false,
+      "retryWhileBlockedKeepsWarning": true
+    },
+    "reconnect": {
+      "actualCommonSocketsClosed": true,
+      "bothDisconnectedLockObserved": true,
+      "automaticReconnect": true,
+      "sharedHours": 6,
+      "bothNotesResultWarningAndRolesRetained": true,
+      "processRestartClaimedForBrowser": false
+    },
+    "manualRecovery": {
+      "triggerRole": "biology",
+      "bothWarningsCleared": true,
+      "bothHours": 6,
+      "bothNotesAndResultRetained": true,
+      "noAutoResume": true
+    },
+    "runningClockFailureAndPeriodicRecovery": {
+      "clockWasActuallyRunning": true,
+      "pausedHours": 6.183333333333333,
+      "lastSavedHoursDuringOutage": 6.1499999999999995,
+      "recoverWithoutManualSaveButton": true,
+      "finalDiskHours": 6.183333333333333,
+      "finalMemoryHours": 6.183333333333333,
+      "finalRunning": false,
+      "bothNotesAndOriginalResultPreserved": true,
+      "bothWarningsCleared": true,
+      "conservation": true
+    },
+    "console": {
+      "applicationErrors": [],
+      "engineeringEntries": 72,
+      "biologyEntries": 64,
+      "extensionEntriesExcluded": 136,
+      "captureLimitPerTab": 1000
+    },
+    "productionScreenChecks": {
+      "nationwideInitialized": true,
+      "engineeringInitializedWithMap": true,
+      "biologyInitializedWithThreeCards": true,
+      "researchInitializedWithSixNotes": true,
+      "applicationConsoleErrorsObserved": [],
+      "extensionEntriesExcluded": 4,
+      "productionSimulationAdvanced": false
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "entryHTMLs": 5,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 22,
+    "copiedTrackedStaticFiles": 34,
+    "changedOutsideBloodflow": false
+  },
+  "buildManifest": "test-results/build-manifest.json",
+  "offlineBytes": 1154911,
+  "preserved": [
+    "original HTMLs and legacy source",
+    "Incheon 4 facilities / 12 directed routes / 1394 road ways",
+    "nationwide 100 nodes, 17 fixed regions and explicit virtual/estimated labels",
+    "common engine, biological rules, statistics and LIVE/TIMELAPSE/COMPUTE",
+    "four top-level full pages and equal-role research",
+    "other PinCon paths, root service worker, Firebase and domain"
+  ],
+  "limits": [
+    "Review branch only; no main mutation, merge or manual production deployment.",
+    "Production collaboration health remains 404 with empty serverOrigin.",
+    "Disk faults were produced in isolated fixtures, not observed in production.",
+    "ENOSPC and rename EIO were injected; actual disk exhaustion, hardware failure and operating-system permission denial were not produced.",
+    "Atomic temporary-file replacement success does not guarantee fsync/power-loss durability or persistence across host redeployments.",
+    "If a server ends before failed saves recover, only the last complete file survives; unsaved memory must be exported.",
+    "New actual process restart is verified with native WebSocket clients, not by restarting the browser preview host.",
+    "No physical Galaxy, file://, airplane mode, standalone browser rerun, long wall-clock/performance or real-host disk lifecycle verification.",
+    "QA controls, special server routes and isolated DB names are not published."
+  ]
+}

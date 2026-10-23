@@ -1,0 +1,295 @@
+{
+  "verifiedAt": "2026-10-23T02:15:45.691849+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "priorReviewHead": "a17243818ee3f3da93ed00f1e382ad177f7b3825",
+    "priorReviewTree": "dfc9d080d93b0bce077c91dc1b3dff553ff06798",
+    "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+    "reviewsBeforeChange": [],
+    "pagesWorkflow": {
+      "conclusion": "success",
+      "url": "https://github.com/doetoeri/Pine/actions/runs/39782834193"
+    },
+    "production": {
+      "checkedAt": "2026-10-23T01:55:41.000043+00:00",
+      "http": [
+        {
+          "path": "/bloodflow",
+          "url": "https://pincon.app/bloodflow/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/nationwide",
+          "url": "https://pincon.app/bloodflow/nationwide/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/engineering",
+          "url": "https://pincon.app/bloodflow/engineering/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/biology",
+          "url": "https://pincon.app/bloodflow/biology/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/research",
+          "url": "https://pincon.app/bloodflow/research/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/app.mjs",
+          "url": "https://pincon.app/bloodflow/modules/app.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/client.mjs",
+          "url": "https://pincon.app/bloodflow/modules/client.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/compute-worker.mjs",
+          "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/data/routes.json",
+          "url": "https://pincon.app/bloodflow/data/routes.json",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/runtime-config.js",
+          "url": "https://pincon.app/bloodflow/runtime-config.js",
+          "status": 200,
+          "contentType": "application/javascript; charset=utf-8",
+          "runtimeConfig": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+        },
+        {
+          "path": "/bloodflow/api/health",
+          "status": 404
+        }
+      ]
+    },
+    "production503Observed": false,
+    "productionSessionStorageFailureObserved": false,
+    "existingWorktreesLeftUntouched": true
+  },
+  "baseline": {
+    "node": {
+      "sequences": [
+        1,
+        1
+      ],
+      "expectedHours": 12,
+      "actualServerHours": 6,
+      "clientHours": 6,
+      "pendingAfterAck": 0
+    },
+    "browser": {
+      "source": "prior review client.mjs served from an isolated copy",
+      "syntheticFault": "sessionStorage writes throw QuotaExceededError; localStorage and IndexedDB remain available",
+      "sentStepCommands": 2,
+      "sequences": [
+        1,
+        1
+      ],
+      "sequenceReads": 2,
+      "sequenceWrites": 2,
+      "serverStepActions": 1,
+      "expectedHours": 12,
+      "actualHours": 6,
+      "applicationConsoleErrors": [],
+      "extensionEntriesExcluded": 10
+    }
+  },
+  "changes": {
+    "perPageCommandIdentitySeparateFromCheckpointIdentity": true,
+    "inMemoryMonotoneSequence": true,
+    "noCommandSequenceSessionStorageReadsOrWrites": true,
+    "checkpointClientIdAndKeysUnchanged": true,
+    "oldSequenceKeysNotDeleted": true,
+    "pendingReplayRetainsIdentitySequenceAndEventId": true,
+    "newPageStartsFreshCommandIdentity": true,
+    "readOnlyExportDoesNotRequireSequence": true,
+    "invalidOrExhaustedCounterRejectsMutationBeforeSending": true,
+    "authenticationTokensRolesAndServerDeduplicationUnchanged": true,
+    "wireProtocolVersion": 2,
+    "serverOrBiologicalStatisticalFormulasChanged": false
+  },
+  "automated": {
+    "appPassed": 150,
+    "appFailed": 0,
+    "newUnitTests": 11,
+    "newActualServerIntegrationTests": 1,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "appCommand": "node --test tests/*.test.mjs",
+    "pinconCommand": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs",
+    "unitCases": [
+      "sessionStorage getter/read/write/read+write rejection",
+      "corrupt and stale legacy stored sequence values",
+      "two same-role clients with copied checkpoint identity",
+      "storage rejection starts during an active study",
+      "lost ACK, identical pending replay and exactly-once time advance",
+      "new page identity with unchanged checkpoint identity",
+      "invalid/exhausted in-memory counter preserves state and still allows JSON export"
+    ],
+    "actualNetwork": {
+      "nativeLabClientInstances": 2,
+      "roles": [
+        "engineering",
+        "biology"
+      ],
+      "sameCheckpointIdentitySeeded": true,
+      "server": "unmodified child Node process over native WebSocket",
+      "sessionWritesRejected": true,
+      "sessionGetterRejectedMidStudy": true,
+      "fourInitialStepsHours": 24,
+      "socketReconnect": true,
+      "hoursBeforeProcessRestart": 36,
+      "actualProcessRestart": true,
+      "freshServerAuthorityAccepted": true,
+      "nextStepHours": 42,
+      "bothNotesRetained": true,
+      "lastSequenceKeys": 2,
+      "storedSequenceValuesSafeIntegers": true,
+      "savedCheckpointAndConservationValidated": true
+    }
+  },
+  "browser": {
+    "environment": "Cloud Chrome and a real copied Node/WebSocket server. QA-only storage overrides, outbound metadata inspector and one-ACK suppression outside repository.",
+    "isolatedIndexedDB": "bloodflow-sequence-qa-20261023",
+    "storageFault": "Synthetic sessionStorage write rejection on both tabs; getter rejection later on engineering tab only. LocalStorage and IndexedDB not blocked.",
+    "initialRoles": [
+      "engineering",
+      "biology"
+    ],
+    "initialRepeatedStepsHours": 24,
+    "bothIndependentNotesShared": true,
+    "biologyCompute": {
+      "experiment": "N",
+      "days": 1,
+      "repeats": 2,
+      "policies": 3,
+      "nodes": 100,
+      "fixedRegions": 17,
+      "bothFullResultTextsEqual": true,
+      "separateNationalExperimentLabelRetained": true,
+      "currentIncheonHoursUnchanged": 24
+    },
+    "sameRoleCase": {
+      "checkpointIdentitySeededEqual": true,
+      "actualBrowserDuplicateMenuUsed": false,
+      "bothJoinedEngineering": true,
+      "commandIdentitiesDifferent": true,
+      "eachAdditionalStepApplied": true,
+      "hours": 36
+    },
+    "lostAck": {
+      "oneAcknowledgementSuppressedByTestServer": true,
+      "stepAppliedHours": 42,
+      "actualSocketsClosed": true,
+      "disconnectedClockAndControlLockObserved": true,
+      "automaticReconnect": true,
+      "outboundCopiesOfSameEvent": 2,
+      "sameIdentitySequenceAndEventId": true,
+      "replayedSequence": 5,
+      "hoursAfterReplay": 42,
+      "serverStepActionsAfterReplay": 7,
+      "nextBiologyTabStepHoursBeforeRoleSwitch": 48
+    },
+    "reloadAndFullSessionGetterFailure": {
+      "engineeringPageReloaded": true,
+      "sameCodeAndRoleExplicitlyRejoined": true,
+      "newCommandIdentity": true,
+      "firstNewCommandSequence": 1,
+      "nextStepHours": 60,
+      "sessionGetterThenRejected": true,
+      "secondCommandSequence": 2,
+      "bothRolesRestored": [
+        "engineering",
+        "biology"
+      ],
+      "bothNotesAndOriginalFullNationalResultPreserved": true,
+      "conservationPassed": true,
+      "serverStepActionsAtEnd": 10,
+      "automaticJoinAfterPageReloadClaimed": false
+    },
+    "orderingStorageAccessesOnFixedTabs": {
+      "reads": 0,
+      "writes": 0
+    },
+    "export": {
+      "jsonDownloadEventObserved": true,
+      "getterRejectionStillActive": true,
+      "outboundContainsNoClientIdentityOrSequence": true,
+      "downloadedFileContentsInspected": false
+    },
+    "console": {
+      "applicationErrorsAtCapture": [],
+      "engineeringEntries": 63,
+      "biologyEntries": 68,
+      "extensionEntriesExcluded": 131,
+      "captureLimitPerTab": 1000,
+      "boundedCapture": true
+    },
+    "productionScreenChecks": {
+      "nationwideInitialized": true,
+      "fixedRegions": 17,
+      "engineeringMapInitialized": true,
+      "biologyCards": 3,
+      "researchNotes": 6,
+      "allPagesFullRoutes": true,
+      "simulationHours": 0,
+      "applicationErrorsAtCapture": [],
+      "extensionEntriesExcluded": 6
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "entryHTMLs": 5,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 22,
+    "copiedTrackedStaticFiles": 34,
+    "changedOutsideBloodflow": false
+  },
+  "offlineBytes": 1155397,
+  "buildManifest": "test-results/build-manifest.json",
+  "preserved": [
+    "original HTMLs and legacy source",
+    "Incheon 4 institutions / 12 directed routes / 1394 road ways",
+    "nationwide 100 nodes and 17 fixed regions with virtual/estimated labels",
+    "common engine, biological rules, statistical formulas and LIVE/TIMELAPSE/COMPUTE",
+    "four top-level full pages and equal-role study",
+    "other PinCon paths, root service worker, Firebase and domain"
+  ],
+  "limits": [
+    "Review branch only; no main change, merge or manual production deployment.",
+    "Production collaboration health still 404 and serverOrigin empty.",
+    "Storage denials were injected in isolated fixtures; actual browser permission settings or device quota exhaustion were not changed.",
+    "Two tabs were seeded with the same checkpoint identity; the actual Chrome duplicate-tab menu was not used.",
+    "The browser reconnect test retains the same Node process; actual process restart is verified separately with native LabClient instances.",
+    "The new command identity is not authentication; room tokens and role permissions are unchanged.",
+    "Pending commands are not persisted across page reload; reconnect within the same page replays the existing envelope.",
+    "Final console captures are bounded snapshots; the engineering page was reloaded once.",
+    "No physical Galaxy, file://, airplane mode, standalone browser rerun, long-run performance or real-host disk lifecycle verification.",
+    "QA controls, injected faults, baseline copy and metadata inspector remain outside the repository."
+  ]
+}

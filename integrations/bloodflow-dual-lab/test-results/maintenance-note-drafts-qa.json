@@ -1,0 +1,246 @@
+{
+  "checkedAt": "2026-10-23T03:07:27.535697+00:00",
+  "base": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewHead": "de59b0d263c0faf5e6db629455d4afa4f04425eb",
+    "pr": 133,
+    "draft": true,
+    "reviews": 0,
+    "pagesRun": 39782834193,
+    "pagesConclusion": "success",
+    "productionChanged": false
+  },
+  "finding": {
+    "reproduction": "Two actual browser tabs, engineering/biology, used an isolated Node/WebSocket server. A next notes command was held before Rooms.command; B committed a common question; releasing A produced a real revision conflict.",
+    "baselineDisplay": "A가 보낸 미확인 연구 질문",
+    "baselineServer": "B가 먼저 반영한 연구 질문",
+    "baselinePersistentDraftStatus": false,
+    "baselineNewRoomDisplay": "A가 보낸 미확인 연구 질문",
+    "baselineNewRoomServer": "혈액 부족과 혈액제제 폐기 문제를 함께 줄이기 위한 공급관리 개선 방안",
+    "baselineNewRoomNotesCount": 0,
+    "syntheticFault": true,
+    "productionConflictObserved": false
+  },
+  "changes": [
+    "Capture shared writing on input and keep it in a room-and-role scoped in-memory draft store.",
+    "Display persistent unconfirmed/awaiting/conflict information and the latest server-confirmed note separately.",
+    "Only the matching acknowledged event and submitted value clear a draft; typing after submission survives its earlier acknowledgement.",
+    "Keep old context drafts available on return and in a separate draft JSON, without displaying or automatically sending them in a new room/role/solo context.",
+    "Return the existing command event ID and surface correlated rejection events without changing server authorization, wire format or sequence/deduplication.",
+    "Common note inputs are disabled while startup or a new room has no confirmed state; confirmed-note exports and server autosaves retain their existing formats."
+  ],
+  "automated": {
+    "app": {
+      "passed": 161,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs"
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+    },
+    "newTests": {
+      "total": 11,
+      "draftStore": 7,
+      "clientRooms": 4,
+      "transport": "Queued socket adapter with real LabClient/Rooms; actual two-browser WebSocket behavior was checked separately.",
+      "cases": [
+        "room/role/empty-value isolation",
+        "event-correlated acknowledgement",
+        "typing after send",
+        "conflict and permission error preservation",
+        "pending replay versus cleared pending after context/restart",
+        "revert while in flight",
+        "separate draft artifact without tokens/command IDs",
+        "explicit resend after real Rooms revision conflict",
+        "new room/role and return without cross-room mutation",
+        "correlated permission rejection",
+        "two independent interpretations after earlier-value acknowledgement"
+      ]
+    },
+    "existingRegressions": "Full suite retains native two-role/server restart, save/restore, worker, conservation, expiration, compatibility, seeded reproducibility, statistics and map failure tests."
+  },
+  "build": {
+    "builtAt": "2026-10-23T03:02:35.100Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "0fb02c82d610a7933206d13c9869b71e6f99bd18927cc175b6c371f67a220ab4",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 17,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1161821
+  },
+  "static": {
+    "modules": 17,
+    "staticImports": 25,
+    "relativeModuleReferences": 26,
+    "entryHTMLs": 5,
+    "cachePaths": 34,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 23,
+    "copiedTrackedStaticFiles": 35,
+    "changedOutsideBloodflow": false
+  },
+  "browser": {
+    "environment": "Isolated Chrome desktop, real two tabs and Node WebSocket server; test controls/held notes/QA HTTP endpoints and isolated IndexedDB remain outside git.",
+    "fixed": [
+      "Awaiting confirmation was shown before releasing the held note.",
+      "Revision conflict kept A draft and displayed B confirmed record; warning remained in the notes section.",
+      "Draft JSON generated an actual download event.",
+      "A new room displayed its default confirmed question, without the old draft; global preservation/export notice remained.",
+      "Changing A to biology in the original room showed the confirmed B question and biology permissions; changing back to engineering restored A draft.",
+      "Manual resend made both tabs display A question and removed the warning.",
+      "Both researchers independently recorded their own interpretations; neither replaced the other.",
+      "A second limitation typed while the first awaited confirmation survived the first acknowledgement; manual resend applied it to both.",
+      "Closing both sockets displayed the connection lock; automatic reconnect restored both roles and all confirmed notes.",
+      "Biology ran N: 1 day x 2 repeats x 3 policies, 100 nodes/17 fixed regions; full result text matched both screens; current Incheon time remained 0.",
+      "Final built single HTML opened via HTTP with embedded modules; solo engineering note and +6h survived UI refresh, with no shared-draft warning."
+    ],
+    "finalConsole": {
+      "A": {
+        "entries": 121,
+        "extensionExcluded": 121,
+        "appErrors": []
+      },
+      "B": {
+        "entries": 65,
+        "extensionExcluded": 65,
+        "appErrors": []
+      },
+      "singleHTML": {
+        "entries": 24,
+        "extensionExcluded": 24,
+        "appErrors": []
+      },
+      "production": {
+        "entries": 8,
+        "extensionExcluded": 8,
+        "appErrors": []
+      },
+      "scope": "Bounded final error/warn queries, not an unbounded recording; baseline tabs were closed before collecting their logs."
+    },
+    "draftDownloadContentsReopened": false,
+    "draftArtifactFormatUnitTested": true
+  },
+  "production": {
+    "checkedAt": "2026-10-23T02:52:33.618925+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/biology/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/research",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/research/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 74410
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 12460
+      },
+      {
+        "path": "/bloodflow/modules/compute-worker.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 1240
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "type": "application/json; charset=utf-8",
+        "bytes": 38728
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "type": "application/javascript; charset=utf-8",
+        "bytes": 380,
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionBrowser": {
+    "pages": [
+      "nationwide",
+      "engineering",
+      "biology",
+      "research"
+    ],
+    "initializationAndTopLevelNavigation": true,
+    "maps": [
+      "nationwide",
+      "engineering"
+    ],
+    "biologyCards": 3,
+    "researchNoteInputs": 6,
+    "timeAdvanced": false,
+    "appConsoleErrors": 0
+  },
+  "preserved": [
+    "Only bloodflow/ and integrations/bloodflow-dual-lab/ changed.",
+    "Original HTML/legacy source and examples unchanged.",
+    "Incheon 4 facilities, 12 routes, 1394 road ways; nationwide 100 nodes/17 fixed study regions; virtual/estimated labels unchanged.",
+    "Simulation/biology/statistical engine files, equal researcher roles, four full pages, LIVE/TIMELAPSE/COMPUTE unchanged.",
+    "No main/merge/manual production deployment/domain/DNS/root service worker/Firebase/other PinCon routes/new hosting changed."
+  ],
+  "limitations": [
+    "Drafts remain only in this page memory until acknowledged or exported; reloading discards unexported drafts. The new JSON is a manual review artifact and is not accepted as a world restore file.",
+    "Unsent/conflicting drafts are not silently retried or merged; researchers compare the latest confirmed text and explicitly resend.",
+    "Production health remains 404 and serverOrigin empty; static Pages is not a WebSocket host.",
+    "No actual Galaxy Tab, file://, airplane mode, actual site storage permission/disk exhaustion, long-duration tablet performance, or production-host persistence tests in this run.",
+    "No production 503 or real production note conflict was observed."
+  ]
+}

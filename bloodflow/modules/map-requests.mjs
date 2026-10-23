@@ -1,11 +1,16 @@
 // Request governor shared by online tiles and deterministic fault-injection tests.
 // Browser HTTP cache is authoritative; no tile prefetch or persistent tile archive.
+export class TileRequestWindow {
+ constructor(){this.stamps=[];}
+ count(now){this.stamps=this.stamps.filter(t=>now-t<60000);return this.stamps.length;}
+ take(now,limit){if(this.count(now)>=limit)return false;this.stamps.push(now);return true;}
+}
 export class TileScheduler {
- constructor({fetcher=(...args)=>fetch(...args),concurrency=4,maxAttempts=3,budget=80,minuteBudget=32,baseDelay=800,clock=()=>Date.now(),sleep=ms=>new Promise(r=>setTimeout(r,ms)),onState=()=>{}}={}){
-  Object.assign(this,{fetcher,concurrency,maxAttempts,budget,minuteBudget,baseDelay,clock,sleep,onState});
-  this.queue=[];this.pending=new Map();this.controllers=new Set();this.active=0;this.requests=0;this.completed=0;this.failures=0;this.retries=0;this.stamps=[];this.records=[];this.closed=false;this.reason='저장된 벡터 지도';
+ constructor({fetcher=(...args)=>fetch(...args),concurrency=4,maxAttempts=3,budget=80,minuteBudget=32,baseDelay=800,clock=()=>Date.now(),sleep=ms=>new Promise(r=>setTimeout(r,ms)),onState=()=>{},requestWindow=new TileRequestWindow()}={}){
+  Object.assign(this,{fetcher,concurrency,maxAttempts,budget,minuteBudget,baseDelay,clock,sleep,onState,requestWindow});
+  this.queue=[];this.pending=new Map();this.controllers=new Set();this.active=0;this.requests=0;this.completed=0;this.failures=0;this.retries=0;this.records=[];this.closed=false;this.reason='저장된 벡터 지도';
  }
- state(){return {requests:this.requests,completed:this.completed,retries:this.retries,active:this.active,queued:this.queue.length,closed:this.closed,reason:this.reason,records:this.records.slice(-30)};}
+ state(){return {requests:this.requests,windowRequests:this.requestWindow.count(this.clock()),minuteBudget:this.minuteBudget,completed:this.completed,retries:this.retries,active:this.active,queued:this.queue.length,closed:this.closed,reason:this.reason,records:this.records.slice(-30)};}
  emit(){this.onState(this.state());}
  stop(reason='저장된 벡터 지도로 전환'){
   if(this.closed)return;this.closed=true;this.reason=reason;for(const c of this.controllers)c.abort();
@@ -22,9 +27,9 @@ export class TileScheduler {
  async execute(url){
   for(let attempt=1;attempt<=this.maxAttempts;attempt++){
    if(this.closed)throw Error(this.reason);
-   const now=this.clock();this.stamps=this.stamps.filter(t=>now-t<60000);
-   if(this.requests>=this.budget||this.stamps.length>=this.minuteBudget){this.stop('지도 요청 한도 도달 · 저장된 지도로 계속합니다. 1분 뒤 수동 재연결하세요.');throw Error(this.reason);}
-   this.requests++;this.stamps.push(now);const controller=new AbortController();this.controllers.add(controller);
+   const now=this.clock();
+   if(this.requests>=this.budget||!this.requestWindow.take(now,this.minuteBudget)){this.stop('지도 요청 한도 도달 · 저장된 지도로 계속합니다. 1분 뒤 수동 재연결하세요.');throw Error(this.reason);}
+   this.requests++;const controller=new AbortController();this.controllers.add(controller);
    let record={url,attempt,at:new Date(now).toISOString(),status:null,headers:{},error:null};
    const timeout=setTimeout(()=>controller.abort(),7000);let retry=false;
    try{

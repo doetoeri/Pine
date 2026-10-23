@@ -49,12 +49,14 @@ server.on('upgrade',(req,socket,head)=>{
 });
 wss.on('connection',socket=>{
  socket.isAlive=true;socket.on('pong',()=>{socket.isAlive=true;});
- let peer=null;const timer=setTimeout(()=>{if(!peer)socket.close(1008,'join required');},10000);
- socket.on('message',raw=>{let m;try{m=JSON.parse(raw);if(peer&&m.type==='heartbeat'){socket.send(JSON.stringify({type:'heartbeat',timestamp:Date.now()}));return;}if(!peer){if(m.type!=='join')throw Error('먼저 실험실에 접속하세요.');peer=rooms.join(socket,String(m.experimentId||'').toUpperCase(),m.role,m.token);clearTimeout(timer);}else rooms.command(peer,m);}catch(e){socket.send(JSON.stringify({type:'error',eventId:m?.eventId,error:e.message}));}});
+ let peer=null,rejected=false;
+ const rejectJoin=error=>{if(rejected)return;rejected=true;clearTimeout(timer);socket.send(JSON.stringify({type:'error',phase:'join',retryable:false,error}));socket.close(1008,'join rejected');};
+ const timer=setTimeout(()=>{if(!peer)rejectJoin('접속 요청을 확인하지 못했습니다. 실험실 연결에서 다시 접속하세요.');},10000);
+ socket.on('message',raw=>{if(rejected)return;let m;try{m=JSON.parse(raw);if(peer&&m.type==='heartbeat'){socket.send(JSON.stringify({type:'heartbeat',timestamp:Date.now()}));return;}if(!peer){if(m.type!=='join')throw Error('먼저 실험실에 접속하세요.');peer=rooms.join(socket,String(m.experimentId||'').toUpperCase(),m.role,m.token);clearTimeout(timer);}else rooms.command(peer,m);}catch(e){if(!peer)rejectJoin(e.message);else socket.send(JSON.stringify({type:'error',eventId:m?.eventId,error:e.message}));}});
  socket.on('close',()=>{clearTimeout(timer);rooms.leave(peer);});
 });
 const heartbeat=setInterval(()=>{for(const s of wss.clients){if(!s.isAlive){s.terminate();continue;}s.isAlive=false;s.ping();}},8000);
-const interval=setInterval(()=>rooms.tick(1),1000),saveInterval=setInterval(()=>{for(const r of rooms.rooms.values())rooms.persist(r);},15000);
+const interval=setInterval(()=>rooms.tick(1),1000),saveInterval=setInterval(()=>rooms.saveAll(),15000);
 server.listen(port,host,()=>{console.log(`BLOODFLOW: http://localhost:${port}/bloodflow/nationwide · data ${rooms.directory}`);try{for(const address of Object.values(os.networkInterfaces()).flat())if(address&&address.family==='IPv4'&&!address.internal)console.log(`Tablets on same LAN: http://${address.address}:${port}/bloodflow/nationwide | http://${address.address}:${port}/bloodflow/biology`);}catch{console.log(`LAN address lookup unavailable. Read this PC's IPv4 address in network settings; server continues on port ${port}.`);}});
 const close=()=>{clearInterval(interval);clearInterval(saveInterval);clearInterval(heartbeat);rooms.close();wss.close();server.close(()=>process.exit(0));};process.on('SIGINT',close);process.on('SIGTERM',close);
 export {rooms,server};
