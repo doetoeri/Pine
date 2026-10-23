@@ -56,7 +56,7 @@ wss.on('connection',socket=>{
  socket.on('close',()=>{clearTimeout(timer);rooms.leave(peer);});
 });
 const heartbeat=setInterval(()=>{for(const s of wss.clients){if(!s.isAlive){s.terminate();continue;}s.isAlive=false;s.ping();}},8000);
-const interval=setInterval(()=>rooms.tick(1),1000),saveInterval=setInterval(()=>{for(const r of rooms.rooms.values())rooms.persist(r);},15000);
+const interval=setInterval(()=>rooms.tick(1),1000),saveInterval=setInterval(()=>rooms.saveAll(),15000);
 server.listen(port,host,()=>{console.log(`BLOODFLOW: http://localhost:${port}/bloodflow/nationwide · data ${rooms.directory}`);try{for(const address of Object.values(os.networkInterfaces()).flat())if(address&&address.family==='IPv4'&&!address.internal)console.log(`Tablets on same LAN: http://${address.address}:${port}/bloodflow/nationwide | http://${address.address}:${port}/bloodflow/biology`);}catch{console.log(`LAN address lookup unavailable. Read this PC's IPv4 address in network settings; server continues on port ${port}.`);}});
 const close=()=>{clearInterval(interval);clearInterval(saveInterval);clearInterval(heartbeat);rooms.close();wss.close();server.close(()=>process.exit(0));};process.on('SIGINT',close);process.on('SIGTERM',close);
 export {rooms,server};

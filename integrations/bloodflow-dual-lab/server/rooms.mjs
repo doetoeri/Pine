@@ -10,11 +10,28 @@ export const PERMISSIONS={engineering:['network','redistribution','safetyDays','
 const safe=(s,n)=>typeof s==='string'&&s.length<=n;
 export class Rooms{
  constructor(data,directory,{workerFactory=url=>new Worker(url)}={}){this.authorityId=randomUUID();this.data=data;this.directory=directory;this.workerFactory=workerFactory;this.rooms=new Map();fs.mkdirSync(directory,{recursive:true});this.load();}
- load(){for(const file of fs.readdirSync(this.directory).filter(f=>/^[A-Z0-9]{6}\.json$/.test(f))){try{const s=JSON.parse(fs.readFileSync(path.join(this.directory,file),'utf8')),restored=prepareResearchRestore(s,this.data);this.rooms.set(s.code,{...s,...restored,computeIssue:typeof s.computeIssue==='string'?s.computeIssue.slice(0,800):'',running:false,mode:'LIVE',speed:1,peers:new Set(),job:null,seen:new Map(s.seen??[]),lastSequences:s.lastSequences??{}});}catch(e){console.error('Room restore failed:',file,e.message);}}}
- persist(r){const file=path.join(this.directory,r.code+'.json'),s={code:r.code,tokens:r.tokens,version:r.version,revision:r.revision,notes:r.notes,logs:r.logs.slice(-200),result:r.result,computeIssue:r.computeIssue??'',seen:[...r.seen].slice(-150),lastSequences:r.lastSequences,snapshot:r.world.snapshot()};fs.writeFileSync(file+'.tmp',JSON.stringify(s));fs.renameSync(file+'.tmp',file);}
- create(config={}){if(this.rooms.size>=12)throw Error('실험실 수 한도에 도달했습니다.');let code;do{code=randomBytes(5).toString('hex').slice(0,6).toUpperCase();}while(this.rooms.has(code));const r={code,world:new DualWorld(config,this.data),tokens:{engineering:randomBytes(24).toString('hex'),biology:randomBytes(24).toString('hex')},version:0,revision:0,notes:{...DEFAULT_NOTES},logs:[],result:null,computeIssue:'',peers:new Set(),seen:new Map(),lastSequences:{},running:false,mode:'LIVE',speed:1,job:null};this.rooms.set(code,r);this.persist(r);return r;}
+ load(){for(const file of fs.readdirSync(this.directory).filter(f=>/^[A-Z0-9]{6}\.json$/.test(f))){try{const s=JSON.parse(fs.readFileSync(path.join(this.directory,file),'utf8')),restored=prepareResearchRestore(s,this.data),savedAt=fs.statSync(path.join(this.directory,file)).mtime.toISOString();this.rooms.set(s.code,{...s,...restored,storage:{kind:'saved',savedAt,savedVersion:s.version,message:''},computeIssue:typeof s.computeIssue==='string'?s.computeIssue.slice(0,800):'',running:false,mode:'LIVE',speed:1,peers:new Set(),job:null,seen:new Map(s.seen??[]),lastSequences:s.lastSequences??{}});}catch(e){console.error('Room restore failed:',file,e.message);}}}
+ persist(r){
+  const file=path.join(this.directory,r.code+'.json'),previous=r.storage??{savedAt:null,savedVersion:null},at=new Date().toISOString();
+  try{
+   const logs=previous.kind==='blocked'?[...r.logs,{eventId:randomUUID(),at,h:r.world.t,role:'server',action:'storage-recovered',note:'서버 파일 저장 복구 · 시간과 계산은 자동 재개하지 않음'}].slice(-200):r.logs.slice(-200);
+   const s={code:r.code,tokens:r.tokens,version:r.version,revision:r.revision,notes:r.notes,logs,result:r.result,computeIssue:r.computeIssue??'',seen:[...r.seen].slice(-150),lastSequences:r.lastSequences,snapshot:r.world.snapshot()};
+   fs.writeFileSync(file+'.tmp',JSON.stringify(s),{mode:0o600});fs.renameSync(file+'.tmp',file);
+   r.logs=logs;r.storage={kind:'saved',savedAt:at,savedVersion:r.version,message:''};return true;
+  }catch(error){
+   // Never replace the last complete file or turn an applied command into a silent, deduped error.
+   try{fs.unlinkSync(file+'.tmp');}catch{}
+   const code=/^[A-Z0-9_]{1,24}$/.test(error?.code??'')?error.code:'WRITE_FAILED';
+   r.storage={...previous,kind:'blocked',message:'서버 파일 저장에 실패했습니다 ('+code+'). 현재 연구는 서버 메모리에만 있습니다.'};r.running=false;
+   if(previous.kind!=='blocked'){r.logs.push({eventId:randomUUID(),at,h:r.world.t,role:'server',action:'storage-error',note:r.storage.message});if(r.logs.length>200)r.logs.shift();}
+   if(r.job&&!r.job.paused){const job=r.job;job.paused=true;try{job.worker.postMessage({type:'pause'});}catch(e){job.fail(e);}}
+   return false;
+  }
+ }
+ saveAll(){for(const r of this.rooms.values()){r.version++;this.persist(r);this.broadcast(r);}}
+ create(config={}){if(this.rooms.size>=12)throw Error('실험실 수 한도에 도달했습니다.');let code;do{code=randomBytes(5).toString('hex').slice(0,6).toUpperCase();}while(this.rooms.has(code));const r={code,world:new DualWorld(config,this.data),tokens:{engineering:randomBytes(24).toString('hex'),biology:randomBytes(24).toString('hex')},version:0,revision:0,notes:{...DEFAULT_NOTES},logs:[],result:null,computeIssue:'',peers:new Set(),seen:new Map(),lastSequences:{},running:false,mode:'LIVE',speed:1,job:null};if(!this.persist(r))throw Error(r.storage.message+' 실험실을 생성하지 않았습니다. 서버 저장소를 확인하세요.');this.rooms.set(code,r);return r;}
  authenticate(code,token){const r=this.rooms.get(code);if(!r)return null;const role=Object.keys(r.tokens).find(k=>r.tokens[k]===token);return role?{room:r,role}:null;}
- publicState(r){return {type:'state',protocolVersion:2,authorityId:this.authorityId,experimentId:r.code,eventId:randomUUID(),version:r.version,revision:r.revision,timestamp:new Date().toISOString(),running:r.running,mode:r.mode,speed:r.speed,world:viewOf(r.world),notes:r.notes,logs:r.logs.slice(-80),result:r.result,computeIssue:r.computeIssue??'',peers:[...r.peers].map(p=>p.role),job:r.job?{progress:r.job.progress,plan:r.job.plan,paused:!!r.job.paused}:null};}
+ publicState(r){return {type:'state',protocolVersion:2,authorityId:this.authorityId,experimentId:r.code,eventId:randomUUID(),version:r.version,revision:r.revision,timestamp:new Date().toISOString(),running:r.running,mode:r.mode,speed:r.speed,world:viewOf(r.world),notes:r.notes,logs:r.logs.slice(-80),result:r.result,computeIssue:r.computeIssue??'',storage:r.storage,peers:[...r.peers].map(p=>p.role),job:r.job?{progress:r.job.progress,plan:r.job.plan,paused:!!r.job.paused}:null};}
  send(p,value){if(p.socket.readyState===1)p.socket.send(JSON.stringify(value));}
  broadcast(r){const text=JSON.stringify(this.publicState(r));for(const p of r.peers)if(p.socket.readyState===1)p.socket.send(text);}
  join(socket,code,role,token){
@@ -54,6 +71,7 @@ export class Rooms{
   const sequenceKey=safe(m.clientId,80)&&Number.isSafeInteger(m.clientSequence)&&m.clientSequence>0?p.role+':'+m.clientId:null;
   if(sequenceKey&&m.clientSequence<=(r.lastSequences[sequenceKey]??0)){this.send(p,{type:'ack',eventId:m.eventId,experimentId:r.code,version:r.version,revision:r.revision,duplicate:true});return;}
   if(m.type==='export'){this.send(p,{type:'export',eventId:m.eventId,snapshot:r.world.snapshot(),notes:r.notes,result:r.result});return;}
+  if(r.storage?.kind==='blocked'&&(['configure','review','restore','step','compute','resume-compute'].includes(m.type)||(m.type==='clock'&&m.running)))throw Error('서버 파일 저장을 복구한 뒤 시간·조건·반복 계산을 진행하세요. 현재 연구 JSON은 계속 보관할 수 있습니다.');
   const edits=['configure','notes','review','restore'];
   if(edits.includes(m.type)&&m.expectedRevision!==r.revision){this.send(p,{type:'conflict',eventId:m.eventId,error:'다른 연구자가 조건을 변경했습니다. 최신 조건을 확인한 뒤 다시 적용하세요.'});this.send(p,this.publicState(r));return;}
   if(r.job&&['configure','restore','review','compute'].includes(m.type))throw Error('반복 계산을 중단한 뒤 조건을 변경하세요.');
@@ -79,10 +97,11 @@ export class Rooms{
    this.startCompute(r,p,validatePlan(m.plan));
   }else if(m.type==='pause-compute'||m.type==='resume-compute'){if(!r.job)throw Error('진행 중인 반복 실험이 없습니다.');const job=r.job;job.paused=m.type==='pause-compute';try{job.worker.postMessage({type:job.paused?'pause':'resume'});}catch(error){job.fail(error);throw Error(r.computeIssue);}
   }else if(m.type==='cancel-compute'){const job=r.job;r.job=null;r.computeIssue='';job?.worker.terminate();}
+  else if(m.type==='save'){/* Both roles may explicitly retry server persistence. */}
   else throw Error('지원하지 않는 명령입니다.');
   if(sequenceKey)r.lastSequences[sequenceKey]=m.clientSequence;
-  r.version++;const ack={type:'ack',eventId:m.eventId,experimentId:r.code,version:r.version,revision:r.revision,timestamp:new Date().toISOString()};r.seen.set(key,ack);while(r.seen.size>150)r.seen.delete(r.seen.keys().next().value);
-  r.logs.push({eventId:m.eventId,at:ack.timestamp,h:r.world.t,role:p.role,action:m.type});if(r.logs.length>200)r.logs.shift();this.persist(r);this.send(p,ack);this.broadcast(r);
+  r.version++;const ack={type:'ack',eventId:m.eventId,experimentId:r.code,version:r.version,revision:r.revision,timestamp:new Date().toISOString(),storageSaved:true};r.seen.set(key,ack);while(r.seen.size>150)r.seen.delete(r.seen.keys().next().value);
+  r.logs.push({eventId:m.eventId,at:ack.timestamp,h:r.world.t,role:p.role,action:m.type});if(r.logs.length>200)r.logs.shift();ack.storageSaved=this.persist(r);ack.version=r.version;this.send(p,ack);this.broadcast(r);
  }
  tick(seconds){for(const r of this.rooms.values())if(r.running&&r.peers.size){try{r.world.advance(Math.min(24*365,r.world.t+seconds*r.speed/60));if(r.world.t>=24*365)r.running=false;r.version++;this.broadcast(r);}catch(e){r.running=false;r.logs.push({action:'clock-error',note:e.message});this.broadcast(r);}}}
  close(){for(const r of this.rooms.values()){const job=r.job;r.job=null;job?.worker.terminate();r.running=false;this.persist(r);for(const p of r.peers)p.socket.close();}}
