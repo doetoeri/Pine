@@ -416,7 +416,7 @@ export class ExperimentPlatform {
 
   async adminReadExperiment(experimentId) {
     const uiExperiment = experimentId === UI_EXPERIMENT_ID;
-    const [configSnap, assignmentsSnap, eventsSnap, participantsSnap, betaSnap] = await Promise.all([
+    const [configSnap, assignmentsSnap, eventsSnap, participantsSnap, betaSnap, receiptsSnap] = await Promise.all([
       this.api.getDoc(this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", experimentId)),
       this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", experimentId, "assignments")),
       this.api.getDocs(this.api.query(
@@ -429,6 +429,13 @@ export class ExperimentPlatform {
         : Promise.resolve(null),
       uiExperiment
         ? this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id, "experiments", UI_EXPERIMENT_ID, "betaEnrollments"))
+        : Promise.resolve(null),
+      experimentId === NOTIFICATION_EXPERIMENT_ID
+        ? this.api.getDocs(this.api.query(
+          this.api.collection(this.api.db, "schools", SCHOOL.id, "notificationExperimentReceipts"),
+          this.api.orderBy("scheduledAtMs", "desc"),
+          this.api.limit(1200),
+        ))
         : Promise.resolve(null),
     ]);
     const assignments = assignmentsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -458,6 +465,7 @@ export class ExperimentPlatform {
       participants,
       betaEnrollments,
       surveys,
+      receipts: receiptsSnap?.docs?.map((doc) => ({ id: doc.id, ...doc.data() })) || [],
     };
   }
 
