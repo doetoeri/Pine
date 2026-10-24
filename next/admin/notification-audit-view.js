@@ -36,7 +36,7 @@ export function buildNotificationAudit({
   const version = Number(config?.version || 1);
   const activeAssignments = assignments.filter((assignment) =>
     Number(assignment.experimentVersion || 0) === version);
-  const state = notificationPeriodAt(config, now);
+  const state = notificationPeriodAt(config || {}, now);
   const next = nextNotificationPeriod(config, now);
   const period = state.phase === "EXPERIMENT" ? state.period : next?.period || 0;
   const matchingReceipts = receipts.filter((receipt) =>
