@@ -52,6 +52,12 @@ test("weekend OFF_DAY shows the next scheduled period rather than treating all a
   assert.deepEqual(audit.members[0].sequence, ["MID", "HIGH", "LOW"]);
 });
 
+test("dashboard does not crash during initial loading before experiment config exists", () => {
+  const html = notificationAuditMarkup({ config: null, assignments: [], events: [], receipts: [], roster: [] });
+  assert.match(html, /학생별 조건 및 반응/);
+  assert.match(html, /미배정|활성 학생 명단/);
+});
+
 test("FCM acceptance, service-worker received and click are three different counts", () => {
   const audit = buildNotificationAudit({
     config, assignments, receipts, events, roster: accounts,
