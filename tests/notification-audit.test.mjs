@@ -84,7 +84,7 @@ test("read-only dashboard is system-admin gated and uses private receipt collect
     readFile(new URL("../firestore.rules", import.meta.url), "utf8"),
     readFile(new URL("../automation/notification-frequency-experiment.mjs", import.meta.url), "utf8"),
   ]);
-  assert.match(admin, /snapshot\.access\?\.role !== "system-admin"/);
+  assert.match(admin, /snap\.access\?\.role !== "system-admin"/);
   assert.match(admin, /notificationAuditMarkup\(\{ \.\.\.bundle, roster \}\)/);
   assert.match(platform, /notificationExperimentReceipts/);
   assert.match(platform, /receipts: receiptsSnap/);
