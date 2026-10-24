@@ -23,3 +23,21 @@
 .experiment-roster__head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
 .experiment-roster__head>div{display:grid;gap:3px}.experiment-roster__head strong{font-size:.95rem}.experiment-roster__head span{color:var(--md-sys-color-on-surface-variant);font-size:.76rem}
 .experiment-roster__head>span{padding:5px 9px;border-radius:999px;background:var(--md-sys-color-secondary-container);font-weight:700}
+
+/* Read-only audit panel: student identity is displayed only in the system-admin workspace. */
+.experiment-audit{margin:24px 0 4px;border-top:1px solid var(--md-sys-color-outline-variant);padding-top:22px}
+.experiment-audit__head{display:flex;justify-content:space-between;align-items:start;gap:14px}
+.experiment-audit__head h3{font-size:1.08rem;letter-spacing:-.025em;margin:0 0 6px}
+.experiment-audit__head p,.experiment-audit__foot{font-size:.79rem;line-height:1.65;color:var(--md-sys-color-on-surface-variant);margin:0 0 16px}
+.experiment-audit__totals{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0 16px}
+.experiment-audit__totals span{display:flex;align-items:baseline;gap:8px;padding:10px 14px;background:var(--md-sys-color-surface);border-radius:13px;font-size:.8rem}
+.experiment-audit__totals strong{font-size:1.2rem;font-variant-numeric:tabular-nums}
+.experiment-audit__details{margin:13px 0;border:1px solid var(--md-sys-color-outline-variant);background:var(--md-sys-color-surface);border-radius:16px;overflow:hidden}
+.experiment-audit__details summary{padding:15px 18px;cursor:pointer;font-weight:700;font-size:.87rem}
+.experiment-audit__details summary:focus-visible{outline:2px solid var(--md-sys-color-primary);outline-offset:-4px}
+.experiment-audit__table{min-width:870px;margin:0}
+.experiment-audit__table td{font-variant-numeric:tabular-nums;vertical-align:top}
+.experiment-audit__table th{white-space:nowrap}
+.experiment-audit__table td:nth-child(1){white-space:nowrap}
+.experiment-audit__secondary{display:block;color:var(--md-sys-color-on-surface-variant);font-size:.72rem;line-height:1.5;margin-top:3px;max-width:290px;overflow-wrap:anywhere}
+.experiment-audit__foot{margin-top:14px}

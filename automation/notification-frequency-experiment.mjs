@@ -359,6 +359,8 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
         period: state.period,
         condition,
         category: candidate.category,
+        title: String(candidate.title || "").slice(0, 120),
+        body: String(candidate.body || "PinCon에서 확인해 주세요.").slice(0, 220),
         priority: "normal",
         experimentEligible: true,
         targetRoute: candidate.targetRoute,

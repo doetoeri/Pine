@@ -1,13 +1,14 @@
 import { NextDataGateway } from "../core/data-gateway.js";
 import { getExperimentPlatform } from "../experiment/experiment-service.js";
 import { notificationPeriodAt } from "../experiment/assignment-service.js";
+import { notificationAuditMarkup } from "./notification-audit-view.js";
 import { accountRequest } from "../core/student-auth.js";
 
 const gateway = new NextDataGateway();
 await gateway.start();
 const platform = await getExperimentPlatform();
 let currentId = "notification-frequency";
-let bundle = { config: null, assignments: [], events: [], participants: [], betaEnrollments: [], surveys: [] };
+let bundle = { config: null, assignments: [], events: [], participants: [], betaEnrollments: [], surveys: [], receipts: [] };
 let roster = [];
 let loading = false;
 
@@ -218,7 +219,8 @@ function notificationBody() {
     ${rows.map(([name,m]) => `<tr><td>${name}</td><td>${m.sent}</td><td>${percent(m.clickRate)}</td><td>${percent(m.open1hRate)}</td><td>${percent(m.targetRate)}</td><td>${Number.isFinite(m.annoyance) ? m.annoyance.toFixed(2) : "–"}</td><td>${Number.isFinite(m.usefulness) ? m.usefulness.toFixed(2) : "–"}</td></tr>`).join("")}
     </tbody></table></div>
     <div class="experiment-note">연구 조건: A 0회 / B 1회 / C 3회. 실제 발송은 서버 자동화와 Android 알림 권한이 모두 활성화되어야 합니다.</div><div class="experiment-actions"><button data-exp-action="seed-notification">설정 생성</button><button class="primary" data-exp-action="start-notification">실험 시작</button><button data-exp-action="pause-notification">Pause</button><button data-exp-action="csv">CSV</button><button data-exp-action="json">JSON</button></div>
-    <p class="experiment-note">Critical 알림은 실험에서 제외됩니다. sent는 실제 기기 도착이 아니라 FCM 발송 수락을 뜻합니다.</p>`;
+    <p class="experiment-note">Critical 알림은 실험에서 제외됩니다. sent는 실제 기기 도착이 아니라 FCM 발송 수락을 뜻합니다.</p>
+    ${notificationAuditMarkup({ ...bundle, roster })}`;
 }
 function markup() {
   return `<section class="experiment-admin" id="pinconExperimentAdmin" tabindex="-1" aria-labelledby="experiment-admin-title">
