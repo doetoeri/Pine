@@ -32,5 +32,5 @@ test("experiment dashboard exposes visual comparisons and cache-busted assets", 
   assert.match(experiments, /conditionBar\("알림 클릭률"/);
   assert.match(experimentCss, /\.experiment-comparison/);
   assert.match(indexHtml, /experiments\.css\?v=20261024-audit1/);
-  assert.match(indexHtml, /bootstrap\.js\?v=20260914-exp2/);
+  assert.match(indexHtml, /bootstrap\.js\?v=20261024-audit1/);
 });
