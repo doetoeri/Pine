@@ -72,7 +72,7 @@ test("independent workflow is not blocked by timetable sync failures", async () 
     read("../automation/neis-sync.mjs"),
     read("../automation/notification-frequency-experiment.mjs"),
   ]);
-  assert.match(workflow, /cron: "\*\/30 \* \* \* \*"/);
+  assert.match(workflow, /cron: "\*\/10 \* \* \* \*"/);
   assert.match(workflow, /FIREBASE_SERVICE_ACCOUNT_JSON/);
   assert.match(cron, /dispatchNotificationFrequencyExperiment/);
   assert.doesNotMatch(legacy, /dispatchNotificationFrequencyExperiment/);
@@ -85,8 +85,8 @@ test("per-account opt-out is private, persistent and checked by dispatch", async
     read("../firestore.rules"),
     read("../automation/notification-frequency-experiment.mjs"),
     read("../next/experiment/experiment-service.js"),
-    read("../experiments/index.html"),
-    read("../experiments/preferences.js"),
+    read("../experiments/view.js"),
+    read("../experiments/app.js"),
   ]);
   assert.match(rules, /notificationExperimentPreferences\/\{userId\}/);
   assert.match(rules, /request\.auth\.uid == userId/);

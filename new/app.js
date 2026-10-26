@@ -191,6 +191,7 @@ function openDetail(id, trigger) {
   detailId = id; detailTrigger = trigger; editing = false;
   fillDetail(row);
   openDialog($("details"), trigger);
+  window.dispatchEvent(new CustomEvent("pincon-study-information-viewed", { detail: { itemType: "assignment" } }));
 }
 
 function openEditor(id = "") {
@@ -352,3 +353,16 @@ mountNoticeImage(gateway);
 gateway.addEventListener("change", render);
 render();
 gateway.start().catch(() => render());
+let studyTrackingStarted = false;
+async function startStudyTracking() {
+  const user = gateway.snapshot().user;
+  if (studyTrackingStarted || !user || user.isAnonymous) return;
+  studyTrackingStarted = true;
+  try {
+    const { getExperimentPlatform } = await import("../next/experiment/experiment-service.js");
+    const { installStudyTracking } = await import("../next/experiment/study-tracking.js");
+    await installStudyTracking(await getExperimentPlatform());
+  } catch { studyTrackingStarted = false; }
+}
+gateway.addEventListener("change", startStudyTracking);
+startStudyTracking();

@@ -34,7 +34,7 @@ npx playwright test next/tests/boot.spec.mjs next/tests/performance.spec.mjs nex
 
 Firebase 공개 웹 설정은 `firebase-config.js`에 있고 실제 권한은 `firestore.rules`와 `storage.rules`에서 검사합니다. 학생 계정·관리 API는 `integrations/pincon-ai/`에 있습니다. 비밀키와 서비스 계정은 프런트엔드에 넣지 않습니다.
 
-NEIS/FCM 동기화는 `automation/`과 관련 GitHub Actions를 사용합니다. 알림 빈도 실험의 조건 배정·발송·수신·응답·설문은 기존 흐름을 유지하며 `docs/NOTIFICATION_EXPERIMENT.md`와 `docs/EXPERIMENT_PLATFORM.md`를 참고합니다.
+NEIS/FCM 동기화는 `automation/`과 관련 GitHub Actions를 사용합니다. 알림 빈도 진로 탐구는 `/experiments/`에서 설계·균형 배정·시작·발송·설문·익명 분석·보고서를 운영하며 `docs/NOTIFICATION_EXPERIMENT.md`와 `docs/EXPERIMENT_PLATFORM.md`를 참고합니다.
 
 성능 검증은 로컬 데이터로 UI 처리 시간을 확인합니다. 실제 기기의 성능, 운영 네트워크와 Firestore 응답 속도는 별도로 확인해야 합니다.
 

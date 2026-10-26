@@ -72,6 +72,7 @@ export const ALLOWED_EVENT_PROPERTY_KEYS = Object.freeze(new Set([
   "value",
   "reason",
   "cohort",
+  "slotIndex", "sentAtMs", "receivedAtMs", "deliveryLatencyMs",
 ]));
 
 export function experimentIsRunning(status) {

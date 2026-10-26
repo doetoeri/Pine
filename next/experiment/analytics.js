@@ -58,9 +58,9 @@ export class ExperimentAnalytics {
     localStorage.setItem(QUEUE_KEY, JSON.stringify(rows.slice(-MAX_QUEUE)));
   }
 
-  log(eventType, properties = {}, { dedupeKey = "", dedupeMs = 800 } = {}) {
+  log(eventType, properties = {}, { dedupeKey = "", dedupeMs = 800, contextOverride = null, timestampMs = Date.now() } = {}) {
     if (!ALLOWED_EVENT_TYPES.has(eventType)) return false;
-    const context = this.contextProvider?.();
+    const context = contextOverride || this.contextProvider?.();
     if (!context?.anonymousParticipant || !context?.experimentId) return false;
 
     if (dedupeKey) {
@@ -77,7 +77,7 @@ export class ExperimentAnalytics {
       experimentVersion: Number(context.experimentVersion || 1),
       variant: String(context.variant || ""),
       eventType,
-      timestampMs: Date.now(),
+      timestampMs: Number.isFinite(timestampMs) ? Math.trunc(timestampMs) : Date.now(),
       sessionId: sessionId(),
       deviceCategory: deviceCategory(),
       properties: {

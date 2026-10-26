@@ -36,4 +36,4 @@ if (!snapshot.canArchiveContent) {
   await import("./class-duty-manager.js?v=20260901-duty1");
 }
 
-await import("./experiments.js?v=20261024-audit1").catch((error) => console.warn("[Experiment Admin] unavailable", error));
+await import("./experiments.js?v=20261026-study3").catch((error) => console.warn("[Experiment Admin] unavailable", error));

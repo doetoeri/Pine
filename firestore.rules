@@ -261,6 +261,11 @@ service cloud.firestore {
       let status = request.resource.data.status;
       return !experimentRunningStatus(status)
         || (experimentId == 'notification-frequency'
+          && request.resource.data.get('studyMode', '') == 'career-v3'
+          && request.resource.data.version >= 3
+          && (!exists(experimentPath(schoolId, 'pincon-next-ui'))
+            || !experimentRunningStatus(get(experimentPath(schoolId, 'pincon-next-ui')).data.status)))
+        || (experimentId == 'notification-frequency'
           && exists(experimentPath(schoolId, 'pincon-next-ui'))
           && get(experimentPath(schoolId, 'pincon-next-ui')).data.status == 'COMPLETED'
           && get(experimentPath(schoolId, 'pincon-next-ui')).data.get('promotedVariant', '') == 'next')
@@ -404,6 +409,7 @@ service cloud.firestore {
         && request.resource.data.status in ['DRAFT', 'CANARY', 'ACTIVE', 'PAUSED', 'ROLLOUT', 'COMPLETED', 'ABORTED']
         && request.resource.data.version is int
         && request.resource.data.version >= 1
+        && (request.resource.data.get('studyMode', '') != 'career-v3' || request.resource.data.version >= 3)
         && request.resource.data.get('stableVariant', 'legacy') in ['legacy', 'next']
         && request.resource.data.get('promotedVariant', '') in ['', 'legacy', 'next']
         && request.resource.data.get('rolloutPercent', 0) is number
@@ -421,6 +427,9 @@ service cloud.firestore {
         allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
         allow create: if signedIn()
           && (request.auth.uid == userId || schoolAdmin(schoolId))
+          && (schoolAdmin(schoolId) || experimentId != 'notification-frequency'
+            || !exists(experimentPath(schoolId, experimentId))
+            || get(experimentPath(schoolId, experimentId)).data.get('studyMode', '') != 'career-v3')
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'variant', 'bucket', 'sequence', 'sequenceIndex',
             'assignedAtMs', 'experimentVersion', 'anonymousParticipant', 'assignmentSource'
@@ -442,9 +451,8 @@ service cloud.firestore {
               && (
                 request.resource.data.anonymousParticipant == ''
                 || (
-                  exists(participantPath(schoolId, userId))
-                  && request.resource.data.anonymousParticipant
-                    == get(participantPath(schoolId, userId)).data.anonymousParticipant
+                  request.resource.data.anonymousParticipant.size() >= 20
+                  && request.resource.data.anonymousParticipant.size() <= 52
                 )
               )
             )
@@ -461,6 +469,7 @@ service cloud.firestore {
               && request.resource.data.sequence is list
               && request.resource.data.sequence.size() == 3
               && request.resource.data.sequence.hasOnly(['LOW', 'MID', 'HIGH'])
+              && request.resource.data.sequence.hasAll(['LOW', 'MID', 'HIGH'])
               && request.resource.data.sequenceIndex is int
               && request.resource.data.sequenceIndex >= 0
               && request.resource.data.sequenceIndex < 6)
@@ -514,7 +523,7 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly([
             'schemaVersion', 'anonymousParticipant', 'period', 'condition',
             'usefulnessScore', 'annoyanceScore', 'increasedUseScore',
-            'continueScore', 'preferredDailyCount', 'submittedAtMs'
+            'continueScore', 'preferredDailyCount', 'submittedAtMs', 'experimentVersion'
           ])
           && request.resource.data.schemaVersion == 1
           && request.resource.data.anonymousParticipant
@@ -532,7 +541,36 @@ service cloud.firestore {
           && request.resource.data.continueScore >= 1
           && request.resource.data.continueScore <= 5
           && request.resource.data.preferredDailyCount in ['0', '1', '2', '3', '4', '5+']
-          && request.resource.data.submittedAtMs is int;
+          && request.resource.data.submittedAtMs is int
+          && (
+            !exists(experimentPath(schoolId, experimentId))
+            || get(experimentPath(schoolId, experimentId)).data.get('studyMode', '') != 'career-v3'
+            || (
+              request.resource.data.get('experimentVersion', 0) == get(experimentPath(schoolId, experimentId)).data.version
+              && exists(/databases/$(database)/documents/schools/$(schoolId)/experiments/$(experimentId)/assignments/$(userId))
+              && get(/databases/$(database)/documents/schools/$(schoolId)/experiments/$(experimentId)/assignments/$(userId)).data.experimentVersion == request.resource.data.experimentVersion
+              && get(/databases/$(database)/documents/schools/$(schoolId)/experiments/$(experimentId)/assignments/$(userId)).data.sequence[request.resource.data.period - 1] == request.resource.data.condition
+            )
+          );
+        allow delete: if false;
+      }
+
+      match /runs/{runId} {
+        allow read, create, update: if schoolAdmin(schoolId);
+        allow delete: if false;
+      }
+
+      match /researchNotes/{noteId} {
+        allow read: if schoolAdmin(schoolId);
+        allow create, update: if schoolAdmin(schoolId)
+          && request.resource.data.keys().hasOnly(['hypothesis', 'sources', 'observations', 'recommendation', 'limitations', 'updatedAtMs', 'updatedBy'])
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.updatedAtMs is int
+          && request.resource.data.hypothesis is string && request.resource.data.hypothesis.size() <= 6000
+          && request.resource.data.sources is string && request.resource.data.sources.size() <= 6000
+          && request.resource.data.observations is string && request.resource.data.observations.size() <= 6000
+          && request.resource.data.recommendation is string && request.resource.data.recommendation.size() <= 6000
+          && request.resource.data.limitations is string && request.resource.data.limitations.size() <= 6000;
         allow delete: if false;
       }
     }
@@ -552,7 +590,7 @@ service cloud.firestore {
     match /schools/{schoolId}/experimentParticipants/{userId} {
       allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
       allow create: if signedIn()
-        && request.auth.uid == userId
+        && (request.auth.uid == userId || schoolAdmin(schoolId))
         && request.resource.data.keys().hasOnly(['schemaVersion', 'anonymousParticipant', 'createdAtMs'])
         && request.resource.data.schemaVersion == 1
         && request.resource.data.anonymousParticipant is string
@@ -597,7 +635,8 @@ service cloud.firestore {
         && request.resource.data.properties is map
         && request.resource.data.properties.keys().hasOnly([
           'from', 'to', 'route', 'task', 'itemType', 'durationMs', 'errorType', 'source',
-          'notificationId', 'condition', 'category', 'period', 'window', 'value', 'reason', 'cohort'
+          'notificationId', 'condition', 'category', 'period', 'window', 'value', 'reason', 'cohort',
+          'slotIndex', 'sentAtMs', 'receivedAtMs', 'deliveryLatencyMs'
         ]);
       allow update: if signedIn()
         && exists(participantPath(schoolId, request.auth.uid))
@@ -614,6 +653,16 @@ service cloud.firestore {
 
     match /schools/{schoolId}/notificationExperimentReceipts/{receiptId} {
       allow read: if schoolAdmin(schoolId);
+      allow write: if false;
+    }
+
+    match /schools/{schoolId}/experimentRuntime/{experimentId} {
+      allow read: if schoolAdmin(schoolId);
+      allow write: if false;
+    }
+
+    match /schools/{schoolId}/notificationStudyDevices/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
       allow write: if false;
     }
 
