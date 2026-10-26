@@ -4,7 +4,7 @@
 
 PinCon의 기능을 바로 전면 배포하지 않고 **Canary → A/B Test → Rollout → Rollback → Completed** 흐름으로 운영하기 위한 공통 실험 계층이다.
 
-현재 첫 실험은 `pincon-next-ui`, 두 번째 실험은 `notification-frequency`다. 두 실험은 동시에 실행하지 않는다.
+현재 `notification-frequency`의 진로 수행평가용 운영 화면은 `/experiments/`이다. `career-v3`는 과거 UI 실험의 승격 없이 실행하며 동시 UI 실험은 차단한다. v1/v2와 UI 실험의 호환 경로는 유지한다. 상세 내용은 `NOTIFICATION_EXPERIMENT.md`를 참고한다.
 
 ## 아키텍처
 

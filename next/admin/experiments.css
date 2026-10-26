@@ -41,3 +41,5 @@
 .experiment-audit__table td:nth-child(1){white-space:nowrap}
 .experiment-audit__secondary{display:block;color:var(--md-sys-color-on-surface-variant);font-size:.72rem;line-height:1.5;margin-top:3px;max-width:290px;overflow-wrap:anywhere}
 .experiment-audit__foot{margin-top:14px}
+
+.study-center-link{display:inline-block;padding:12px 18px;margin-top:8px;border-radius:12px;background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);font-size:14px;font-weight:700;text-decoration:none}

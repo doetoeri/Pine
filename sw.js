@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261022-pwa-new1";
+const PINCON_SW_VERSION = "20261026-study3";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -34,6 +34,18 @@ const PINCON_APP_SHELL = [
   "./new/index.html",
   "./new/app.js",
   "./new/app.css",
+  "./next/experiment/notification-study.js",
+  "./next/experiment/study-tracking.js",
+  "./next/experiment/study-analysis.js",
+  "./next/experiment/experiment-service.js",
+  "./next/experiment/constants.js",
+  "./next/experiment/assignment-service.js",
+  "./next/experiment/analytics.js",
+  "./experiments/index.html",
+  "./experiments/app.js",
+  "./experiments/view.js",
+  "./experiments/survey.js",
+  "./experiments/study.css",
   "./new/calendar.js",
   "./new/notice-data.js",
   "./new/notice-renderer.js",

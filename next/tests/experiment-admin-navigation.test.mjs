@@ -29,8 +29,8 @@ test("experiment module starts its own gateway and renders as a dedicated view",
 
 test("experiment dashboard exposes visual comparisons and cache-busted assets", () => {
   assert.match(experiments, /compareBar\("핵심 정보 도달률"/);
-  assert.match(experiments, /conditionBar\("알림 클릭률"/);
+  assert.match(experiments, /알림 연구 운영 화면 열기/);
   assert.match(experimentCss, /\.experiment-comparison/);
-  assert.match(indexHtml, /experiments\.css\?v=20261024-audit1/);
-  assert.match(indexHtml, /bootstrap\.js\?v=20261024-audit1/);
+  assert.match(indexHtml, /experiments\.css\?v=20261026-study3/);
+  assert.match(indexHtml, /bootstrap\.js\?v=20261026-study3/);
 });

@@ -15,6 +15,7 @@ import {
   resolveUiVariant,
 } from "./assignment-service.js";
 import { ExperimentAnalytics } from "./analytics.js";
+import { addDays, balancedSequences, dateKey, isCareerStudy, validateStudyConfig } from "./notification-study.js";
 
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
@@ -141,7 +142,9 @@ export class ExperimentPlatform {
     this.api = await firebaseApi();
     await this.api.auth.authStateReady?.();
     this.user = this.api.auth.currentUser;
-    if (!this.user) {
+    if (!this.user || this.user.isAnonymous) {
+      this.notificationContext = null;
+      this.uiContext = null;
       this.context = {
         experimentId: UI_EXPERIMENT_ID,
         experimentVersion: 0,
@@ -263,13 +266,17 @@ export class ExperimentPlatform {
   async loadNotificationContext(participant) {
     const api = this.api;
     const uid = this.user.uid;
-    const [config, flag, assignment] = await Promise.all([
+    const [config, flag, assignment, preference] = await Promise.all([
       readOptional(api, "schools", SCHOOL.id, "experiments", NOTIFICATION_EXPERIMENT_ID),
       readOptional(api, "schools", SCHOOL.id, "experimentFlags", NOTIFICATION_FLAG_ID),
       readOptional(api, "schools", SCHOOL.id, "experiments", NOTIFICATION_EXPERIMENT_ID, "assignments", uid),
+      readOptional(api, "schools", SCHOOL.id, "notificationExperimentPreferences", uid),
     ]);
 
-    if (!config || flag?.enabled === false) {
+    // v3 membership is the immutable administrator/server-created assignment.
+    // Account profiles remain behind the existing authenticated account API.
+    const inScope = !isCareerStudy(config) || Number(assignment?.experimentVersion) === Number(config?.version);
+    if (!config || !inScope || (!isCareerStudy(config) && flag?.enabled !== true && config.status !== "COMPLETED")) {
       return {
         experimentId: NOTIFICATION_EXPERIMENT_ID,
         experimentVersion: Number(config?.version || 0),
@@ -281,7 +288,12 @@ export class ExperimentPlatform {
     }
 
     let effectiveAssignment = assignment;
-    if (experimentIsRunning(config.status) && !assignment) {
+    const matchingAssignment = Number(assignment?.experimentVersion) === Number(config.version);
+    if (isCareerStudy(config) && !matchingAssignment) {
+      return { experimentId: NOTIFICATION_EXPERIMENT_ID, experimentVersion: Number(config.version),
+        anonymousParticipant: participant, status: "DRAFT", variant: "", source: "awaiting-roster" };
+    }
+    if (experimentIsRunning(config.status) && !assignment && !isCareerStudy(config)) {
       const generated = crossoverSequenceFor(uid, NOTIFICATION_EXPERIMENT_ID, Number(config.version || 1));
       const ref = api.doc(
         api.db,
@@ -327,9 +339,13 @@ export class ExperimentPlatform {
       periodDays: Math.max(1, Number(config.periodDays || 4)),
       phase: period.phase,
       anonymousParticipant: participant,
-      status: String(config.status || EXPERIMENT_STATUS.DRAFT),
+      status: preference?.enabled === false ? "PAUSED"
+        : flag?.enabled !== true && config.status === "ACTIVE" ? "PAUSED" : String(config.status || EXPERIMENT_STATUS.DRAFT),
       source: "crossover",
       cohort: "notification",
+      studyMode: config.studyMode || "",
+      sequence: effectiveAssignment?.sequence || [],
+      config,
     };
   }
 
@@ -388,11 +404,18 @@ export class ExperimentPlatform {
     increasedUseScore,
     continueScore,
     preferredDailyCount,
+    experimentVersion,
   }) {
-    if (!this.user || this.context?.experimentId !== NOTIFICATION_EXPERIMENT_ID) {
+    if (!this.user || !this.notificationContext?.anonymousParticipant) {
       throw new Error("알림 실험이 활성화되어 있지 않습니다.");
     }
-    const surveyId = `period-${Math.max(1, Math.min(3, Number(period) || 1))}`;
+    const ctx = this.notificationContext;
+    const version = Number(experimentVersion || ctx.experimentVersion);
+    if (version !== Number(ctx.experimentVersion) || ![1, 2, 3].includes(Number(period))) throw new Error("설문 기간을 다시 확인해 주세요.");
+    if (ctx.studyMode && ctx.sequence?.[Number(period) - 1] !== condition) throw new Error("배정 조건과 설문이 일치하지 않습니다.");
+    if (![usefulnessScore, annoyanceScore, increasedUseScore, continueScore].every((n) => Number.isInteger(Number(n)) && Number(n) >= 1 && Number(n) <= 5)
+      || !["0", "1", "2", "3", "4", "5+"].includes(String(preferredDailyCount))) throw new Error("설문의 모든 항목을 선택해 주세요.");
+    const surveyId = ctx.studyMode ? `v${version}-period-${Number(period)}` : `period-${Number(period)}`;
     const ref = this.api.doc(
       this.api.db,
       "schools", SCHOOL.id,
@@ -402,7 +425,8 @@ export class ExperimentPlatform {
     );
     await this.api.setDoc(ref, {
       schemaVersion: EXPERIMENT_SCHEMA_VERSION,
-      anonymousParticipant: this.context.anonymousParticipant,
+      anonymousParticipant: ctx.anonymousParticipant,
+      ...(ctx.studyMode ? { experimentVersion: version } : {}),
       period: Number(period),
       condition: String(condition || ""),
       usefulnessScore: Number(usefulnessScore),
@@ -412,6 +436,152 @@ export class ExperimentPlatform {
       preferredDailyCount: String(preferredDailyCount),
       submittedAtMs: Date.now(),
     }, { merge: false });
+  }
+
+  async ownNotificationSurveys() {
+    if (!this.user || this.user.isAnonymous) return [];
+    const snapshot = await this.api.getDocs(this.api.collection(this.api.db, "schools", SCHOOL.id,
+      "experiments", NOTIFICATION_EXPERIMENT_ID, "participants", this.user.uid, "surveyResponses"));
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  }
+
+  async adminStudyRoster() {
+    const request = this.accountTransport || (await import("../core/student-auth.js")).accountRequest;
+    const result = await request("/api/accounts/manage");
+    return (result.accounts || []).filter((account) => account.uid && account.status === "ACTIVE");
+  }
+
+  async adminReadNotificationStudy() {
+    const api = this.api, base = ["schools", SCHOOL.id], experiment = [...base, "experiments", NOTIFICATION_EXPERIMENT_ID];
+    const configSnap = await api.getDoc(api.doc(api.db, ...experiment));
+    const config = configSnap.exists() ? { id: configSnap.id, ...configSnap.data() } : null;
+    let truncated = false;
+    const collect = async (path, constraints = []) => {
+      const rows = []; let cursor = null;
+      for (let page = 0; page < 40; page++) {
+        const snap = await api.getDocs(api.query(api.collection(api.db, ...path), ...constraints,
+          ...(cursor ? [api.startAfter(cursor)] : []), api.limit(500)));
+        rows.push(...snap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        if (snap.size < 500) return rows;
+        cursor = snap.docs.at(-1);
+      }
+      truncated = true;
+      return rows;
+    };
+    const versionFilter = [api.where("experimentVersion", "==", Number(config?.version || 0))];
+    const [assignments, events, receipts, devices, runtimeSnap, flagSnap, uiSnap, history, notesSnap] = await Promise.all([
+      collect([...experiment, "assignments"]), collect([...base, "experimentEvents"], versionFilter),
+      collect([...base, "notificationExperimentReceipts"], versionFilter), collect([...base, "notificationStudyDevices"]),
+      api.getDoc(api.doc(api.db, ...base, "experimentRuntime", NOTIFICATION_EXPERIMENT_ID)),
+      api.getDoc(api.doc(api.db, ...base, "experimentFlags", NOTIFICATION_FLAG_ID)),
+      api.getDoc(api.doc(api.db, ...base, "experiments", UI_EXPERIMENT_ID)),
+      collect([...experiment, "runs"]),
+      api.getDoc(api.doc(api.db, ...experiment, "researchNotes", `v${config?.version || 0}`)),
+    ]);
+    const surveys = (await Promise.all(assignments.filter((row) => row.experimentVersion === config?.version).map((assignment) =>
+      collect([...experiment, "participants", assignment.id, "surveyResponses"])))).flat();
+    return { config, assignments, events: events.filter((row) => row.experimentId === NOTIFICATION_EXPERIMENT_ID), receipts,
+      surveys, devices, runtime: runtimeSnap.exists() ? runtimeSnap.data() : null,
+      flag: flagSnap.exists() ? flagSnap.data() : null, ui: uiSnap.exists() ? uiSnap.data() : null,
+      history, notes: notesSnap.exists() ? notesSnap.data() : {}, truncated, loadedAtMs: Date.now() };
+  }
+
+  async adminSaveStudyNotes(values, expectedVersion) {
+    const notes = {};
+    for (const key of ["hypothesis", "sources", "observations", "recommendation", "limitations"]) notes[key] = String(values[key] || "").slice(0, 6000);
+    const api = this.api;
+    return api.runTransaction(api.db, async (tx) => {
+      const ref = api.doc(api.db, "schools", SCHOOL.id, "experiments", NOTIFICATION_EXPERIMENT_ID);
+      const snap = await tx.get(ref);
+      if (snap.data()?.version !== Number(expectedVersion)) throw new Error("실험 버전이 바뀌었습니다. 새로고침해 주세요.");
+      tx.set(api.doc(api.db, "schools", SCHOOL.id, "experiments", NOTIFICATION_EXPERIMENT_ID,
+        "researchNotes", `v${expectedVersion}`), { ...notes, updatedAtMs: Date.now(), updatedBy: this.user.uid });
+      return notes;
+    });
+  }
+
+  async adminPrepareNotificationStudy(draft, roster, expectedVersion) {
+    validateStudyConfig(draft);
+    const api = this.api, base = ["schools", SCHOOL.id], path = [...base, "experiments", NOTIFICATION_EXPERIMENT_ID];
+    const ref = api.doc(api.db, ...path);
+    const currentSnap = await api.getDoc(ref), current = currentSnap.exists() ? currentSnap.data() : null;
+    if (Number(current?.version || 0) !== Number(expectedVersion || 0)) throw new Error("다른 창에서 설정이 바뀌었습니다. 새로고침해 주세요.");
+    if (current?.status === "ACTIVE") throw new Error("먼저 진행 중인 실험을 일시정지해 주세요.");
+    const accounts = roster.filter((row) => row.uid && row.status === "ACTIVE" && draft.targetClassKeys.includes(row.classKey));
+    if (!accounts.length || accounts.length > 400) throw new Error("대상 학급의 활성 계정이 1~400개여야 합니다.");
+    const version = Math.max(3, Number(current?.version || 0) + 1), seed = crypto.randomUUID();
+    const proposals = balancedSequences(accounts.map((row) => row.uid), seed);
+    const participants = new Map();
+    // Create-only participant transactions also handle a student opening PinCon
+    // at the same time. Existing anonymous identities are never replaced.
+    for (let i = 0; i < accounts.length; i += 8) {
+      await Promise.all(accounts.slice(i, i + 8).map(async ({ uid }) => {
+        const participantRef = api.doc(api.db, ...base, "experimentParticipants", uid);
+        const anonymousParticipant = await api.runTransaction(api.db, async (tx) => {
+          const snap = await tx.get(participantRef);
+          if (snap.exists()) return snap.data().anonymousParticipant;
+          const participant = randomParticipant();
+          tx.set(participantRef, { schemaVersion: 1, anonymousParticipant: participant, createdAtMs: Date.now() });
+          return participant;
+        });
+        participants.set(uid, anonymousParticipant);
+      }));
+    }
+    const previousAssignments = await api.getDocs(api.collection(api.db, ...path, "assignments"));
+    const config = { ...draft, version, status: "DRAFT", assignmentSeed: seed, activeStartedAtMs: 0,
+      createdAtMs: Date.now(), updatedAtMs: Date.now(), updatedBy: this.user.uid, participantCount: accounts.length };
+    await api.runTransaction(api.db, async (tx) => {
+      const latest = await tx.get(ref);
+      if (Number(latest.data()?.version || 0) !== Number(expectedVersion || 0) || latest.data()?.status === "ACTIVE") throw new Error("다른 창에서 실험 설정이 바뀌었습니다. 새로고침해 주세요.");
+      if (current) tx.set(api.doc(api.db, ...path, "runs", `v${current.version}`), {
+        config: current, assignments: previousAssignments.docs.map((doc) => ({ id: doc.id, ...doc.data() })), archivedAtMs: Date.now() });
+      tx.set(ref, config);
+      tx.set(api.doc(api.db, ...base, "experimentFlags", NOTIFICATION_FLAG_ID), {
+        enabled: false, rolloutPercent: 0, experimentId: NOTIFICATION_EXPERIMENT_ID, stableVariant: "next", updatedAtMs: Date.now(), updatedBy: this.user.uid });
+      for (const account of accounts) {
+        const proposal = proposals.get(account.uid);
+        tx.set(api.doc(api.db, ...path, "assignments", account.uid), { schemaVersion: 1, sequence: proposal.sequence,
+          sequenceIndex: proposal.index, assignedAtMs: Date.now(), experimentVersion: version,
+          anonymousParticipant: participants.get(account.uid), assignmentSource: "crossover" });
+      }
+    });
+    return config;
+  }
+
+  async adminSetNotificationStudyState(status, expectedVersion) {
+    if (!["ACTIVE", "PAUSED", "COMPLETED"].includes(status)) throw new Error("지원하지 않는 상태입니다.");
+    const api = this.api, base = ["schools", SCHOOL.id];
+    const ref = api.doc(api.db, ...base, "experiments", NOTIFICATION_EXPERIMENT_ID);
+    return api.runTransaction(api.db, async (tx) => {
+      const [snap, uiSnap] = await Promise.all([tx.get(ref), tx.get(api.doc(api.db, ...base, "experiments", UI_EXPERIMENT_ID))]);
+      const config = snap.data();
+      if (!isCareerStudy(config) || config.version !== Number(expectedVersion)) throw new Error("설계를 먼저 저장하거나 새로고침해 주세요.");
+      if (config.status === "COMPLETED") throw new Error("종료된 실험입니다. 새 버전으로 설계를 저장해 주세요.");
+      if (status === "ACTIVE" && ["CANARY", "ACTIVE", "ROLLOUT"].includes(uiSnap.data()?.status)) throw new Error("기존 UI 실험을 먼저 일시정지해 주세요.");
+      if (status === config.status) return config;
+      const now = Date.now(), today = dateKey(new Date(now));
+      const patch = { status, updatedAtMs: now, updatedBy: this.user.uid };
+      if (status === "PAUSED") patch.pausedAtMs = now;
+      if (status === "COMPLETED") patch.endedAtMs = now;
+      if (status === "ACTIVE") {
+        patch.excludedDates = [...(config.excludedDates || [])];
+        if (!config.activeStartedAtMs) {
+          patch.activeStartedAtMs = now;
+          patch.startDate = config.startDate < today ? today : config.startDate;
+          // Starting after the morning slot cannot produce a full 3-dose day.
+          if (config.baselineDays === 0 && patch.startDate === today && new Date(now + 9 * 3_600_000).getUTCHours() >= 8) patch.excludedDates.push(today);
+        } else if (config.pausedAtMs) {
+          for (let date = dateKey(new Date(config.pausedAtMs)), n = 0; date <= today && n < 730; date = addDays(date, 1), n++) patch.excludedDates.push(date);
+        }
+        patch.excludedDates = [...new Set(patch.excludedDates)].sort();
+        patch.pausedAtMs = 0;
+      }
+      tx.set(ref, patch, { merge: true });
+      tx.set(api.doc(api.db, ...base, "experimentFlags", NOTIFICATION_FLAG_ID), {
+        enabled: status === "ACTIVE", rolloutPercent: status === "ACTIVE" ? 100 : 0,
+        experimentId: NOTIFICATION_EXPERIMENT_ID, stableVariant: "next", updatedAtMs: now, updatedBy: this.user.uid });
+      return { ...config, ...patch };
+    });
   }
 
   async adminReadExperiment(experimentId) {

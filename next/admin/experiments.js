@@ -207,21 +207,10 @@ function currentNotificationCounts() {
 }
 
 function notificationBody() {
-  const rows = ["LOW","MID","HIGH"].map((condition) => [condition, conditionMetrics(condition)]);
-  const counts = currentNotificationCounts();
-  return `
-    <div class="experiment-status"><b>${esc(bundle.config?.status || "설정 없음")}</b><span>${esc(counts.periodInfo.phase)} · Period ${counts.periodInfo.period || 0}</span><span>실제 계정 ${roster.length}명 · 사전배정 ${bundle.assignments.length}명</span><span>LOW ${counts.LOW} · MID ${counts.MID} · HIGH ${counts.HIGH}</span><span>설문 ${bundle.surveys.length}</span></div>
-    <div class="experiment-comparison experiment-comparison--notification">
-      ${conditionBar("알림 클릭률", rows, "clickRate")}
-      ${conditionBar("Target View", rows, "targetRate")}
-    </div>
-    <div class="experiment-table-wrap"><table class="experiment-table"><thead><tr><th>조건</th><th>FCM accepted</th><th>Click</th><th>1h open</th><th>Target</th><th>피로도</th><th>유용성</th></tr></thead><tbody>
-    ${rows.map(([name,m]) => `<tr><td>${name}</td><td>${m.sent}</td><td>${percent(m.clickRate)}</td><td>${percent(m.open1hRate)}</td><td>${percent(m.targetRate)}</td><td>${Number.isFinite(m.annoyance) ? m.annoyance.toFixed(2) : "–"}</td><td>${Number.isFinite(m.usefulness) ? m.usefulness.toFixed(2) : "–"}</td></tr>`).join("")}
-    </tbody></table></div>
-    <div class="experiment-note">연구 조건: A 0회 / B 1회 / C 3회. 실제 발송은 서버 자동화와 Android 알림 권한이 모두 활성화되어야 합니다.</div><div class="experiment-actions"><button data-exp-action="seed-notification">설정 생성</button><button class="primary" data-exp-action="start-notification">실험 시작</button><button data-exp-action="pause-notification">Pause</button><button data-exp-action="csv">CSV</button><button data-exp-action="json">JSON</button></div>
-    <p class="experiment-note">Critical 알림은 실험에서 제외됩니다. sent는 실제 기기 도착이 아니라 FCM 발송 수락을 뜻합니다.</p>
+  return `<div class="experiment-note"><strong>진로 수행평가용 알림 연구를 새 운영 화면으로 옮겼어요.</strong><p>설계 저장, 0·1·3회 균형 배정, 시작·정지, 기기 등록, 발송·반응, 설문과 보고서를 한곳에서 관리해요.</p><a class="study-center-link" href="../../experiments/">알림 연구 운영 화면 열기 →</a></div>
     ${notificationAuditMarkup({ ...bundle, roster })}`;
 }
+
 function markup() {
   return `<section class="experiment-admin" id="pinconExperimentAdmin" tabindex="-1" aria-labelledby="experiment-admin-title">
     <div class="experiment-admin__head"><div><span class="admin-meta">EXPERIMENT PLATFORM</span><h2 id="experiment-admin-title">실험 · 통계</h2><p>Canary, A/B, rollout, rollback과 후속 알림 빈도 실험을 같은 상태 모델로 관리합니다.</p></div><button data-exp-action="refresh">새로고침</button></div>
@@ -318,21 +307,9 @@ async function run(action, value) {
     const uids = targetUids();
     if (!uids.length || !confirm(`${uids.length}명을 Legacy로 강제 복귀시킵니다.`)) return;
     for (const uid of uids) await platform.adminSetTarget("pincon-next-ui", uid, "force_legacy");
-  } else if (action === "seed-notification") {
-    await platform.adminSetExperiment("notification-frequency",notificationDefaults());
-    await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"});
-  } else if (action === "start-notification") {
-    const config = {...notificationDefaults(),...(bundle.config||{})};
-    if (!roster.length) throw new Error("활성 학생 계정 명단을 불러오지 못해 시작할 수 없습니다.");
-    if (config.status === "ACTIVE") throw new Error("이미 실행 중인 실험입니다.");
-    if (config.status === "COMPLETED") throw new Error("종료된 실험을 다시 시작하려면 새 버전으로 설정하세요.");
-    const ui = await platform.adminReadExperiment("pincon-next-ui");
-    if (ui.config?.status !== "COMPLETED" || ui.config?.promotedVariant !== "next") {
-      throw new Error("UI 실험이 Next로 완료되기 전에는 알림 실험을 시작할 수 없습니다.");
-    }
-    if (!confirm(`학교 전체 활성 계정은 서버에서 사전배정합니다 (현재 관리자 화면 조회 ${roster.length}개). 실제 푸시 구독이 있는 계정에만 알림이 전송됩니다. 실험을 시작할까요?`)) return;
-    await platform.adminSetExperiment("notification-frequency",{...config,startDate:config.status === "PAUSED" ? config.startDate : kstDateKey(),targetClassKeys:[],frequency:{lowPerDay:0,midPerDay:1,highPerDay:3},status:"ACTIVE"});
-    await platform.adminSetFlag("notification_experiment",{enabled:true,rolloutPercent:100,experimentId:"notification-frequency",stableVariant:"next"});
+  } else if (["seed-notification", "start-notification"].includes(action)) {
+    location.assign("../../experiments/");
+    return;
   } else if (action === "pause-notification") {
     await platform.adminSetExperiment("notification-frequency",{status:"PAUSED"});
     await platform.adminSetFlag("notification_experiment",{enabled:false,rolloutPercent:0,experimentId:"notification-frequency",stableVariant:"next"});

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
+import { balancedSequences, isCareerStudy } from "../next/experiment/notification-study.js";
 import {
   candidateIndexForSlot,
   canonicalSubscriptionIds,
@@ -45,7 +46,7 @@ async function ensureParticipant(root, uid) {
   }
 }
 
-async function ensureAssignment(root, uid, anonymousParticipant, config) {
+async function ensureAssignment(root, uid, anonymousParticipant, config, proposal = null) {
   const ref = root.collection("experiments").doc(EXPERIMENT_ID).collection("assignments").doc(uid);
   const snap = await ref.get();
   const version = Number(config.version || 1);
@@ -58,7 +59,7 @@ async function ensureAssignment(root, uid, anonymousParticipant, config) {
     }
     return existing;
   }
-  const generated = sequenceFor(uid, EXPERIMENT_ID, version);
+  const generated = proposal || sequenceFor(uid, EXPERIMENT_ID, version);
   const record = {
     schemaVersion: 1,
     sequence: generated.sequence,
@@ -96,6 +97,7 @@ async function preassignActiveAccounts(root, config) {
     uid && String(profile?.uid || uid) === uid
     && (!allowedClasses.size || allowedClasses.has(String(profile?.classKey || ""))));
   const byUid = new Map(accounts.map(({ uid, profile }) => [uid, profile]));
+  const proposals = isCareerStudy(config) ? balancedSequences(accounts.map(({ uid }) => uid), config.assignmentSeed || String(config.version)) : new Map();
   let cursor = 0;
   let assigned = 0;
   let failed = 0;
@@ -104,7 +106,7 @@ async function preassignActiveAccounts(root, config) {
       const { uid } = accounts[cursor++];
       try {
         const participant = await ensureParticipant(root, uid);
-        await ensureAssignment(root, uid, participant, config);
+        await ensureAssignment(root, uid, participant, config, proposals.get(uid));
         assigned += 1;
       } catch (error) {
         failed += 1;
@@ -125,7 +127,9 @@ async function experimentReady(root) {
   ]);
   const config = notification.exists ? { id: notification.id, ...notification.data() } : null;
   const enabled = flag.exists ? flag.data()?.enabled !== false : false;
-  const uiDone = ui.exists && ui.data()?.status === "COMPLETED" && ui.data()?.promotedVariant === "next";
+  const uiRunning = ui.exists && ["ACTIVE", "CANARY", "ROLLOUT"].includes(ui.data()?.status);
+  const uiDone = isCareerStudy(config) ? !uiRunning
+    : ui.exists && ui.data()?.status === "COMPLETED" && ui.data()?.promotedVariant === "next";
   return { config, enabled, uiDone };
 }
 
@@ -146,7 +150,7 @@ async function classCandidates(root, classKey, date) {
   const rows = [];
   for (const doc of assignmentsSnap.docs) {
     const item = doc.data();
-    if (item.deleted || item.published === false) continue;
+    if (item.deleted || item.published === false || item.priority === "urgent" || item.priority === "critical" || item.important === true) continue;
     const due = candidateDate(item);
     if (![date,tomorrow].includes(due)) continue;
     const category = item.type === "preparation" ? "materials" : "assignment";
@@ -198,6 +202,8 @@ const FALLBACK_BY_SLOT = Object.freeze([
   Object.freeze({ key: "check-in:assignment", category: "assignment", title: "PinCon 수행평가 확인", body: "예정된 수행평가와 제출 기한을 확인해 보세요.", targetRoute: "schedule" }),
   Object.freeze({ key: "check-in:materials", category: "materials", title: "PinCon 준비물 확인", body: "학급 준비물과 학습 자료를 확인해 보세요.", targetRoute: "classroom" }),
 ]);
+const CAREER_FALLBACK = Object.freeze({ key: "study-assignment-check", category: "assignment",
+  title: "PinCon 수행평가 확인", body: "진행 중인 수행평가와 제출 기한, 필요한 자료를 확인해 보세요.", targetRoute: "assessments" });
 
 function eventRecord({
   anonymousParticipant, config, condition, period, type, notificationId: id, category, targetRoute = "", slotIndex = -1, now,
@@ -253,7 +259,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
 
   const preassignment = await preassignActiveAccounts(root, ready.config);
   const period = conditionFor(["LOW","MID","HIGH"], ready.config, now);
-  const slot = currentSlot(now);
+  const slot = currentSlot(now, ready.config);
   if (period.phase !== "EXPERIMENT" || !slot) {
     return {
       active: true, sent: 0, phase: period.phase, slot: slot?.index ?? null,
@@ -265,6 +271,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     root.collection("pushSubscriptions").get(),
     root.collection("notificationExperimentPreferences").get(),
   ]);
+  const preferenceByAccount = new Map(preferences.docs.map((document) => [document.id, document.data()?.enabled !== false]));
   const accountOptOuts = new Set(preferences.docs
     .filter((document) => document.data()?.enabled === false)
     .map((document) => document.id));
@@ -273,7 +280,12 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       .map((value) => String(value || "").trim())
       .filter(Boolean),
   );
-  const eligibleSubscriptions = canonicalSubscriptions(subscriptions.docs)
+  const canonicalIds = new Set(canonicalSubscriptionIds(subscriptions.docs.map((document) => {
+    const data = document.data();
+    return { ...data, id: document.id, preferences: { ...data.preferences,
+      ...(preferenceByAccount.has(data.ownerUid) ? { notificationExperiment: preferenceByAccount.get(data.ownerUid) } : {}) } };
+  })));
+  const eligibleSubscriptions = subscriptions.docs.filter((document) => canonicalIds.has(document.id))
     .filter((document) => {
       const data = document.data();
       const profile = preassignment.accounts.get(String(data?.ownerUid || ""));
@@ -311,7 +323,8 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       candidates = await classCandidates(root, classKey, date);
       candidateCache.set(classKey, candidates);
     }
-    const relevant = candidates.filter((item) => item.category === slot.categoryHint);
+    const relevant = isCareerStudy(ready.config) ? candidates.filter((item) => item.key.startsWith("assignment:"))
+      : candidates.filter((item) => item.category === slot.categoryHint);
     const candidateIndex = candidateIndexForSlot({
       anonymousParticipant: participant,
       date,
@@ -321,7 +334,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       candidateCount: relevant.length,
       config: ready.config,
     });
-    const candidate = relevant[candidateIndex] || FALLBACK_BY_SLOT[slot.index];
+    const candidate = relevant[candidateIndex] || (isCareerStudy(ready.config) ? CAREER_FALLBACK : FALLBACK_BY_SLOT[slot.index]);
     if (!candidate) {
       skippedNoCandidate += 1;
       continue;
@@ -347,6 +360,15 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     const attemptedAtMs = Date.now();
     const claim = await db.runTransaction(async (tx) => {
       const snapshot = await tx.get(receipt);
+      if (isCareerStudy(ready.config)) {
+        const [latest, flag, preference] = await Promise.all([
+          tx.get(root.collection("experiments").doc(EXPERIMENT_ID)),
+          tx.get(root.collection("experimentFlags").doc("notification_experiment")),
+          tx.get(root.collection("notificationExperimentPreferences").doc(uid)),
+        ]);
+        if (latest.data()?.status !== "ACTIVE" || latest.data()?.version !== ready.config.version
+          || flag.data()?.enabled !== true || preference.data()?.enabled === false) return null;
+      }
       const previous = snapshot.exists ? snapshot.data() : null;
       if (!canRetryReceipt(previous)) return null;
       const scheduledAtMs = Number(previous?.scheduledAtMs || now.getTime());
@@ -405,10 +427,12 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
           title: candidate.title,
           body: candidate.body || "PinCon에서 확인해 주세요.",
           tag: id,
-          link: `https://pincon.app/next/#${candidate.targetRoute}`,
+          link: isCareerStudy(ready.config) ? "https://pincon.app/new/" : `https://pincon.app/next/#${candidate.targetRoute}`,
           route: candidate.targetRoute,
           notificationId: id,
           experimentId: EXPERIMENT_ID,
+          experimentVersion: String(ready.config.version || 1),
+          anonymousParticipant: participant,
           condition,
           period: String(state.period),
           category: candidate.category,

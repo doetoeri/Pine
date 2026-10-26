@@ -30,13 +30,15 @@ function notificationOptions(payload = {}) {
       kind: data.kind || "school-update",
       notificationId: data.notificationId || tag,
       experimentId: data.experimentId || "",
+      experimentVersion: Number(data.experimentVersion || 0),
+      anonymousParticipant: data.anonymousParticipant || "",
       condition: data.condition || "",
       period: data.period || "",
       category: data.category || "",
       targetRoute: data.targetRoute || data.route || "today",
       scheduledAtMs: Number(data.scheduledAtMs || timestamp || Date.now()),
       sentAtMs: Number(data.sentAtMs || data.scheduledAtMs || timestamp || Date.now()),
-      slotIndex: Number(data.slotIndex || -1),
+      slotIndex: Number(data.slotIndex ?? -1),
     },
   };
 }
@@ -100,6 +102,8 @@ if (globalThis.PINCON_FIREBASE_CONFIG) {
         type: "pincon-experiment-notification-received",
         notificationId: options.data.notificationId,
         experimentId: options.data.experimentId,
+        experimentVersion: options.data.experimentVersion,
+        anonymousParticipant: options.data.anonymousParticipant,
         condition: options.data.condition,
         period: options.data.period,
         category: options.data.category,
@@ -143,6 +147,8 @@ self.addEventListener("notificationclick", (event) => {
   if (data.experimentId) {
     target.searchParams.set("pinconNotificationId", data.notificationId || "");
     target.searchParams.set("pinconExperimentId", data.experimentId);
+    target.searchParams.set("pinconExperimentVersion", String(data.experimentVersion || 0));
+    target.searchParams.set("pinconParticipant", data.anonymousParticipant || "");
     target.searchParams.set("pinconCondition", data.condition || "");
     target.searchParams.set("pinconPeriod", data.period || "");
     target.searchParams.set("pinconCategory", data.category || "");

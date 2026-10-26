@@ -156,7 +156,7 @@ export async function dispatchClassOpsNotifications({ db, messaging, now = new D
     && frequencyConfigData.status === "ACTIVE"
     && frequencyFlag?.exists
     && frequencyFlag.data()?.enabled !== false
-    && frequencyPhase === "EXPERIMENT"
+    && ["BASELINE", "EXPERIMENT"].includes(frequencyPhase)
   );
   const { documents: subscriptionDocs, classKeys } = await classKeysWithSubscriptions(root);
   if (!classKeys.length) return { classes: 0, sent: 0, windows: [] };

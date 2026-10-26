@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { isCareerStudy, sequenceForStudy, studyPeriodAt, studySlots, STUDY_SLOTS } from "../next/experiment/notification-study.js";
 
 export const CONDITIONS = Object.freeze(["LOW", "MID", "HIGH"]);
 export const SEQUENCES = Object.freeze([
@@ -15,6 +16,7 @@ export function digest(value, length = 24) {
 }
 
 export function sequenceFor(uid, experimentId = "notification-frequency", version = 1) {
+  if (version >= 3) return sequenceForStudy(uid, version);
   const hex = digest(`${uid}:${experimentId}:v${version}:sequence`, 8);
   const index = Number.parseInt(hex, 16) % SEQUENCES.length;
   return { index, sequence: [...SEQUENCES[index]] };
@@ -55,6 +57,7 @@ function eligibleDayCount(startDate, endDate, config = {}) {
 }
 
 export function periodFor(config = {}, now = new Date()) {
+  if (isCareerStudy(config)) return studyPeriodAt(config, now);
   const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(config.startDate || "")) ? config.startDate : "";
   if (!startDate) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
   const today = kstDate(now);
@@ -89,6 +92,7 @@ export function conditionFor(sequence = [], config = {}, now = new Date()) {
 
 export function dailyBudget(condition, config = {}) {
   const defaults = { LOW: 0, MID: 1, HIGH: 3 };
+  if (isCareerStudy(config)) return defaults[condition] ?? 0;
   const field = condition === "LOW" ? "lowPerDay" : condition === "MID" ? "midPerDay" : "highPerDay";
   return Math.max(0, Math.min(4, Math.trunc(Number(config?.frequency?.[field] ?? defaults[condition] ?? 0))));
 }
@@ -100,10 +104,10 @@ export const SLOTS = Object.freeze([
   Object.freeze({ index: 3, hour: 19, categoryHint: "materials" }),
 ]);
 
-export function currentSlot(now = new Date()) {
+export function currentSlot(now = new Date(), config = {}) {
   const clock = kstClock(now);
   if (clock.minute > 55) return null;
-  return SLOTS.find((slot) => slot.hour === clock.hour) || null;
+  return (isCareerStudy(config) ? STUDY_SLOTS : SLOTS).find((slot) => slot.hour === clock.hour) || null;
 }
 
 const SLOT_PLANS = Object.freeze({
@@ -127,6 +131,7 @@ export function plannedSlotIndexes({
   condition = "",
   config = {},
 } = {}) {
+  if (isCareerStudy(config)) return studySlots({ anonymousParticipant, date, period, condition });
   const budget = dailyBudget(condition, config);
   const plans = SLOT_PLANS[budget] || SLOT_PLANS[0];
   if (plans.length === 1) return [...plans[0]];
@@ -170,7 +175,8 @@ export function candidateIndexForSlot({
 }
 
 export function notificationId({ anonymousParticipant, date, period, slotIndex, candidateKey, experimentVersion = 1 }) {
-  return `nexp_${digest(`${anonymousParticipant}:${date}:v${experimentVersion}:p${period}:s${slotIndex}:${candidateKey}`, 28)}`;
+  const key = experimentVersion >= 3 ? "slot" : candidateKey;
+  return `nexp_${digest(`${anonymousParticipant}:${date}:v${experimentVersion}:p${period}:s${slotIndex}:${key}`, 28)}`;
 }
 
 /**

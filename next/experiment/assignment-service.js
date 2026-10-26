@@ -3,6 +3,7 @@ import {
   NOTIFICATION_CONDITIONS,
   STABLE_UI_VARIANT,
 } from "./constants.js";
+import { isCareerStudy, studyPeriodAt } from "./notification-study.js";
 
 export function hash32(value) {
   let hash = 2166136261;
@@ -162,6 +163,7 @@ function notificationEligibleDayCount(startDate, endDate, config = {}) {
 }
 
 export function notificationPeriodAt(config = {}, now = new Date()) {
+  if (isCareerStudy(config)) return studyPeriodAt(config, now);
   const startDate = /^\d{4}-\d{2}-\d{2}$/.test(String(config.startDate || ""))
     ? String(config.startDate)
     : "";

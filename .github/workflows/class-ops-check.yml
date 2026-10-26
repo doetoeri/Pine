@@ -50,5 +50,6 @@ jobs:
           node --check class-ops-notifications.mjs
           node --check notification-frequency-core.mjs
           node --check notification-frequency-experiment.mjs
+          node --test tests/notification-study.test.mjs
           node --check neis-sync.mjs
           node --check deploy-firestore-rules.mjs

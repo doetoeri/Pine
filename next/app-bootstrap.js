@@ -42,7 +42,7 @@ await Promise.all([
 ]);
 
 async function startExperiments() {
-  const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20261007-light2");
+  const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20261026-study3");
   const experimentPlatform = await initExperimentPlatform();
   if (localStorage.getItem("pincon-experiment-login-failure-pending-v1") === "1") {
     experimentPlatform.log("login_failure", { errorType: "account_gate", source: "previous_session" });
@@ -58,7 +58,7 @@ async function startExperiments() {
   await Promise.all([
     import("./experiments/public-beta.js?v=20260914-beta1"),
     import("./experiments/ui-satisfaction.js?v=20260914-exp1"),
-    import("./experiments/notification-frequency.js?v=20260914-exp1"),
+    ...(experimentPlatform.notificationContext?.studyMode === "career-v3" ? [] : [import("./experiments/notification-frequency.js?v=20260914-exp1")]),
   ]);
 }
 startExperiments().catch((error) => console.warn("[PinCon Experiment]", error));

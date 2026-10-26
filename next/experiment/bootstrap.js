@@ -164,6 +164,11 @@ function installNotificationAttribution() {
 
 export async function initExperimentPlatform() {
   platform = await getExperimentPlatform();
+  if (platform.notificationContext?.studyMode === "career-v3") {
+    const { installStudyTracking } = await import("./study-tracking.js");
+    await installStudyTracking(platform);
+    return platform;
+  }
 
   const logReceivedNotification = (message = {}) => {
     const notificationId = String(message.notificationId || "");
