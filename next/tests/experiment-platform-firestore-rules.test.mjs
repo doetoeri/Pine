@@ -79,7 +79,7 @@ test("career surveys must match the current version and the student's assigned c
   await assertFails(setDoc(doc(db, `${path}/participants/student/surveyResponses/wrong-condition`), { ...response, condition: "HIGH" }));
 });
 
-test("the actual admin service prepares all 34 students atomically, starts, reads, saves notes and pauses under real rules", async () => {
+test("the actual admin service prepares all 34 students, starts, reads, saves notes and pauses under real rules", async () => {
   await env.withSecurityRulesDisabled(async (context) => {
     const db = context.firestore();
     await Promise.all(Array.from({ length: 34 }, (_, i) => setDoc(doc(db, `schools/${SCHOOL}/users/uid-${i}`), {
@@ -110,6 +110,52 @@ test("the actual admin service prepares all 34 students atomically, starts, read
   const paused = await platform.adminReadNotificationStudy();
   assert.equal(paused.config.status, "PAUSED"); assert.equal(paused.flag.enabled, false);
   assert.equal(paused.notes.hypothesis, "나의 가설");
+});
+test("class manager can prepare all 34 students and operate the real service without school-wide privileges", async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, `schools/${SCHOOL}/roles/manager`), role("president", ["1-8"]));
+    await Promise.all(Array.from({ length: 34 }, (_, i) => setDoc(doc(db, `schools/${SCHOOL}/users/uid-${i}`), {
+      uid: `uid-${i}`, status: "ACTIVE", classKey: "1-8", name: `test ${i}`,
+    })));
+  });
+  globalThis.window ||= { addEventListener() {} };
+  const platform = new ExperimentPlatform();
+  const db = env.authenticatedContext("manager").firestore();
+  platform.user = { uid: "manager" };
+  platform.api = { ...firestoreApi, db };
+  platform.accountTransport = async () => ({ accounts: Array.from({ length: 34 }, (_, i) => ({
+    uid: `uid-${i}`, status: "ACTIVE", classKey: "1-8", name: `test ${i}`,
+  })) });
+  // The service selects SCHOOL at import time. Provide a scoped API wrapper for
+  // this isolated emulator project, never production Firebase.
+  platform.api.doc = (db, ...parts) => firestoreApi.doc(db, ...parts.map((part) => part === "gochon-high" ? SCHOOL : part));
+  platform.api.collection = (db, ...parts) => firestoreApi.collection(db, ...parts.map((part) => part === "gochon-high" ? SCHOOL : part));
+  const access = await platform.notificationStudyAccess();
+  assert.equal(access.canManage, true); assert.equal(access.schoolAdmin, false);
+  await platform.adminReadNotificationStudy(access);
+  const roster = await platform.adminStudyRoster();
+  assert.equal(roster.length, 34);
+  const prepared = await platform.adminPrepareNotificationStudy(studyDefaults(), roster, 0);
+  assert.equal(prepared.version, 3); assert.equal(prepared.participantCount, 34);
+  await platform.adminSetNotificationStudyState("ACTIVE", prepared.version);
+  const bundle = await platform.adminReadNotificationStudy(access);
+  assert.equal(bundle.assignments.length, 34); assert.equal(bundle.config.status, "ACTIVE"); assert.equal(bundle.flag.enabled, true);
+  await platform.adminSaveStudyNotes({ hypothesis: "나의 가설" }, 3);
+  await platform.adminSetNotificationStudyState("PAUSED", 3);
+  const paused = await platform.adminReadNotificationStudy(access);
+  assert.equal(paused.config.status, "PAUSED"); assert.equal(paused.flag.enabled, false);
+  assert.equal(paused.notes.hypothesis, "나의 가설");
+  // The same manager cannot change UI experiments, roles, or the study's scope.
+  await assertFails(setDoc(doc(db, `schools/${SCHOOL}/experiments/pincon-next-ui`), config("pincon-next-ui", "DRAFT", "manager")));
+  await assertFails(setDoc(doc(db, `schools/${SCHOOL}/roles/student`), role("school")));
+  await assertFails(setDoc(doc(db, `schools/${SCHOOL}/experiments/notification-frequency`), { ...paused.config, targetClassKeys: ["1-7"] }));
+  const second = await platform.adminPrepareNotificationStudy(studyDefaults(), roster, 3);
+  assert.equal(second.version, 4);
+  assert.equal((await platform.adminReadNotificationStudy(access)).assignments.length, 34);
+  await setDoc(doc(db, `schools/${SCHOOL}/experiments/notification-frequency`), { enrollmentReady: false }, { merge: true });
+  await assert.rejects(platform.adminSetNotificationStudyState("ACTIVE", 4), /배정이 완료되지/);
+  await assertFails(setDoc(doc(db, `schools/${SCHOOL}/experiments/notification-frequency`), { status: "ACTIVE" }, { merge: true }));
 });
 test.beforeEach(async () => {
   await env.clearFirestore();
@@ -210,4 +256,27 @@ test("notification experiment cannot run until Next UI is completed and experime
 
   await assertFails(setDoc(uiRef, config("pincon-next-ui","ACTIVE","admin",{ stableVariant:"legacy", allocation:{ nextPercent:50 } })));
   assert.equal((await getDoc(notificationRef)).data().status, "ACTIVE");
+});
+
+
+test("other classes and ordinary students cannot read notification research or operate its flags", async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, `schools/${SCHOOL}/roles/other-manager`), role("class", ["1-7"]));
+    await setDoc(doc(db, `schools/${SCHOOL}/roles/manager`), role("class", ["1-8"]));
+    await setDoc(doc(db, `schools/${SCHOOL}/experiments/notification-frequency`), { ...studyDefaults(), version: 3, status: "DRAFT" });
+    await setDoc(doc(db, `schools/${SCHOOL}/experimentEvents/ui-event`), { experimentId: "pincon-next-ui", experimentVersion: 3 });
+    await setDoc(doc(db, `schools/${SCHOOL}/experimentEvents/old-event`), { experimentId: "notification-frequency", experimentVersion: 2 });
+    await setDoc(doc(db, `schools/${SCHOOL}/experimentEvents/current-event`), { experimentId: "notification-frequency", experimentVersion: 3 });
+    await setDoc(doc(db, `schools/${SCHOOL}/notificationStudyDevices/other-student`), { classKey: "1-7" });
+  });
+  const manager = env.authenticatedContext("manager").firestore();
+  await assertSucceeds(getDoc(doc(manager, `schools/${SCHOOL}/experimentEvents/current-event`)));
+  for (const name of ["ui-event", "old-event"]) await assertFails(getDoc(doc(manager, `schools/${SCHOOL}/experimentEvents/${name}`)));
+  await assertFails(getDoc(doc(manager, `schools/${SCHOOL}/notificationStudyDevices/other-student`)));
+  for (const uid of ["other-manager", "student"]) {
+    const db = env.authenticatedContext(uid).firestore();
+    await assertFails(getDoc(doc(db, `schools/${SCHOOL}/experimentEvents/current-event`)));
+    await assertFails(setDoc(doc(db, `schools/${SCHOOL}/experimentFlags/notification_experiment`), { enabled: true, updatedAtMs: 1, updatedBy: uid }));
+  }
 });

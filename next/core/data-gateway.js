@@ -307,7 +307,7 @@ export class NextDataGateway extends EventTarget {
 
   async start() {
     this.state.profile = readClassProfile();
-    this.state.access = accessFor({ profile: this.state.profile });
+    this.state.access = accessFor({ user: this.state.user, role: this.state.role, profile: this.state.profile });
     if (!this.state.profile) {
       this.state.ready = false;
       this.state.syncing = false;
