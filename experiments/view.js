@@ -18,6 +18,9 @@ export function introMarkup(admin = false) {
 export function loginMarkup(message = "로그인하면 내 실험 조건과 설문을 확인할 수 있어요.") {
   return `${introMarkup()}<section class="card login"><h2>내 계정으로 시작하기</h2><p>${esc(message)}</p><form id="study-login"><label>학번<input name="studentNumber" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" autocomplete="username" required placeholder="예: 10804"></label><label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password" required></label><button class="primary" type="submit">학생 로그인</button></form><div class="actions">${button("google-login", "관리자 Google 로그인")}${button("retry", "다시 확인")}</div><p class="muted">처음 로그인하거나 PIN 변경이 필요한 경우 <a href="../next/">PinCon 계정 화면</a>을 이용해 주세요.</p></section>`;
 }
+export function accountMarkup(user, access = {}) {
+  return `<section class="card account-status" aria-label="로그인 계정"><strong>${esc(user.displayName || user.email || "PinCon 계정")}</strong><p>${esc(access.label || "권한 확인 중")}${access.canManage ? " · 연구 운영 가능" : " · 이 계정에는 현재 연구의 관리 권한이 없어요. 대상 학급 관리자 계정으로 로그인해 주세요."}</p><div class="actions">${button("retry", "권한 다시 확인")}${button("google-login", "Google 계정 변경")}${button("sign-out", "로그아웃 · 학번 계정 변경")}</div></section>`;
+}
 export function planMarkup(config) {
   const days = studyCalendar(config);
   return `<div class="timeline">${[0, 1, 2, 3].map((period) => {
@@ -38,8 +41,9 @@ function setupMarkup(bundle, draft, locked) {
   const old = bundle.config && !isCareerStudy(bundle.config), active = bundle.config?.status === "ACTIVE";
   const uiRunning = ["ACTIVE", "CANARY", "ROLLOUT"].includes(bundle.ui?.status);
   return `<section class="card"><div class="section-head"><div><span class="eyebrow">1차시 · 설계</span><h2>비교할 조건을 먼저 고정해요.</h2></div><span class="pill">${esc(stateLabel(bundle.config))}</span></div>
+    ${bundle.config?.enrollmentReady === false ? '<p class="callout">참여자 배정이 아직 완료되지 않았어요. 설계를 다시 저장하면 새 버전으로 배정하고, 완료 후 시작할 수 있어요.</p>' : ""}
     ${old ? '<p class="callout">이전 알림 실험이 있습니다. 새 설계를 저장하면 기존 설정·배정을 보관하고 새 버전으로 시작해요.</p>' : ""}
-    ${uiRunning ? '<p class="callout">이전 UI 실험이 진행 중이에요. 아래 버튼으로 일시정지한 뒤 알림 연구를 시작하세요.</p>' + button("pause-ui", "이전 UI 실험 일시정지") : ""}
+    ${uiRunning ? '<p class="callout">이전 UI 실험이 진행 중이에요. 학교 관리자가 일시정지한 뒤 알림 연구를 시작할 수 있어요.</p>' + (bundle.canPauseUi === false ? "" : button("pause-ui", "이전 UI 실험 일시정지")) : ""}
     <div class="dose-grid">${[["LOW", "비교 기준"], ["MID", "하루 한 번"], ["HIGH", "분산 알림"]].map(([key, note]) => `<article class="dose"><small>${note}</small><strong>${FREQUENCY[key]}<span>회 / 일</span></strong><p>${key === "LOW" ? "알림 없이 스스로 확인" : key === "MID" ? "세 시간대 중 하나를 날짜별로 회전" : "08시 · 17시 · 19시"}</p></article>`).join("")}</div>
     <form id="study-design"><fieldset ${locked ? "disabled" : ""}><legend class="sr-only">실험 설계</legend><div class="fields">
       <label>실험 종류<select name="studyKind"><option value="formal" ${config.studyKind !== "pilot" ? "selected" : ""}>정식 실험</option><option value="pilot" ${config.studyKind === "pilot" ? "selected" : ""}>예비 실험 · 별도 결과</option></select></label>
@@ -52,7 +56,7 @@ function setupMarkup(bundle, draft, locked) {
     <p class="muted">동의는 이미 확보한 참가자를 대상으로 해요. 같은 사람이 세 조건을 경험하도록 여섯 순서에 균형 배정해요. 중요 공지는 모든 조건에 동일하게 제공하며 실험 횟수에 넣지 않아요.</p>
     <div id="study-plan">${planMarkup(config)}</div>
     <p class="muted">기준선 중에는 이용 기록을 모으고 실험 알림은 보내지 않아요. 기준선을 0일로 정해 08시 이후 시작하면, 첫날은 제외하고 다음 실험일부터 온전한 0·1·3회를 비교해요. 일시정지에 걸친 날짜도 분석에서 제외해요.</p>
-    <div class="actions">${button("prepare", old && active ? "이전 실험 정지 후 새 설계 저장" : "설계 저장 · 균형 배정", false, locked)}${button("start", bundle.config?.status === "PAUSED" ? "이 실험 재개" : "실험 시작", true, !isCareerStudy(bundle.config) || active || bundle.config?.status === "COMPLETED")}${active ? button("pause", "일시정지") : ""}${isCareerStudy(bundle.config) && bundle.config?.activeStartedAtMs && bundle.config.status !== "COMPLETED" ? button("complete", "실험 종료") : ""}</div>
+    <div class="actions">${button("prepare", old && active ? "이전 실험 정지 후 새 설계 저장" : "설계 저장 · 균형 배정", false, locked)}${button("start", bundle.config?.status === "PAUSED" ? "이 실험 재개" : "실험 시작", true, !isCareerStudy(bundle.config) || bundle.config?.enrollmentReady === false || active || bundle.config?.status === "COMPLETED")}${active ? button("pause", "일시정지") : ""}${isCareerStudy(bundle.config) && bundle.config?.activeStartedAtMs && bundle.config.status !== "COMPLETED" ? button("complete", "실험 종료") : ""}</div>
     ${locked ? '<p class="muted">시작한 설계와 배정은 고정되어 있어요. 새로 비교하려면 먼저 정지하거나 종료한 뒤 새 실험을 만드세요.</p>' : ""}
     ${isCareerStudy(bundle.config) && bundle.config.activeStartedAtMs && !active ? button("new-run", "새 실험 설계하기") : ""}
   </form></section>`;

@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261026-study3";
+const PINCON_SW_VERSION = "20261026-study-access1";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -43,6 +43,7 @@ const PINCON_APP_SHELL = [
   "./next/experiment/analytics.js",
   "./experiments/index.html",
   "./experiments/app.js",
+  "./next/experiment/study-access.js",
   "./experiments/view.js",
   "./experiments/survey.js",
   "./experiments/study.css",

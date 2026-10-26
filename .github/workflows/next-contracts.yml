@@ -129,6 +129,7 @@ jobs:
       - name: Run Next contract tests
         run: >-
           node --test
+          next/tests/study-access.test.mjs
           next/tests/contracts.test.mjs
           next/tests/assessment-attachments.test.mjs
           next/tests/assessment-calendar.test.mjs

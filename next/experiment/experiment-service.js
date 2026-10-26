@@ -16,6 +16,7 @@ import {
 } from "./assignment-service.js";
 import { ExperimentAnalytics } from "./analytics.js";
 import { addDays, balancedSequences, dateKey, isCareerStudy, validateStudyConfig } from "./notification-study.js";
+import { studyAccess } from "./study-access.js";
 
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
 const SCHOOL = globalThis.PINCON_SCHOOL_CONFIG || { id: "gochon-high", name: "학교" };
@@ -451,7 +452,16 @@ export class ExperimentPlatform {
     return (result.accounts || []).filter((account) => account.uid && account.status === "ACTIVE");
   }
 
-  async adminReadNotificationStudy() {
+  async notificationStudyAccess() {
+    if (!this.user || this.user.isAnonymous) return studyAccess(this.user);
+    const [role, config] = await Promise.all([
+      this.api.getDoc(this.api.doc(this.api.db, "schools", SCHOOL.id, "roles", this.user.uid)),
+      this.api.getDoc(this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", NOTIFICATION_EXPERIMENT_ID)),
+    ]);
+    return studyAccess(this.user, role.exists() ? role.data() : null, config.exists() ? config.data() : null);
+  }
+
+  async adminReadNotificationStudy(access = { schoolAdmin: true }) {
     const api = this.api, base = ["schools", SCHOOL.id], experiment = [...base, "experiments", NOTIFICATION_EXPERIMENT_ID];
     const configSnap = await api.getDoc(api.doc(api.db, ...experiment));
     const config = configSnap.exists() ? { id: configSnap.id, ...configSnap.data() } : null;
@@ -469,17 +479,19 @@ export class ExperimentPlatform {
       return rows;
     };
     const versionFilter = [api.where("experimentVersion", "==", Number(config?.version || 0))];
+    const eventFilter = [...versionFilter, api.where("experimentId", "==", NOTIFICATION_EXPERIMENT_ID)];
+    const deviceFilter = access.schoolAdmin ? [] : [api.where("classKey", "in", access.classKeys)];
     const [assignments, events, receipts, devices, runtimeSnap, flagSnap, uiSnap, history, notesSnap] = await Promise.all([
-      collect([...experiment, "assignments"]), collect([...base, "experimentEvents"], versionFilter),
-      collect([...base, "notificationExperimentReceipts"], versionFilter), collect([...base, "notificationStudyDevices"]),
+      collect([...experiment, "assignments"], versionFilter), collect([...base, "experimentEvents"], eventFilter),
+      collect([...base, "notificationExperimentReceipts"], eventFilter), collect([...base, "notificationStudyDevices"], deviceFilter),
       api.getDoc(api.doc(api.db, ...base, "experimentRuntime", NOTIFICATION_EXPERIMENT_ID)),
       api.getDoc(api.doc(api.db, ...base, "experimentFlags", NOTIFICATION_FLAG_ID)),
       api.getDoc(api.doc(api.db, ...base, "experiments", UI_EXPERIMENT_ID)),
-      collect([...experiment, "runs"]),
+      access.schoolAdmin ? collect([...experiment, "runs"]) : Promise.resolve([]),
       api.getDoc(api.doc(api.db, ...experiment, "researchNotes", `v${config?.version || 0}`)),
     ]);
     const surveys = (await Promise.all(assignments.filter((row) => row.experimentVersion === config?.version).map((assignment) =>
-      collect([...experiment, "participants", assignment.id, "surveyResponses"])))).flat();
+      collect([...experiment, "participants", assignment.id, "surveyResponses"], versionFilter)))).flat();
     return { config, assignments, events: events.filter((row) => row.experimentId === NOTIFICATION_EXPERIMENT_ID), receipts,
       surveys, devices, runtime: runtimeSnap.exists() ? runtimeSnap.data() : null,
       flag: flagSnap.exists() ? flagSnap.data() : null, ui: uiSnap.exists() ? uiSnap.data() : null,
@@ -527,9 +539,10 @@ export class ExperimentPlatform {
         participants.set(uid, anonymousParticipant);
       }));
     }
-    const previousAssignments = await api.getDocs(api.collection(api.db, ...path, "assignments"));
+    const previousAssignments = await api.getDocs(api.query(api.collection(api.db, ...path, "assignments"),
+      api.where("experimentVersion", "==", Number(current?.version || 0))));
     const config = { ...draft, version, status: "DRAFT", assignmentSeed: seed, activeStartedAtMs: 0,
-      createdAtMs: Date.now(), updatedAtMs: Date.now(), updatedBy: this.user.uid, participantCount: accounts.length };
+      enrollmentReady: false, createdAtMs: Date.now(), updatedAtMs: Date.now(), updatedBy: this.user.uid, participantCount: accounts.length };
     await api.runTransaction(api.db, async (tx) => {
       const latest = await tx.get(ref);
       if (Number(latest.data()?.version || 0) !== Number(expectedVersion || 0) || latest.data()?.status === "ACTIVE") throw new Error("다른 창에서 실험 설정이 바뀌었습니다. 새로고침해 주세요.");
@@ -538,14 +551,26 @@ export class ExperimentPlatform {
       tx.set(ref, config);
       tx.set(api.doc(api.db, ...base, "experimentFlags", NOTIFICATION_FLAG_ID), {
         enabled: false, rolloutPercent: 0, experimentId: NOTIFICATION_EXPERIMENT_ID, stableVariant: "next", updatedAtMs: Date.now(), updatedBy: this.user.uid });
-      for (const account of accounts) {
+    });
+    // Scoped roles require more rule evaluation than school roles. Small
+    // transactions stay within Firestore's rule budget. A draft cannot start
+    // until every assignment has committed and the final readiness flag is set.
+    for (const account of accounts) {
+      await api.runTransaction(api.db, async (tx) => {
+        const latest = await tx.get(ref);
+        if (latest.data()?.version !== version || latest.data()?.status !== "DRAFT") throw new Error("배정 중 설계가 바뀌었습니다. 새로고침해 주세요.");
         const proposal = proposals.get(account.uid);
         tx.set(api.doc(api.db, ...path, "assignments", account.uid), { schemaVersion: 1, sequence: proposal.sequence,
           sequenceIndex: proposal.index, assignedAtMs: Date.now(), experimentVersion: version,
           anonymousParticipant: participants.get(account.uid), assignmentSource: "crossover" });
-      }
+      });
+    }
+    await api.runTransaction(api.db, async (tx) => {
+      const latest = await tx.get(ref);
+      if (latest.data()?.version !== version || latest.data()?.status !== "DRAFT") throw new Error("배정 중 설계가 바뀌었습니다. 새로고침해 주세요.");
+      tx.set(ref, { enrollmentReady: true }, { merge: true });
     });
-    return config;
+    return { ...config, enrollmentReady: true };
   }
 
   async adminSetNotificationStudyState(status, expectedVersion) {
@@ -557,6 +582,7 @@ export class ExperimentPlatform {
       const config = snap.data();
       if (!isCareerStudy(config) || config.version !== Number(expectedVersion)) throw new Error("설계를 먼저 저장하거나 새로고침해 주세요.");
       if (config.status === "COMPLETED") throw new Error("종료된 실험입니다. 새 버전으로 설계를 저장해 주세요.");
+      if (status === "ACTIVE" && config.enrollmentReady === false) throw new Error("참여자 배정이 완료되지 않았어요. 설계를 다시 저장해 주세요.");
       if (status === "ACTIVE" && ["CANARY", "ACTIVE", "ROLLOUT"].includes(uiSnap.data()?.status)) throw new Error("기존 UI 실험을 먼저 일시정지해 주세요.");
       if (status === config.status) return config;
       const now = Date.now(), today = dateKey(new Date(now));

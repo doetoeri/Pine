@@ -40,6 +40,43 @@ service cloud.firestore {
         );
     }
 
+    // Notification research is a single shared study. Class managers must own
+    // every target class; this never grants UI-experiment or role-management access.
+    function studyScopeAllowed(schoolId, targets) {
+      let role = get(rolePath(schoolId)).data;
+      return signedIn() && role.enabled == true && (role.level == 'school'
+        || (role.level in ['class', 'grade', 'president']
+          && targets is list && targets.size() > 0
+          && role.classKeys is list && targets.hasOnly(role.classKeys)));
+    }
+
+    function notificationStudyOperator(schoolId) {
+      let path = /databases/$(database)/documents/schools/$(schoolId)/experiments/notification-frequency;
+      let targets = exists(path) ? get(path).data.get('targetClassKeys', ['1-8']) : ['1-8'];
+      return studyScopeAllowed(schoolId, targets is list && targets.size() > 0 ? targets : ['1-8']);
+    }
+
+    function studyOperator(schoolId, experimentId) {
+      return experimentId == 'notification-frequency' ? notificationStudyOperator(schoolId) : schoolAdmin(schoolId);
+    }
+
+    function studyVersion(schoolId) {
+      let path = /databases/$(database)/documents/schools/$(schoolId)/experiments/notification-frequency;
+      return exists(path) ? get(path).data.version : 0;
+    }
+
+    function ownStudyAccount(schoolId, userId) {
+      let path = /databases/$(database)/documents/schools/$(schoolId)/users/$(userId);
+      return notificationStudyOperator(schoolId) && exists(path)
+        && get(path).data.classKey in roleDocument(schoolId).data.classKeys;
+    }
+
+    function currentStudyRecord(schoolId) {
+      return notificationStudyOperator(schoolId)
+        && resource.data.experimentId == 'notification-frequency'
+        && resource.data.experimentVersion == studyVersion(schoolId);
+    }
+
     function validClassOpsBase(classKey) {
       return classKeyIsValid(classKey)
         && request.resource.data.classKey == classKey
@@ -401,15 +438,17 @@ service cloud.firestore {
     }
 
 
-    // Experiment Platform. Settings are school-admin only; research events never store a UID/name/student number.
+    // Experiment Platform. Notification research also permits scoped class managers; research events never store a UID/name/student number.
     match /schools/{schoolId}/experiments/{experimentId} {
       allow read: if signedIn();
-      allow create, update: if schoolAdmin(schoolId)
+      allow create, update: if studyOperator(schoolId, experimentId)
+        && (schoolAdmin(schoolId) || studyScopeAllowed(schoolId, request.resource.data.get('targetClassKeys', ['1-8'])))
         && request.resource.data.id == experimentId
         && request.resource.data.status in ['DRAFT', 'CANARY', 'ACTIVE', 'PAUSED', 'ROLLOUT', 'COMPLETED', 'ABORTED']
         && request.resource.data.version is int
         && request.resource.data.version >= 1
         && (request.resource.data.get('studyMode', '') != 'career-v3' || request.resource.data.version >= 3)
+        && (request.resource.data.get('studyMode', '') != 'career-v3' || request.resource.data.status != 'ACTIVE' || request.resource.data.get('enrollmentReady', true) == true)
         && request.resource.data.get('stableVariant', 'legacy') in ['legacy', 'next']
         && request.resource.data.get('promotedVariant', '') in ['', 'legacy', 'next']
         && request.resource.data.get('rolloutPercent', 0) is number
@@ -424,10 +463,11 @@ service cloud.firestore {
       allow delete: if false;
 
       match /assignments/{userId} {
-        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId)
+          || (studyOperator(schoolId, experimentId) && resource.data.experimentVersion == studyVersion(schoolId)));
         allow create: if signedIn()
-          && (request.auth.uid == userId || schoolAdmin(schoolId))
-          && (schoolAdmin(schoolId) || experimentId != 'notification-frequency'
+          && (request.auth.uid == userId || studyOperator(schoolId, experimentId))
+          && (studyOperator(schoolId, experimentId) || experimentId != 'notification-frequency'
             || !exists(experimentPath(schoolId, experimentId))
             || get(experimentPath(schoolId, experimentId)).data.get('studyMode', '') != 'career-v3')
           && request.resource.data.keys().hasOnly([
@@ -447,7 +487,7 @@ service cloud.firestore {
                 == get(participantPath(schoolId, userId)).data.anonymousParticipant
             )
             || (
-              schoolAdmin(schoolId)
+              studyOperator(schoolId, experimentId)
               && (
                 request.resource.data.anonymousParticipant == ''
                 || (
@@ -474,7 +514,7 @@ service cloud.firestore {
               && request.resource.data.sequenceIndex >= 0
               && request.resource.data.sequenceIndex < 6)
           );
-        allow update: if schoolAdmin(schoolId);
+        allow update: if studyOperator(schoolId, experimentId);
         allow delete: if false;
       }
 
@@ -516,7 +556,8 @@ service cloud.firestore {
       }
 
       match /participants/{userId}/surveyResponses/{surveyId} {
-        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+        allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId)
+          || (studyOperator(schoolId, experimentId) && resource.data.experimentVersion == studyVersion(schoolId)));
         allow create, update: if signedIn()
           && request.auth.uid == userId
           && exists(participantPath(schoolId, userId))
@@ -556,13 +597,17 @@ service cloud.firestore {
       }
 
       match /runs/{runId} {
-        allow read, create, update: if schoolAdmin(schoolId);
+        allow read: if schoolAdmin(schoolId);
+        allow create: if studyOperator(schoolId, experimentId)
+          && studyScopeAllowed(schoolId, request.resource.data.config.get('targetClassKeys', ['1-8']));
+        allow update: if schoolAdmin(schoolId);
         allow delete: if false;
       }
 
       match /researchNotes/{noteId} {
-        allow read: if schoolAdmin(schoolId);
-        allow create, update: if schoolAdmin(schoolId)
+        allow read: if studyOperator(schoolId, experimentId) && (schoolAdmin(schoolId) || noteId == 'v' + string(studyVersion(schoolId)));
+        allow create, update: if studyOperator(schoolId, experimentId)
+          && (schoolAdmin(schoolId) || noteId == 'v' + string(studyVersion(schoolId)))
           && request.resource.data.keys().hasOnly(['hypothesis', 'sources', 'observations', 'recommendation', 'limitations', 'updatedAtMs', 'updatedBy'])
           && request.resource.data.updatedBy == request.auth.uid
           && request.resource.data.updatedAtMs is int
@@ -577,7 +622,7 @@ service cloud.firestore {
 
     match /schools/{schoolId}/experimentFlags/{flagId} {
       allow read: if signedIn();
-      allow create, update: if schoolAdmin(schoolId)
+      allow create, update: if (schoolAdmin(schoolId) || (flagId == 'notification_experiment' && notificationStudyOperator(schoolId)))
         && request.resource.data.enabled is bool
         && request.resource.data.get('rolloutPercent', 0) is number
         && request.resource.data.get('rolloutPercent', 0) >= 0
@@ -588,9 +633,9 @@ service cloud.firestore {
     }
 
     match /schools/{schoolId}/experimentParticipants/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId) || ownStudyAccount(schoolId, userId));
       allow create: if signedIn()
-        && (request.auth.uid == userId || schoolAdmin(schoolId))
+        && (request.auth.uid == userId || schoolAdmin(schoolId) || ownStudyAccount(schoolId, userId))
         && request.resource.data.keys().hasOnly(['schemaVersion', 'anonymousParticipant', 'createdAtMs'])
         && request.resource.data.schemaVersion == 1
         && request.resource.data.anonymousParticipant is string
@@ -601,7 +646,7 @@ service cloud.firestore {
     }
 
     match /schools/{schoolId}/experimentEvents/{eventId} {
-      allow read: if schoolAdmin(schoolId);
+      allow read: if schoolAdmin(schoolId) || currentStudyRecord(schoolId);
       allow create: if signedIn()
         && exists(participantPath(schoolId, request.auth.uid))
         && eventId == request.resource.data.eventId
@@ -652,17 +697,18 @@ service cloud.firestore {
     }
 
     match /schools/{schoolId}/notificationExperimentReceipts/{receiptId} {
-      allow read: if schoolAdmin(schoolId);
+      allow read: if schoolAdmin(schoolId) || currentStudyRecord(schoolId);
       allow write: if false;
     }
 
     match /schools/{schoolId}/experimentRuntime/{experimentId} {
-      allow read: if schoolAdmin(schoolId);
+      allow read: if studyOperator(schoolId, experimentId);
       allow write: if false;
     }
 
     match /schools/{schoolId}/notificationStudyDevices/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
+      allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId)
+        || (notificationStudyOperator(schoolId) && resource.data.classKey in roleDocument(schoolId).data.classKeys));
       allow write: if false;
     }
 

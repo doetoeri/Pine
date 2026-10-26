@@ -2,13 +2,15 @@ import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/cor
 import { getExperimentPlatform } from "../next/experiment/experiment-service.js";
 import { isCareerStudy, studyDefaults, validateStudyConfig } from "../next/experiment/notification-study.js";
 import { analyzeStudy, anonymousStudyExport, studyCsv, studyReport } from "../next/experiment/study-analysis.js";
-import { adminMarkup, esc, loginMarkup, participantMarkup, planMarkup } from "./view.js";
+import { accountMarkup, adminMarkup, esc, loginMarkup, participantMarkup, planMarkup } from "./view.js";
 import { surveyMarkup } from "./survey.js";
 
 const root = document.querySelector("#study-app"), status = document.querySelector("#study-status");
 if (!readClassProfile()) saveClassProfile(1, 8);
 const gateway = new NextDataGateway();
 let platform, bundle = {}, roster = [], admin = false, enabled = true, surveys = [], busy = false, draft = null, newRun = false, notesDirty = false;
+let access = {}, loadError = "";
+let authSubscribed = false, observedUid = "", authReload = false;
 const validTabs = ["design", "members", "delivery", "results", "report"];
 let tab = validTabs.includes(location.hash.slice(1)) ? location.hash.slice(1) : "design";
 let toastTimer;
@@ -22,9 +24,11 @@ function toast(message) {
 }
 function render() {
   if (!platform?.user || platform.user.isAnonymous) root.innerHTML = loginMarkup();
+  else if (loadError) root.innerHTML = accountMarkup(platform.user, access) + `<section class="card"><h2>연구 화면을 불러오지 못했어요.</h2><p role="alert">${esc(loadError)}</p><button type="button" data-action="retry">다시 확인</button></section>`;
   else if (admin) root.innerHTML = adminMarkup({ bundle, roster, tab, draft, newRun, busy });
   else root.innerHTML = participantMarkup({ context: platform.notificationContext || {}, enabled, surveys,
     permission: globalThis.Notification?.permission || "unsupported" });
+  if (platform?.user && !platform.user.isAnonymous && !loadError) root.insertAdjacentHTML("afterbegin", accountMarkup(platform.user, access));
   root.setAttribute("aria-busy", String(busy));
 }
 function snapshotDraft() {
@@ -44,13 +48,28 @@ function noteValues() {
 const designKey = (value = {}) => JSON.stringify([value.studyKind, value.startDate, value.baselineDays, value.periodDays,
   value.targetClassKeys, value.excludedDates, value.schoolDaysOnly]);
 async function load() {
+  loadError = "";
   await timeout(gateway.start());
   platform = await timeout(getExperimentPlatform());
   await timeout(platform.start());
-  admin = gateway.snapshot().access?.role === "system-admin";
+  if (!authSubscribed) {
+    authSubscribed = true; observedUid = platform.user?.uid || "";
+    platform.api.onAuthStateChanged(platform.api.auth, (user) => {
+      const uid = user?.uid || "";
+      if (uid === observedUid) return;
+      observedUid = uid; bundle = {}; roster = []; draft = null; newRun = false; notesDirty = false;
+      admin = false; access = {}; loadError = ""; platform.user = user; platform.notificationContext = null;
+      if (busy) authReload = true;
+      else perform(load);
+      render();
+    });
+  }
+  access = await timeout(platform.notificationStudyAccess());
+  admin = access.canManage;
   if (platform.user && !platform.user.isAnonymous) {
     if (admin) {
-      [bundle, roster] = await timeout(Promise.all([platform.adminReadNotificationStudy(), platform.adminStudyRoster()]), 45_000);
+      [bundle, roster] = await timeout(Promise.all([platform.adminReadNotificationStudy(access), platform.adminStudyRoster()]), 45_000);
+      bundle.canPauseUi = access.schoolAdmin;
       if (!draft && !isCareerStudy(bundle.config)) draft = studyDefaults(gateway.snapshot().profile?.classKey || "1-8");
     } else {
       [enabled, surveys] = await timeout(Promise.all([platform.notificationExperimentEnabled(), platform.ownNotificationSurveys()]));
@@ -63,8 +82,8 @@ async function perform(work) {
   busy = true; root.setAttribute("aria-busy", "true");
   root.querySelectorAll("button").forEach((button) => { button.disabled = true; });
   try { await work(); }
-  catch (error) { toast(error?.code === "permission-denied" ? "서버 권한을 확인하지 못했어요. 관리자 로그인과 권한 규칙 배포 상태를 확인해 주세요." : error?.message || "요청을 완료하지 못했어요."); }
-  finally { busy = false; render(); }
+  catch (error) { const message = error?.code === "permission-denied" ? "서버에서 연구 관리 권한을 확인하지 못했어요. ‘권한 다시 확인’을 누르거나 관리자 계정으로 변경해 주세요." : error?.message || "요청을 완료하지 못했어요."; if (work === load) loadError = message; toast(message); }
+  finally { busy = false; render(); if (authReload) { authReload = false; perform(load); } }
 }
 function saveFile(name, type, value) {
   const url = URL.createObjectURL(new Blob([value], { type }));
@@ -78,10 +97,18 @@ function exportFile(kind) {
   if (kind === "report") saveFile(`${stem}-report.md`, "text/markdown;charset=utf-8", studyReport(exportBundle));
 }
 async function run(action) {
-  if (["refresh", "retry"].includes(action)) { if (notesDirty) throw new Error("작성한 탐구 메모를 먼저 저장해 주세요."); await load(); return; }
+  if (["refresh", "retry"].includes(action)) { if (notesDirty) throw new Error("작성한 탐구 메모를 먼저 저장해 주세요."); await load().catch((error) => { loadError = error.message; throw error; }); return; }
+  if (action === "sign-out") {
+    if (notesDirty) throw new Error("작성한 탐구 메모를 먼저 저장해 주세요.");
+    const { signOutStudent } = await import("../next/core/student-auth.js");
+    await signOutStudent(); bundle = {}; roster = []; draft = null; newRun = false; admin = false;
+    await gateway.retry(); await load(); return;
+  }
   if (action === "google-login") {
     await import("../pincon-guest-auth.js");
-    await globalThis.PINCON_GUEST_AUTH.signInWithGoogleAndSync();
+    if (notesDirty) throw new Error("작성한 탐구 메모를 먼저 저장해 주세요.");
+    await globalThis.PINCON_GUEST_AUTH.signInWithGoogle();
+    bundle = {}; roster = []; draft = null; newRun = false;
     await gateway.retry(); await load(); return;
   }
   if (action === "enable-push") {
@@ -98,7 +125,7 @@ async function run(action) {
     toast("이 기기에 테스트 알림을 표시했어요. 서버 푸시 수신 확인과는 별도예요."); return;
   }
   if (action === "toggle") { const result = await platform.setNotificationExperimentEnabled(!enabled); enabled = result.enabled; await platform.start(); toast(enabled ? "연구 알림 수신을 다시 허용했어요." : "모든 기기에서 연구 알림 수신을 중지했어요."); return; }
-  if (!admin) throw new Error("연구 운영은 시스템 관리자 계정에서 할 수 있어요.");
+  if (!admin) throw new Error("연구 운영은 대상 학급 관리자 또는 학교 관리자 계정에서 할 수 있어요.");
   if (action === "new-run") { newRun = true; draft = studyDefaults(gateway.snapshot().profile?.classKey || "1-8"); toast("새 설계를 작성해 주세요. 저장하면 새 버전으로 보관돼요."); return; }
   if (action === "pause-ui") { await platform.adminSetExperiment("pincon-next-ui", { status: "PAUSED", publicBetaEnabled: false }); await load(); toast("이전 UI 실험을 일시정지했어요."); return; }
   if (action === "prepare") {
