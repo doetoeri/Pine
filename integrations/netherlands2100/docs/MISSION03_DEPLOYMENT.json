@@ -1,0 +1,53 @@
+{
+  "checked_at_utc": "2026-10-27T16:13:16.313572+00:00",
+  "implementation_commit": "1752140daa30f48937cdb319a800dd38d778626f",
+  "checks": [
+    {
+      "url": "https://pincon.app/climate/",
+      "status": 200,
+      "bytes": 725,
+      "identical_to_repository": true,
+      "sha256": "9150f2ccb3b88b196ed47d935eca2faacebae6a8ba3703a2f3ff03ecfa1fc776"
+    },
+    {
+      "url": "https://pincon.app/climate/assets/index-C0Q508gt.js",
+      "status": 200,
+      "bytes": 1200031,
+      "identical_to_repository": true,
+      "sha256": "8c4a3db286d628ef9dbe64fb65bd971dac216c7c1aea39b66fbbd959b59a17e4"
+    },
+    {
+      "url": "https://pincon.app/climate/assets/index-K_ISsVBv.css",
+      "status": 200,
+      "bytes": 85723,
+      "identical_to_repository": true,
+      "sha256": "983d0dddf0008eefed1fcf77ee4069db7d72d0981402cb1875383840a6f04a1c"
+    },
+    {
+      "url": "https://pincon.app/",
+      "status": 200,
+      "bytes": 1158,
+      "identical_to_repository": true,
+      "sha256": "f513400a6381b37ab9b58eb9a1104b895e12a5b3cc14135bdb726707f9d788fa"
+    },
+    {
+      "url": "https://pincon.app/next/",
+      "status": 200,
+      "bytes": 4629,
+      "identical_to_repository": true,
+      "sha256": "7ddd1e5e8f2c3f8d2ad5f3ae45fd6ab158167f670033ea7c407cdabe27f8ea80"
+    }
+  ],
+  "browser_smoke": {
+    "url": "https://pincon.app/climate/",
+    "title": "NETHERLANDS 2100 · Climate & Policy Comparison · PinCon",
+    "year_before": 2100,
+    "year_after": 2100,
+    "A_policy_count_after_dike": 1,
+    "B_policy_count_after_dike": 0,
+    "A_investment_eur": 1200000000,
+    "B_investment_eur": 0,
+    "difference_overlay_enabled": true,
+    "screenshot": "mission03-screenshots/production-1752140.jpg"
+  }
+}
