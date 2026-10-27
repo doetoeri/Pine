@@ -1,0 +1,24 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> pincon-climate@0.3.0 test
+> vitest run tests/model.test.ts tests/comparison.test.ts
+
+
+ RUN  v3.2.4 /workspace/projects/pine-mission03/integrations/netherlands2100
+
+ ✓ tests/comparison.test.ts (8 tests) 3159ms
+   ✓ Mission 03 policy independence and model validity > independent dike and relocation plans change distinct results  1489ms
+   ✓ Mission 03 policy independence and model validity > identical policies have identical outputs with shared deterministic storms  474ms
+   ✓ Mission 03 policy independence and model validity > explicit completion and investment are honored; budgets do not invent protection  902ms
+ ✓ tests/model.test.ts (13 tests) 3329ms
+   ✓ Permanent inundation invariants > never loses a cell or decreases area in all 75 years  1065ms
+   ✓ Permanent inundation invariants > milestone areas grow without modifying any DEM elevation  326ms
+   ✓ Permanent inundation invariants > seeking backwards and replaying is deterministic  321ms
+   ✓ Permanent inundation invariants > fractional animation masks are monotone and independent of playback rate  781ms
+   ✓ Permanent inundation invariants > new protection has no effect before completion  407ms
+   ✓ Permanent inundation invariants > recovery is separate and does not erase historical permanent cells  405ms
+
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+   Start at  10:28:13
+   Duration  4.55s (transform 153ms, setup 0ms, collect 1.10s, tests 6.49s, environment 1ms, prepare 149ms)

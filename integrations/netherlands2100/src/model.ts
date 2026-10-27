@@ -5,7 +5,7 @@ export interface Region {id:string;i:number;name:string;population:number;homes:
 export interface Cell {id:number;r:number;z:number;spill:number;area:number}
 export interface Facility {id:string;name:string;lon:number;lat:number;region:number;kind:string;elevationSample:number|null;source:string;shutdownDepth:number}
 export interface Dataset {version:string;regions:Region[];cells:Cell[];edges:number[][];facilities:Facility[];climate:Record<string,Record<string,{median:number;lower:number;upper:number}>>;meta:Record<string,any>}
-export interface Policy {id:string;kind:PolicyKind;region:number;start:number;destination?:number;people?:number;delay?:number}
+export interface Policy {id:string;kind:PolicyKind;region:number;start:number;destination?:number;people?:number;delay?:number;end?:number;budget?:number;name?:string}
 export interface PolicySpec {ko:string;en:string;design:number;build:number;cost:number;maintenance:number;boost:number;life:number;carbonKt:number;uncertainty:string}
 export const CATALOG:Record<PolicyKind,PolicySpec>={
  dike:{ko:'제방 증고',en:'Raise dike',design:3,build:7,cost:1.2,maintenance:.012,boost:1.2,life:60,carbonKt:95,uncertainty:'비용·보호높이 ±40% · 가정'},
@@ -18,7 +18,8 @@ export const CATALOG:Record<PolicyKind,PolicySpec>={
  relocate:{ko:'단계적 주민 이주',en:'Planned relocation',design:2,build:4,cost:.9,maintenance:0,boost:30000,life:100,carbonKt:45,uncertainty:'완료 연도에 최대 3만 명 이전 · 가정'},
  nature:{ko:'생태 기반 해안 보호',en:'Nature-based coast',design:2,build:6,cost:.4,maintenance:.006,boost:.45,life:40,carbonKt:-20,uncertainty:'보호 높이 환산 0.45m · 가정'},
 };
-export const complete=(p:Policy)=>p.start+CATALOG[p.kind].design+CATALOG[p.kind].build+(p.delay||0);
+export const complete=(p:Policy)=>p.end??(p.start+CATALOG[p.kind].design+CATALOG[p.kind].build+(p.delay||0));
+export const policyCost=(p:Policy)=>p.budget??CATALOG[p.kind].cost;
 export interface Config {climate:Climate;quantile:'median'|'lower'|'upper';seed:number;extraSubsidence:number;budget:number;annualBudget:number;minSeverity:number;stormScale:number}
 export const DEFAULT_CONFIG:Config={climate:'high',quantile:'median',seed:2100,extraSubsidence:0,budget:40,annualBudget:3,minSeverity:2,stormScale:1};
 export interface RegionalState {population:number;exposed:number;affected:number;fraction:number;depth:number;productionLoss:number;assetDamage:number;shortage:number;output:number;protected:boolean;movedOut:number;movedIn:number;capacity:number}
@@ -39,9 +40,10 @@ export function planErrors(data:Dataset,plan:Policy[],cfg:Config){
  const errors:string[]=[];const seen=new Set<string>(); let total=0; const annual=new Map<number,number>();
  for(const p of plan){
   if(seen.has(p.id))errors.push('중복 정책 ID / duplicate policy ID');seen.add(p.id);
-  if(!CATALOG[p.kind]||!data.regions[p.region]||!Number.isInteger(p.start)||p.start<2026||!Number.isFinite(p.delay??0)||(p.delay??0)<0||complete(p)<=p.start||complete(p)>2100){errors.push('정책 위치·기간 오류 / invalid location or dates');continue}
-  const spec=CATALOG[p.kind];total+=spec.cost;
-  for(let y=p.start;y<complete(p);y++)annual.set(y,(annual.get(y)||0)+spec.cost/(complete(p)-p.start));
+  if(!CATALOG[p.kind]||!data.regions[p.region]||!Number.isInteger(p.start)||p.start<2026||!Number.isFinite(p.delay??0)||(p.delay??0)<0||!Number.isInteger(complete(p))||complete(p)<=p.start||complete(p)>2100){errors.push('정책 위치·기간 오류 / invalid location or dates');continue}
+  if(!Number.isFinite(policyCost(p))||policyCost(p)<=0){errors.push('정책 투자비는 양수여야 합니다 / invalid cost');continue}
+  const spec=CATALOG[p.kind];total+=policyCost(p);
+  for(let y=p.start;y<complete(p);y++)annual.set(y,(annual.get(y)||0)+policyCost(p)/(complete(p)-p.start));
   if(p.kind==='relocate'){
    if(p.destination===undefined||p.destination===p.region||!data.regions[p.destination])errors.push('유효한 이주 도착지를 선택하세요 / invalid destination');
    else if(!plan.some(v=>v.kind==='greenCity'&&v.region===p.destination&&complete(v)<=complete(p)))errors.push('이주 전에 도착지 신도시가 완공되어야 합니다 / housing prerequisite');
@@ -80,7 +82,7 @@ export function simulate(data:Dataset,plan:Policy[],cfg:Config=DEFAULT_CONFIG):R
   for(const p of plan.filter(v=>v.kind==='greenCity'))if(year===complete(p)&&!done.has(p.id)){capacity[p.region]+=60000;done.add(p.id)}
   for(const p of plan){
    const s=CATALOG[p.kind],end=complete(p),r=p.region;
-   if(year>=p.start&&year<end){investment+=s.cost/(end-p.start);carbon+=s.carbonKt/(end-p.start)}
+   if(year>=p.start&&year<end){investment+=policyCost(p)/(end-p.start);carbon+=s.carbonKt/(end-p.start)}
    if(active(p,year)){
     maintenance+=s.maintenance;
     if(['dike','barrier','nature'].includes(p.kind))protection[r]+=s.boost;
@@ -95,7 +97,7 @@ export function simulate(data:Dataset,plan:Policy[],cfg:Config=DEFAULT_CONFIG):R
     pop[r]-=people;pop[d]+=people;capacity[d]-=people;movedOut[r]+=people;movedIn[d]+=people;migrated+=people;done.add(p.id);
    }
    if(year===p.start||year===end){const finish=year===end;
-    emit({id:`policy:${p.id}:${finish?'finish':'start'}`,year,kind:finish?'complete':'start',severity:2,region:r,title:`${s.ko} ${finish?'준공':'착수'}`,en:`${s.en} ${finish?'completed':'started'}`,cause:finish?'이 연도부터 시설 효과 적용':'설계·인허가·공사 기간에는 보호 효과 없음',causeEn:finish?'Protection begins this year.':'No protection during permitting and construction.',demo:false,value:s.cost,policyId:p.id})}
+    emit({id:`policy:${p.id}:${finish?'finish':'start'}`,year,kind:finish?'complete':'start',severity:2,region:r,title:`${s.ko} ${finish?'준공':'착수'}`,en:`${s.en} ${finish?'completed':'started'}`,cause:finish?'이 연도부터 시설 효과 적용':'설계·인허가·공사 기간에는 보호 효과 없음',causeEn:finish?'Protection begins this year.':'No protection during permitting and construction.',demo:false,value:policyCost(p),policyId:p.id})}
   }
   const slr=seaLevel(data,year,cfg.climate,cfg.quantile),lo=seaLevel(data,year,cfg.climate,'lower'),hi=seaLevel(data,year,cfg.climate,'upper');
   const surge=storm(year,cfg),water=(data.meta.baseMeanSeaNAP||0)+slr+surge;

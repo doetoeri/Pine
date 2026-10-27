@@ -77,3 +77,7 @@ C 화면은 이 저장된 해를 재생한다. 기후·예산을 바꾸면 저�
 모든 연도는 같은 입력으로 처음부터 순서대로 계산한 고정 배열이다. 스크러빙/되감기/시나리오 전환에 의해 결과가 달라지지 않는다. 이벤트 ID는 종류·연도·위치에 대해 결정적이다. 이벤트 전체 로그를 보존하며 재생은 중요도 필터 뒤 **연도당 우선순위 상위 3개**만 자동 정지한다. 같은 연도 큐, 검토 완료 ID, 연도 건너뛰기로 중복 재팝업을 막는다. 시나리오·가정·정책을 바꾸면 검토 상태를 초기화한다. 수동 이전 이벤트 이동은 다시 검토하려는 의도로 허용한다.
 
 MapLibre GL JS가 기본이다. WebGL이 없으면 같은 실제 GeoJSON을 Web-Mercator로 그리는 SVG 2D 대체 지도다. 온라인 CARTO 타일이 실패해도 국가 경계와 계산 결과는 번들로 표시한다. 3D는 실제 AHN 표본을 재투영한 지형 타일이며 수직 과장은 18배, 시각화 전용. WebGL 없는 환경에서 3D는 지원하지 않는다. 3D 시각화의 NoData는 평탄 처리하지만 분석 결측은 그대로 유지한다.
+
+## Mission 03
+
+See [MISSION03.md](MISSION03.md) for the independently calculated A/B plans, conditional potential-terrain definition, relative pressure index, explicit completion/cost controls, Korean currency units and 600-second sequence. These additions do not replace the unresolved NAP tie or turn the 2km exploratory engine into a validated forecast.

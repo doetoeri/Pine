@@ -1,0 +1,433 @@
+{
+  "started": "2026-10-27T14:41:04.142Z",
+  "elapsed": 612213,
+  "samples": [
+    {
+      "timestamp": "2026-10-27T14:41:14.149Z",
+      "elapsed": 10010,
+      "mode": "knmi",
+      "year": "2030",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:41:24.192Z",
+      "elapsed": 20050,
+      "mode": "knmi",
+      "year": "2034",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:41:34.260Z",
+      "elapsed": 30118,
+      "mode": "knmi",
+      "year": "2038",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:41:44.363Z",
+      "elapsed": 40221,
+      "mode": "knmi",
+      "year": "2042",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:41:54.392Z",
+      "elapsed": 50250,
+      "mode": "knmi",
+      "year": "2046",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:42:04.430Z",
+      "elapsed": 60288,
+      "mode": "knmi",
+      "year": "2050",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:42:14.502Z",
+      "elapsed": 70360,
+      "mode": "knmi",
+      "year": "2054",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:42:24.532Z",
+      "elapsed": 80390,
+      "mode": "knmi",
+      "year": "2059",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:42:34.575Z",
+      "elapsed": 90433,
+      "mode": "knmi",
+      "year": "2063",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:42:44.614Z",
+      "elapsed": 100473,
+      "mode": "knmi",
+      "year": "2067",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:42:54.651Z",
+      "elapsed": 110509,
+      "mode": "knmi",
+      "year": "2071",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:43:04.689Z",
+      "elapsed": 120547,
+      "mode": "knmi",
+      "year": "2075",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:43:14.707Z",
+      "elapsed": 130565,
+      "mode": "knmi",
+      "year": "2079",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:43:24.752Z",
+      "elapsed": 140610,
+      "mode": "knmi",
+      "year": "2083",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:43:34.798Z",
+      "elapsed": 150656,
+      "mode": "knmi",
+      "year": "2087",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:43:44.829Z",
+      "elapsed": 160687,
+      "mode": "knmi",
+      "year": "2092",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:43:54.849Z",
+      "elapsed": 170707,
+      "mode": "knmi",
+      "year": "2096",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:44:04.879Z",
+      "elapsed": 180737,
+      "mode": "noadapt",
+      "year": "2026",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:44:14.897Z",
+      "elapsed": 190755,
+      "mode": "noadapt",
+      "year": "2030",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:44:24.919Z",
+      "elapsed": 200777,
+      "mode": "noadapt",
+      "year": "2034",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:44:34.960Z",
+      "elapsed": 210818,
+      "mode": "noadapt",
+      "year": "2038",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:44:44.980Z",
+      "elapsed": 220838,
+      "mode": "noadapt",
+      "year": "2042",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:44:55.009Z",
+      "elapsed": 230867,
+      "mode": "noadapt",
+      "year": "2046",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:45:05.092Z",
+      "elapsed": 240950,
+      "mode": "noadapt",
+      "year": "2051",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:45:15.112Z",
+      "elapsed": 250970,
+      "mode": "noadapt",
+      "year": "2055",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:45:25.147Z",
+      "elapsed": 261005,
+      "mode": "noadapt",
+      "year": "2059",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:45:35.169Z",
+      "elapsed": 271027,
+      "mode": "noadapt",
+      "year": "2063",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:45:45.210Z",
+      "elapsed": 281068,
+      "mode": "noadapt",
+      "year": "2067",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:45:55.224Z",
+      "elapsed": 291082,
+      "mode": "noadapt",
+      "year": "2071",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:46:05.269Z",
+      "elapsed": 301127,
+      "mode": "noadapt",
+      "year": "2075",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:46:15.283Z",
+      "elapsed": 311141,
+      "mode": "noadapt",
+      "year": "2079",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:46:25.323Z",
+      "elapsed": 321181,
+      "mode": "noadapt",
+      "year": "2084",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:46:35.373Z",
+      "elapsed": 331231,
+      "mode": "noadapt",
+      "year": "2088",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:46:45.417Z",
+      "elapsed": 341275,
+      "mode": "noadapt",
+      "year": "2092",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:46:55.456Z",
+      "elapsed": 351314,
+      "mode": "noadapt",
+      "year": "2096",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:47:05.483Z",
+      "elapsed": 361342,
+      "mode": "extreme",
+      "year": "2026",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:47:15.518Z",
+      "elapsed": 371376,
+      "mode": "extreme",
+      "year": "2030",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:47:25.535Z",
+      "elapsed": 381393,
+      "mode": "extreme",
+      "year": "2034",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:47:35.554Z",
+      "elapsed": 391412,
+      "mode": "extreme",
+      "year": "2038",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:47:45.575Z",
+      "elapsed": 401433,
+      "mode": "extreme",
+      "year": "2043",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:47:55.592Z",
+      "elapsed": 411450,
+      "mode": "extreme",
+      "year": "2047",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:48:05.609Z",
+      "elapsed": 421467,
+      "mode": "extreme",
+      "year": "2051",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:48:15.627Z",
+      "elapsed": 431485,
+      "mode": "extreme",
+      "year": "2055",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:48:25.640Z",
+      "elapsed": 441498,
+      "mode": "extreme",
+      "year": "2059",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:48:35.681Z",
+      "elapsed": 451539,
+      "mode": "extreme",
+      "year": "2063",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:48:45.706Z",
+      "elapsed": 461564,
+      "mode": "extreme",
+      "year": "2067",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:48:55.751Z",
+      "elapsed": 471609,
+      "mode": "extreme",
+      "year": "2071",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:49:05.790Z",
+      "elapsed": 481648,
+      "mode": "extreme",
+      "year": "2076",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:49:15.845Z",
+      "elapsed": 491703,
+      "mode": "extreme",
+      "year": "2080",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:49:25.887Z",
+      "elapsed": 501745,
+      "mode": "extreme",
+      "year": "2084",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:49:35.961Z",
+      "elapsed": 511819,
+      "mode": "extreme",
+      "year": "2088",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:49:45.997Z",
+      "elapsed": 521855,
+      "mode": "extreme",
+      "year": "2092",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:49:56.016Z",
+      "elapsed": 531874,
+      "mode": "extreme",
+      "year": "2096",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:50:06.091Z",
+      "elapsed": 541949,
+      "mode": "extreme",
+      "year": "2100",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:50:16.113Z",
+      "elapsed": 551971,
+      "mode": "extreme",
+      "year": "2100",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:50:26.128Z",
+      "elapsed": 561986,
+      "mode": "extreme",
+      "year": "2100",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:50:36.201Z",
+      "elapsed": 572059,
+      "mode": "extreme",
+      "year": "2100",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:50:46.222Z",
+      "elapsed": 582080,
+      "mode": "extreme",
+      "year": "2100",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:50:56.246Z",
+      "elapsed": 592104,
+      "mode": "extreme",
+      "year": "2100",
+      "cycle": "0"
+    },
+    {
+      "timestamp": "2026-10-27T14:51:06.263Z",
+      "elapsed": 602121,
+      "mode": "knmi",
+      "year": "2026",
+      "cycle": "1"
+    },
+    {
+      "timestamp": "2026-10-27T14:51:16.309Z",
+      "elapsed": 612167,
+      "mode": "knmi",
+      "year": "2030",
+      "cycle": "1"
+    }
+  ]
+}
