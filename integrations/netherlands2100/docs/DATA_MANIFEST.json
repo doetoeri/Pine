@@ -1,0 +1,86 @@
+{
+  "records": [
+    {
+      "file": "municipalities.json.gz",
+      "download_url": "https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1/collections/gemeenten/items?f=json&limit=1000&bbox=3.2,50.6,7.3,53.7",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 32962883,
+      "sha256_stored": "2bb9720581072a404ab0da9046c5abcb5956d4c9dff3ea9dc4135efb8521feee"
+    },
+    {
+      "file": "ahn_1000m.tif",
+      "download_url": "https://service.pdok.nl/rws/ahn/wcs/v1_0?service=WCS&version=1.0.0&request=GetCoverage&coverage=dtm_05m&crs=EPSG:28992&bbox=0,300000,280000,630000&width=280&height=330&format=GEOTIFF&interpolation=NEAREST",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 136271,
+      "sha256_stored": "5a5c51752aa50a5cc898aa1f0f291ce108a88ebb1be9ed4841c68ad9ca151daa"
+    },
+    {
+      "file": "climate-table-data.json",
+      "download_url": "https://www.klimaatscenarios-data.knmi.nl/api/v1/climate-table-data",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 9046,
+      "sha256_stored": "6d78b3047139dbed592186070d13ae981f6626374aa902ecf3357ab83db5b339"
+    },
+    {
+      "file": "knmi_2050.json",
+      "download_url": "https://www.klimaatscenarios-data.knmi.nl/api/v1/climate-table-data?table_variables[climate_variables][]=Zeespiegel%20bij%20Nederlandse%20kust&table_variables[scenarios][]=Ld&table_variables[scenarios][]=Hd&table_variables[years][]=2050&table_variables[seasons][]=Jaar&table_variables[station]=NLavg&table_variables[data_type]=trend",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 2421,
+      "sha256_stored": "20f4f0fdcc57f2616ef587bdea59942d51447cf845e21a9e9ef1267d2dcbe282"
+    },
+    {
+      "file": "osm_maeslantkering.xml",
+      "download_url": "https://api.openstreetmap.org/api/0.6/map?bbox=4.155,51.948,4.175,51.961",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 2033664,
+      "sha256_stored": "06c0e95543a4da3db63587e7e35b81d5d4a3eab95e0781580e5bb8042ac48946"
+    },
+    {
+      "file": "osm_maasvlakte.xml",
+      "download_url": "https://api.openstreetmap.org/api/0.6/map?bbox=4.01,51.95,4.06,51.98",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 6324115,
+      "sha256_stored": "32ef2aa9a33a1ba1d8a5f4a7343bc331402798df39a3c7b3aa95f8ad42fa846e"
+    },
+    {
+      "file": "osm_rotterdam_centraal.xml",
+      "download_url": "https://api.openstreetmap.org/api/0.6/map?bbox=4.46,51.918,4.477,51.93",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 18278155,
+      "sha256_stored": "610bf925453952d5126a6fea1f37555bbd9272be8880ba8a634a0a0bb8fe4b17"
+    },
+    {
+      "file": "osm_erasmus_mc.xml",
+      "download_url": "https://api.openstreetmap.org/api/0.6/map?bbox=4.45,51.905,4.465,51.914",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 11084528,
+      "sha256_stored": "3ed47b39028f2052044419484a263e8e92d66772e3960948623245921645ae7c"
+    },
+    {
+      "file": "osm_schiphol.xml",
+      "download_url": "https://api.openstreetmap.org/api/0.6/map?bbox=4.75,52.3,4.775,52.32",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 11413744,
+      "sha256_stored": "11cd51630233d42383c36c2f25ecaa25848ea13568e1361f4f74317239fcc86a"
+    },
+    {
+      "file": "naturalearth.geojson.gz",
+      "download_url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
+      "status": "acquired",
+      "retrieval_date": "2026-10-27",
+      "stored_bytes": 1022494,
+      "sha256_stored": "882fc2c88c865d26aaca00c085f1257296a84c5f4548fc5dca391f3e45ef7e9c"
+    }
+  ],
+  "failed_requests_file": "data/raw/download_manifest.json",
+  "note": "API responses are snapshots. Data publication dates may differ from retrieval date. Unknown versions are not inferred."
+}

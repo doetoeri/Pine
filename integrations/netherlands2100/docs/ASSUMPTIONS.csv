@@ -1,0 +1,29 @@
+id,status,value,unit,meaning,uncertainty
+base_population,observed,17942942,people,CBS 2024 total; held constant except modeled migration,Not a 2026 or 2100 demographic forecast
+sea_reference,official,1995-2014,period,KNMI sea-level footnote differs from general 1991-2020 baseline,Official anchors only
+base_NAP_tie,assumption,0.00,m NAP,Assumed mean sea-level datum offset in reference period,Observed datum tie not acquired
+initial_2026_SLR,assumption,0.063,m,3mm/y since representative 2005 base,Not an observation
+annual_SLR_path,assumption,linear interpolation,annual,Two segments through 2050 and 2100 official anchors,Not official annual KNMI series
+stress_2100,assumption,2.50,m,Independent extreme stress test,No probability assigned
+storm_tide,assumption,1+2.4u^4,m,One synthetic annual tide and surge input,Not calibrated to observed return periods
+extra_subsidence,assumption,0,mm/year,Additional local subsidence only,Default zero prevents background double count
+AHN_sampling,real processed,1000,m spacing,Nearest-neighbour sample from actual 0.5m DTM service,Does not preserve dikes or fine low points
+analysis_cell,real processed,2000,m,Median of 2x2 valid samples,Incomplete population spatial distribution
+defence_gate,assumption,3.2,m NAP,Constant maintained protection threshold in every municipality,Not a real crest or reliability standard
+event_depth_factor,assumption,0.35,dimensionless,Finite-duration depth attenuation,No hydraulic validation
+damage_depth_threshold,assumption,0.1,m,Event affected cell threshold,Uniform within analysis cell
+population_distribution,assumption,uniform,municipal sample cells,People apportioned equally across sample cells,No building or population grid acquired
+economic_activity,assumption,55000,EUR/person/year,Output proxy not official GDP,High uncertainty; no growth
+other_assets,assumption,0.3,housing asset multiple,Infrastructure proxy in addition to housing value,No complete asset inventory
+damage_curve,assumption,min(0.6;0.12*depth),fraction,Asset damage includes assumed repair cost,No separate recovery sum
+flood_interruption,assumption,30,days,Annual flooded economic activity interruption,Not observed
+power_demand,assumption,0.6,kW/person,Illustrative municipal power demand,Not metered
+generation,assumption,1.25,demand multiple,Illustrative regional capacity,Not actual facility output
+edge_capacity,assumption,0.45,min demand multiple,Capacity on geographical adjacency,Not transmission ratings
+outage_window,assumption,72,hours,Shortage ratio multiplied by event window,Not observed outage hours
+asset_recovery,assumption,complete,between annual events,Assets restored before subsequent event,May overstate repeat losses
+discount_rate,assumption,3,percent/year,CP-SAT expected cost NPV,Real euros held constant
+green_city_capacity,assumption,60000,people per project,Receiving capacity after completion,No land-use feasibility study
+relocation,assumption,30000,people per project,Maximum aggregate move at completion,Housing prerequisite required
+green_city_carbon,assumption,6,kt CO2e/year avoided,Operating reduction after completion,Partial policy carbon only
+policy_uncertainty,assumption,40-50,percent illustrative,Construction costs; effects; timing not calibrated,No probabilistic policy calibration
