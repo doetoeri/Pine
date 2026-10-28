@@ -50,11 +50,11 @@ export default function App(){
  function resume(){if(event)used.current.add(event.id);setEvent(null);s.set({playing:true,selected:-1})}
  function play(){if(event){resume();return}const st=useScene.getState();s.set({playing:!st.playing,currentYear:st.currentYear>=2100?2026:st.currentYear,panel:null,selected:-1})}
  function navigate(direction:number){const time=useScene.getState().currentYear;const next=(direction>0?events:[...events].reverse()).find(e=>direction>0?e.year>time:e.year<time);if(next)showEvent(next)}
- function changeMode(mode:Mode){s.set({climateScenario:mode,presentation:false,potential:true});setEvent(null)}
+ function changeMode(mode:Mode){s.set({climateScenario:mode,presentation:false});setEvent(null)}
  function openPanel(panel:typeof s.panel){setEvent(null);s.set({panel:s.panel===panel?null:panel,selected:-1,playing:false,presentation:false})}
  function select(i:number){const r=data?.regions[i];if(!r)return;setEvent(null);s.set({selected:i,panel:null});setCamera({center:[r.lon,r.lat],zoom:8.4,pitch:0,bearing:0})}
  function toggleMapOnly(){setEvent(null);s.set({mapOnly:!useScene.getState().mapOnly,panel:null,selected:-1})}
- function applyExample(){if(!data)return;s.updateSide('right',examplePolicy(data));s.set({compare:true,temporary:true,difference:true,policyAreas:true,panel:null,selected:-1,playing:false,presentation:false});setEvent(null)}
+ function applyExample(){if(!data)return;s.updateSide('right',examplePolicy(data));s.set({compare:true,potential:false,temporary:true,difference:true,policyAreas:true,panel:null,selected:-1,playing:false,presentation:false});setEvent(null)}
  function viewEffect(){if(!leftRun||!rightRun)return;seek(strongestDifferenceYear(leftRun,rightRun).year);s.set({temporary:true,difference:true,policyAreas:true,panel:null})}
  function focusDifference(){
   if(!data||!leftRun||!rightRun)return;const a=frameAt(leftRun,s.currentYear),b=frameAt(rightRun,s.currentYear),weights=data.regions.map((_,i)=>Math.abs(a.regionalArea[i]-b.regionalArea[i])+Math.abs(a.regionalTemporaryArea[i]-b.regionalTemporaryArea[i]));
@@ -73,7 +73,7 @@ export default function App(){
   else if(['1','2','3'].includes(e.key))keys.current.changeMode(({1:'knmi',2:'noadapt',3:'extreme'} as Record<string,Mode>)[e.key]);
   else if(e.key==='Escape'){setEvent(null);useScene.getState().set({panel:null,selected:-1,mapOnly:false});if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
  };window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[]);
- function exportResult(){if(!leftRun||!rightRun||!data)return;const blob=new Blob([JSON.stringify({version:'0.3.1',climateScenario:s.climateScenario,currentYear:s.currentYear,meta:data.meta,left:{...s.left,results:leftRun.frames},right:{...s.right,results:rightRun.frames}},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='netherlands2100-comparison.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ function exportResult(){if(!leftRun||!rightRun||!data)return;const blob=new Blob([JSON.stringify({version:'0.3.2',climateScenario:s.climateScenario,currentYear:s.currentYear,meta:data.meta,left:{...s.left,results:leftRun.frames},right:{...s.right,results:rightRun.frames}},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='netherlands2100-comparison.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  if(!data||!leftRun||!rightRun)return <main className="boot"><h1>NETHERLANDS 2100</h1><p>{error||'실제 지형·항공영상과 A/B 모형을 준비합니다.'}</p>{error&&<Button onClick={()=>location.reload()}>다시 시도</Button>}</main>;
  if(leftRun.errors.length||rightRun.errors.length)return <main className="boot"><h1>저장된 정책 확인이 필요합니다.</h1><p>{[...leftRun.errors,...rightRun.errors].join(' · ')}</p><Button onClick={()=>{s.resetSide('left');s.resetSide('right')}}>유효하지 않은 정책 초기화</Button></main>;
  const comparison:ComparisonState={climateScenario:s.climateScenario,currentYear:s.currentYear,left:{...s.left,results:leftRun},right:{...s.right,results:rightRun}};
@@ -154,7 +154,8 @@ function Sources(){return <div className="sources">
  <p>모형 영구 침수는 조건을 충족한 셀의 누적 이력입니다. 일시 홍수는 같은 해일 입력으로 별도 계산하며 실제 관측 홍수가 아닙니다. 2035년 이후 방재·배수 기능 상실 및 2100년 +2.5m는 별도 극단 시연입니다.</p>
  <p>경제활동 노출은 CBS 인구 균등분포 × 1인당 55,000유로/년 대체지표입니다. GDP 손실액이 아닙니다. 일시홍수 피해액은 기존 모형의 자산·생산 손실 가정이며 영구 침수 피해 전부를 추정하지 않습니다. 전력 공급부족은 영구 침수와 해당 연도 해일 셀을 합한 가정 용량의 지역 인접망 최대유량 결과이며 실제 전력계통 예측이 아닙니다.</p>
  <h3>정책과 모범안</h3>
- <p>정책 구역은 모형이 효과를 적용하는 실제 행정경계입니다. 실제 제방·공사 위치 또는 보호 면적이 아닙니다. 연두 실선은 효력 중, 점선은 예정·공사이며 회색은 수명 종료입니다. 모범안은 기존 정책 카탈로그의 6개 도시 방조제·배수·전력·교통·6만 명 이주와 시설 갱신을 조합한 예시입니다. 공식 권고나 최적해가 아닙니다. 준공 전·수명 종료 후에는 보호 효과가 없습니다.</p>
+ <p>정책 구역은 모형이 효과를 적용하는 실제 행정경계입니다. 실제 제방·공사 위치 또는 보호 면적이 아닙니다. 연두 실선은 효력 중, 점선은 예정·공사이며 회색은 수명 종료입니다. 전국 방재 모범안은 정책 없는 방재 실패 시연의 2100년 침수 영향 면적 순으로 고른 100개 지자체에 해안 보호·제방·방조제·제방 갱신 400개를 적용합니다. 자본비 5,600억 유로이며 공식 권고나 최적해가 아닙니다. 준공 전·수명 종료 후에는 보호 효과가 없습니다.</p>
+ <p>극단 시연은 지역에 활성 방어 정책이 있으면 영구 침수를 막는 단순한 가정을 사용합니다. 해일은 방어 높이와 별도로 비교합니다. 모범안의 2100년 결과는 실제 방재 성능이나 2026~2100년 내내 안전하다는 보장이 아닙니다. 지형·해수면·해일·정책 효과 계수는 바꾸지 않았습니다.</p>
  <h3>렌더링과 비교</h3>
  <p>A/B는 같은 해수면·해일·난수를 사용하고 정책만 독립적으로 계산합니다. 차이 강조는 영구 침수·표시 중인 해일 침수·상대 압력의 차이를 순서대로 표시하며 새로운 피해 면적을 추가하지 않습니다. 큰 침수 영향·인구 차이는 영구 침수와 겹치지 않는 해당 연도 해일 셀의 합이며 누적 발생 횟수가 아닙니다. 일시홍수 피해액은 기존 자산·생산 손실 모형에서 별도로 계산합니다. 경계의 미세한 흐림은 시각 효과이며 2km 해상도가 개선된 것이 아닙니다.</p>
  <a href="https://www.klimaatscenarios-data.knmi.nl/kerncijfers" target="_blank" rel="noreferrer">KNMI’23 원자료 ↗</a><a href="https://www.pdok.nl/ogc-webservices/-/article/pdok-luchtfoto-rgb-open-" target="_blank" rel="noreferrer">PDOK 항공사진 ↗</a>

@@ -1,29 +1,38 @@
-import {CATALOG,active,complete,policyCost,type Dataset,type Policy,type PolicyKind} from './model';
+import {CATALOG,active,complete,policyCost,type Dataset,type Policy} from './model';
 import type {PolicySide} from './store';
 
-/** A reproducible teaching example using the existing catalogue, not an optimized
- * or government-endorsed plan. Dates include renewal of short-lived assets. */
+/** Fixed CBS municipality IDs, ranked by the unmodified extreme-demo baseline's
+ * 2100 permanent + current-year temporary inundation area (seed 2100).
+ * Area priority is a teaching choice, not a population/cost optimum. Keeping this
+ * selection fixed makes the preset independent of the live climate, year and A/B. */
+export const EXAMPLE_REGION_IDS=[
+ 'GM1900','GM0171','GM1966','GM1940','GM1911','GM1969','GM1970','GM0303','GM1708','GM1952',
+ 'GM1963','GM1949','GM1714','GM1979','GM1924','GM0050','GM0995','GM0715','GM0080','GM1895',
+ 'GM0599','GM1959','GM1960','GM0098','GM1676','GM0363','GM0394','GM0086','GM1978','GM0677',
+ 'GM0074','GM0014','GM0441','GM1950','GM0737','GM1931','GM0148','GM1709','GM1961','GM0851',
+ 'GM0716','GM0448','GM0034','GM0654','GM0166','GM0717','GM0484','GM0180','GM1992','GM0420',
+ 'GM0090','GM0361','GM0736','GM1719','GM0193','GM1773','GM1904','GM0703','GM0214','GM0758',
+ 'GM0344','GM0059','GM0505','GM1680','GM0439','GM1690','GM1730','GM1699','GM0632','GM0569',
+ 'GM1901','GM1896','GM0297','GM0664','GM1598','GM1695','GM1891','GM0479','GM0796','GM1783',
+ 'GM0047','GM1930','GM0263','GM0331','GM1696','GM1884','GM0085','GM0518','GM0797','GM0177',
+ 'GM0310','GM0748','GM1892','GM1655','GM0093','GM0269','GM1980','GM0867','GM0037','GM0267',
+] as const;
+
+/** Nationwide teaching example using unchanged catalogue costs, construction
+ * periods and lifetimes. Not a validated or government-endorsed defence plan. */
 export function examplePolicy(data:Dataset):PolicySide {
- const policySet:Policy[]=[];
- const add=(kind:PolicyKind,name:string,start:number,end:number,extra:Partial<Policy>={})=>{
-  const region=data.regions.findIndex(r=>r.name===name);
-  if(region>=0)policySet.push({id:`example-${kind}-${region}-${end}`,kind,region,start,end,...extra});
- };
- for(const city of ['Rotterdam','Amsterdam','Almere','Haarlemmermeer','Dordrecht','Zaanstad'])add('barrier',city,2026,2041);
- for(const city of ['Rotterdam','Amsterdam','Almere']){
-  add('drainage',city,2028,2034);add('drainage',city,2063,2069);
-  add('hardening',city,2030,2035);add('hardening',city,2065,2070);
- }
- for(const city of ['Rotterdam','Amsterdam']){
-  add('grid',city,2031,2039);add('grid',city,2076,2084);
-  add('transport',city,2030,2039);add('transport',city,2080,2089);
- }
- const destination=data.regions.findIndex(r=>r.name==='Apeldoorn');
- if(destination>=0){
-  add('greenCity','Apeldoorn',2026,2038);
-  for(const city of ['Rotterdam','Almere'])add('relocate',city,2034,2040,{destination,people:30000});
- }
- return {name:'통합 적응 모범안',policySet,budget:40,annualBudget:3};
+ const regions=new Map(data.regions.map((r,i)=>[r.id,i]));
+ const policySet:Policy[]=EXAMPLE_REGION_IDS.flatMap(id=>{
+  const region=regions.get(id);
+  if(region===undefined)throw new Error(`모범 정책의 행정구역 자료가 없습니다: ${id}`);
+  return [
+   {id:`example-nature-${id}-2034`,kind:'nature',region,start:2026,end:2034},
+   {id:`example-dike-${id}-2036`,kind:'dike',region,start:2026,end:2036},
+   {id:`example-barrier-${id}-2041`,kind:'barrier',region,start:2026,end:2041},
+   {id:`example-dike-${id}-2096`,kind:'dike',region,start:2086,end:2096},
+  ];
+ });
+ return {name:'전국 방재 모범안',policySet,budget:600,annualBudget:40};
 }
 
 export type PolicyStatus='planned'|'building'|'active'|'expired';
