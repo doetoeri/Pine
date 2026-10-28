@@ -1,0 +1,65 @@
+{
+  "verified_at_utc": "2026-10-28T01:28:24.924390+00:00",
+  "code_commit": "6ff83596d81a037199885cfcd464037e0857f030",
+  "github_pages_run": "https://github.com/doetoeri/Pine/actions/runs/40614786828",
+  "checks": [
+    {
+      "url": "https://pincon.app/climate/",
+      "status": 200,
+      "bytes": 725,
+      "matches_repository": true,
+      "sha256": "48cfc8c8b4af19cba455bf2a072f81b14c27e8f634b7ce243dbfc54b1e6c7da0"
+    },
+    {
+      "url": "https://pincon.app/climate/assets/index-hgX4_bBo.js",
+      "status": 200,
+      "bytes": 1212822,
+      "matches_repository": true,
+      "sha256": "1269672f05c37033479271c4fc84b8e06ea8f516c48b14c544c74d38d3be8d4f"
+    },
+    {
+      "url": "https://pincon.app/climate/assets/index-9125Af1H.css",
+      "status": 200,
+      "bytes": 91100,
+      "matches_repository": true,
+      "sha256": "996cb5cee81c4d5c23af6627007e351dbee68e47ca78019f587a76a983f5e4f7"
+    },
+    {
+      "url": "https://pincon.app/",
+      "status": 200,
+      "bytes": 1158,
+      "matches_repository": true,
+      "sha256": "f513400a6381b37ab9b58eb9a1104b895e12a5b3cc14135bdb726707f9d788fa"
+    },
+    {
+      "url": "https://pincon.app/next/",
+      "status": 200,
+      "bytes": 4629,
+      "matches_repository": true,
+      "sha256": "7ddd1e5e8f2c3f8d2ad5f3ae45fd6ab158167f670033ea7c407cdabe27f8ea80"
+    }
+  ],
+  "browser_smoke": {
+    "url": "https://pincon.app/climate/",
+    "climate": "KNMI high / unchanged",
+    "year_before_template": 2026,
+    "year_after_template": 2026,
+    "A_policy_count": 0,
+    "B_policy_count": 29,
+    "effect_year_selected_explicitly": 2096,
+    "area_difference_km2": 874.319086,
+    "people_difference": 2135528.240979314,
+    "damage_difference_eur_billions": 128.04696465490696,
+    "map_only_entered_and_restored": true,
+    "cloud_viewport": [
+      1363,
+      936
+    ]
+  },
+  "tests": {
+    "unit_passed": 27,
+    "playwright_passed": 20,
+    "fhd_4k_native_screenshots": true,
+    "wall_clock_10min_rerun": false
+  }
+}

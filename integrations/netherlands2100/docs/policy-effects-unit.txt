@@ -1,0 +1,28 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> pincon-climate@0.3.1 test
+> vitest run tests/model.test.ts tests/comparison.test.ts tests/policy-effects.test.ts --maxWorkers=1
+
+
+ RUN  v3.2.4 /workspace/projects/pine-policy-effects/integrations/netherlands2100
+
+ ✓ tests/model.test.ts (13 tests) 3213ms
+   ✓ Permanent inundation invariants > never loses a cell or decreases area in all 75 years  981ms
+   ✓ Permanent inundation invariants > milestone areas grow without modifying any DEM elevation  478ms
+   ✓ Permanent inundation invariants > fractional animation masks are monotone and independent of playback rate  703ms
+   ✓ Permanent inundation invariants > new protection has no effect before completion  424ms
+   ✓ Permanent inundation invariants > recovery is separate and does not erase historical permanent cells  336ms
+ ✓ tests/comparison.test.ts (8 tests) 2577ms
+   ✓ Mission 03 policy independence and model validity > independent dike and relocation plans change distinct results  1231ms
+   ✓ Mission 03 policy independence and model validity > identical policies have identical outputs with shared deterministic storms  425ms
+   ✓ Mission 03 policy independence and model validity > explicit completion and investment are honored; budgets do not invent protection  656ms
+stdout | tests/policy-effects.test.ts > Visible policy effects without invented flood area > official-pathway peak-difference year has observable benefits without changing climate
+Peak official example {"year":2096,"A":{"area":16551.616227000024,"people":10673478.443361443,"damage":519.0255360901363,"power":6319.962314098304},"B":{"area":15677.297141000015,"people":8537950.202382129,"damage":390.97857143522936,"power":4623.036734098302}}
+
+ ✓ tests/policy-effects.test.ts (6 tests) 935ms
+   ✓ Visible policy effects without invented flood area > extreme comparison retains terrain, climate and measurable permanent differences in 2100  924ms
+
+ Test Files  3 passed (3)
+      Tests  27 passed (27)
+   Start at  19:20:45
+   Duration  8.65s (transform 122ms, setup 0ms, collect 1.37s, tests 6.73s, environment 0ms, prepare 170ms)
