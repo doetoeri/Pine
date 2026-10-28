@@ -1,0 +1,39 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> pincon-climate@0.3.2 test
+> vitest run tests/model.test.ts tests/comparison.test.ts tests/policy-effects.test.ts --maxWorkers=1
+
+
+ RUN  v3.2.4 /workspace/projects/pine-policy-effects/integrations/netherlands2100
+
+ ✓ tests/model.test.ts (13 tests) 4228ms
+   ✓ Permanent inundation invariants > never loses a cell or decreases area in all 75 years  1238ms
+   ✓ Permanent inundation invariants > milestone areas grow without modifying any DEM elevation  502ms
+   ✓ Permanent inundation invariants > seeking backwards and replaying is deterministic  333ms
+   ✓ Permanent inundation invariants > fractional animation masks are monotone and independent of playback rate  1095ms
+   ✓ Permanent inundation invariants > new protection has no effect before completion  508ms
+   ✓ Permanent inundation invariants > recovery is separate and does not erase historical permanent cells  519ms
+ ✓ tests/comparison.test.ts (8 tests) 4343ms
+   ✓ Mission 03 policy independence and model validity > independent dike and relocation plans change distinct results  2124ms
+   ✓ Mission 03 policy independence and model validity > identical policies have identical outputs with shared deterministic storms  704ms
+   ✓ Mission 03 policy independence and model validity > explicit completion and investment are honored; budgets do not invent protection  1125ms
+stdout | tests/policy-effects.test.ts > Visible policy effects without invented flood area > official-pathway peak-difference year has observable benefits without changing climate
+Peak official example {"year":2096,"A":{"area":16551.616227000024,"people":10673478.443361443,"damage":519.0255360901363,"power":6319.962314098304},"B":{"area":2361.7390599999994,"people":3474067.749739014,"damage":175.38558090697538,"power":1097.8028089878183}}
+
+stdout | tests/policy-effects.test.ts > Visible policy effects without invented flood area > extreme 2100 keeps over 91 percent of analyzed land dry without altering terrain or forcing
+Nationwide extreme 2100 {"A":{"permanent":15067.964810000023,"temporary":2223.3914039999977},"B":{"permanent":1918.0459600000008,"temporary":711.3430830000001},"dryPercent":91.58193964545586}
+
+ ✓ tests/policy-effects.test.ts (7 tests) 2058ms
+   ✓ Visible policy effects without invented flood area > fixed region selection reproduces the baseline area ranking, independent of the active scene  544ms
+   ✓ Visible policy effects without invented flood area > extreme 2100 keeps over 91 percent of analyzed land dry without altering terrain or forcing  1379ms
+
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+   Start at  21:22:14
+   Duration  15.67s (transform 193ms, setup 0ms, collect 3.73s, tests 10.63s, environment 1ms, prepare 381ms)
+
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice

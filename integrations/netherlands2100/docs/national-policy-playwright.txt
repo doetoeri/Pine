@@ -1,0 +1,301 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> pincon-climate@0.3.2 test:e2e
+> playwright test --grep-invert real ten-minute
+
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:13] "GET /climate/ HTTP/1.1" 200 -
+
+Running 20 tests using 1 worker
+
+(node:34) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:14] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:14] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:14] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:14] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:15] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:15] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:15] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:15] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:15] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:15] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:16] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:16] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:16] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   1 tests/browser/climate.spec.ts:66:1 › 01 A dike is independent; 05 year and camera survive create/load/edit/delete (7.7s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:22] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:22] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:22] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:22] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:22] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:22] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:23] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   2 tests/browser/climate.spec.ts:117:1 › 02 B relocation is independent; 03 independent effects; 04 copy identical results (10.3s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:32] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:32] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:32] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:32] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:33] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:33] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:33] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:33] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:33] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:33] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:34] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:34] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:34] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:37] "GET /climate/ HTTP/1.1" 304 -
+  ✓   3 tests/browser/climate.spec.ts:168:1 › A/B policy names, limits and lists persist separately (7.5s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:40] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:40] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:40] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:40] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:40] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:40] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:41] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   4 tests/browser/climate.spec.ts:190:1 › 06 official scenario risk grows; 07 risk and modeled flood stay distinct (3.1s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:43] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:43] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:43] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:43] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:43] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:43] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:44] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   5 tests/browser/climate.spec.ts:214:61 › 08 readable comparison and panels without overlap 1920x1080 (6.9s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:50] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:50] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:50] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:50] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:50] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:50] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:51] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:51] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:51] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:51] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:52] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:52] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:24:52] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   6 tests/browser/climate.spec.ts:214:61 › 08 readable comparison and panels without overlap 3840x2160 (13.4s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:03] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:03] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:03] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:03] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:04] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:04] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:04] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:04] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:04] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:04] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:05] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:05] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:05] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   7 tests/browser/climate.spec.ts:267:1 › difference overlay remains visible for small policy effects in official scenario (5.1s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:09] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:10] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:10] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:10] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:10] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:10] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   8 tests/browser/climate.spec.ts:289:1 › event resume does not reveal an unrelated regional panel (12.1s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:21] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:22] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:22] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:22] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:22] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:22] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓   9 tests/browser/climate.spec.ts:321:1 › camera pan, zoom and timeline are shared by both maps (12.1s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:33] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:33] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:33] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:33] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:33] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:33] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:34] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  10 tests/browser/climate.spec.ts:353:1 › 09 accelerated full 600-second presentation and automatic repeat (6.8s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:40] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:41] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:41] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:41] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:41] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:41] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  11 tests/browser/climate.spec.ts:383:1 › fullscreen, year and scenario keyboard shortcuts (4.2s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:44] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:44] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:44] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:44] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:44] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:44] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:45] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:46] "GET /climate/ HTTP/1.1" 304 -
+  ✓  12 tests/browser/climate.spec.ts:398:1 › fallback retains photos, risk layer and real inland boundaries (4.9s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:49] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:49] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:49] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:49] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:49] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:49] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:50] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:51] "GET / HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:51] "GET /next/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:51] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+  ✓  13 tests/browser/climate.spec.ts:424:1 › 10 PinCon root/next routes and climate resource isolation (3.4s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:52] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:52] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:52] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:52] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:52] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:52] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:53] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:56] "GET /climate/ HTTP/1.1" 304 -
+  ✓  14 tests/browser/effects.spec.ts:46:1 › example changes only B and preserves climate, year and synchronized camera (6.0s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:58] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:58] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:58] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:58] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:58] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:58] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:59] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:59] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:59] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:25:59] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:00] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:00] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:00] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  15 tests/browser/effects.spec.ts:78:1 › before completion is explained and the effect button explicitly seeks without changing climate (4.0s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:02] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:02] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:02] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:02] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:03] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:03] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:03] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:03] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:03] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:03] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:04] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:04] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:04] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  16 tests/browser/effects.spec.ts:90:1 › rendered pixels highlight real storm differences and clear with identical policies (5.3s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:08] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:09] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:09] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:09] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:09] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:09] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  17 tests/browser/effects.spec.ts:120:61 › clear effects and map-only presentation 1920x1080 (7.0s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:15] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:15] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:15] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:15] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:15] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:15] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:16] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:16] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:16] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:16] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:17] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:17] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:17] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  18 tests/browser/effects.spec.ts:120:61 › clear effects and map-only presentation 3840x2160 (13.6s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:28] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:28] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:28] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:28] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:28] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:28] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:29] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:29] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:29] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:29] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:30] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:30] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:30] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  19 tests/browser/effects.spec.ts:182:1 › map-only mode keeps playback running and Escape restores controls (6.6s)
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:35] "GET /climate/ HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:35] "GET /climate/fonts/NotoSansKR.woff2 HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:35] "GET /climate/assets/index-9125Af1H.css HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:35] "GET /climate/assets/index-DnkcQRzK.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:35] "GET /climate/sw.js HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:35] "GET /climate/data/model.json HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/data/municipalities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/data/terrain.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/data/land-borders.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/data/facilities.geojson HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/imagery/nasa-europe.jpg HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/imagery/netherlands-airphoto-2025.png HTTP/1.1" 200 -
+[2m[WebServer] [22m127.0.0.1 - - [27/Oct/2026 21:26:36] "GET /climate/imagery/outside-context.png HTTP/1.1" 200 -
+  ✓  20 tests/browser/effects.spec.ts:202:1 › applying the example to A works independently and an expired dike is clearly labeled (6.4s)
+
+  20 passed (2.5m)

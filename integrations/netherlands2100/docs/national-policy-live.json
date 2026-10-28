@@ -1,0 +1,40 @@
+{
+  "benefits": [
+    "침수 영향 · 영구 + 해당 연도 해일B 14,662km² ↓ 감소A 17,291.4km² → B 2,629.4km² · 84.8%",
+    "영향 인구 · 균등 분포 추정B 742.2만 명 ↓ 감소A 1,105.5만 명 → B 363.3만 명 · 67.1%",
+    "일시홍수 피해 · 모형B 4,051.3억 유로 ↓ 감소A 6,121억 유로 → B 2,069.8억 유로 · 66.2%"
+  ],
+  "mode": "extreme",
+  "potential": false,
+  "sides": [
+    {
+      "camera": "{\"center\":[5.25,52.16],\"zoom\":5.268347054682518,\"pitch\":0,\"bearing\":0}",
+      "count": "0",
+      "investment": "0.000000",
+      "permanent": "15067.964810",
+      "side": "left",
+      "temporary": "2223.391404"
+    },
+    {
+      "camera": "{\"center\":[5.25,52.16],\"zoom\":5.268347054682518,\"pitch\":0,\"bearing\":0}",
+      "count": "400",
+      "investment": "560.000000",
+      "permanent": "1918.045960",
+      "side": "right",
+      "temporary": "711.343083"
+    }
+  ],
+  "url": "https://pincon.app/climate/",
+  "viewport": {
+    "height": 936,
+    "width": 1363
+  },
+  "year": "2100",
+  "mapOnly": "true",
+  "restored": {
+    "left": "0",
+    "mapOnly": "false",
+    "right": "400",
+    "year": "2100"
+  }
+}

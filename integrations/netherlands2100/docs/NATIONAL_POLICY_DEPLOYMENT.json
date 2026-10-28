@@ -1,0 +1,97 @@
+{
+  "sourceCommit": "12ff0ab69a57ea66da2c44971304b27ededba1af",
+  "verifiedAt": "2026-10-28T02:31:16.742887+00:00",
+  "resources": [
+    {
+      "path": "climate/index.html",
+      "url": "https://pincon.app/climate/",
+      "status": 200,
+      "bytes": 725,
+      "sha256": "7f039963c0f692759beb9ddda7b07f6a6c25bbac660770e2ed1df1f0d5e609e5",
+      "matchesRepository": true
+    },
+    {
+      "path": "climate/assets/index-DnkcQRzK.js",
+      "url": "https://pincon.app/climate/assets/index-DnkcQRzK.js",
+      "status": 200,
+      "bytes": 1214250,
+      "sha256": "a273bc6a0b6eea1bbfbd931b6ec055734f924f64a7a221e46b0c7758f289ea5c",
+      "matchesRepository": true
+    },
+    {
+      "path": "climate/assets/index-9125Af1H.css",
+      "url": "https://pincon.app/climate/assets/index-9125Af1H.css",
+      "status": 200,
+      "bytes": 91100,
+      "sha256": "996cb5cee81c4d5c23af6627007e351dbee68e47ca78019f587a76a983f5e4f7",
+      "matchesRepository": true
+    },
+    {
+      "path": "index.html",
+      "url": "https://pincon.app/",
+      "status": 200,
+      "bytes": 1158,
+      "sha256": "f513400a6381b37ab9b58eb9a1104b895e12a5b3cc14135bdb726707f9d788fa",
+      "matchesRepository": true
+    },
+    {
+      "path": "next/index.html",
+      "url": "https://pincon.app/next/",
+      "status": 200,
+      "bytes": 4629,
+      "sha256": "7ddd1e5e8f2c3f8d2ad5f3ae45fd6ab158167f670033ea7c407cdabe27f8ea80",
+      "matchesRepository": true
+    }
+  ],
+  "workflowRuns": [
+    {
+      "id": 40621007189,
+      "name": "pages build and deployment",
+      "head_sha": "12ff0ab69a57ea66da2c44971304b27ededba1af",
+      "event": "dynamic",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/doetoeri/Pine/actions/runs/40621007189"
+    }
+  ],
+  "browserVerification": {
+    "benefits": [
+      "침수 영향 · 영구 + 해당 연도 해일B 14,662km² ↓ 감소A 17,291.4km² → B 2,629.4km² · 84.8%",
+      "영향 인구 · 균등 분포 추정B 742.2만 명 ↓ 감소A 1,105.5만 명 → B 363.3만 명 · 67.1%",
+      "일시홍수 피해 · 모형B 4,051.3억 유로 ↓ 감소A 6,121억 유로 → B 2,069.8억 유로 · 66.2%"
+    ],
+    "mode": "extreme",
+    "potential": false,
+    "sides": [
+      {
+        "camera": "{\"center\":[5.25,52.16],\"zoom\":5.268347054682518,\"pitch\":0,\"bearing\":0}",
+        "count": "0",
+        "investment": "0.000000",
+        "permanent": "15067.964810",
+        "side": "left",
+        "temporary": "2223.391404"
+      },
+      {
+        "camera": "{\"center\":[5.25,52.16],\"zoom\":5.268347054682518,\"pitch\":0,\"bearing\":0}",
+        "count": "400",
+        "investment": "560.000000",
+        "permanent": "1918.045960",
+        "side": "right",
+        "temporary": "711.343083"
+      }
+    ],
+    "url": "https://pincon.app/climate/",
+    "viewport": {
+      "height": 936,
+      "width": 1363
+    },
+    "year": "2100",
+    "mapOnly": "true",
+    "restored": {
+      "left": "0",
+      "mapOnly": "false",
+      "right": "400",
+      "year": "2100"
+    }
+  }
+}
