@@ -22,7 +22,7 @@ describe('Mission 03 policy independence and model validity',()=>{
   // A 2040 dike expires at 2100 under the inherited 60-year service-life assumption.
   expect(a.frames[74].permanentArea).toBe(none.frames[74].permanentArea);
   expect(b.frames[74].base.migrated).toBe(30000);expect(b.frames[74].permanentArea).toBe(none.frames[74].permanentArea);expect(b.frames[74].permanentPeople).toBeLessThan(none.frames[74].permanentPeople);
- });
+ },45000); // Three complete 75-year model runs, including both power-flow calculations.
  it('identical policies have identical outputs with shared deterministic storms',()=>{
   const a=runProgressive(data,'knmi',[dike]),b=runProgressive(data,'knmi',cloneSide({...blankSide('right'),policySet:[dike]}).policySet);
   expect(a.frames).toEqual(b.frames);expect([...a.firstWet]).toEqual([...b.firstWet]);

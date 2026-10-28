@@ -5,9 +5,10 @@ import type {Dataset} from './model';
 import {visualWet,temporaryMask,type ProgressiveRun} from './progressive';
 import {mercator} from './WaterLayer';
 import {FloodOverlay} from './FloodOverlay';
+import {PolicyOverlay} from './PolicyOverlay';
 import {asset} from './paths';
 export interface Camera{center:[number,number];zoom:number;bearing:number;pitch:number}
-export interface MapProps{data:Dataset;run:ProgressiveRun;time:number;camera:Camera;onCamera:(c:Camera)=>void;onSelect:(i:number)=>void;selected:number;temporary:boolean;recovery:boolean;name:string;simple:boolean;potential:boolean;difference:boolean;otherRun?:ProgressiveRun}
+export interface MapProps{data:Dataset;run:ProgressiveRun;time:number;camera:Camera;onCamera:(c:Camera)=>void;onSelect:(i:number)=>void;selected:number;temporary:boolean;recovery:boolean;name:string;simple:boolean;potential:boolean;difference:boolean;policyAreas:boolean;otherRun?:ProgressiveRun}
 const imageCorners:[[number,number],[number,number],[number,number],[number,number]]=[[3,54],[7.5,54],[7.5,50.5],[3,50.5]];
 export function MapView(p:MapProps){
  const container=useRef<HTMLDivElement>(null),map=useRef<maplibregl.Map|null>(null),live=useRef(p);live.current=p;
@@ -32,7 +33,7 @@ export function MapView(p:MapProps){
     for(const name of ['Amsterdam','Rotterdam',"'s-Gravenhage",'Utrecht','Groningen','Almere','Eindhoven']){
      const r=p.data.regions.find(r=>r.name===name);if(!r)continue;const button=document.createElement('button');button.className='map-city';const text=document.createElement('span');text.textContent=name==="'s-Gravenhage"?'Den Haag':name;button.append(text);button.title=name;button.onclick=e=>{e.stopPropagation();live.current.onSelect(r.i)};markers.push(new maplibregl.Marker({element:button,anchor:name==="'s-Gravenhage"?'right':'left',offset:[name==="'s-Gravenhage"?-9:9,name==='Almere'?-22:name==='Rotterdam'?10:0]}).setLngLat([r.lon,r.lat]).addTo(m));
     }
-    for(const [text,pos] of [['DEUTSCHLAND',[7.18,52.12]],['BELGIË',[4.8,50.9]]] as [string,[number,number]][]){const el=document.createElement('div');el.className='country-label';el.textContent=text;markers.push(new maplibregl.Marker({element:el}).setLngLat(pos).addTo(m))}
+    for(const [text,pos] of [['DEUTSCHLAND',[7.7,52.0]],['BELGIË',[4.8,50.9]]] as [string,[number,number]][]){const el=document.createElement('div');el.className='country-label';el.textContent=text;markers.push(new maplibregl.Marker({element:el}).setLngLat(pos).addTo(m))}
     m.on('click','region-click',e=>{const i=e.features?.[0]?.properties?.i;if(i!==undefined)live.current.onSelect(Number(i))});m.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');setReady(true);
    }catch(e){if(!cancelled)setError(String(e))}
   });
@@ -41,7 +42,7 @@ export function MapView(p:MapProps){
  },[]);
  useEffect(()=>{const m=map.current;if(!m||!ready)return;for(const r of p.data.regions)m.setFeatureState({source:'regions',id:r.id},{selected:r.i===p.selected})},[p.selected,ready]);
  useEffect(()=>{const m=map.current;if(!m||!ready)return;const c=p.camera,cur=m.getCenter();if(Math.abs(cur.lng-c.center[0])>.0001||Math.abs(cur.lat-c.center[1])>.0001||Math.abs(m.getZoom()-c.zoom)>.01){syncing.current=true;m.jumpTo({...c});syncing.current=false}},[p.camera,ready]);
- return <div className="map-view" data-testid={'map-'+p.name} data-renderer={fallback?'svg':'maplibre'} data-imagery={ready||fallback?'ready':'loading'}><div ref={container} className="map-engine"/>{fallback&&<FlatMap {...p}/>}<FloodOverlay {...p}/> {!ready&&!fallback&&!error&&<div className="map-loading">실제 항공영상 · GIS 로딩 중</div>}{error&&<div className="map-loading error">지도를 불러오지 못했습니다. {error}<button onClick={()=>location.reload()}>다시 시도</button></div>}</div>;
+ return <div className={`map-view ${p.difference?'difference-focused':''}`} data-testid={'map-'+p.name} data-renderer={fallback?'svg':'maplibre'} data-imagery={ready||fallback?'ready':'loading'}><div ref={container} className="map-engine"/>{fallback&&<FlatMap {...p}/>}<FloodOverlay {...p}/>{p.policyAreas&&<PolicyOverlay data={p.data} plan={p.run.plan} time={p.time} camera={p.camera} name={p.name}/>} {!ready&&!fallback&&!error&&<div className="map-loading">실제 항공영상 · GIS 로딩 중</div>}{error&&<div className="map-loading error">지도를 불러오지 못했습니다. {error}<button onClick={()=>location.reload()}>다시 시도</button></div>}</div>;
 }
 function svgPath(g:any):string{const line=(xs:number[][])=>xs.map((v,i)=>`${i?'L':'M'}${mercator(v[0],v[1]).join(',')}`).join('')+'Z';return g.type==='Polygon'?g.coordinates.map(line).join(''):g.type==='MultiPolygon'?g.coordinates.flatMap((p:any)=>p.map(line)).join(''):g.type==='LineString'?line(g.coordinates).slice(0,-1):g.type==='MultiLineString'?g.coordinates.map((c:any)=>line(c).slice(0,-1)).join(''):''}
 function FlatMap(p:MapProps){

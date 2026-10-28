@@ -1,13 +1,13 @@
 {
   "name": "pincon-climate",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "vitest run tests/model.test.ts tests/comparison.test.ts",
+    "test": "vitest run tests/model.test.ts tests/comparison.test.ts tests/policy-effects.test.ts --maxWorkers=1",
     "test:e2e": "playwright test",
     "test:model": "node --experimental-strip-types --test tests/model.test.mjs"
   },

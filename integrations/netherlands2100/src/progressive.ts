@@ -1,7 +1,7 @@
 import {simulate,seaLevel,active,maxFlow,CATALOG,DEFAULT_CONFIG,type Dataset,type Frame,type Policy,type ModelEvent} from './model';
 export type Mode='knmi'|'noadapt'|'extreme';
 export const MODES={knmi:{ko:'KNMI 고배출',en:'KNMI anchors',badge:'KNMI · MODEL',description:'KNMI 고배출 앵커 + 가정 방재 유지. 실제 침수 예측 아님.'},noadapt:{ko:'KNMI 저배출',en:'KNMI low emissions',badge:'KNMI LOW · MODEL',description:'KNMI 저배출 앵커 + 가정 방재 유지. A/B 정책은 독립적으로 적용.'},extreme:{ko:'방재 실패 시연',en:'Defence-failure demo',badge:'DEMO · 공식 전망 아님',description:'2035년 이후 배수·방재 점진 상실, 2100년 +2.50m 가정. 실제 지형 유지.'}};
-export interface ProgressiveFrame {year:number;slr:number;permanentArea:number;permanentPeople:number;temporaryArea:number;recoveryArea:number;economicProxy:number;regionalArea:number[];regionalPeople:number[];powerShortage:number[];potentialArea:number;riskIndex:number;defenceMargin:number;policyInvestment:number;base:Frame}
+export interface ProgressiveFrame {year:number;slr:number;permanentArea:number;permanentPeople:number;temporaryArea:number;temporaryPeople:number;regionalTemporaryArea:number[];recoveryArea:number;economicProxy:number;regionalArea:number[];regionalPeople:number[];powerShortage:number[];potentialArea:number;riskIndex:number;defenceMargin:number;policyInvestment:number;base:Frame}
 export interface ProgressiveRun {frames:ProgressiveFrame[];firstWet:Float32Array;recoveryYear:Float32Array;events:ModelEvent[];plan:Policy[];mode:Mode;areaDenominator:number;riskMasks:Float32Array[];errors:string[]}
 export function configFor(mode:Mode){return {...DEFAULT_CONFIG,climate:mode==='extreme'?'stress' as const:mode==='noadapt'?'low' as const:'high' as const}}
 export const clamp=(x:number)=>Math.min(1,Math.max(0,x));
@@ -15,7 +15,7 @@ export function runProgressive(data:Dataset,mode:Mode,plan:Policy[]=[],limits?:{
  const emit=(e:ModelEvent)=>{if(!seen.has(e.id)){seen.add(e.id);events.push(e)}};
  const milestone=[100,500,1500,3000,6000,10000,15000];
  for(let year=2026;year<=2100;year++){
-  const f=base.frames[year-2026],previous=frames.at(-1);const area=Array(N).fill(0),people=Array(N).fill(0),boost=Array(N).fill(0),drain=Array(N).fill(false);
+  const f=base.frames[year-2026],previous=frames.at(-1);const area=Array(N).fill(0),temporaryByRegion=Array(N).fill(0),people=Array(N).fill(0),boost=Array(N).fill(0),drain=Array(N).fill(false);
   for(const p of actualPlan)if(active(p,year)){if(['dike','barrier','nature'].includes(p.kind))boost[p.region]+=CATALOG[p.kind].boost;if(p.kind==='drainage')drain[p.region]=true}
   let total=0,temporary=0,recovery=0,potentialArea=0,riskSum=0,marginSum=0;const riskMask=new Float32Array(n);
   for(let j=0;j<n;j++){
@@ -48,7 +48,7 @@ export function runProgressive(data:Dataset,mode:Mode,plan:Policy[]=[],limits?:{
    }
    // Temporary floods never modify the permanent ledger.
    const transient=f.waterNAP>baselineGate+boost[r]&&f.waterNAP>=c.spill&&Math.max(0,(f.waterNAP-c.z)*.35-(drain[r]?.35:0))>.1;
-   if(transient&&firstWet[j]>year)temporary+=c.area;
+   if(transient&&firstWet[j]>year){temporary+=c.area;temporaryByRegion[r]+=c.area}
   }
   for(let r=0;r<N;r++)people[r]=f.regions[r].population*(regionalLand[r]?area[r]/regionalLand[r]:0);
   const population=people.reduce((a,b)=>a+b,0);
@@ -56,9 +56,13 @@ export function runProgressive(data:Dataset,mode:Mode,plan:Policy[]=[],limits?:{
   const economic=people.reduce((v,p,r)=>v+p*data.regions[r].economicPerCapita/1e9,0);
   const demand=f.regions.map(r=>r.population*.0006),hard=Array(N).fill(false),grid=Array(N).fill(0);
   for(const p of actualPlan)if(active(p,year)){if(p.kind==='hardening')hard[p.region]=true;if(p.kind==='grid')grid[p.region]=1}
-  const supply=demand.map((v,r)=>v*1.25*Math.max(0,1-(regionalLand[r]?area[r]/regionalLand[r]:0)*(hard[r]?.35:1.4)));
-  const power=maxFlow(N,data.edges,supply,demand,grid).shortage;
-  frames.push({year,slr:f.slr,permanentArea:total,permanentPeople:population,temporaryArea:temporary,recoveryArea:recovery,economicProxy:economic,regionalArea:area,regionalPeople:people,powerShortage:power,potentialArea,riskIndex:riskSum/regionalLand.reduce((a,b)=>a+b,0)*100,defenceMargin:marginSum/regionalLand.reduce((a,b)=>a+b,0),policyInvestment:(previous?.policyInvestment||0)+f.investment,base:f});
+  const supplyFor=(includeStorm:boolean)=>demand.map((v,r)=>v*1.25*Math.max(0,1-(regionalLand[r]?(area[r]+(includeStorm?temporaryByRegion[r]:0))/regionalLand[r]:0)*(hard[r]?.35:1.4)));
+  const permanentPower=maxFlow(N,data.edges,supplyFor(false),demand,grid).shortage;
+  // Display supply shortfall for the union of permanent and current storm cells.
+  // The storm layer switch only controls rendering, never model outcomes.
+  const power=temporary>0?maxFlow(N,data.edges,supplyFor(true),demand,grid).shortage:permanentPower;
+  const temporaryPeople=temporaryByRegion.reduce((sum,v,r)=>sum+(regionalLand[r]?v/regionalLand[r]*f.regions[r].population:0),0);
+  frames.push({year,slr:f.slr,permanentArea:total,permanentPeople:population,temporaryArea:temporary,temporaryPeople,regionalTemporaryArea:temporaryByRegion,recoveryArea:recovery,economicProxy:economic,regionalArea:area,regionalPeople:people,powerShortage:power,potentialArea,riskIndex:riskSum/regionalLand.reduce((a,b)=>a+b,0)*100,defenceMargin:marginSum/regionalLand.reduce((a,b)=>a+b,0),policyInvestment:(previous?.policyInvestment||0)+f.investment,base:f});
   riskMasks.push(riskMask);
   const demo=mode==='extreme';
   for(const m of milestone)if(total>=m&&!fired.has(`area-${m}`)){
@@ -72,7 +76,7 @@ export function runProgressive(data:Dataset,mode:Mode,plan:Policy[]=[],limits?:{
   for(const fac of data.facilities){if(fac.kind==='defence')continue;const r=fac.region;
    if((regionalLand[r]?area[r]/regionalLand[r]:0)>.2&&!fired.has('asset-'+fac.id)){fired.add('asset-'+fac.id);emit({id:`permanent-asset:${mode}:${fac.id}`,year,kind:'facility-permanent',severity:3,region:r,title:`${fac.name} · 중단 가정`,en:`${fac.name} · modelled interruption`,cause:'실제 OSM 위치. 지역 침수 비율 기반 예시이며 해당 시설의 실제 고장 예측이 아닙니다.',causeEn:'Real OSM location; regional exposure proxy, not a facility failure forecast.',demo,value:people[r]})}
   }
-  for(let r=0;r<N;r++)if(power[r]>60&&!fired.has('perm-power-'+r)){fired.add('perm-power-'+r);emit({id:`permanent-power:${mode}:${r}`,year,kind:'power-permanent',severity:3,region:r,title:`${data.regions[r].name} · 전력 부족`,en:`${data.regions[r].name} · supply shortfall`,cause:'가정 용량의 지역 인접망에서 대체 공급 경로를 계산한 결과입니다. 실제 전력계통 예측이 아닙니다.',causeEn:'Maximum flow on an assumed-capacity regional graph, not the actual electricity grid.',demo,value:power[r]})}
+  for(let r=0;r<N;r++)if(permanentPower[r]>60&&!fired.has('perm-power-'+r)){fired.add('perm-power-'+r);emit({id:`permanent-power:${mode}:${r}`,year,kind:'power-permanent',severity:3,region:r,title:`${data.regions[r].name} · 전력 부족`,en:`${data.regions[r].name} · supply shortfall`,cause:'가정 용량의 지역 인접망에서 대체 공급 경로를 계산한 결과입니다. 실제 전력계통 예측이 아닙니다.',causeEn:'Maximum flow on an assumed-capacity regional graph, not the actual electricity grid.',demo,value:permanentPower[r]})}
   // Preserve the original model-driven facility/power/construction events, with explicit assumptions.
   for(const e of base.events.filter(e=>e.year===year&&['facility','power','start','complete','construction-flood','economy'].includes(e.kind))){
    const key=e.kind==='facility'?e.title:e.kind==='power'?`power:${e.region}`:e.id;
@@ -98,11 +102,28 @@ export function frameAt(run:ProgressiveRun,time:number):ProgressiveFrame{
  const index=Math.max(0,Math.min(74,Math.floor(time)-2026)),a=run.frames[index],b=run.frames[Math.min(74,index+1)],t=clamp(time-Math.floor(time));
  const lerp=(x:number,y:number)=>x+(y-x)*t;
  const out={...a,year:time};
- for(const k of ['slr','permanentArea','permanentPeople','temporaryArea','recoveryArea','economicProxy','potentialArea','riskIndex','defenceMargin','policyInvestment'] as const)out[k]=lerp(a[k],b[k]);
+ for(const k of ['slr','permanentArea','permanentPeople','temporaryArea','temporaryPeople','recoveryArea','economicProxy','potentialArea','riskIndex','defenceMargin','policyInvestment'] as const)out[k]=lerp(a[k],b[k]);
  out.powerShortage=a.powerShortage.map((v,i)=>lerp(v,b.powerShortage[i]));
+ out.regionalTemporaryArea=a.regionalTemporaryArea.map((v,i)=>lerp(v,b.regionalTemporaryArea[i]));
  return out;
 }
 export function riskAt(run:ProgressiveRun,index:number,time:number){
  const y=Math.max(0,Math.min(74,Math.floor(time)-2026)),t=clamp(time-Math.floor(time));
  return (run.riskMasks[y]?.[index]||0)*(1-t)+(run.riskMasks[Math.min(74,y+1)]?.[index]||0)*t;
+}
+
+/** Find the largest calculated area difference under the CURRENT shared climate.
+ * This changes no forcing or outcomes; callers expose the selected year explicitly. */
+export function strongestDifferenceYear(a:ProgressiveRun,b:ProgressiveRun){
+ let year=2026,largest=0;
+ for(let i=0;i<Math.min(a.frames.length,b.frames.length);i++){
+  const x=a.frames[i],y=b.frames[i],delta=Math.abs(x.permanentArea+x.temporaryArea-y.permanentArea-y.temporaryArea);
+  if(delta>largest+1e-7){largest=delta;year=x.year}
+ }
+ if(largest>0)return {year,kind:'flood' as const,hasDifference:true};
+ for(let i=0;i<Math.min(a.frames.length,b.frames.length);i++){
+  const delta=Math.abs(a.frames[i].riskIndex-b.frames[i].riskIndex);
+  if(delta>largest+1e-7){largest=delta;year=a.frames[i].year}
+ }
+ return {year,kind:'risk' as const,hasDifference:largest>0};
 }

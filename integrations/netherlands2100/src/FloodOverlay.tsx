@@ -26,7 +26,7 @@ export function FloodOverlay(p:Props){
   const layer=offscreen.current??(offscreen.current=document.createElement('canvas'));layer.width=target.width;layer.height=target.height;
   const ctx=layer.getContext('2d')!,screen=target.getContext('2d')!,scale=512*2**p.camera.zoom,[cx,cy]=mercator(...p.camera.center),t=p.time-Math.floor(p.time);
   ctx.setTransform(scale*dpr,0,0,scale*dpr,(width/2-cx*scale)*dpr,(height/2-cy*scale)*dpr);
-  const temp=p.temporary?storms(p.data,p.run,p.time):null;
+  const temp=p.temporary?storms(p.data,p.run,p.time):null,otherTemp=p.temporary&&p.difference&&p.otherRun?storms(p.data,p.otherRun,p.time):null;
   const patternCanvas=document.createElement('canvas');patternCanvas.width=patternCanvas.height=20;const pc=patternCanvas.getContext('2d')!;pc.strokeStyle='rgba(18,112,110,.5)';pc.lineWidth=1;pc.beginPath();pc.moveTo(-5,20);pc.lineTo(20,-5);pc.moveTo(5,25);pc.lineTo(25,5);pc.stroke();const hatch=ctx.createPattern(patternCanvas,'repeat')!;hatch.setTransform(new DOMMatrix().scale(1/(scale*dpr)));
   const gradient=ctx.createLinearGradient(cx-.006,cy-.004,cx+.006,cy+.004);gradient.addColorStop(0,'#246f82');gradient.addColorStop(.53,'#2d7a88');gradient.addColorStop(1,'#194f68');
   // Conditional risk uses a translucent wash + sparse diagonal marks; never a solid flood mask.
@@ -36,8 +36,10 @@ export function FloodOverlay(p:Props){
    if(wet>0){ctx.fillStyle=gradient;ctx.globalAlpha=wet*.72;ctx.fill(paths[i],'evenodd')}
    const transient=temp?(temp.first[i]*(1-t)+temp.next[i]*t)*(1-wet):0;
    if(transient>0){ctx.fillStyle='#d9a235';ctx.globalAlpha=transient*.52;ctx.fill(paths[i],'evenodd')}
-   if(p.difference&&p.otherRun){const otherWet=visualWet(p.otherRun.firstWet[i],p.time),wetDelta=wet-otherWet,riskDelta=riskAt(p.run,i,p.time)-riskAt(p.otherRun,i,p.time);const diff=Math.abs(wetDelta)>.02?wetDelta:riskDelta;
-    if(Math.abs(diff)>.0002){ctx.fillStyle=diff>0?'#df751c':'#8c51c6';ctx.globalAlpha=.35+Math.min(.43,Math.sqrt(Math.abs(diff))*.6);ctx.fill(paths[i],'evenodd')}
+   if(p.difference&&p.otherRun){const otherWet=visualWet(p.otherRun.firstWet[i],p.time),wetDelta=wet-otherWet,riskDelta=riskAt(p.run,i,p.time)-riskAt(p.otherRun,i,p.time);
+    const otherTransient=otherTemp?(otherTemp.first[i]*(1-t)+otherTemp.next[i]*t)*(1-otherWet):0;
+    const stormDelta=transient-otherTransient,diff=Math.abs(wetDelta)>.02?wetDelta:Math.abs(stormDelta)>.02?stormDelta:riskDelta;
+    if(Math.abs(diff)>.0002){ctx.fillStyle=diff>0?'#ff8b26':'#bb72ff';ctx.globalAlpha=.62+Math.min(.26,Math.sqrt(Math.abs(diff))*.4);ctx.fill(paths[i],'evenodd')}
    }
   }
   ctx.globalAlpha=1;screen.setTransform(1,0,0,1,0,0);screen.clearRect(0,0,target.width,target.height);screen.filter=`blur(${.65*dpr}px)`;screen.drawImage(layer,0,0);screen.filter='none';
