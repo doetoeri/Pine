@@ -16,7 +16,7 @@ test.beforeEach(async({page})=>{await page.goto('/climate/');await expect(page.g
 test('example changes only B and preserves climate, year and synchronized camera',async({page})=>{
  await page.getByRole('button',{name:'2080',exact:true}).click();const camera=await summary(page,'left').getAttribute('data-camera');await example(page);await expect(page.getByTestId('current-year')).toHaveText('2080');await effectYear(page);
  expect(await plan(page,'left')).toEqual([]);expect(await plan(page,'right')).toHaveLength(400);await expect(page.getByTestId('scene')).toHaveAttribute('data-mode','knmi');
- expect(await summary(page,'left').getAttribute('data-camera')).toBe(camera);expect(await summary(page,'right').getAttribute('data-camera')).toBe(camera);
+ expect(JSON.parse((await summary(page,'left').getAttribute('data-camera'))!)).toEqual(JSON.parse(camera!));expect(JSON.parse((await summary(page,'right').getAttribute('data-camera'))!)).toEqual(JSON.parse(camera!));
  await expect(page.getByLabel('일시 홍수',{exact:true})).toBeChecked();await expect(page.getByLabel('차이 강조',{exact:true})).toBeChecked();await expect(page.getByLabel('잠재 위험',{exact:true})).not.toBeChecked();
  expect(Number(await page.getByTestId('benefit-0').getAttribute('data-delta'))).toBeGreaterThan(100);expect(Number(await page.getByTestId('benefit-1').getAttribute('data-delta'))).toBeGreaterThan(100000);await expect(page.getByTestId('benefit-0')).toContainText('감소');
  await page.reload();expect(await plan(page,'left')).toEqual([]);expect(await plan(page,'right')).toHaveLength(400);
@@ -39,7 +39,7 @@ for(const [width,height] of [[1920,1080],[3840,2160]])test(`clear effects and ma
  await page.getByRole('button',{name:'지도만 보기 (M)',exact:true}).click();await expect(page.getByTestId('scene')).toHaveAttribute('data-map-only','true');
  for(const s of ['.masthead','.climate-ribbon','.comparison-results','.timeline-dock','.risk-readout'])await expect(page.locator(s).first()).not.toBeVisible();
  const maps=await page.locator('.map-stage').boundingBox();expect(maps!.height).toBeGreaterThan(height*.98);expect(maps!.width).toBeGreaterThan(width*.98);await expect(page.getByRole('button',{name:'조작 보기 (M)',exact:true})).toBeVisible();await page.screenshot({path:path.join(qa,`map-only-${width}x${height}.jpg`),quality:90});
- await page.keyboard.press('m');await expect(page.getByTestId('scene')).toHaveAttribute('data-map-only','false');expect(await page.getByTestId('scene').getAttribute('data-year')).toBe(year);expect(await plan(page,'left')).toEqual(left);expect(await plan(page,'right')).toEqual(right);expect(await summary(page,'left').getAttribute('data-camera')).toBe(camera);
+ await page.keyboard.press('m');await expect(page.getByTestId('scene')).toHaveAttribute('data-map-only','false');expect(await page.getByTestId('scene').getAttribute('data-year')).toBe(year);expect(await plan(page,'left')).toEqual(left);expect(await plan(page,'right')).toEqual(right);expect(JSON.parse((await summary(page,'left').getAttribute('data-camera'))!)).toEqual(JSON.parse(camera!));
 });
 test('map-only mode keeps playback running and Escape restores controls',async({page})=>{
  await page.getByRole('button',{name:'10분 발표 시작',exact:true}).click();await page.keyboard.press('m');await expect(page.getByTestId('scene')).toHaveAttribute('data-map-only','true');await expect(page.getByTestId('scene')).toHaveAttribute('data-presentation','true');

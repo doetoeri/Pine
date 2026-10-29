@@ -160,7 +160,7 @@ export default function App(){
      <label><input type="checkbox" aria-label="차이 강조" checked={s.difference} onChange={e=>s.set({difference:e.target.checked})}/><i className="difference-key"/><span>차이 강조<small>주황: 영향 ↑ · 보라: 영향 ↓</small></span></label>
      <label><input type="checkbox" aria-label="정책 구역" checked={s.policyAreas} onChange={e=>s.set({policyAreas:e.target.checked})}/><i className="policy-key"/><span>정책 적용 구역<small>실제 행정경계 · 공사 위치 아님</small></span></label>
      <nav>{['Rotterdam','Amsterdam'].map(name=><Button key={name} onClick={()=>{select(data.regions.findIndex(r=>r.name===name));setLayersOpen(false)}}>{name}</Button>)}</nav>
-     <strong>주요 이벤트</strong><div className="event-markers" aria-label="이벤트 목록">{events.map(e=><Button key={e.id} className="event-marker" aria-label={`${e.year} 이벤트`} title={`${e.year} · ${e.title}`} onClick={()=>{setLayersOpen(false);showEvent(e)}}>{e.year}<span className="event-tooltip" role="tooltip">{e.title}</span></Button>)}</div>
+     <strong>주요 이벤트</strong><div className="event-markers" aria-label="이벤트 목록">{events.map(e=><Button key={`${e.id}:${e.year}`} className="event-marker" aria-label={`${e.year} 이벤트`} title={`${e.year} · ${e.title}`} onClick={()=>{setLayersOpen(false);showEvent(e)}}>{e.year}<span className="event-tooltip" role="tooltip">{e.title}</span></Button>)}</div>
     </div>
     {s.presentation&&<div className="presentation-status" role="status">{presentationAt(s.presentationElapsed).chapter} · {s.presentationCycle+1}회차 <progress max="600" value={s.presentationElapsed}/></div>}
    </SmoothPanel>

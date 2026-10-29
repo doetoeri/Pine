@@ -4,6 +4,7 @@ const qa=process.env.QA_DIR||path.resolve('docs/blue-design-screenshots');fs.mkd
 
 test('all five live metrics and differences remain visible with the nationwide plan',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ page.on('console',m=>{if(m.type()==='error'&&/same key|Maximum update depth/.test(m.text()))errors.push(m.text())});
  await page.goto('/climate/');await page.getByRole('button',{name:'B 모범 정책',exact:true}).click();await page.getByRole('button',{name:'Scenario 3',exact:true}).click();await page.getByRole('button',{name:'2100',exact:true}).click();
  const expectedA=[17291.356214,11055379.394532,612.104,0,6507.3],expectedB=[2629.389043,3633108.549,206.978,560,1182.7];
  for(let i=0;i<5;i++){
