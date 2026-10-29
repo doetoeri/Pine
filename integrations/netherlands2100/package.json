@@ -1,6 +1,6 @@
 {
   "name": "pincon-climate",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,23 +12,24 @@
     "test:model": "node --experimental-strip-types --test tests/model.test.mjs"
   },
   "dependencies": {
+    "figma-squircle": "1.1.0",
+    "lucide-react": "0.468.0",
+    "maplibre-gl": "5.6.2",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "maplibre-gl": "5.6.2",
-    "zustand": "5.0.8",
     "recharts": "3.2.1",
-    "lucide-react": "0.468.0"
+    "zustand": "5.0.8"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "5.0.4",
-    "vite": "7.1.7",
-    "typescript": "5.9.2",
+    "@playwright/test": "1.55.1",
+    "@tailwindcss/vite": "4.1.13",
+    "@types/node": "22.18.6",
     "@types/react": "19.1.16",
     "@types/react-dom": "19.1.9",
-    "@types/node": "22.18.6",
-    "vitest": "3.2.4",
-    "@playwright/test": "1.55.1",
+    "@vitejs/plugin-react": "5.0.4",
     "tailwindcss": "4.1.13",
-    "@tailwindcss/vite": "4.1.13"
+    "typescript": "5.9.2",
+    "vite": "7.1.7",
+    "vitest": "3.2.4"
   }
 }

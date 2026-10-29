@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useRef,useState,type ButtonHTMLAttributes} from 'react';
-import {Expand,Info,Layers,Map,Pause,Play,Settings2,Shield,SkipBack,SkipForward,SplitSquareHorizontal,X} from 'lucide-react';
+import {BarChart3,Expand,Info,Layers,Map,Pause,Play,Settings2,Shield,SkipBack,SkipForward,SplitSquareHorizontal,X} from 'lucide-react';
 import {MapView,type Camera} from './MapView';
 import {CATALOG,type Dataset,type ModelEvent} from './model';
 import {MODES,runProgressive,frameAt,riskAt,strongestDifferenceYear,type Mode,type ProgressiveFrame} from './progressive';
@@ -9,13 +9,16 @@ import {number as fmt,people,money,signed} from './format';
 import {asset} from './paths';
 import {examplePolicy,policySummary} from './examplePolicy';
 import {DifferenceSummary} from './DifferenceSummary';
-const national=():Camera=>{const u=Math.max(.9,Math.min(2,window.innerWidth/1920)),height=Math.max(220,window.innerHeight-744*u);return {center:[5.25,52.16],zoom:Math.log2(height/(512*.0135)),pitch:0,bearing:0}};
+import {SmoothPanel} from './SmoothPanel';
+import {MapMetrics} from './MapMetrics';
+const national=():Camera=>{const u=Math.max(.75,Math.min(2,window.innerWidth/1920)),height=Math.max(260,window.innerHeight-480*u),width=Math.max(240,(window.innerWidth-100*u)/2);return {center:[5.25,52.05],zoom:Math.min(Math.log2(height/(512*.0135)),Math.log2(width/(512*.012))),pitch:0,bearing:0}};
 function Button({children,chosen=false,className='',...rest}:ButtonHTMLAttributes<HTMLButtonElement>&{chosen?:boolean}){return <button type="button" className={`${chosen?'chosen':''} ${className}`} aria-pressed={chosen||undefined} {...rest}>{children}</button>}
 const sideLabel=(side:Side)=>side==='left'?'A':'B';
 const totalPower=(f:ProgressiveFrame)=>f.powerShortage.reduce((a,b)=>a+b,0);
 export default function App(){
  const s=useScene(),[data,setData]=useState<Dataset|null>(null),[error,setError]=useState('');
  const [camera,setCamera]=useState<Camera>(national),[event,setEvent]=useState<ModelEvent|null>(null);
+ const [resultsOpen,setResultsOpen]=useState(false),[layersOpen,setLayersOpen]=useState(false);
  const used=useRef(new Set<string>()),raf=useRef(0);
  useEffect(()=>{let h=window.innerHeight;const resize=()=>{const next=window.innerHeight;setCamera(c=>({...c,zoom:c.zoom+Math.log2(next/h)}));h=next};window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize)},[]);
  useEffect(()=>{const abort=new AbortController();fetch(asset('data/model.json'),{signal:abort.signal}).then(r=>{if(!r.ok)throw Error(String(r.status));return r.json()}).then(setData).catch(e=>{if(e.name!=='AbortError')setError(String(e))});return()=>abort.abort()},[]);
@@ -24,7 +27,7 @@ export default function App(){
  const events=useMemo(()=>{const seen=new Set<number>();return [...(leftRun?.events||[]),...(rightRun?.events||[])].sort((a,b)=>a.year-b.year||b.severity-a.severity).filter(e=>{if(e.kind.startsWith('temporary-')&&!s.temporary)return false;if(seen.has(e.year))return false;seen.add(e.year);return true})},[leftRun,rightRun,s.temporary]);
  const live=useRef({events,data});live.current={events,data};
  useEffect(()=>{used.current.clear();setEvent(null)},[s.climateScenario,s.left.policySet,s.right.policySet]);
- function showEvent(e:ModelEvent){setEvent(e);s.set({currentYear:e.year,playing:false,presentation:false,selected:-1,panel:null});const r=data?.regions[e.region];if(r)setCamera({center:[r.lon,r.lat],zoom:8.1,pitch:0,bearing:0})}
+ function showEvent(e:ModelEvent){setResultsOpen(false);setLayersOpen(false);setEvent(e);s.set({currentYear:e.year,playing:false,presentation:false,selected:-1,panel:null});const r=data?.regions[e.region];if(r)setCamera({center:[r.lon,r.lat],zoom:8.1,pitch:0,bearing:0})}
  const showRef=useRef(showEvent);showRef.current=showEvent;
  useEffect(()=>{
   if(!s.playing||!data)return;let prev=performance.now(),drawAt=prev;const initial=useScene.getState(),epoch=Date.now()-(initial.presentationElapsed+initial.presentationCycle*600)*1000;
@@ -51,10 +54,10 @@ export default function App(){
  function play(){if(event){resume();return}const st=useScene.getState();s.set({playing:!st.playing,currentYear:st.currentYear>=2100?2026:st.currentYear,panel:null,selected:-1})}
  function navigate(direction:number){const time=useScene.getState().currentYear;const next=(direction>0?events:[...events].reverse()).find(e=>direction>0?e.year>time:e.year<time);if(next)showEvent(next)}
  function changeMode(mode:Mode){s.set({climateScenario:mode,presentation:false});setEvent(null)}
- function openPanel(panel:typeof s.panel){setEvent(null);s.set({panel:s.panel===panel?null:panel,selected:-1,playing:false,presentation:false})}
- function select(i:number){const r=data?.regions[i];if(!r)return;setEvent(null);s.set({selected:i,panel:null});setCamera({center:[r.lon,r.lat],zoom:8.4,pitch:0,bearing:0})}
- function toggleMapOnly(){setEvent(null);s.set({mapOnly:!useScene.getState().mapOnly,panel:null,selected:-1})}
- function applyExample(){if(!data)return;s.updateSide('right',examplePolicy(data));s.set({compare:true,potential:false,temporary:true,difference:true,policyAreas:true,panel:null,selected:-1,playing:false,presentation:false});setEvent(null)}
+ function openPanel(panel:typeof s.panel){setResultsOpen(false);setLayersOpen(false);setEvent(null);s.set({panel:s.panel===panel?null:panel,selected:-1,playing:false,presentation:false})}
+ function select(i:number){const r=data?.regions[i];if(!r)return;setResultsOpen(false);setLayersOpen(false);setEvent(null);s.set({selected:i,panel:null});setCamera({center:[r.lon,r.lat],zoom:8.4,pitch:0,bearing:0})}
+ function toggleMapOnly(){setResultsOpen(false);setLayersOpen(false);setEvent(null);s.set({mapOnly:!useScene.getState().mapOnly,panel:null,selected:-1})}
+ function applyExample(){if(!data)return;setResultsOpen(false);setLayersOpen(false);s.updateSide('right',examplePolicy(data));s.set({compare:true,potential:false,temporary:true,difference:true,policyAreas:true,panel:null,selected:-1,playing:false,presentation:false});setEvent(null)}
  function viewEffect(){if(!leftRun||!rightRun)return;seek(strongestDifferenceYear(leftRun,rightRun).year);s.set({temporary:true,difference:true,policyAreas:true,panel:null})}
  function focusDifference(){
   if(!data||!leftRun||!rightRun)return;const a=frameAt(leftRun,s.currentYear),b=frameAt(rightRun,s.currentYear),weights=data.regions.map((_,i)=>Math.abs(a.regionalArea[i]-b.regionalArea[i])+Math.abs(a.regionalTemporaryArea[i]-b.regionalTemporaryArea[i]));
@@ -62,7 +65,7 @@ export default function App(){
   const index=weights.reduce((best,n,i)=>n>weights[best]?i:best,0);if(weights[index]<=0)return;
   const r=data.regions[index];setCamera({center:[r.lon,r.lat],zoom:8.3,pitch:0,bearing:0});s.set({selected:-1,panel:null,difference:true,temporary:true});setEvent(null);
  }
- function startPresentation(){used.current.clear();setEvent(null);s.set({presentation:true,presentationElapsed:0,presentationCycle:0,playing:true,climateScenario:'knmi',currentYear:2026,autoPause:false,potential:true,temporary:true,difference:true,policyAreas:true,compare:true,loop:true,panel:null,selected:-1});setCamera(national())}
+ function startPresentation(){setResultsOpen(false);setLayersOpen(false);used.current.clear();setEvent(null);s.set({presentation:true,presentationElapsed:0,presentationCycle:0,playing:true,climateScenario:'knmi',currentYear:2026,autoPause:false,potential:true,temporary:true,difference:true,policyAreas:true,compare:true,loop:true,panel:null,selected:-1});setCamera(national())}
  async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{setError('이 브라우저는 전체화면을 지원하지 않습니다.')}}
  const keys=useRef({play,navigate,seek,fullscreen,changeMode,toggleMapOnly});keys.current={play,navigate,seek,fullscreen,changeMode,toggleMapOnly};
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.target as HTMLElement)?.matches('input,select,textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
@@ -71,37 +74,43 @@ export default function App(){
   else if(e.key.toLowerCase()==='f')keys.current.fullscreen();
   else if(e.key.toLowerCase()==='m')keys.current.toggleMapOnly();
   else if(['1','2','3'].includes(e.key))keys.current.changeMode(({1:'knmi',2:'noadapt',3:'extreme'} as Record<string,Mode>)[e.key]);
-  else if(e.key==='Escape'){setEvent(null);useScene.getState().set({panel:null,selected:-1,mapOnly:false});if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
+  else if(e.key==='Escape'){setResultsOpen(false);setLayersOpen(false);setEvent(null);useScene.getState().set({panel:null,selected:-1,mapOnly:false});if(document.fullscreenElement)document.exitFullscreen().catch(()=>{})}
  };window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[]);
- function exportResult(){if(!leftRun||!rightRun||!data)return;const blob=new Blob([JSON.stringify({version:'0.3.2',climateScenario:s.climateScenario,currentYear:s.currentYear,meta:data.meta,left:{...s.left,results:leftRun.frames},right:{...s.right,results:rightRun.frames}},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='netherlands2100-comparison.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ function exportResult(){if(!leftRun||!rightRun||!data)return;const blob=new Blob([JSON.stringify({version:'0.4.0',climateScenario:s.climateScenario,currentYear:s.currentYear,meta:data.meta,left:{...s.left,results:leftRun.frames},right:{...s.right,results:rightRun.frames}},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='netherlands2100-comparison.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
  if(!data||!leftRun||!rightRun)return <main className="boot"><h1>NETHERLANDS 2100</h1><p>{error||'실제 지형·항공영상과 A/B 모형을 준비합니다.'}</p>{error&&<Button onClick={()=>location.reload()}>다시 시도</Button>}</main>;
  if(leftRun.errors.length||rightRun.errors.length)return <main className="boot"><h1>저장된 정책 확인이 필요합니다.</h1><p>{[...leftRun.errors,...rightRun.errors].join(' · ')}</p><Button onClick={()=>{s.resetSide('left');s.resetSide('right')}}>유효하지 않은 정책 초기화</Button></main>;
  const comparison:ComparisonState={climateScenario:s.climateScenario,currentYear:s.currentYear,left:{...s.left,results:leftRun},right:{...s.right,results:rightRun}};
  const a=frameAt(leftRun,s.currentYear),b=frameAt(rightRun,s.currentYear),year=Math.floor(s.currentYear),drawer=!!s.panel||!!event||s.selected>=0;
  const rows:[string,ProgressiveFrame][]=[['A',a],['B',b]];
  const delta=[a.permanentArea-b.permanentArea,a.permanentPeople-b.permanentPeople,a.economicProxy-b.economicProxy,(a.base.assetDamage+a.base.productionLoss)-(b.base.assetDamage+b.base.productionLoss),a.policyInvestment-b.policyInvestment,totalPower(a)-totalPower(b)];
- return <main className={`scene ${s.mapOnly?'map-only':''}`} data-testid="scene" data-map-only={s.mapOnly} data-mode={s.climateScenario} data-year={year} data-area={b.permanentArea.toFixed(6)} data-presentation={s.presentation} data-elapsed={s.presentationElapsed.toFixed(2)} data-cycle={s.presentationCycle}>
-  <header className="masthead"><div className="brand">NETHERLANDS <b>2100</b><small>기후 경로 × 독립 정책 비교</small></div>
-   <div className="header-actions"><Button className="primary" onClick={applyExample}>B 모범 정책</Button><Button chosen={s.compare} aria-label="비교" onClick={()=>s.set({compare:!s.compare})}><SplitSquareHorizontal/>A/B 비교</Button><Button aria-label="지도만 보기 (M)" onClick={toggleMapOnly}><Map/>지도만</Button><Button aria-label="출처와 가정" onClick={()=>openPanel('sources')}><Info/>출처·가정</Button><Button aria-label="설정" onClick={()=>openPanel('settings')}><Settings2/>발표 설정</Button><Button aria-label="전체화면 (F)" onClick={fullscreen}><Expand/>전체화면</Button></div>
+ const effect=strongestDifferenceYear(leftRun,rightRun);
+ return <main className={`scene ${s.mapOnly?'map-only':''}`} data-testid="scene" data-map-only={s.mapOnly} data-results-open={resultsOpen} data-potential={s.potential} data-mode={s.climateScenario} data-year={year} data-area={b.permanentArea.toFixed(6)} data-presentation={s.presentation} data-elapsed={s.presentationElapsed.toFixed(2)} data-cycle={s.presentationCycle}>
+  <header className="masthead">
+   <div className="brand"><h1>바다를 피해서</h1><small>NETHERLANDS 2100 <span>기후와 선택의 지도</span></small></div>
+   <div className="header-actions">
+    <Button className="primary" onClick={applyExample}><Shield/>B 모범 정책</Button>
+    <Button chosen={s.compare} aria-label="비교" onClick={()=>s.set({compare:!s.compare})}><SplitSquareHorizontal/>A/B 비교</Button>
+    <Button chosen={resultsOpen} aria-label="비교 결과" onClick={()=>{setResultsOpen(!resultsOpen);setLayersOpen(false);s.set({panel:null,selected:-1});setEvent(null)}}><BarChart3/>비교 결과</Button>
+    <Button aria-label="지도만 보기 (M)" onClick={toggleMapOnly}><Map/>지도만</Button>
+    <Button className="icon-action" aria-label="출처와 가정" title="출처와 가정" onClick={()=>openPanel('sources')}><Info/></Button>
+    <Button className="icon-action" aria-label="설정" title="발표 설정" onClick={()=>openPanel('settings')}><Settings2/></Button>
+    <Button className="icon-action" aria-label="전체화면 (F)" title="전체화면 · F" onClick={fullscreen}><Expand/></Button>
+   </div>
   </header>
-  <section className="climate-ribbon" aria-label="공통 기후 조건">
-   <div className="year-hud"><strong data-testid="current-year">{year}</strong><span>{s.climateScenario==='extreme'?'방재 실패 가정 · 공식 전망 아님':'공식 해수면 앵커 · 침수는 탐색 모형'}</span></div>
-   <nav className="scenario-buttons">{(Object.keys(MODES) as Mode[]).map((mode,i)=><Button key={mode} aria-label={`Scenario ${i+1}`} chosen={mode===s.climateScenario} onClick={()=>changeMode(mode)}><span>{i+1}</span>{MODES[mode].ko}</Button>)}</nav>
-   <div className="sea-level" data-testid="sea-level"><span>해수면 상승 <b>+{fmt(a.slr,2)}m</b></span><div className="sea-track"><i style={{width:`${Math.min(100,a.slr/2.5*100)}%`}}/></div><small>1995–2014 대비 · 양쪽 같은 해일·난수 입력</small></div>
-  </section>
   <section className={`workspace ${drawer?'with-drawer':''}`}>
    <div className={`map-stage ${s.compare?'split':''}`}>
-    {(s.compare?(['left','right'] as Side[]):(['right'] as Side[])).map(side=>{const own=comparison[side],other=comparison[side==='left'?'right':'left'],f=side==='left'?a:b,status=policySummary(own.policySet,year);return <section key={side} className="map-half" aria-label={`정책안 ${sideLabel(side)}`}>
+    {(s.compare?(['left','right'] as Side[]):(['right'] as Side[])).map(side=>{const own=comparison[side],other=comparison[side==='left'?'right':'left'],f=side==='left'?a:b,status=policySummary(own.policySet,year);return <SmoothPanel key={side} className="map-half" clip aria-label={`정책안 ${sideLabel(side)}`}>
      <header className="map-title" data-testid={`summary-${side}`} data-policy-count={own.policySet.length} data-plan={JSON.stringify(own.policySet)} data-area={f.permanentArea.toFixed(6)} data-temporary-area={f.temporaryArea.toFixed(6)} data-people={f.permanentPeople.toFixed(6)} data-risk={f.riskIndex.toFixed(6)} data-investment={f.policyInvestment.toFixed(6)} data-camera={JSON.stringify(camera)}>
       <div className="map-title-row"><strong><i>{sideLabel(side)}</i><span>{own.name||'이름 없는 정책안'}</span></strong><Button aria-label={`정책 ${sideLabel(side)} 편집`} onClick={()=>openPanel(side)}><Shield/>{own.policySet.length}개 정책 · 편집</Button></div>
-      <div className="map-summary"><span>영구 <b>{fmt(f.permanentArea)}km²</b></span><span>해일 <b>{fmt(f.temporaryArea)}km²</b></span><span>정책 <b>{status.active} 효력 · {status.building} 공사</b></span></div>
+      <div className="map-summary"><span>영구 <b>{fmt(f.permanentArea)}km²</b></span><span>해일 <b>{fmt(f.temporaryArea)}km²</b></span><span>같은 기후 조건</span></div>
      </header>
      <div className="map-viewport"><MapView data={data} run={own.results} otherRun={s.compare?other.results:undefined} time={s.currentYear} camera={camera} onCamera={setCamera} onSelect={select} selected={s.selected} temporary={s.temporary} recovery={false} name={side} simple={s.simple} potential={s.potential} difference={s.difference&&s.compare} policyAreas={s.policyAreas}/>
       <div className="map-only-caption">{sideLabel(side)} · {own.name}</div>
-      <div className="risk-readout" data-testid={`risk-${side}`} data-potential-area={f.potentialArea.toFixed(6)} data-pressure={f.riskIndex.toFixed(6)}><span>잠재 노출 지형 <b>{fmt(f.potentialArea)}km²</b></span><small>제방 미고려 조건 · 실제 침수 아님</small><span>상대 압력 지수 <b>{fmt(f.riskIndex,1)}</b><small>확률 아님</small></span><small>가정 방어 여유 {fmt(f.defenceMargin,2)}m</small><meter min="0" max="40" value={f.riskIndex} aria-label={`${sideLabel(side)} 상대 압력 지수`}/></div>
-      {s.policyAreas&&own.policySet.length>0&&<div className="policy-legend" data-testid={`policy-status-${side}`}><b>{status.active?`${status.active}개 정책 효력 중`:status.building?'공사 중 · 보호 효과 전':status.planned?`${status.nextCompletion}년 첫 준공`:'정책 수명 종료'}</b><span>연두 실선: 효력 · 점선: 예정·공사</span><small>행정구역 표시 · 실제 공사 위치 아님</small></div>}
+      <div className="risk-readout" data-testid={`risk-${side}`} data-potential-area={f.potentialArea.toFixed(6)} data-pressure={f.riskIndex.toFixed(6)}><span>잠재 노출 지형 <b>{fmt(f.potentialArea)}km²</b></span><small>제방 미고려 조건 · 실제 침수 아님</small><span className="risk-extra">상대 압력 지수 {fmt(f.riskIndex,1)} · 확률 아님</span></div>
+      {s.policyAreas&&own.policySet.length>0&&<div className="policy-legend" data-testid={`policy-status-${side}`}><b>{status.active?`${status.active}개 정책 효력 중`:status.building?'공사 중 · 보호 효과 전':status.planned?`${status.nextCompletion}년 첫 준공`:'정책 수명 종료'}</b><span>연두: 정책 적용 행정구역 · 실제 공사 위치 아님</span></div>}
      </div>
-    </section>})}
+     <MapMetrics frame={f} baseline={a} side={side}/>
+    </SmoothPanel>})}
    </div>
    {drawer&&<aside className="drawer" role="dialog" aria-label={s.panel||event?'발표 패널':'지역 정보'} data-testid="drawer"><header><h2>{s.panel==='left'?'정책 A':s.panel==='right'?'정책 B':s.panel==='sources'?'자료·모형의 한계':s.panel==='settings'?'발표 설정':event?'주요 이벤트':'선택한 지역'}</h2><Button aria-label="닫기" onClick={()=>{s.set({panel:null,selected:-1});setEvent(null)}}><X/></Button></header><div className="drawer-body">
     {(s.panel==='left'||s.panel==='right')&&<PolicyEditor key={s.panel} side={s.panel} value={s[s.panel]} data={data} mode={s.climateScenario} selected={s.selected}/>}
@@ -119,29 +128,52 @@ export default function App(){
     {s.selected>=0&&!s.panel&&!event&&<section className="place-panel"><h3>{data.regions[s.selected].name}</h3><p>A 모형 침수 {fmt(a.regionalArea[s.selected])}km²</p><p>B 모형 침수 {fmt(b.regionalArea[s.selected])}km²</p><Button onClick={()=>s.set({panel:'left',playing:false,presentation:false})}>이 지역에 A 정책</Button><Button onClick={()=>s.set({panel:'right',playing:false,presentation:false})}>이 지역에 B 정책</Button></section>}
    </div></aside>}
   </section>
-  <section className="comparison-results" aria-label="A B 결과와 차이" data-testid="comparison-results">
-   <DifferenceSummary a={a} b={b} left={s.left.policySet} right={s.right.policySet} year={year} effect={strongestDifferenceYear(leftRun,rightRun)} onEffect={viewEffect} onFocus={focusDifference}/>
+  <section className="comparison-results" hidden={!resultsOpen} aria-label="A B 결과와 차이" data-testid="comparison-results">
+   <div className="result-heading"><div><small>같은 기후, 다른 선택</small><h2>A/B 비교 결과</h2></div><Button aria-label="비교 결과 닫기" onClick={()=>setResultsOpen(false)}><X/></Button></div><DifferenceSummary a={a} b={b} left={s.left.policySet} right={s.right.policySet} year={year}/>
    <div className="result-toolbar"><strong>동일 기후 조건의 결과</strong><span>경제활동 노출 ≠ GDP 손실 · 피해·전력은 가정 모형</span><div><Button onClick={()=>s.copy('left','right')}>A → B 복제</Button><Button onClick={()=>s.copy('right','left')}>B → A 복제</Button><Button onClick={s.swap}>A ↔ B 교환</Button><Button onClick={()=>s.resetSide('left')}>A 초기화</Button><Button onClick={()=>s.resetSide('right')}>B 초기화</Button></div></div>
    <table><thead><tr><th>정책안</th><th>영구 침수 · 모형</th><th>영향 인구 · 추정</th><th>경제활동 노출</th><th>일시홍수 피해 · 모형</th><th>누적 정책 투자비</th><th>정전 영향 · 공급부족</th></tr></thead><tbody>
     {rows.map(([name,f])=><tr key={name} data-testid={`results-${name}`}><th>{name}</th><td>{fmt(f.permanentArea)}km²</td><td>{people(f.permanentPeople)}</td><td>{money(f.economicProxy)}</td><td>{money(f.base.assetDamage+f.base.productionLoss)}</td><td>{money(f.policyInvestment)}</td><td>{fmt(totalPower(f),1)}MW</td></tr>)}
     <tr className="delta" data-testid="results-delta"><th>A − B</th>{delta.map((n,i)=><td key={i}>{signed(n,[(v:number)=>`${fmt(v)}km²`,people,money,money,money,(v:number)=>`${fmt(v,1)}MW`][i])}</td>)}</tr>
    </tbody></table>
   </section>
-  <section className="timeline-dock" aria-label="발표 조작">
-   <div className="layer-controls"><label><input type="checkbox" aria-label="잠재 위험" checked={s.potential} onChange={e=>s.set({potential:e.target.checked})}/><i className="risk-key"/>잠재 위험 · 침수 아님</label><span><i className="water-key"/>모형 침수</span><label><input type="checkbox" aria-label="일시 홍수" checked={s.temporary} onChange={e=>s.set({temporary:e.target.checked})}/><i className="temporary-key"/>일시 홍수</label><label><input type="checkbox" aria-label="차이 강조" checked={s.difference} onChange={e=>s.set({difference:e.target.checked})}/><i className="difference-key"/>차이 강조</label><label><input type="checkbox" aria-label="정책 구역" checked={s.policyAreas} onChange={e=>s.set({policyAreas:e.target.checked})}/><i className="policy-key"/>정책 구역</label><span className="difference-help">주황: 영향·압력 ↑ · 보라: ↓</span><nav>{['Rotterdam','Amsterdam'].map(name=><Button key={name} onClick={()=>select(data.regions.findIndex(r=>r.name===name))}>{name}</Button>)}<Button aria-label="네덜란드 전체" onClick={()=>{setCamera(national());s.set({selected:-1})}}>전역</Button></nav></div>
-   <div className="timeline-line"><input type="range" min="2026" max="2100" step=".01" value={s.currentYear} aria-label="연도 타임라인" onChange={e=>seek(Number(e.target.value))}/><div>{[2026,2040,2060,2080,2100].map(y=><Button key={y} onClick={()=>seek(y)}>{y}</Button>)}</div></div>
-   <div className="timeline-bottom"><div className="play-controls"><Button aria-label="이전 이벤트" onClick={()=>navigate(-1)}><SkipBack/></Button><Button className="play primary" aria-label={s.playing?'일시정지':'재생'} onClick={play}>{s.playing?<Pause/>:<Play/>}</Button><Button aria-label="다음 이벤트" onClick={()=>navigate(1)}><SkipForward/></Button><div className="speed">{[1,2,4,8].map(speed=><Button key={speed} chosen={s.speed===speed} onClick={()=>s.set({speed,presentation:false})}>{speed}×</Button>)}</div></div>
-    <div className="event-markers" aria-label="이벤트 목록">{events.map(e=><Button key={e.id} className="event-marker" aria-label={`${e.year} 이벤트`} title={`${e.year} · ${e.title}`} onClick={()=>showEvent(e)}>{e.year}<span className="event-tooltip" role="tooltip">{e.title}</span></Button>)}</div>
-    <Button className="presentation-button" chosen={s.presentation} onClick={()=>s.presentation?s.set({presentation:false,playing:false}):startPresentation()}>{s.presentation?`발표 ${fmt(s.presentationElapsed/60,1)}/10분`:'10분 발표 시작'}</Button>
-   </div>
-   {s.presentation&&<div className="presentation-status" role="status">{presentationAt(s.presentationElapsed).chapter} · {s.presentationCycle+1}회차 <progress max="600" value={s.presentationElapsed}/></div>}
-  </section>
+  <div className="presentation-bar">
+   <SmoothPanel className="timeline-dock" tone="blue" reverse aria-label="발표 조작">
+    <section className="climate-ribbon" aria-label="공통 기후 조건">
+     <nav className="scenario-buttons">{(Object.keys(MODES) as Mode[]).map((mode,i)=><Button key={mode} aria-label={`Scenario ${i+1}`} chosen={mode===s.climateScenario} onClick={()=>changeMode(mode)}><span>{i+1}</span>{MODES[mode].ko}</Button>)}</nav>
+     <div className="map-actions">
+      <Button aria-label="레이어와 이벤트" chosen={layersOpen} aria-expanded={layersOpen} onClick={()=>{setLayersOpen(!layersOpen);setResultsOpen(false);s.set({panel:null,selected:-1});setEvent(null)}}><Layers/>레이어·이벤트</Button>
+      <Button data-testid="effect-year" data-year={effect.year} disabled={!effect.hasDifference} title="현재 기후에서 계산된 침수 영향 차이가 가장 큰 연도" onClick={viewEffect}>효과 큰 해 · {effect.year}년</Button>
+      <Button onClick={focusDifference}>차이 지역 확대</Button>
+      <Button aria-label="네덜란드 전체" onClick={()=>{setCamera(national());s.set({selected:-1})}}>전역</Button>
+     </div>
+    </section>
+    <div className="timeline-bottom">
+     <div className="play-controls"><Button aria-label="이전 이벤트" onClick={()=>navigate(-1)}><SkipBack/></Button><Button className="play primary" aria-label={s.playing?'일시정지':'재생'} onClick={play}>{s.playing?<Pause/>:<Play/>}</Button><Button aria-label="다음 이벤트" onClick={()=>navigate(1)}><SkipForward/></Button><div className="speed">{[1,2,4,8].map(speed=><Button key={speed} chosen={s.speed===speed} onClick={()=>s.set({speed,presentation:false})}>{speed}×</Button>)}</div></div>
+     <div className="timeline-line"><input type="range" min="2026" max="2100" step=".01" value={s.currentYear} aria-label="연도 타임라인" onChange={e=>seek(Number(e.target.value))}/><div>{[2026,2040,2060,2080,2100].map(y=><Button key={y} onClick={()=>seek(y)}>{y}</Button>)}</div></div>
+     <Button className="presentation-button" chosen={s.presentation} onClick={()=>s.presentation?s.set({presentation:false,playing:false}):startPresentation()}>{s.presentation?`발표 ${fmt(s.presentationElapsed/60,1)}/10분`:'10분 발표 시작'}</Button>
+    </div>
+    <div className="layer-controls" hidden={!layersOpen} data-testid="layer-panel">
+     <header><strong>지도 레이어와 이벤트</strong><Button aria-label="레이어 닫기" onClick={()=>setLayersOpen(false)}><X/></Button></header>
+     <label><input type="checkbox" aria-label="잠재 위험" checked={s.potential} onChange={e=>s.set({potential:e.target.checked})}/><i className="risk-key"/><span>잠재 위험<small>제방 미고려 지형 · 실제 침수 아님</small></span></label>
+     <div className="legend-item"><i className="water-key"/><span>모형 영구 침수<small>계산된 침수 셀의 누적 이력</small></span></div>
+     <label><input type="checkbox" aria-label="일시 홍수" checked={s.temporary} onChange={e=>s.set({temporary:e.target.checked})}/><i className="temporary-key"/><span>일시 홍수<small>해당 연도 해일에 따른 모형 침수</small></span></label>
+     <label><input type="checkbox" aria-label="차이 강조" checked={s.difference} onChange={e=>s.set({difference:e.target.checked})}/><i className="difference-key"/><span>차이 강조<small>주황: 영향 ↑ · 보라: 영향 ↓</small></span></label>
+     <label><input type="checkbox" aria-label="정책 구역" checked={s.policyAreas} onChange={e=>s.set({policyAreas:e.target.checked})}/><i className="policy-key"/><span>정책 적용 구역<small>실제 행정경계 · 공사 위치 아님</small></span></label>
+     <nav>{['Rotterdam','Amsterdam'].map(name=><Button key={name} onClick={()=>{select(data.regions.findIndex(r=>r.name===name));setLayersOpen(false)}}>{name}</Button>)}</nav>
+     <strong>주요 이벤트</strong><div className="event-markers" aria-label="이벤트 목록">{events.map(e=><Button key={e.id} className="event-marker" aria-label={`${e.year} 이벤트`} title={`${e.year} · ${e.title}`} onClick={()=>{setLayersOpen(false);showEvent(e)}}>{e.year}<span className="event-tooltip" role="tooltip">{e.title}</span></Button>)}</div>
+    </div>
+    {s.presentation&&<div className="presentation-status" role="status">{presentationAt(s.presentationElapsed).chapter} · {s.presentationCycle+1}회차 <progress max="600" value={s.presentationElapsed}/></div>}
+   </SmoothPanel>
+   <SmoothPanel className="year-card" tone="blue" aria-label="현재 연도와 해수면">
+    <span className="year-label">시뮬레이션 연도</span><strong data-testid="current-year">{year}</strong>
+    <div className="sea-level" data-testid="sea-level"><span>해수면 <b>+{fmt(a.slr,2)}m</b></span><small>1995–2014 대비</small></div>
+   </SmoothPanel>
+  </div>
+  <p className="model-caption">{s.climateScenario==='extreme'?'방재 실패 시연 · 공식 전망 아님':'KNMI 해수면 앵커 · 침수는 탐색 모형'}<span>{s.difference?'주황: 상대 영향 ↑ · 보라: 상대 영향 ↓':s.potential?'청록 빗금: 잠재 노출 · 실제 침수 아님':'동일 해수면·해일 입력 · 영구 침수와 잠재 위험 구분'}</span></p>
   {s.mapOnly&&<div className="map-only-controls" data-testid="map-only-controls"><strong>{year}{event?' · 이벤트 정지':''}</strong><Button aria-label={s.playing?'지도 재생 정지':'지도 재생'} onClick={play}>{s.playing?<Pause/>:<Play/>}</Button><Button onClick={toggleMapOnly}>조작 보기 (M)</Button></div>}
   {error&&<div className="notice" role="alert">{error}<Button aria-label="안내 닫기" onClick={()=>setError('')}><X/></Button></div>}
-
  </main>;
 }
-
 function Sources(){return <div className="sources">
  <h3>실제 자료와 가정은 구분합니다</h3>
  <p>AHN/NAP 지형 · CBS 2024 인구 · Natural Earth 국경. 2025년 항공사진 © Samenwerkingsverband Beeldmateriaal / PDOK (CC BY 4.0), 주변 국가 NASA GIBS Blue Marble.</p>
