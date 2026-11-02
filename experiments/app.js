@@ -1,8 +1,8 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js?v=20261026-study-access2";
-import { getExperimentPlatform } from "../next/experiment/experiment-service.js?v=20261026-study-access2";
+import { getExperimentPlatform } from "../next/experiment/experiment-service.js?v=20261102-study-v4";
 import { isCareerStudy, isIntensiveStudy, intensiveDefaults, studyDefaults, validateStudyConfig } from "../next/experiment/notification-study.js";
 import { analyzeStudy, anonymousStudyExport, studyCsv, studyReport } from "../next/experiment/study-analysis.js";
-import { accountMarkup, adminMarkup, esc, loginMarkup, participantMarkup, planMarkup } from "./view.js?v=20261026-study-access2";
+import { accountMarkup, adminMarkup, esc, loginMarkup, participantMarkup, planMarkup } from "./view.js?v=20261102-study-v4";
 import { surveyMarkup } from "./survey.js";
 
 const root = document.querySelector("#study-app"), status = document.querySelector("#study-status");
