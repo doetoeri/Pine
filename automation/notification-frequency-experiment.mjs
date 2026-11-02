@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
-import { balancedSequences, isCareerStudy } from "../next/experiment/notification-study.js";
+import { balancedSequences, isCareerStudy, isIntensiveStudy } from "../next/experiment/notification-study.js";
 import {
   candidateIndexForSlot,
   canonicalSubscriptionIds,
@@ -139,12 +139,14 @@ function candidateDate(item = {}) {
   return match?.[0] || "";
 }
 
-async function classCandidates(root, classKey, date) {
+async function classCandidates(root, classKey, date, intensive = false) {
   const tomorrow = addDays(date, 1);
-  const [assignmentsSnap, eventsSnap, noticesSnap] = await Promise.all([
+  const [assignmentsSnap, eventsSnap, noticesSnap, academicSnap, mealSnap] = await Promise.all([
     root.collection("classAssignments").where("classKey","==",classKey).get(),
     root.collection("events").where("classKey","==",classKey).get(),
     root.collection("announcements").where("classKey","==",classKey).get(),
+    intensive ? root.collection("academicSchedules").where("date",">=",date).where("date","<=",addDays(date,7)).get() : Promise.resolve({ docs: [] }),
+    intensive ? root.collection("meals").where("date","==",date).get() : Promise.resolve({ docs: [] }),
   ]);
 
   const rows = [];
@@ -191,6 +193,25 @@ async function classCandidates(root, classKey, date) {
       due: date,
     });
   }
+  for (const doc of academicSnap.docs) {
+    const item = doc.data();
+    if (item.deleted || item.status === "draft") continue;
+    const due = candidateDate(item);
+    if (!due) continue;
+    const title = String(item.title || item.eventName || item.eventNm || item.AA_EVENT_NM || "").trim();
+    if (!title) continue;
+    rows.push({ key: `academic:${doc.id}`, category: "academic", title: "학교 학사일정",
+      body: title.slice(0, 180), targetRoute: "schedule", due });
+  }
+  for (const doc of mealSnap.docs) {
+    const item = doc.data();
+    if (item.deleted || item.date !== date) continue;
+    const raw = item.menu || item.dishes || [];
+    const menu = (Array.isArray(raw) ? raw.join(", ") : String(raw)).replace(/<[^>]*>/g, " ").trim();
+    rows.push({ key: `meal:${doc.id}`, category: "meal", title: "오늘의 급식",
+      body: menu ? menu.slice(0, 180) : "오늘의 급식 정보를 PinCon에서 확인해 보세요.",
+      targetRoute: "today", due: date });
+  }
   return rows.sort((a,b) => String(a.due).localeCompare(String(b.due)) || a.key.localeCompare(b.key));
 }
 
@@ -204,6 +225,26 @@ const FALLBACK_BY_SLOT = Object.freeze([
 ]);
 const CAREER_FALLBACK = Object.freeze({ key: "study-assignment-check", category: "assignment",
   title: "PinCon 수행평가 확인", body: "진행 중인 수행평가와 제출 기한, 필요한 자료를 확인해 보세요.", targetRoute: "assessments" });
+
+const INTENSIVE_FALLBACKS = Object.freeze([
+  { key: "v4:today", category: "academic", title: "오늘의 학사일정", body: "오늘의 학교·학급 일정을 PinCon에서 확인해 보세요.", targetRoute: "schedule" },
+  { key: "v4:meal", category: "meal", title: "오늘의 급식", body: "오늘의 급식 정보를 PinCon에서 확인해 보세요.", targetRoute: "today" },
+  { key: "v4:assignment", category: "assignment", title: "수행평가·과제 안내", body: "다가오는 수행평가와 과제 제출 기한을 확인해 보세요.", targetRoute: "assessments" },
+  { key: "v4:checkin", category: "check_in", title: "PinCon에 들어가 볼까요?", body: "오늘의 학급 정보와 공지를 PinCon에서 확인해 보세요.", targetRoute: "today" },
+  { key: "v4:upcoming", category: "academic", title: "다가오는 학사일정", body: "이번 주 학교 행사와 주요 일정을 확인해 보세요.", targetRoute: "schedule" },
+  { key: "v4:materials", category: "materials", title: "내일의 준비물", body: "내일의 준비물과 시간표를 PinCon에서 확인해 보세요.", targetRoute: "schedule" },
+].map(Object.freeze));
+function intensiveCandidate(slot, candidates, date) {
+  const tomorrow = addDays(date, 1);
+  const matching = slot.index === 0 ? candidates.filter((x) => (x.category === "academic" || x.category === "schedule") && x.due === date)
+    : slot.index === 1 ? candidates.filter((x) => x.category === "meal")
+    : slot.index === 2 ? candidates.filter((x) => x.category === "assignment")
+    : slot.index === 4 ? candidates.filter((x) => x.category === "academic" && x.due > date && x.due <= addDays(date,7))
+    : slot.index === 5 ? candidates.filter((x) => x.category === "materials" && x.due === tomorrow) : [];
+  const found = matching[0];
+  if (!found) return INTENSIVE_FALLBACKS[slot.index];
+  return { ...INTENSIVE_FALLBACKS[slot.index], key: found.key, body: found.body };
+}
 
 function eventRecord({
   anonymousParticipant, config, condition, period, type, notificationId: id, category, targetRoute = "", slotIndex = -1, now,
@@ -260,7 +301,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
   const preassignment = await preassignActiveAccounts(root, ready.config);
   const period = conditionFor(["LOW","MID","HIGH"], ready.config, now);
   const slot = currentSlot(now, ready.config);
-  if (period.phase !== "EXPERIMENT" || !slot) {
+  if (!(period.phase === "EXPERIMENT" || (isIntensiveStudy(ready.config) && period.phase === "PILOT")) || !slot) {
     return {
       active: true, sent: 0, phase: period.phase, slot: slot?.index ?? null,
       rosterAccounts: preassignment.total, preassigned: preassignment.assigned,
@@ -272,6 +313,9 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
     root.collection("notificationExperimentPreferences").get(),
   ]);
   const preferenceByAccount = new Map(preferences.docs.map((document) => [document.id, document.data()?.enabled !== false]));
+  const v4OptedIn = new Set(preferences.docs.filter((document) =>
+    document.data()?.enabled === true && Number(document.data()?.updatedAtMs || 0) >= Number(ready.config.createdAtMs || Infinity))
+    .map((document) => document.id));
   const accountOptOuts = new Set(preferences.docs
     .filter((document) => document.data()?.enabled === false)
     .map((document) => document.id));
@@ -290,6 +334,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       const data = document.data();
       const profile = preassignment.accounts.get(String(data?.ownerUid || ""));
       return profile && !accountOptOuts.has(String(data?.ownerUid || ""))
+        && (!isIntensiveStudy(ready.config) || v4OptedIn.has(String(data?.ownerUid || "")))
         && String(profile.classKey || "") === String(data?.classKey || "")
         && (!targetClassKeys.size || targetClassKeys.has(String(data?.classKey || "")));
     });
@@ -320,7 +365,7 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
 
     let candidates = candidateCache.get(classKey);
     if (!candidates) {
-      candidates = await classCandidates(root, classKey, date);
+      candidates = await classCandidates(root, classKey, date, isIntensiveStudy(ready.config));
       candidateCache.set(classKey, candidates);
     }
     const relevant = isCareerStudy(ready.config) ? candidates.filter((item) => item.key.startsWith("assignment:"))
@@ -334,7 +379,8 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
       candidateCount: relevant.length,
       config: ready.config,
     });
-    const candidate = relevant[candidateIndex] || (isCareerStudy(ready.config) ? CAREER_FALLBACK : FALLBACK_BY_SLOT[slot.index]);
+    const candidate = isIntensiveStudy(ready.config) ? intensiveCandidate(slot, candidates, date)
+      : relevant[candidateIndex] || (isCareerStudy(ready.config) ? CAREER_FALLBACK : FALLBACK_BY_SLOT[slot.index]);
     if (!candidate) {
       skippedNoCandidate += 1;
       continue;
@@ -367,7 +413,9 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
           tx.get(root.collection("notificationExperimentPreferences").doc(uid)),
         ]);
         if (latest.data()?.status !== "ACTIVE" || latest.data()?.version !== ready.config.version
-          || flag.data()?.enabled !== true || preference.data()?.enabled === false) return null;
+          || flag.data()?.enabled !== true || preference.data()?.enabled === false
+          || (isIntensiveStudy(ready.config) && !(preference.data()?.enabled === true
+            && Number(preference.data()?.updatedAtMs || 0) >= Number(ready.config.createdAtMs || Infinity)))) return null;
       }
       const previous = snapshot.exists ? snapshot.data() : null;
       if (!canRetryReceipt(previous)) return null;
@@ -427,7 +475,8 @@ export async function dispatchNotificationFrequencyExperiment({ db, messaging, n
           title: candidate.title,
           body: candidate.body || "PinCon에서 확인해 주세요.",
           tag: id,
-          link: isCareerStudy(ready.config) ? "https://pincon.app/new/" : `https://pincon.app/next/#${candidate.targetRoute}`,
+          link: isIntensiveStudy(ready.config) ? `https://pincon.app/next/#${candidate.targetRoute}`
+            : isCareerStudy(ready.config) ? "https://pincon.app/new/" : `https://pincon.app/next/#${candidate.targetRoute}`,
           route: candidate.targetRoute,
           notificationId: id,
           experimentId: EXPERIMENT_ID,

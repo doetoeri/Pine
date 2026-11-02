@@ -1,6 +1,6 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js?v=20261026-study-access2";
 import { getExperimentPlatform } from "../next/experiment/experiment-service.js?v=20261026-study-access2";
-import { isCareerStudy, studyDefaults, validateStudyConfig } from "../next/experiment/notification-study.js";
+import { isCareerStudy, isIntensiveStudy, intensiveDefaults, studyDefaults, validateStudyConfig } from "../next/experiment/notification-study.js";
 import { analyzeStudy, anonymousStudyExport, studyCsv, studyReport } from "../next/experiment/study-analysis.js";
 import { accountMarkup, adminMarkup, esc, loginMarkup, participantMarkup, planMarkup } from "./view.js?v=20261026-study-access2";
 import { surveyMarkup } from "./survey.js";
@@ -35,7 +35,8 @@ function snapshotDraft() {
   const form = root.querySelector("#study-design");
   if (!form || form.querySelector("fieldset")?.disabled) return draft || bundle.config;
   const fd = new FormData(form);
-  return { ...studyDefaults(gateway.snapshot().profile?.classKey || "1-8"), studyKind: fd.get("studyKind"),
+  return { ...intensiveDefaults(gateway.snapshot().profile?.classKey || "1-8"), studyKind: fd.get("studyKind"),
+    pilotDate: fd.get("pilotDate"), consentRecorded: fd.get("consentRecorded") === "on",
     startDate: fd.get("startDate"), baselineDays: Number(fd.get("baselineDays")), periodDays: Number(fd.get("periodDays")),
     targetClassKeys: [...new Set(String(fd.get("targetClassKeys") || "").split(",").map((v) => v.trim()).filter(Boolean))],
     excludedDates: [...new Set(String(fd.get("excludedDates") || "").split(",").map((v) => v.trim()).filter(Boolean))],
@@ -45,7 +46,7 @@ function noteValues() {
   const form = root.querySelector("#study-notes");
   return form ? Object.fromEntries(new FormData(form)) : (bundle.notes || {});
 }
-const designKey = (value = {}) => JSON.stringify([value.studyKind, value.startDate, value.baselineDays, value.periodDays,
+const designKey = (value = {}) => JSON.stringify([value.design, value.studyKind, value.startDate, value.pilotDate, value.consentRecorded, value.baselineDays, value.periodDays,
   value.targetClassKeys, value.excludedDates, value.schoolDaysOnly]);
 async function load() {
   loadError = "";
@@ -70,7 +71,7 @@ async function load() {
     if (admin) {
       [bundle, roster] = await timeout(Promise.all([platform.adminReadNotificationStudy(access), platform.adminStudyRoster()]), 45_000);
       bundle.canPauseUi = access.schoolAdmin;
-      if (!draft && !isCareerStudy(bundle.config)) draft = studyDefaults(gateway.snapshot().profile?.classKey || "1-8");
+      if (!draft && !isCareerStudy(bundle.config)) draft = intensiveDefaults(gateway.snapshot().profile?.classKey || "1-8");
     } else {
       [enabled, surveys] = await timeout(Promise.all([platform.notificationExperimentEnabled(), platform.ownNotificationSurveys()]));
     }
@@ -115,6 +116,7 @@ async function run(action) {
     if (!globalThis.Notification) throw new Error("이 브라우저에서 알림을 지원하는지 확인해 주세요.");
     await gateway.repository.enableNotifications({ ...gateway.repository.notificationPreferences(), notificationExperiment: true });
     await platform.setNotificationExperimentEnabled(true); enabled = true;
+    await platform.start();
     toast("이 기기의 푸시를 등록했어요. 서버 점검 뒤 관리자 화면에도 반영돼요."); return;
   }
   if (action === "device-test") {
@@ -126,7 +128,7 @@ async function run(action) {
   }
   if (action === "toggle") { const result = await platform.setNotificationExperimentEnabled(!enabled); enabled = result.enabled; await platform.start(); toast(enabled ? "연구 알림 수신을 다시 허용했어요." : "모든 기기에서 연구 알림 수신을 중지했어요."); return; }
   if (!admin) throw new Error("연구 운영은 대상 학급 관리자 또는 학교 관리자 계정에서 할 수 있어요.");
-  if (action === "new-run") { newRun = true; draft = studyDefaults(gateway.snapshot().profile?.classKey || "1-8"); toast("새 설계를 작성해 주세요. 저장하면 새 버전으로 보관돼요."); return; }
+  if (action === "new-run") { newRun = true; draft = intensiveDefaults(gateway.snapshot().profile?.classKey || "1-8"); toast("새 설계를 작성해 주세요. 저장하면 새 버전으로 보관돼요."); return; }
   if (action === "pause-ui") { await platform.adminSetExperiment("pincon-next-ui", { status: "PAUSED", publicBetaEnabled: false }); await load(); toast("이전 UI 실험을 일시정지했어요."); return; }
   if (action === "prepare") {
     draft = validateStudyConfig(snapshotDraft());
@@ -142,8 +144,9 @@ async function run(action) {
     if (draft && designKey(draft) !== designKey(bundle.config)) throw new Error("수정한 설계를 먼저 저장해 주세요.");
     const healthAge = Date.now() - Number(bundle.runtime?.checkedAtMs || 0);
     if (bundle.runtime?.status !== "ok" || healthAge > 75 * 60_000) throw new Error("자동 발송 서버의 최근 정상 점검이 필요해요. ‘발송·반응’에서 새로고침한 뒤 확인해 주세요.");
+    if (isIntensiveStudy(bundle.config) && bundle.config.consentRecorded !== true) throw new Error("담당 교사 확인과 학생들의 사전 동의를 먼저 확인해 주세요.");
     await platform.adminSetNotificationStudyState("ACTIVE", bundle.config.version);
-    await load(); tab = "delivery"; toast("실험을 시작했어요. 설정된 기간과 시간대에 자동 발송하며 기준선에는 행동 기록만 수집해요."); return;
+    await load(); tab = "delivery"; toast(isIntensiveStudy(bundle.config) ? "실험을 시작했어요. 오늘은 시범 발송, 정식 비교는 설정한 시작일부터 진행해요. 참여자가 새로 수신 동의해야 발송됩니다." : "실험을 시작했어요. 설정된 기간과 시간대에 자동 발송하며 기준선에는 행동 기록만 수집해요."); return;
   }
   if (action === "pause" || action === "complete") {
     if (action === "complete" && !confirm("실험을 종료할까요? 수집한 결과와 메모는 유지돼요.")) return;

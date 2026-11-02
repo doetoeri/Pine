@@ -1,4 +1,4 @@
-import { CONDITIONS, FREQUENCY, dateKey, studyCalendar } from "./notification-study.js";
+import { CONDITIONS, FREQUENCY, frequencyFor, isIntensiveStudy, dateKey, studyCalendar } from "./notification-study.js";
 
 const INFORMATION = new Set(["assignment_view", "schedule_view", "notice_view", "material_view", "meal_view", "target_information_view"]);
 const mean = (values) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
@@ -10,6 +10,7 @@ const currentVersion = (rows, config) => rows.filter((row) => Number(row.experim
 // control and students who never open the app. Future periods have null rates.
 export function analyzeStudy({ config = {}, assignments = [], events = [], receipts = [], surveys = [], truncated = false } = {}, now = new Date()) {
   const today = dateKey(now);
+  const intensive = isIntensiveStudy(config), frequency = frequencyFor(config);
   const calendar = studyCalendar(config);
   const stopAt = config.status === "PAUSED" ? Number(config.pausedAtMs || 0)
     : config.status === "COMPLETED" ? Number(config.endedAtMs || 0) : 0;
@@ -32,7 +33,7 @@ export function analyzeStudy({ config = {}, assignments = [], events = [], recei
     if (!participant || seenParticipants.has(participant)) continue;
     seenParticipants.add(participant);
     const ownEvents = activeEvents.filter((event) => event.anonymousParticipant === participant);
-    for (let period = 1; period <= 3; period++) {
+    for (let period = 1; period <= (intensive ? 1 : 3); period++) {
       const condition = assignment.sequence?.[period - 1];
       if (!CONDITIONS.includes(condition)) continue;
       const days = new Set(daysByPeriod.get(period).map((row) => row.date));
@@ -49,7 +50,7 @@ export function analyzeStudy({ config = {}, assignments = [], events = [], recei
         .sort((a, b) => Number(b.submittedAtMs) - Number(a.submittedAtMs))[0];
       const baselineEvents = ownEvents.filter((event) => dateState.get(dateKey(new Date(event.timestampMs)))?.phase === "BASELINE");
       const baselineDays = new Set(baselineEvents.filter((event) => INFORMATION.has(event.eventType)).map((event) => dateKey(new Date(event.timestampMs))));
-      rows.push({ anonymousParticipant: participant, period, condition, dailyNotifications: FREQUENCY[condition],
+      rows.push({ anonymousParticipant: participant, period, condition, dailyNotifications: frequency[condition],
         exposureDays: days.size, activeDays: sessionDays.size, informationDays: viewDays.size,
         activeDayRate: ratio(sessionDays.size, days.size), informationDayRate: ratio(viewDays.size, days.size),
         baselineInformationDayRate: ratio(baselineDays.size, daysByPeriod.get(0).length),
@@ -68,7 +69,7 @@ export function analyzeStudy({ config = {}, assignments = [], events = [], recei
     const own = rows.filter((row) => row.condition === condition);
     const observed = own.filter((row) => row.exposureDays > 0);
     const sent = own.reduce((total, row) => total + row.notificationCount, 0);
-    return { condition, dailyNotifications: FREQUENCY[condition], assigned: own.length,
+    return { condition, dailyNotifications: frequency[condition], assigned: own.length,
       observed: observed.length, exposureDays: observed.reduce((total, row) => total + row.exposureDays, 0),
       activeDayRate: mean(observed.map((row) => row.activeDayRate)), informationDayRate: mean(observed.map((row) => row.informationDayRate)),
       notificationCount: sent, clickRate: ratio(own.reduce((total, row) => total + row.clickCount, 0), sent),
@@ -97,8 +98,8 @@ export function anonymousStudyExport(bundle, now = new Date()) {
   const { config = {} } = bundle;
   const analysis = analyzeStudy(bundle, now);
   const participants = new Set(analysis.rows.map((row) => row.anonymousParticipant));
-  return { schemaVersion: 3, exportedAt: now.toISOString(),
-    design: { version: config.version, studyMode: config.studyMode, studyKind: config.studyKind, startDate: config.startDate,
+  return { schemaVersion: isIntensiveStudy(config) ? 4 : 3, exportedAt: now.toISOString(),
+    design: { version: config.version, studyMode: config.studyMode, design: config.design, pilotDate: config.pilotDate, studyKind: config.studyKind, startDate: config.startDate,
       baselineDays: config.baselineDays, periodDays: config.periodDays, schoolDaysOnly: config.schoolDaysOnly,
       excludedDates: config.excludedDates || [], frequency: config.frequency, status: config.status },
     analysis,
@@ -115,7 +116,11 @@ export function anonymousStudyExport(bundle, now = new Date()) {
 export function studyReport(bundle, now = new Date()) {
   const data = analyzeStudy(bundle, now), config = bundle.config || {};
   const pct = (value) => Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : "산출 불가";
-  let report = `# PinCon 진로 탐구 기록\n\n주제: 알림은 많을수록 효과적인가?\n기록 시각: ${now.toISOString()}\n실험 버전: ${config.version || "미설정"} · ${config.studyKind === "pilot" ? "예비" : "정식"}\n\n## 1차시 · 설계\n\n- 독립변인: 하루 비필수 알림 0·1·3회\n- 설계: 6개 순서 균형 무작위 교차 배정, 동일 참가자가 세 조건을 경험\n- 기간: ${config.startDate || "미설정"} 시작, 기준선 ${config.baselineDays ?? "미정"}일 + 조건별 ${config.periodDays ?? "미정"}일\n- 통제: 같은 PinCon 정보 접근, 수업 밖 08·17·19시, 중요 공지는 모든 조건에 동일\n- 주요 지표: 참가자별 정보 확인일 / 경과 실험일의 평균\n- 보조 지표: 이용일 비율, 알림별 클릭률, 유용성·피로도 설문\n- 나의 가설 및 이유: [직접 작성]\n- 선행연구 출처·핵심 내용·설계에 반영한 점: [직접 조사·작성]\n\n## 2차시 · 관측과 분석\n\n| 조건 | 관측 참가자 | 정보 확인일 비율 | 이용일 비율 | 발송 수락 | 클릭률 | 설문 응답 | 피로도(1~5) |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n${data.groups.map((g) => `| ${g.dailyNotifications}회 | ${g.observed} | ${pct(g.informationDayRate)} | ${pct(g.activeDayRate)} | ${g.notificationCount} | ${pct(g.clickRate)} | ${g.surveyCount} | ${g.annoyanceScore?.toFixed(2) ?? "미응답"} |`).join("\n")}\n\n기록 상태: ${data.warnings.join(" / ") || "조회된 기록 기준"}\n\n## 3차시 · 해석과 개선안\n\n- 실제 차이를 관찰한 점: [직접 작성]\n- 나의 가설과 일치하거나 달랐던 점: [직접 작성]\n- PinCon 알림 개선안과 산업경영공학·UI 설계의 연결: [직접 작성]\n- 한계: 한 학급의 작은 표본, 같은 사람의 반복 관측, 요일·기간 효과, 푸시 미등록·설문 미응답, 수신 계측 누락\n- 0회 조건의 클릭률은 분모가 없어 산출하지 않는다. FCM 수락은 실제 도착이나 정독의 증거가 아니다.\n- 본 기록만으로 통계적 유의성이나 인과관계를 확정하지 않는다.\n`;
+  const intensive = isIntensiveStudy(config);
+  let report = `# PinCon 진로 탐구 기록\n\n주제: 알림은 많을수록 효과적인가?\n기록 시각: ${now.toISOString()}\n실험 버전: ${config.version || "미설정"} · ${config.studyKind === "pilot" ? "예비" : "정식"}\n\n## 1차시 · 설계\n\n- 독립변인: 하루 비필수 알림 ${intensive ? "0·3·6" : "0·1·3"}회
+- 설계: ${intensive ? "3개 집단 병렬 무작위 배정, 각 참가자가 한 조건을 4일간 경험" : "6개 순서 균형 무작위 교차 배정, 동일 참가자가 세 조건을 경험"}
+- 기간: ${config.startDate || "미설정"} 시작, 기준선 ${config.baselineDays ?? "미정"}일 + ${intensive ? "정식 비교" : "조건별"} ${config.periodDays ?? "미정"}일${intensive ? ` (시범 운영 ${config.pilotDate}, 정식 분석 제외)` : ""}
+- 통제: 같은 PinCon 정보 접근, ${intensive ? "08:00·13:10·17:10·18:20·19:30·20:40" : "08·17·19시"}, 중요 공지는 모든 조건에 동일\n- 주요 지표: 참가자별 정보 확인일 / 경과 실험일의 평균\n- 보조 지표: 이용일 비율, 알림별 클릭률, 유용성·피로도 설문\n- 나의 가설 및 이유: [직접 작성]\n- 선행연구 출처·핵심 내용·설계에 반영한 점: [직접 조사·작성]\n\n## 2차시 · 관측과 분석\n\n| 조건 | 관측 참가자 | 정보 확인일 비율 | 이용일 비율 | 발송 수락 | 클릭률 | 설문 응답 | 피로도(1~5) |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n${data.groups.map((g) => `| ${g.dailyNotifications}회 | ${g.observed} | ${pct(g.informationDayRate)} | ${pct(g.activeDayRate)} | ${g.notificationCount} | ${pct(g.clickRate)} | ${g.surveyCount} | ${g.annoyanceScore?.toFixed(2) ?? "미응답"} |`).join("\n")}\n\n기록 상태: ${data.warnings.join(" / ") || "조회된 기록 기준"}\n\n## 3차시 · 해석과 개선안\n\n- 실제 차이를 관찰한 점: [직접 작성]\n- 나의 가설과 일치하거나 달랐던 점: [직접 작성]\n- PinCon 알림 개선안과 산업경영공학·UI 설계의 연결: [직접 작성]\n- 한계: 한 학급의 작은 표본, ${intensive ? "병렬 집단의 기존 이용 성향 차이" : "같은 사람의 반복 관측"}, 요일·기간 효과, 푸시 미등록·설문 미응답, 수신 계측 누락\n- 0회 조건의 클릭률은 분모가 없어 산출하지 않는다. FCM 수락은 실제 도착이나 정독의 증거가 아니다.\n- 본 기록만으로 통계적 유의성이나 인과관계를 확정하지 않는다.\n`;
   const notes = bundle.notes || {};
   const replacements = [
     ["- 나의 가설 및 이유: [직접 작성]", "- 나의 가설 및 이유: ", notes.hypothesis],

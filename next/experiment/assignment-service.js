@@ -3,7 +3,7 @@ import {
   NOTIFICATION_CONDITIONS,
   STABLE_UI_VARIANT,
 } from "./constants.js";
-import { isCareerStudy, studyPeriodAt } from "./notification-study.js";
+import { isCareerStudy, isIntensiveStudy, studyPeriodAt } from "./notification-study.js";
 
 export function hash32(value) {
   let hash = 2166136261;
@@ -200,7 +200,7 @@ export function notificationPeriodAt(config = {}, now = new Date()) {
 
 export function notificationConditionFor({ assignment, config, now = new Date() } = {}) {
   const periodInfo = notificationPeriodAt(config, now);
-  if (periodInfo.phase !== "EXPERIMENT") return { ...periodInfo, condition: "" };
+  if (periodInfo.phase !== "EXPERIMENT" && !(isIntensiveStudy(config) && periodInfo.phase === "PILOT")) return { ...periodInfo, condition: "" };
   const sequence = Array.isArray(assignment?.sequence)
     && assignment.sequence.length === 3
     && assignment.sequence.every((item) => NOTIFICATION_CONDITIONS.includes(item))
@@ -208,6 +208,6 @@ export function notificationConditionFor({ assignment, config, now = new Date() 
     : [];
   return {
     ...periodInfo,
-    condition: sequence[periodInfo.period - 1] || "",
+    condition: sequence[isIntensiveStudy(config) ? 0 : periodInfo.period - 1] || "",
   };
 }

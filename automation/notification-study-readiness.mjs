@@ -1,5 +1,5 @@
 import { canonicalSubscriptionIds } from "./notification-frequency-core.mjs";
-import { isCareerStudy } from "../next/experiment/notification-study.js";
+import { isCareerStudy, isIntensiveStudy } from "../next/experiment/notification-study.js";
 
 export async function retireLegacyNotificationStudy(db) {
   const root = db.collection("schools").doc("gochon-high");
@@ -21,12 +21,17 @@ export async function retireLegacyNotificationStudy(db) {
 // Publish only per-account readiness. Never expose push tokens to the browser.
 export async function inspectNotificationReadiness(db, now = new Date()) {
   const root = db.collection("schools").doc("gochon-high");
-  const [users, subscriptions, preferences] = await Promise.all([
+  const [users, subscriptions, preferences, study] = await Promise.all([
     root.collection("users").where("status", "==", "ACTIVE").get(),
     root.collection("pushSubscriptions").get(),
     root.collection("notificationExperimentPreferences").get(),
+    root.collection("experiments").doc("notification-frequency").get(),
   ]);
-  const prefs = new Map(preferences.docs.map((doc) => [doc.id, doc.data().enabled !== false]));
+  const config = study.data() || {};
+  const intensive = isIntensiveStudy(config);
+  const prefs = new Map(preferences.docs.map((doc) => [doc.id,
+    intensive ? doc.data().enabled === true && Number(doc.data().updatedAtMs || 0) >= Number(config.createdAtMs || Infinity)
+      : doc.data().enabled !== false]));
   const raw = subscriptions.docs.map((doc) => {
     const data = doc.data();
     return { ...data, id: doc.id, preferences: { ...data.preferences,
@@ -37,7 +42,7 @@ export async function inspectNotificationReadiness(db, now = new Date()) {
   let ready = 0, optedOut = 0;
   const rows = users.docs.map((doc) => {
     const profile = doc.data(), device = byOwner.get(doc.id);
-    const enabled = prefs.get(doc.id) !== false;
+    const enabled = intensive ? prefs.get(doc.id) === true : prefs.get(doc.id) !== false;
     const pushRegistered = Boolean(enabled && device && device.classKey === profile.classKey);
     if (!enabled) optedOut++;
     if (pushRegistered) ready++;

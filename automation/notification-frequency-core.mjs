@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { isCareerStudy, sequenceForStudy, studyPeriodAt, studySlots, STUDY_SLOTS } from "../next/experiment/notification-study.js";
+import { isCareerStudy, isIntensiveStudy, sequenceForStudy, studyPeriodAt, studySlots, STUDY_SLOTS, INTENSIVE_SLOTS } from "../next/experiment/notification-study.js";
 
 export const CONDITIONS = Object.freeze(["LOW", "MID", "HIGH"]);
 export const SEQUENCES = Object.freeze([
@@ -86,12 +86,14 @@ export function conditionFor(sequence = [], config = {}, now = new Date()) {
   const info = periodFor(config, now);
   return {
     ...info,
-    condition: info.phase === "EXPERIMENT" ? String(sequence[info.period - 1] || "") : "",
+    condition: (info.phase === "EXPERIMENT" || (isIntensiveStudy(config) && info.phase === "PILOT"))
+      ? String(sequence[isIntensiveStudy(config) ? 0 : info.period - 1] || "") : "",
   };
 }
 
 export function dailyBudget(condition, config = {}) {
   const defaults = { LOW: 0, MID: 1, HIGH: 3 };
+  if (isIntensiveStudy(config)) return ({ LOW: 0, MID: 3, HIGH: 6 })[condition] ?? 0;
   if (isCareerStudy(config)) return defaults[condition] ?? 0;
   const field = condition === "LOW" ? "lowPerDay" : condition === "MID" ? "midPerDay" : "highPerDay";
   return Math.max(0, Math.min(4, Math.trunc(Number(config?.frequency?.[field] ?? defaults[condition] ?? 0))));
@@ -106,6 +108,10 @@ export const SLOTS = Object.freeze([
 
 export function currentSlot(now = new Date(), config = {}) {
   const clock = kstClock(now);
+  if (isIntensiveStudy(config)) {
+    return INTENSIVE_SLOTS.find((slot) => slot.hour === clock.hour
+      && clock.minute >= slot.minute && clock.minute < Math.min(60, slot.minute + 20)) || null;
+  }
   if (clock.minute > 55) return null;
   return (isCareerStudy(config) ? STUDY_SLOTS : SLOTS).find((slot) => slot.hour === clock.hour) || null;
 }
@@ -131,7 +137,7 @@ export function plannedSlotIndexes({
   condition = "",
   config = {},
 } = {}) {
-  if (isCareerStudy(config)) return studySlots({ anonymousParticipant, date, period, condition });
+  if (isCareerStudy(config)) return studySlots({ anonymousParticipant, date, period, condition, config });
   const budget = dailyBudget(condition, config);
   const plans = SLOT_PLANS[budget] || SLOT_PLANS[0];
   if (plans.length === 1) return [...plans[0]];
