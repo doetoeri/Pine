@@ -42,7 +42,7 @@ await Promise.all([
 ]);
 
 async function startExperiments() {
-  const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20261026-study3");
+  const { initExperimentPlatform, reportDataGatewaySnapshot } = await import("./experiment/bootstrap.js?v=20261102-study-v4");
   const experimentPlatform = await initExperimentPlatform();
   if (localStorage.getItem("pincon-experiment-login-failure-pending-v1") === "1") {
     experimentPlatform.log("login_failure", { errorType: "account_gate", source: "previous_session" });
