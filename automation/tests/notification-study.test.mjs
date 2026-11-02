@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { dispatchNotificationFrequencyExperiment } from "../notification-frequency-experiment.mjs";
 import { inspectNotificationReadiness, retireLegacyNotificationStudy } from "../notification-study-readiness.mjs";
-import { studyDefaults } from "../../next/experiment/notification-study.js";
+import { studyDefaults, intensiveDefaults, studyPeriodAt, studyCalendar } from "../../next/experiment/notification-study.js";
 
 // A document/transaction adapter exercises the real dispatcher without any
 // production credentials or network sends. Transactions serialize claims.
@@ -118,4 +118,44 @@ test("release retires the obsolete active experiment once and preserves its assi
   assert.equal(f.db.rows.get(`${ROOT}/experiments/notification-frequency`).status, "PAUSED");
   assert.equal(f.db.rows.get(`${ROOT}/experiments/notification-frequency/runs/legacy-v2`).assignments.length, 2);
   assert.equal(await retireLegacyNotificationStudy(f.db), false);
+});
+
+function intensiveFixture() {
+  const f = fixture();
+  const config = { ...intensiveDefaults("1-8", new Date("2026-11-02T10:00:00+09:00")),
+    status: "ACTIVE", version: 4, createdAtMs: Date.parse("2026-11-02T11:00:00+09:00"),
+    activeStartedAtMs: Date.parse("2026-11-02T12:00:00+09:00"), consentRecorded: true };
+  f.db.rows.set(`${ROOT}/experiments/notification-frequency`, config);
+  for (const [uid, condition] of [["uid-low","LOW"],["uid-high","HIGH"]]) {
+    const row = f.db.rows.get(`${ROOT}/experiments/notification-frequency/assignments/${uid}`);
+    row.experimentVersion = 4;
+    row.sequence = condition === "HIGH" ? ["HIGH","LOW","MID"] : ["LOW","MID","HIGH"];
+  }
+  return f;
+}
+test("v4 has a pilot day outside the four-day 0/3/6 comparison", () => {
+  const config = intensiveFixture().db.rows.get(`${ROOT}/experiments/notification-frequency`);
+  assert.equal(studyPeriodAt(config, new Date("2026-11-02T13:10:00+09:00")).phase, "PILOT");
+  assert.deepEqual(studyCalendar(config).map((row) => row.date),
+    ["2026-11-03","2026-11-04","2026-11-05","2026-11-06"]);
+});
+test("v4 requires fresh explicit consent and sends only remaining pilot slots", async () => {
+  const f = intensiveFixture();
+  const t = (day,hour,minute) => new Date(`2026-11-${day}T${hour}:${minute}:00+09:00`);
+  await dispatchNotificationFrequencyExperiment({ ...f, now: t("02","13","10") });
+  assert.equal(f.sent.length, 0);
+  f.db.rows.set(`${ROOT}/notificationExperimentPreferences/uid-high`,
+    { enabled: true, updatedAtMs: Date.parse("2026-11-02T12:30:00+09:00") });
+  for (const [hour,minute] of [["13","10"],["17","10"],["18","20"],["19","30"],["20","40"]]) {
+    await dispatchNotificationFrequencyExperiment({ ...f, now: t("02",hour,minute) });
+  }
+  assert.equal(f.sent.length, 5);
+  assert.deepEqual(f.sent.map((row) => Number(row.data.slotIndex)), [1,2,3,4,5]);
+  await dispatchNotificationFrequencyExperiment({ ...f, now: t("02","20","50") });
+  assert.equal(f.sent.length, 5);
+  for (const [hour,minute] of [["08","00"],["13","10"],["17","10"],["18","20"],["19","30"],["20","40"]]) {
+    await dispatchNotificationFrequencyExperiment({ ...f, now: t("03",hour,minute) });
+  }
+  assert.equal(f.sent.length, 11);
+  assert.ok(f.sent.every((row) => row.data.link.startsWith("https://pincon.app/next/#")));
 });
