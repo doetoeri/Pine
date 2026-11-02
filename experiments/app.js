@@ -116,6 +116,7 @@ async function run(action) {
     if (!globalThis.Notification) throw new Error("이 브라우저에서 알림을 지원하는지 확인해 주세요.");
     await gateway.repository.enableNotifications({ ...gateway.repository.notificationPreferences(), notificationExperiment: true });
     await platform.setNotificationExperimentEnabled(true); enabled = true;
+    await platform.start();
     toast("이 기기의 푸시를 등록했어요. 서버 점검 뒤 관리자 화면에도 반영돼요."); return;
   }
   if (action === "device-test") {
