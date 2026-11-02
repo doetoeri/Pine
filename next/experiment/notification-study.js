@@ -2,6 +2,9 @@
 export const STUDY_MODE = "career-v3";
 export const CONDITIONS = Object.freeze(["LOW", "MID", "HIGH"]);
 export const FREQUENCY = Object.freeze({ LOW: 0, MID: 1, HIGH: 3 });
+export const INTENSIVE_FREQUENCY = Object.freeze({ LOW: 0, MID: 3, HIGH: 6 });
+export const isIntensiveStudy = (config) => config?.studyMode === STUDY_MODE && config?.design === "parallel-v4";
+export const frequencyFor = (config) => isIntensiveStudy(config) ? INTENSIVE_FREQUENCY : FREQUENCY;
 export const SEQUENCES = Object.freeze([
   ["LOW", "MID", "HIGH"], ["MID", "HIGH", "LOW"], ["HIGH", "LOW", "MID"],
   ["LOW", "HIGH", "MID"], ["HIGH", "MID", "LOW"], ["MID", "LOW", "HIGH"],
@@ -11,6 +14,14 @@ export const STUDY_SLOTS = Object.freeze([
   Object.freeze({ index: 2, hour: 17, categoryHint: "assignment" }),
   Object.freeze({ index: 3, hour: 19, categoryHint: "materials" }),
 ]);
+export const INTENSIVE_SLOTS = Object.freeze([
+  { index: 0, hour: 8, minute: 0, categoryHint: "academic" },
+  { index: 1, hour: 13, minute: 10, categoryHint: "meal" },
+  { index: 2, hour: 17, minute: 10, categoryHint: "assignment" },
+  { index: 3, hour: 18, minute: 20, categoryHint: "check_in" },
+  { index: 4, hour: 19, minute: 30, categoryHint: "academic_upcoming" },
+  { index: 5, hour: 20, minute: 40, categoryHint: "materials" },
+].map(Object.freeze));
 export const DAY_MS = 86_400_000;
 export const isCareerStudy = (config) => config?.studyMode === STUDY_MODE;
 export const dateKey = (now = new Date()) => new Date(now.getTime() + 9 * 3_600_000).toISOString().slice(0, 10);
@@ -39,7 +50,9 @@ export function balancedSequences(uids, seed) {
     return [uid, { index, sequence: [...SEQUENCES[index]] }];
   }));
 }
-export function studySlots({ anonymousParticipant = "", date = "", period = 0, condition = "" } = {}) {
+export function studySlots({ anonymousParticipant = "", date = "", period = 0, condition = "", config = {} } = {}) {
+  if (isIntensiveStudy(config)) return condition === "HIGH" ? INTENSIVE_SLOTS.map((slot) => slot.index)
+    : condition === "MID" ? [0, 2, 5] : [];
   if (condition === "HIGH") return STUDY_SLOTS.map((slot) => slot.index);
   if (condition !== "MID") return [];
   return [STUDY_SLOTS[hash(`${anonymousParticipant}:${date}:${period}:mid-slot`) % 3].index];
@@ -54,7 +67,7 @@ export function studyCalendar(config = {}) {
   if (!validDate(config.startDate)) return [];
   const baseline = Math.max(0, Math.min(14, Math.trunc(Number(config.baselineDays ?? 2))));
   const duration = Math.max(1, Math.min(14, Math.trunc(Number(config.periodDays ?? 4))));
-  const total = baseline + duration * 3;
+  const total = baseline + duration * (isIntensiveStudy(config) ? 1 : 3);
   const rows = [];
   for (let offset = 0; offset < 730 && rows.length < total; offset++) {
     const date = addDays(config.startDate, offset);
@@ -68,6 +81,8 @@ export function studyCalendar(config = {}) {
 }
 export function studyPeriodAt(config = {}, now = new Date()) {
   const today = dateKey(now), calendar = studyCalendar(config);
+  if (isIntensiveStudy(config) && today === config.pilotDate && today < config.startDate && eligibleDate(today, config))
+    return { phase: "PILOT", period: 0, periodDay: 0 };
   if (!calendar.length || today < config.startDate) return { phase: "NOT_STARTED", period: 0, periodDay: 0 };
   if (today > calendar.at(-1).date) return { phase: "COMPLETE", period: 4, periodDay: 0 };
   const row = calendar.find((item) => item.date === today);
@@ -88,6 +103,24 @@ export function validateStudyConfig(config) {
     || config.targetClassKeys.some((key) => !/^[1-3]-(?:[1-9]|10)$/.test(key))) throw new Error("실험 대상 학급을 지정해 주세요.");
   if (!Array.isArray(config.excludedDates) || config.excludedDates.some((date) => !validDate(date))) throw new Error("제외일은 YYYY-MM-DD 형식으로 입력해 주세요.");
   if (config.studyKind !== "pilot" && config.studyKind !== "formal") throw new Error("실험 종류를 확인해 주세요.");
-  if (JSON.stringify(config.frequency) !== JSON.stringify({ lowPerDay: 0, midPerDay: 1, highPerDay: 3 })) throw new Error("실험 빈도는 0·1·3회로 고정됩니다.");
+  if (isIntensiveStudy(config)) {
+    if (JSON.stringify(config.frequency) !== JSON.stringify({ lowPerDay: 0, midPerDay: 3, highPerDay: 6 }))
+      throw new Error("집중 실험 빈도는 0·3·6회로 고정됩니다.");
+    if (!validDate(config.pilotDate) || config.pilotDate >= config.startDate)
+      throw new Error("시범 운영일은 정식 시작일 이전이어야 합니다.");
+    if (config.consentRecorded !== true) throw new Error("담당 교사 확인과 연구 참여 안내·동의를 먼저 확인해 주세요.");
+  } else if (JSON.stringify(config.frequency) !== JSON.stringify({ lowPerDay: 0, midPerDay: 1, highPerDay: 3 }))
+    throw new Error("기존 실험 빈도는 0·1·3회로 고정됩니다.");
   return config;
+}
+
+/** New run only. Old career-v3 configs remain unchanged and retain their original analysis. */
+export function intensiveDefaults(classKey = "1-8", now = new Date()) {
+  const pilotDate = dateKey(now);
+  let startDate = addDays(pilotDate, 1);
+  while ([0, 6].includes(new Date(startDate + "T00:00:00Z").getUTCDay())) startDate = addDays(startDate, 1);
+  return { ...studyDefaults(classKey, now), design: "parallel-v4", startDate,
+    pilotDate, baselineDays: 0, periodDays: 4,
+    frequency: { lowPerDay: 0, midPerDay: 3, highPerDay: 6 },
+    consentRecorded: false };
 }
