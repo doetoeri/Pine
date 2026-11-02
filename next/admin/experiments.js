@@ -207,7 +207,7 @@ function currentNotificationCounts() {
 }
 
 function notificationBody() {
-  return `<div class="experiment-note"><strong>진로 수행평가용 알림 연구를 새 운영 화면으로 옮겼어요.</strong><p>설계 저장, 0·1·3회 균형 배정, 시작·정지, 기기 등록, 발송·반응, 설문과 보고서를 한곳에서 관리해요.</p><a class="study-center-link" href="../../experiments/">알림 연구 운영 화면 열기 →</a></div>
+  return `<div class="experiment-note"><strong>진로 수행평가용 알림 연구를 새 운영 화면으로 옮겼어요.</strong><p>설계 저장, 0·3·6회 집중 실험 배정, 시작·정지, 기기 등록, 발송·반응, 설문과 보고서를 한곳에서 관리해요.</p><a class="study-center-link" href="../../experiments/">알림 연구 운영 화면 열기 →</a></div>
     ${notificationAuditMarkup({ ...bundle, roster })}`;
 }
 
