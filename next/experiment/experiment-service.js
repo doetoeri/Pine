@@ -15,7 +15,7 @@ import {
   resolveUiVariant,
 } from "./assignment-service.js";
 import { ExperimentAnalytics } from "./analytics.js";
-import { addDays, balancedSequences, dateKey, isCareerStudy, validateStudyConfig } from "./notification-study.js";
+import { addDays, balancedSequences, dateKey, isCareerStudy, isIntensiveStudy, validateStudyConfig } from "./notification-study.js";
 import { studyAccess } from "./study-access.js";
 
 const FIREBASE = globalThis.PINCON_FIREBASE_CONFIG || {};
@@ -415,7 +415,7 @@ export class ExperimentPlatform {
     if (version !== Number(ctx.experimentVersion) || ![1, 2, 3].includes(Number(period))) throw new Error("설문 기간을 다시 확인해 주세요.");
     if (ctx.studyMode && ctx.sequence?.[Number(period) - 1] !== condition) throw new Error("배정 조건과 설문이 일치하지 않습니다.");
     if (![usefulnessScore, annoyanceScore, increasedUseScore, continueScore].every((n) => Number.isInteger(Number(n)) && Number(n) >= 1 && Number(n) <= 5)
-      || !["0", "1", "2", "3", "4", "5+"].includes(String(preferredDailyCount))) throw new Error("설문의 모든 항목을 선택해 주세요.");
+      || !["0", "1", "2", "3", "4", "5", "6", "6+" , "5+"].includes(String(preferredDailyCount))) throw new Error("설문의 모든 항목을 선택해 주세요.");
     const surveyId = ctx.studyMode ? `v${version}-period-${Number(period)}` : `period-${Number(period)}`;
     const ref = this.api.doc(
       this.api.db,
@@ -583,6 +583,7 @@ export class ExperimentPlatform {
       if (!isCareerStudy(config) || config.version !== Number(expectedVersion)) throw new Error("설계를 먼저 저장하거나 새로고침해 주세요.");
       if (config.status === "COMPLETED") throw new Error("종료된 실험입니다. 새 버전으로 설계를 저장해 주세요.");
       if (status === "ACTIVE" && config.enrollmentReady === false) throw new Error("참여자 배정이 완료되지 않았어요. 설계를 다시 저장해 주세요.");
+      if (status === "ACTIVE" && isIntensiveStudy(config) && config.consentRecorded !== true) throw new Error("교사 확인과 사전 동의가 필요합니다.");
       if (status === "ACTIVE" && ["CANARY", "ACTIVE", "ROLLOUT"].includes(uiSnap.data()?.status)) throw new Error("기존 UI 실험을 먼저 일시정지해 주세요.");
       if (status === config.status) return config;
       const now = Date.now(), today = dateKey(new Date(now));
@@ -593,9 +594,13 @@ export class ExperimentPlatform {
         patch.excludedDates = [...(config.excludedDates || [])];
         if (!config.activeStartedAtMs) {
           patch.activeStartedAtMs = now;
-          patch.startDate = config.startDate < today ? today : config.startDate;
-          // Starting after the morning slot cannot produce a full 3-dose day.
-          if (config.baselineDays === 0 && patch.startDate === today && new Date(now + 9 * 3_600_000).getUTCHours() >= 8) patch.excludedDates.push(today);
+          if (!isIntensiveStudy(config)) {
+            patch.startDate = config.startDate < today ? today : config.startDate;
+            // Old crossover design requires a complete exposure day.
+            if (config.baselineDays === 0 && patch.startDate === today && new Date(now + 9 * 3_600_000).getUTCHours() >= 8) patch.excludedDates.push(today);
+          } else if (config.startDate < today) {
+            throw new Error("정식 실험 시작일이 지났습니다. 새 설계를 저장해 주세요.");
+          }
         } else if (config.pausedAtMs) {
           for (let date = dateKey(new Date(config.pausedAtMs)), n = 0; date <= today && n < 730; date = addDays(date, 1), n++) patch.excludedDates.push(date);
         }
@@ -730,8 +735,13 @@ export class ExperimentPlatform {
   async notificationExperimentEnabled() {
     if (!this.api) await this.start();
     if (!this.user) throw new Error("실험 알림 설정을 변경하려면 로그인이 필요합니다.");
-    const snapshot = await this.api.getDoc(this.api.doc(this.api.db,
-      "schools", SCHOOL.id, "notificationExperimentPreferences", this.user.uid));
+    const [snapshot, configSnap] = await Promise.all([
+      this.api.getDoc(this.api.doc(this.api.db, "schools", SCHOOL.id, "notificationExperimentPreferences", this.user.uid)),
+      this.api.getDoc(this.api.doc(this.api.db, "schools", SCHOOL.id, "experiments", NOTIFICATION_EXPERIMENT_ID)),
+    ]);
+    const config = configSnap.data();
+    if (isIntensiveStudy(config)) return snapshot.exists() && snapshot.data()?.enabled === true
+      && Number(snapshot.data()?.updatedAtMs || 0) >= Number(config.createdAtMs || Infinity);
     return !snapshot.exists() || snapshot.data()?.enabled !== false;
   }
 
