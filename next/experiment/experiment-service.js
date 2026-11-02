@@ -288,6 +288,12 @@ export class ExperimentPlatform {
       };
     }
 
+    if (isIntensiveStudy(config) && !(preference?.enabled === true
+      && Number(preference?.updatedAtMs || 0) >= Number(config.createdAtMs || Infinity))) {
+      return { experimentId: NOTIFICATION_EXPERIMENT_ID, experimentVersion: Number(config.version),
+        anonymousParticipant: participant, status: "DRAFT", variant: "", source: "awaiting-consent",
+        config, sequence: assignment?.sequence || [], condition: "", phase: "NOT_STARTED" };
+    }
     let effectiveAssignment = assignment;
     const matchingAssignment = Number(assignment?.experimentVersion) === Number(config.version);
     if (isCareerStudy(config) && !matchingAssignment) {
