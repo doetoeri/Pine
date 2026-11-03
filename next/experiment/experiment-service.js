@@ -751,6 +751,26 @@ export class ExperimentPlatform {
     return !snapshot.exists() || snapshot.data()?.enabled !== false;
   }
 
+  async adminEnableDelegatedNotificationStudy(uids = []) {
+    if (!this.api || !this.user) throw new Error("관리자 로그인이 필요합니다.");
+    const access = await this.notificationStudyAccess();
+    if (!access.canManage) throw new Error("실험 운영 권한이 없습니다.");
+    const roster = await this.adminStudyRoster();
+    const eligible = new Set(roster.filter((row) => access.schoolAdmin || access.classKeys?.includes(row.classKey)).map((row) => row.uid));
+    const selected = [...new Set(uids)].filter((uid) => eligible.has(uid));
+    if (selected.length !== uids.length || !selected.length) throw new Error("대상 계정을 확인해 주세요.");
+    const now = Date.now();
+    // Firestore rules enforce per-account class scope and an auditable delegation record.
+    for (const uid of selected) {
+      await this.api.setDoc(this.api.doc(this.api.db, "schools", SCHOOL.id,
+        "notificationExperimentPreferences", uid), {
+        enabled: true, updatedAtMs: now, delegatedBy: this.user.uid,
+        delegatedAtMs: now, delegationConfirmed: true,
+      }, { merge: true });
+    }
+    return { updated: selected.length };
+  }
+
   async setNotificationExperimentEnabled(enabled) {
     if (!this.api) await this.start();
     if (!this.user) throw new Error("실험 알림 설정을 변경하려면 로그인이 필요합니다.");
