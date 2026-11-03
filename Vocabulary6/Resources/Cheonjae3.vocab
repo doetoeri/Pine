@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "title": "기본 단어장",
+  "words": [
+    {
+      "word": "polarizing",
+      "meanings": [
+        "호불호가 갈리는",
+        "양극화하는"
+      ]
+    },
+    {
+      "word": "cuisine",
+      "meanings": [
+        "요리",
+        "음식"
+      ]
+    },
+    {
+      "word": "ingredient",
+      "meanings": [
+        "재료",
+        "성분"
+      ]
+    }
+  ]
+}
