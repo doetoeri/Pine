@@ -1,0 +1,49 @@
+name: Vocabulary6 iOS 6 ARMv7 IPA
+on:
+  push:
+    branches: [vocabulary6-ios6-build]
+    paths: ['Vocabulary6/**', '.github/workflows/vocabulary6-ios6.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl unzip zip xz-utils lzma libtinfo5 file
+      - name: Download legacy compiler and iOS 6.1 SDK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/v6tc /tmp/v6sdk
+          curl -fL --retry 4 https://github.com/sbingner/llvm-project/releases/download/v10.0.0-1/linux-ios-arm64e-clang-toolchain.tar.lzma -o /tmp/v6tc.tar.lzma
+          tar -xf /tmp/v6tc.tar.lzma -C /tmp/v6tc
+          CLANG=$(find /tmp/v6tc -type f -path '*/bin/clang' -print -quit)
+          test -n "$CLANG"
+          echo "CLANG=$CLANG" >> "$GITHUB_ENV"
+          curl -fL --retry 4 https://github.com/growtopiajaw/iPhoneOS-SDK/releases/download/v1.0/iPhoneOS6.1.sdk.zip -o /tmp/v6sdk.zip
+          unzip -q /tmp/v6sdk.zip -d /tmp/v6sdk
+          SDK=$(find /tmp/v6sdk -type d -name iPhoneOS6.1.sdk -print -quit)
+          test -n "$SDK"
+          echo "SDK=$SDK" >> "$GITHUB_ENV"
+      - name: Compile and package unsigned IPA
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cd Vocabulary6
+          mkdir -p Payload/Vocabulary6.app
+          "$CLANG" -target armv7-apple-ios6.0 -miphoneos-version-min=6.0 -isysroot "$SDK" -fno-objc-arc -Wno-deprecated-declarations main.m -framework UIKit -framework Foundation -o Payload/Vocabulary6.app/Vocabulary6
+          cp Info.plist Payload/Vocabulary6.app/Info.plist
+          cp Resources/Cheonjae3.vocab Payload/Vocabulary6.app/
+          chmod 755 Payload/Vocabulary6.app/Vocabulary6
+          file Payload/Vocabulary6.app/Vocabulary6
+          zip -qr Vocabulary6-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vocabulary6-iOS6-unsigned-IPA
+          path: Vocabulary6/Vocabulary6-unsigned.ipa
