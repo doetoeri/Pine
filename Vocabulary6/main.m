@@ -1,6 +1,6 @@
 #import <UIKit/UIKit.h>
 @interface VocabController : UITableViewController <UITextFieldDelegate,UIAlertViewDelegate> {
- NSMutableArray *_books; NSMutableArray *_words; NSMutableArray *_wrong; NSString *_title; NSInteger _index; UITextField *_answer; UILabel *_prompt; UILabel *_status;
+ NSMutableArray *_books; NSMutableArray *_words; NSMutableArray *_wrong; NSInteger _index; UITextField *_answer; UILabel *_prompt; UILabel *_status;
 }
 @end
 @implementation VocabController
@@ -22,7 +22,7 @@
 @interface AppDelegate : UIResponder <UIApplicationDelegate> { UIWindow *_window; UINavigationController *_nav; } @end
 @implementation AppDelegate
 - (BOOL)application:(UIApplication *)app didFinishLaunchingWithOptions:(NSDictionary *)opts { NSString *dir=[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES)objectAtIndex:0];NSString *dst=[dir stringByAppendingPathComponent:@"Cheonjae3.vocab"];if(![[NSFileManager defaultManager]fileExistsAtPath:dst])[[NSFileManager defaultManager]copyItemAtPath:[[NSBundle mainBundle]pathForResource:@"Cheonjae3" ofType:@"vocab"] toPath:dst error:nil];_window=[[UIWindow alloc]initWithFrame:[[UIScreen mainScreen]bounds]];_nav=[[UINavigationController alloc]initWithRootViewController:[[[VocabController alloc]initWithStyle:UITableViewStyleGrouped]autorelease]];_window.rootViewController=_nav;[_window makeKeyAndVisible];return YES; }
-- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url sourceApplication:(NSString *)source annotation:(id)annotation { if(![[[url path]pathExtension]isEqualToString:@"vocab"])return NO;NSString *dest=[[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES)objectAtIndex:0]stringByAppendingPathComponent:[url lastPathComponent]];[[NSFileManager defaultManager]removeItemAtPath:dest error:nil];BOOL ok=[[NSFileManager defaultManager]copyItemAtURL:url toURL:[NSURL fileURLWithPath:dest] error:nil];[(_nav.topViewController) performSelector:@selector(loadBooks)];[(UITableViewController *)_nav.topViewController.tableView reloadData];return ok; }
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url sourceApplication:(NSString *)source annotation:(id)annotation { if(![[[url path]pathExtension]isEqualToString:@"vocab"])return NO;NSString *dest=[[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,NSUserDomainMask,YES)objectAtIndex:0]stringByAppendingPathComponent:[url lastPathComponent]];[[NSFileManager defaultManager]removeItemAtPath:dest error:nil];BOOL ok=[[NSFileManager defaultManager]copyItemAtURL:url toURL:[NSURL fileURLWithPath:dest] error:nil];[(_nav.topViewController) performSelector:@selector(loadBooks)];[((UITableViewController *)_nav.topViewController).tableView reloadData];return ok; }
 - (void)dealloc { [_nav release];[_window release];[super dealloc]; }
 @end
 int main(int argc,char **argv){NSAutoreleasePool *p=[[NSAutoreleasePool alloc]init];int r=UIApplicationMain(argc,argv,nil,NSStringFromClass([AppDelegate class]));[p release];return r;}
