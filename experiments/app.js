@@ -128,6 +128,15 @@ async function run(action) {
   }
   if (action === "toggle") { const result = await platform.setNotificationExperimentEnabled(!enabled); enabled = result.enabled; await platform.start(); toast(enabled ? "연구 알림 수신을 다시 허용했어요." : "모든 기기에서 연구 알림 수신을 중지했어요."); return; }
   if (!admin) throw new Error("연구 운영은 대상 학급 관리자 또는 학교 관리자 계정에서 할 수 있어요.");
+  if (action === "delegated-enable") {
+    if (!root.querySelector("#delegated-consent-confirm")?.checked) throw new Error("대리 설정 동의와 철회 안내를 먼저 확인해 주세요.");
+    const eligible = new Set((bundle.assignments || []).filter((row) => row.experimentVersion === bundle.config?.version).map((row) => row.id));
+    const uids = roster.filter((row) => eligible.has(row.uid)).map((row) => row.uid);
+    if (!uids.length) throw new Error("현재 실험에 배정된 학생이 없습니다.");
+    if (!confirm(`동의와 위임을 확인한 ${uids.length}명의 수신 설정을 활성화할까요? 기기 알림 권한은 변경되지 않습니다.`)) return;
+    const result = await platform.adminEnableDelegatedNotificationStudy(uids);
+    await load(); tab = "members"; toast(`${result.updated}명 계정의 수신 설정을 활성화했어요. 각 기기 푸시 등록은 별도로 필요해요.`); return;
+  }
   if (action === "new-run") { newRun = true; draft = intensiveDefaults(gateway.snapshot().profile?.classKey || "1-8"); toast("새 설계를 작성해 주세요. 저장하면 새 버전으로 보관돼요."); return; }
   if (action === "pause-ui") { await platform.adminSetExperiment("pincon-next-ui", { status: "PAUSED", publicBetaEnabled: false }); await load(); toast("이전 UI 실험을 일시정지했어요."); return; }
   if (action === "prepare") {
