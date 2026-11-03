@@ -718,9 +718,20 @@ service cloud.firestore {
       allow read: if signedIn() && (request.auth.uid == userId || schoolAdmin(schoolId));
       allow create, update: if signedIn()
         && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['enabled', 'updatedAtMs'])
+        && request.resource.data.keys().hasOnly(['enabled', 'updatedAtMs', 'delegatedBy', 'delegatedAtMs', 'delegationConfirmed'])
         && request.resource.data.enabled is bool
         && request.resource.data.updatedAtMs is int;
+      // A class operator may record an explicit, delegated opt-in for their own class.
+      // Students can always override it by writing their own enabled=false preference.
+      allow create, update: if signedIn() && notificationStudyOperator(schoolId)
+        && request.resource.data.keys().hasOnly(['enabled', 'updatedAtMs', 'delegatedBy', 'delegatedAtMs', 'delegationConfirmed'])
+        && request.resource.data.enabled == true
+        && request.resource.data.delegationConfirmed == true
+        && request.resource.data.delegatedBy == request.auth.uid
+        && request.resource.data.updatedAtMs is int
+        && request.resource.data.delegatedAtMs is int
+        && exists(/databases/$(database)/documents/schools/$(schoolId)/users/$(userId))
+        && (schoolAdmin(schoolId) || get(/databases/$(database)/documents/schools/$(schoolId)/users/$(userId)).data.classKey in roleDocument(schoolId).data.classKeys);
       allow delete: if false;
     }
 
