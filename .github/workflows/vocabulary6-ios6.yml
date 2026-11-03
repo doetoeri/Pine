@@ -23,8 +23,16 @@ jobs:
           mkdir -p /tmp/v6tc /tmp/v6sdk
           curl -fL --retry 4 https://github.com/sbingner/llvm-project/releases/download/v10.0.0-1/linux-ios-arm64e-clang-toolchain.tar.lzma -o /tmp/v6tc.tar.lzma
           tar -xf /tmp/v6tc.tar.lzma -C /tmp/v6tc
-          CLANG=$(find /tmp/v6tc -type f -path '*/bin/clang' -print -quit)
-          test -n "$CLANG"
+          echo "Toolchain layout:"
+          find /tmp/v6tc -maxdepth 5 \( -name clang -o -name clang-10 -o -name clang-11 \) -ls || true
+          CLANG=$(find -L /tmp/v6tc -type f \( -name clang -o -name clang-10 -o -name clang-11 \) -print -quit 2>/dev/null || true)
+          if [ -z "$CLANG" ]; then
+            echo "::error::Clang executable not found in extracted toolchain"
+            find /tmp/v6tc -maxdepth 4 -type d | head -80
+            exit 1
+          fi
+          chmod +x "$CLANG" || true
+          "$CLANG" --version
           echo "CLANG=$CLANG" >> "$GITHUB_ENV"
           curl -fL --retry 4 https://github.com/growtopiajaw/iPhoneOS-SDK/releases/download/v1.0/iPhoneOS6.1.sdk.zip -o /tmp/v6sdk.zip
           unzip -q /tmp/v6sdk.zip -d /tmp/v6sdk
