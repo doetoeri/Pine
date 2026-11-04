@@ -109,8 +109,14 @@ export const SLOTS = Object.freeze([
 export function currentSlot(now = new Date(), config = {}) {
   const clock = kstClock(now);
   if (isIntensiveStudy(config)) {
-    return INTENSIVE_SLOTS.find((slot) => slot.hour === clock.hour
-      && clock.minute >= slot.minute && clock.minute < Math.min(60, slot.minute + 20)) || null;
+    // GitHub scheduled workflows may start late. Permit a bounded same-day
+    // grace window without changing the number or identity of study slots.
+    // A slot can never be recovered more than 60 minutes after its start.
+    const minuteOfDay = clock.hour * 60 + clock.minute;
+    return INTENSIVE_SLOTS.find((slot) => {
+      const elapsed = minuteOfDay - (slot.hour * 60 + slot.minute);
+      return elapsed >= 0 && elapsed < 60;
+    }) || null;
   }
   if (clock.minute > 55) return null;
   return (isCareerStudy(config) ? STUDY_SLOTS : SLOTS).find((slot) => slot.hour === clock.hour) || null;
