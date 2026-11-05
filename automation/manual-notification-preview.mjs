@@ -1,16 +1,16 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { canonicalSubscriptionIds, conditionFor, kstDate, plannedSlotIndexes } from "./notification-frequency-core.mjs";
-import { isIntensiveStudy, INTENSIVE_SLOTS, STUDY_SLOTS } from "../next/experiment/notification-study.js";
+import { SLOTS, canonicalSubscriptionIds, conditionFor, kstDate, plannedSlotIndexes } from "./notification-frequency-core.mjs";
+import { isCareerStudy, isIntensiveStudy, INTENSIVE_SLOTS, STUDY_SLOTS } from "../next/experiment/notification-study.js";
 
-export function previewEligibility({ config, now, slotIndex, accounts, subscriptions, preferences, assignments, receipts }) {
+export function previewEligibility({ config, now, slotIndex, accounts, subscriptions, preferences, assignments }) {
   const date = kstDate(now);
   const phase = conditionFor([], config, now).phase;
   const active = config.status === "ACTIVE" && (phase === "EXPERIMENT" || (isIntensiveStudy(config) && phase === "PILOT"));
-  const slots = isIntensiveStudy(config) ? INTENSIVE_SLOTS : STUDY_SLOTS;
+  const slots = isIntensiveStudy(config) ? INTENSIVE_SLOTS : isCareerStudy(config) ? STUDY_SLOTS : SLOTS;
   const slot = slots.find(s => s.index === slotIndex);
   const result = { dryRun: true, date, phase, active, slotIndex, slotValid: Boolean(slot),
-    accounts: accounts.size, ready: 0, planned: 0, alreadyRecorded: 0, noAssignment: 0 };
+    accounts: accounts.size, ready: 0, planned: 0, noAssignment: 0 };
   if (!active || !slot) return result;
   const pref = new Map(preferences.map(p => [p.id, p.data]));
   const intensive = isIntensiveStudy(config);
