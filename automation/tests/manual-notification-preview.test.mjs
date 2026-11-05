@@ -29,3 +29,23 @@ test("preview does not mutate participant data", () => {
   assert.equal(report.accounts, 1);
   assert.equal(accounts.size, 1);
 });
+
+test("missing push token cannot count as ready", () => {
+  const report = previewEligibility({ ...base, enabled: true,
+    accounts: new Map([["example", { classKey: "1-8" }]]),
+    subscriptions: [{ id: "device", data: { ownerUid: "example", classKey: "1-8", enabled: true } }],
+    preferences: [{ id: "example", data: { enabled: true, updatedAtMs: 2 } }],
+  });
+  assert.equal(report.ready, 0);
+  assert.equal(report.planned, 0);
+});
+
+test("explicit account opt-out prevents readiness", () => {
+  const report = previewEligibility({ ...base, enabled: true,
+    accounts: new Map([["example", { classKey: "1-8" }]]),
+    subscriptions: [{ id: "device", data: { ownerUid: "example", classKey: "1-8", enabled: true, token: "test-only-token" } }],
+    preferences: [{ id: "example", data: { enabled: false, updatedAtMs: 2 } }],
+  });
+  assert.equal(report.ready, 0);
+  assert.equal(report.planned, 0);
+});
