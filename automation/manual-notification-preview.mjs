@@ -3,10 +3,10 @@ import { getFirestore } from "firebase-admin/firestore";
 import { SLOTS, canonicalSubscriptionIds, conditionFor, kstDate, plannedSlotIndexes } from "./notification-frequency-core.mjs";
 import { isCareerStudy, isIntensiveStudy, INTENSIVE_SLOTS, STUDY_SLOTS } from "../next/experiment/notification-study.js";
 
-export function previewEligibility({ config, now, slotIndex, accounts, subscriptions, preferences, assignments }) {
+export function previewEligibility({ config, now, slotIndex, accounts, subscriptions, preferences, assignments, enabled = true }) {
   const date = kstDate(now);
   const phase = conditionFor([], config, now).phase;
-  const active = config.status === "ACTIVE" && (phase === "EXPERIMENT" || (isIntensiveStudy(config) && phase === "PILOT"));
+  const active = enabled === true && config.status === "ACTIVE" && (phase === "EXPERIMENT" || (isIntensiveStudy(config) && phase === "PILOT"));
   const slots = isIntensiveStudy(config) ? INTENSIVE_SLOTS : isCareerStudy(config) ? STUDY_SLOTS : SLOTS;
   const slot = slots.find(s => s.index === slotIndex);
   const result = { dryRun: true, date, phase, active, slotIndex, slotValid: Boolean(slot),
@@ -62,13 +62,13 @@ async function main() {
   const config = study.data() || {};
   const assignments = await root.collection("experiments").doc("notification-frequency").collection("assignments").get();
   const report = previewEligibility({
-    config, now: new Date(), slotIndex,
+    config, enabled: flag.data()?.enabled === true, now: new Date(), slotIndex,
     accounts: new Map(users.docs.map(d => [d.id, d.data()])),
     subscriptions: subs.docs.map(d => ({ id: d.id, data: d.data() })),
     preferences: prefs.docs.map(d => ({ id: d.id, data: d.data() })),
     assignments: new Map(assignments.docs.map(d => [d.id, d.data()])),
   });
   console.log(JSON.stringify({ component: "manual-notification-preview", ...report,
-    active: report.active && flag.data()?.enabled === true, note: "estimate-only; no FCM calls, no Firestore writes" }));
+    note: "estimate-only; no FCM calls, no Firestore writes" }));
 }
 if (process.argv[1]?.endsWith("manual-notification-preview.mjs")) main().catch(e => { console.error(e.message); process.exitCode = 1; });
