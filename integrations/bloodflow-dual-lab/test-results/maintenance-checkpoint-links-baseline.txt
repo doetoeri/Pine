@@ -1,0 +1,66 @@
+✖ a missing target of the latest checkpoint blocks writes instead of replacing its pointer (30.128496ms)
+✖ null checkpoint records and null latest metadata are corruption rather than an empty database (2.899887ms)
+✖ an explicit broken latest pointer does not silently roll back to an older regional record (14.635577ms)
+✔ a healthy own checkpoint keeps priority over broken latest metadata from another tab (11.529506ms)
+✔ a genuinely new database still permits its first atomic checkpoint and unrelated legacy data stays scoped (5.967021ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 2
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 184.193416
+
+✖ failing tests:
+
+test at tests/solo-storage.test.mjs:23:1
+✖ a missing target of the latest checkpoint blocks writes instead of replacing its pointer (30.128496ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at TestContext.<anonymous> (file://integrations/bloodflow-dual-lab/tests/solo-storage.test.mjs:28:37)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/solo-storage.test.mjs:34:1
+✖ null checkpoint records and null latest metadata are corruption rather than an empty database (2.899887ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at TestContext.<anonymous> (file://integrations/bloodflow-dual-lab/tests/solo-storage.test.mjs:36:121)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/solo-storage.test.mjs:40:1
+✖ an explicit broken latest pointer does not silently roll back to an older regional record (14.635577ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+  true !== false
+
+      at TestContext.<anonymous> (file://integrations/bloodflow-dual-lab/tests/solo-storage.test.mjs:41:205)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

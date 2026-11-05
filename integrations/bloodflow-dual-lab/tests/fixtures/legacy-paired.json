@@ -1,0 +1,383 @@
+{
+  "provenance": {
+    "source": "originals/BLOODFLOW_Dual_Lab_Offline.html",
+    "sourceSHA256": "f13e82c67b10530a566ac77bf5ae4b9bc930d6f66316bb7eb73ec13ae3f4a11c",
+    "generation": "Preserved embedded experiments.mjs runExperiment({}, data, {experiment:A, days:1, repeats:2, seed:20261021}); no result values edited."
+  },
+  "result": {
+    "format": "BLOODFLOW-PAIRED-1",
+    "modelVersion": "1.0.0",
+    "createdAt": "2026-10-22T18:35:43.054Z",
+    "plan": {
+      "experiment": "A",
+      "factor": "safetyDays",
+      "control": 1,
+      "treatment": 6,
+      "days": 1,
+      "repeats": 2,
+      "seed": 20261021
+    },
+    "config": {},
+    "metrics": {
+      "shortageRate": {
+        "control": {
+          "n": 2,
+          "mean": 0.3712121212121212,
+          "sd": 0.05356869554443545,
+          "ci95": [
+            -0.11007575757575777,
+            0.8525000000000003
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 0.1515151515151515,
+          "sd": 0.02142747821777417,
+          "ci95": [
+            -0.041000000000000036,
+            0.344030303030303
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": -0.21969696969696972,
+          "sd": 0.07499617376220961,
+          "ci95": [
+            -0.8935000000000002,
+            0.45410606060606074
+          ]
+        }
+      },
+      "wasteRate": {
+        "control": {
+          "n": 2,
+          "mean": 0.009804863981543784,
+          "sd": 0.00013594285901885053,
+          "ci95": [
+            0.008583485533019315,
+            0.011026242430068254
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 0.009804863981543784,
+          "sd": 0.00013594285901885053,
+          "ci95": [
+            0.008583485533019315,
+            0.011026242430068254
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": 0,
+          "sd": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        }
+      },
+      "averageInventory": {
+        "control": {
+          "n": 2,
+          "mean": 81.53923455486624,
+          "sd": 2.0393065293249535,
+          "ci95": [
+            63.217087567304716,
+            99.86138154242776
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 79.31938964745883,
+          "sd": 2.463940519640018,
+          "ci95": [
+            57.18211909971198,
+            101.45666019520569
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": -2.2198449074074063,
+          "sd": 0.42463399031506477,
+          "ci95": [
+            -6.03496846759273,
+            1.595278652777918
+          ]
+        }
+      },
+      "meanTransportHours": {
+        "control": {
+          "n": 2,
+          "mean": 0.08080555555555553,
+          "sd": 0.03401969291708591,
+          "ci95": [
+            -0.22484433333333143,
+            0.38645544444444246
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 0.1212400793650792,
+          "sd": 0.006731544317724231,
+          "ci95": [
+            0.060760527777778385,
+            0.18171963095238003
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": 0.04043452380952366,
+          "sd": 0.04075123723481014,
+          "ci95": [
+            -0.32569491666666406,
+            0.4065639642857114
+          ]
+        }
+      },
+      "unmet": {
+        "control": {
+          "n": 2,
+          "mean": 7.5,
+          "sd": 2.1213203435596424,
+          "ci95": [
+            -11.558999999999997,
+            26.558999999999997
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 3,
+          "sd": 0,
+          "ci95": [
+            3,
+            3
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": -4.5,
+          "sd": 2.1213203435596424,
+          "ci95": [
+            -23.558999999999997,
+            14.558999999999997
+          ]
+        }
+      },
+      "expired": {
+        "control": {
+          "n": 2,
+          "mean": 1,
+          "sd": 0,
+          "ci95": [
+            1,
+            1
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 1,
+          "sd": 0,
+          "ci95": [
+            1,
+            1
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": 0,
+          "sd": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        }
+      },
+      "available": {
+        "control": {
+          "n": 2,
+          "mean": 86,
+          "sd": 0,
+          "ci95": [
+            86,
+            86
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 77,
+          "sd": 5.656854249492381,
+          "ci95": [
+            26.176000000000002,
+            127.824
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": -9,
+          "sd": 5.656854249492381,
+          "ci95": [
+            -59.824,
+            41.824
+          ]
+        }
+      },
+      "held": {
+        "control": {
+          "n": 2,
+          "mean": 0,
+          "sd": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        },
+        "treatment": {
+          "n": 2,
+          "mean": 0,
+          "sd": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        },
+        "pairedDifference": {
+          "n": 2,
+          "mean": 0,
+          "sd": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        }
+      }
+    },
+    "pairs": [
+      {
+        "repeat": 1,
+        "seed": 20261021,
+        "control": {
+          "created": 103,
+          "served": 13,
+          "requested": 22,
+          "unmet": 9,
+          "expired": 1,
+          "rejected": 0,
+          "quality": 0,
+          "review": 0,
+          "shipments": 6,
+          "interhospital": 0,
+          "timeHours": 24,
+          "initialInventory": 78,
+          "receipts": 25,
+          "available": 86,
+          "held": 0,
+          "inTransit": 2,
+          "shortageRate": 0.4090909090909091,
+          "wasteRate": 0.009708737864077669,
+          "averageInventory": 80.09722707906256,
+          "meanTransportHours": 0.10486111111111095,
+          "demandFingerprint": 1319055677,
+          "verification": {
+            "active": 89,
+            "balance": 0,
+            "errors": 0,
+            "passed": true
+          }
+        },
+        "treatment": {
+          "created": 103,
+          "served": 19,
+          "requested": 22,
+          "unmet": 3,
+          "expired": 1,
+          "rejected": 0,
+          "quality": 0,
+          "review": 0,
+          "shipments": 9,
+          "interhospital": 0,
+          "timeHours": 24,
+          "initialInventory": 78,
+          "receipts": 25,
+          "available": 73,
+          "held": 0,
+          "inTransit": 9,
+          "shortageRate": 0.13636363636363635,
+          "wasteRate": 0.009708737864077669,
+          "averageInventory": 77.57712059758107,
+          "meanTransportHours": 0.11648015873015863,
+          "demandFingerprint": 1319055677,
+          "verification": {
+            "active": 83,
+            "balance": 0,
+            "errors": 0,
+            "passed": true
+          }
+        }
+      },
+      {
+        "repeat": 2,
+        "seed": 20365750,
+        "control": {
+          "created": 101,
+          "served": 12,
+          "requested": 18,
+          "unmet": 6,
+          "expired": 1,
+          "rejected": 0,
+          "quality": 0,
+          "review": 0,
+          "shipments": 5,
+          "interhospital": 0,
+          "timeHours": 24,
+          "initialInventory": 78,
+          "receipts": 23,
+          "available": 86,
+          "held": 0,
+          "inTransit": 2,
+          "shortageRate": 0.3333333333333333,
+          "wasteRate": 0.009900990099009901,
+          "averageInventory": 82.98124203066992,
+          "meanTransportHours": 0.05675000000000013,
+          "demandFingerprint": 3505763264,
+          "verification": {
+            "active": 88,
+            "balance": 0,
+            "errors": 0,
+            "passed": true
+          }
+        },
+        "treatment": {
+          "created": 101,
+          "served": 15,
+          "requested": 18,
+          "unmet": 3,
+          "expired": 1,
+          "rejected": 0,
+          "quality": 0,
+          "review": 0,
+          "shipments": 11,
+          "interhospital": 0,
+          "timeHours": 24,
+          "initialInventory": 78,
+          "receipts": 23,
+          "available": 81,
+          "held": 0,
+          "inTransit": 4,
+          "shortageRate": 0.16666666666666666,
+          "wasteRate": 0.009900990099009901,
+          "averageInventory": 81.0616586973366,
+          "meanTransportHours": 0.12599999999999978,
+          "demandFingerprint": 3505763264,
+          "verification": {
+            "active": 85,
+            "balance": 0,
+            "errors": 0,
+            "passed": true
+          }
+        }
+      }
+    ],
+    "method": "반복별 비율의 평균. 표본 표준편차(n−1), Student t 95% 구간. 정책 차이는 동일 시드의 실험군−기준군을 짝지어 계산. 확률 모형 안의 표본 불확실성이며 실제 혈액 공급망의 예측 오차가 아니다."
+  }
+}

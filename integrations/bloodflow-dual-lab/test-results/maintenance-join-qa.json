@@ -1,0 +1,219 @@
+{
+  "verifiedAt": "2026-10-22T20:15:06.026037+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+    "priorReviewHead": "c9093c5e9565f9c819c11d7192f32cd7fe13f145",
+    "reviewsBeforeChange": [],
+    "pagesWorkflow": {
+      "conclusion": "success",
+      "url": "https://github.com/doetoeri/Pine/actions/runs/39782834193"
+    },
+    "productionHTTP": [
+      {
+        "path": "/bloodflow",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/biology/",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/research",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/research/",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "contentType": "application/javascript; charset=utf-8",
+        "serverOrigin": ""
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "url": "https://pincon.app/bloodflow/api/health"
+      }
+    ],
+    "production503Observed": false
+  },
+  "baseline": {
+    "source": "Prior reviewed source, synthetic Node tests before the fix; prior browser QA already recorded a missing-room join rejection overwritten by heartbeat errors.",
+    "heartbeatBeforeFirstState": [
+      "join",
+      "heartbeat",
+      "heartbeat"
+    ],
+    "stalledOpeningAndAwaitingStateWereNotTimedOut": true,
+    "lateOldSocketOpenSentJoin": true,
+    "productionRoleFailureObserved": false
+  },
+  "changes": {
+    "serverJoinFailure": {
+      "phase": "join",
+      "retryable": false,
+      "closeCode": 1008,
+      "errorsPerRejectedSocket": 1,
+      "unauthenticatedJoinTimeoutMs": 10000
+    },
+    "clientDefiniteRejectionStopsAutomaticReconnect": true,
+    "legacyUntaggedJoinErrorSupported": true,
+    "persistentReasonAndManualConnectionButton": true,
+    "heartbeatRequiresFirstState": true,
+    "connectionAndFirstStateTimeoutMs": 10000,
+    "transientReconnectBackoffMs": [
+      1000,
+      2000,
+      4000,
+      8000,
+      15000
+    ],
+    "sharedControlsLockedUntilFreshState": true,
+    "noAutomaticSoloFork": true,
+    "lateOldSocketEventsIgnored": true,
+    "timersClearedOnSwitchLeaveStateClose": true,
+    "ordinaryCommandErrorsRemainNonfatal": true,
+    "tokensOrServerRecordsAutomaticallyDeleted": false
+  },
+  "automated": {
+    "appPassed": 92,
+    "appFailed": 0,
+    "newClientCases": 6,
+    "newActualServerTest": 1,
+    "actualServerSubcases": [
+      "missing room",
+      "wrong role token",
+      "invalid role",
+      "heartbeat before join",
+      "no join request for 10 seconds",
+      "corrected join",
+      "command permission error then allowed role note",
+      "five HTTP entry paths and JavaScript response types"
+    ],
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "build": "passed",
+    "existingCoveragePreserved": [
+      "two real WebSocket clients for Incheon and nationwide",
+      "role permissions and simultaneous edit conflicts",
+      "event idempotency",
+      "actual Node process restart with persisted state",
+      "seed reproducibility, conservation and statistics",
+      "all previous loading, storage and research-restore regressions"
+    ],
+    "stalledClientTestTimeoutMs": 20,
+    "scope": "Client timeout edge cases use an injected short test timeout; server idle timeout and browser wait use the default 10 seconds."
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome, copied application, real Node/WebSocket server, isolated native IndexedDB bloodflow-join-qa-20261023; owned QA page injects missing room and withheld state response. No production mutations.",
+    "roles": [
+      "engineering",
+      "biology"
+    ],
+    "initialMissingCode": {
+      "lastSoloHours": 6,
+      "persistentReason": true,
+      "locked": true,
+      "sameReasonInConnectionDialog": true,
+      "serverConnections": 1,
+      "joinRequests": 1,
+      "heartbeats": 0,
+      "errorFrames": 1,
+      "correctedCodeRecovers": true
+    },
+    "temporaryDisconnect": {
+      "bothLockedAtHours": 6,
+      "bothInterpretationsRetained": true,
+      "stateResponseHeld": true,
+      "timeoutMessageVisibleOnBoth": true,
+      "normalResponseRestored": true,
+      "bothAutomaticallyReconnected": true,
+      "bothRecoveredHours": 6,
+      "engineering": "재접속 후에도 보존할 산업공학 해석",
+      "biology": "재접속 후에도 보존할 생명과학 해석",
+      "ownFieldsEnabledAndOtherRoleFieldsDisabledOnBoth": true,
+      "recoveredPaused": true,
+      "warningCleared": true,
+      "processRestartPerformed": false
+    },
+    "nationwideMissingCode": {
+      "nodes": 100,
+      "lastSoloHours": 6,
+      "sameReasonVisibleAfterSeconds": 89,
+      "noExtraJoinForRejectedSocket": true,
+      "manualConnectionButtonVisible": true,
+      "finalCodeReloadRestoredSoloHours": 6,
+      "rejectionAfterFinalReload": true
+    },
+    "console": {
+      "applicationErrors": [],
+      "extensionErrorsExcluded": 99
+    },
+    "inputToolTimeout": {
+      "observed": 1,
+      "productStateAfterTimeout": "solo at 0 hours, step enabled",
+      "freshStateVerifiedBeforeSuccessfulRetry": true,
+      "classifiedAsProductFailure": false
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "entryHTMLs": 5,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "dataUnchanged": true,
+    "incheonInstitutions": 4,
+    "directedRoutes": 12
+  },
+  "buildManifest": "test-results/build-manifest.json",
+  "preserved": [
+    "original HTML files",
+    "Incheon four institutions, twelve directed routes and 1394 saved road ways",
+    "nationwide geography and 100 nodes, including 96 explicitly virtual nodes",
+    "common engine, medical assumptions, statistical formulas, LIVE/TIMELAPSE/COMPUTE and four whole-page labs",
+    "equal independent role features and existing authentication rules",
+    "other PinCon paths, root service worker, domain and Firebase rules"
+  ],
+  "limits": [
+    "Review branch only; no direct main write, merge or manual production deployment.",
+    "Production collaboration health is still 404 and serverOrigin is empty; static Pages is not a WebSocket host.",
+    "Browser faults are synthetic, not an observed production 503 or real medical activity.",
+    "No physical Galaxy Tab, real file://, airplane mode, long wall-clock performance or real-host persistent-disk verification.",
+    "Browser recovery in this run is same-process network/state response recovery; real process restart remains covered separately by the automated tests.",
+    "QA controls and isolated DB patches are outside the repository; existing source QA assets were left unchanged."
+  ]
+}

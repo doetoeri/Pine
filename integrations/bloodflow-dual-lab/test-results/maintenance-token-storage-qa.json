@@ -1,0 +1,234 @@
+{
+  "verifiedAt": "2026-10-22T21:10:21.416814+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "priorReviewHead": "fffd678403ddc1428075f48c3b06016f45de1138",
+    "priorReviewTree": "348d68790e89eae3864f7b13e1f981772e5ef081",
+    "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+    "reviewsBeforeChange": [],
+    "pagesWorkflow": {
+      "conclusion": "success",
+      "url": "https://github.com/doetoeri/Pine/actions/runs/39782834193"
+    },
+    "production": {
+      "checkedAt": "2026-10-22T20:57:08.012149+00:00",
+      "http": [
+        {
+          "path": "/bloodflow",
+          "url": "https://pincon.app/bloodflow/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/nationwide",
+          "url": "https://pincon.app/bloodflow/nationwide/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/engineering",
+          "url": "https://pincon.app/bloodflow/engineering/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/biology",
+          "url": "https://pincon.app/bloodflow/biology/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/research",
+          "url": "https://pincon.app/bloodflow/research/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/client.mjs",
+          "url": "https://pincon.app/bloodflow/modules/client.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/data/routes.json",
+          "url": "https://pincon.app/bloodflow/data/routes.json",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/runtime-config.js",
+          "url": "https://pincon.app/bloodflow/runtime-config.js",
+          "status": 200,
+          "contentType": "application/javascript; charset=utf-8",
+          "serverOrigin": ""
+        },
+        {
+          "path": "/bloodflow/api/health",
+          "status": 404,
+          "url": "https://pincon.app/bloodflow/api/health"
+        }
+      ]
+    },
+    "production503Observed": false,
+    "productionCredentialStorageFailureObserved": false
+  },
+  "baseline": {
+    "method": "Synthetic Node regression tests against the previous reviewed source before mutation.",
+    "blockedReadChangedSoloModeToShared": true,
+    "blockedReadLockedSoloControls": true,
+    "blockedReadClosedExistingSharedSocket": true,
+    "blockedReadDiscardedPendingCommands": true,
+    "writeFailureReportedAsUnrecoverableMessage": true,
+    "memoryOnlyWarningWasMissing": true,
+    "confirmedTokenMemoryCacheWasMissing": true
+  },
+  "changes": {
+    "resolveCredentialsBeforeWorldSocketPendingMutations": true,
+    "readFailureIsNotAnEmptyInvitation": true,
+    "cacheOnlyServerConfirmedTokens": true,
+    "memoryScope": [
+      "room code",
+      "role",
+      "current LabClient instance"
+    ],
+    "explicitCreateResponseDoesNotNeedStoredTokenRead": true,
+    "sameRoomSameRoleCanRejoinWithoutUnavailableRead": true,
+    "writeFailureKeepsValidConnectionAndDisplaysPersistentWarning": true,
+    "normalStatesDoNotEraseWarningOrRepeatTokenWrites": true,
+    "manualRejoinAfterSuccessfulWriteClearsWarning": true,
+    "connectionFormErrorSurvivesPeerStateUpdates": true,
+    "rejectedStoredAndMemoryTokensRetainedWithoutEmptyFallback": true,
+    "legacyStorageKeysUnchanged": true,
+    "serverAuthenticationAndRoleRulesUnchanged": true,
+    "tokensAddedToNoticesLogsOrResearchExports": false
+  },
+  "automated": {
+    "appPassed": 99,
+    "appFailed": 0,
+    "newRoleStorageTests": 7,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "build": "passed",
+    "cases": [
+      "Storage object getter throws SecurityError; guarded join preserves all active solo state.",
+      "getItem fails while a room is connected; socket, state, pending commands and mutation rights remain intact.",
+      "setItem quota failure after valid join; ready state and warning coexist without message recovery error.",
+      "Confirmed same-room token survives unavailable storage; other roles/rooms cannot reuse it.",
+      "Manual rejoin after write recovery persists the confirmed token and clears the warning.",
+      "Refused stored token is retained and never automatically replaced with an empty token.",
+      "Refused confirmed-memory token is retained and never automatically replaced with an empty token."
+    ],
+    "existingRealWebSocketNetworkTests": [
+      "Incheon and nationwide: sync, permissions, edit conflict, dedupe, disconnect, disk/process restart, research restore and isolated routes."
+    ],
+    "storageFailuresInjected": true,
+    "physicalQuotaExhaustionTested": false
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome with real copied Node/WebSocket server and native IndexedDB. QA-only Storage.prototype wrappers throw for bf-token keys; no real site permission or device quota was modified.",
+    "isolatedIndexedDB": "bloodflow-token-qa-20261023",
+    "indexedDBAndSessionStorageBlocked": false,
+    "soloReadFailure": {
+      "beforeHours": 6,
+      "afterFailureHours": 6,
+      "mode": "solo",
+      "controlsEnabled": true,
+      "dialogExplainedFailure": true,
+      "serverConnections": 0,
+      "joinRequests": 0,
+      "continuedHours": 12
+    },
+    "writeFailureAfterJoin": {
+      "engineeringUsedExplicitCreationResponse": true,
+      "biologyUsedExistingRoomCode": true,
+      "bothSynchronizedHours": 6,
+      "bothSawPersistentWarning": true,
+      "biologyCards": 3,
+      "bothCouldUseOwnRoleControls": true,
+      "noMessageRecoveryError": true
+    },
+    "failedRoleChange": {
+      "from": "engineering",
+      "attempted": "biology",
+      "readDenied": true,
+      "existingSocketKept": true,
+      "serverConnectionsBeforeAndAfter": 2,
+      "serverSocketClosesBeforeAndAfter": 0,
+      "originalRoleRightsPreserved": true,
+      "peerAdvancedHoursFrom": 6,
+      "peerAdvancedHoursTo": 12,
+      "failureReasonSurvivedPeerStateUpdate": true,
+      "bothInterpretationsRetained": true
+    },
+    "manualRejoinWithMemory": {
+      "readDenied": true,
+      "writeDenied": true,
+      "sameRoomAndRole": true,
+      "readsBefore": 2,
+      "readsAfter": 2,
+      "hoursAfter": 12,
+      "warningRetained": true
+    },
+    "automaticReconnect": {
+      "fault": "QA-only endpoint closes both actual WebSocket peers with code 1012.",
+      "readAndWriteDeniedOnBoth": true,
+      "bothLockedAtHours": 12,
+      "bothAutomaticallyReconnected": true,
+      "bothRecoveredHours": 12,
+      "engineering": "저장 실패에도 보존할 산업공학 해석",
+      "biology": "저장 실패에도 보존할 생명과학 해석",
+      "ownFieldsEnabledAndOtherRoleFieldsDisabledOnBoth": true,
+      "bothRecoveredPaused": true,
+      "storageWarningRetained": true,
+      "processRestartPerformed": false
+    },
+    "writeRecovery": {
+      "readDeniedRemained": true,
+      "writeDeniedRemoved": true,
+      "eachRoleManuallyRejoined": true,
+      "bothWarningsCleared": true,
+      "bothRecoveredHours": 12,
+      "bothInterpretationsRetained": true,
+      "engineeringFinalReads": 2,
+      "engineeringFinalWrites": 4,
+      "biologyFinalReads": 1,
+      "biologyFinalWrites": 3
+    },
+    "console": {
+      "applicationErrors": [],
+      "extensionErrorsExcluded": 136
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "entryHTMLs": 5,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "dataUnchanged": true,
+    "incheonInstitutions": 4,
+    "directedRoutes": 12,
+    "roads": 1394
+  },
+  "buildManifest": "test-results/build-manifest.json",
+  "preserved": [
+    "original HTML files",
+    "Incheon four institutions / twelve directed routes / 1394 road ways",
+    "nationwide geography, 100 representative nodes and explicit virtual data labels",
+    "common simulation engine, biology assumptions and statistics",
+    "four top-level whole-page labs, equal role research and LIVE/TIMELAPSE/COMPUTE",
+    "other PinCon paths, root service worker, domain and Firebase rules"
+  ],
+  "limits": [
+    "Review branch only; no main mutation, merge or manual production deployment.",
+    "Production health remains 404 with empty serverOrigin; no real HTTPS collaboration host has been configured.",
+    "Storage errors were synthetic method/getter exceptions, not actual browser site-permission changes or physical quota exhaustion.",
+    "Browser reconnect in this run is same-process network recovery; real Node process restart remains covered separately by the existing automated tests.",
+    "No physical Galaxy tablet, real file://, airplane mode, long wall-clock/performance or real-host disk lifecycle verification.",
+    "Current single-file HTML was built but was not rerun in the browser this time.",
+    "Fault controls, prototype changes, server diagnostics and isolated DB patches are outside the repository and not published."
+  ]
+}

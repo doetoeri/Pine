@@ -1,0 +1,304 @@
+{
+  "checkedAt": "2026-10-23T05:16:22.421732+00:00",
+  "base": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewHead": "5f3bdd181e21d6f934dfef86dd8ad584a7aae891",
+    "draftPR": 133,
+    "reviews": 0,
+    "pagesRun": 39782834193,
+    "pagesConclusion": "success"
+  },
+  "finding": {
+    "behavior": "A global exportMode associated all asynchronous server exports with the most recently clicked button. The client discarded the existing response eventId.",
+    "browserBaseline": {
+      "environment": "Isolated Chrome with prior reviewed app/client modules and actual Node/WebSocket room. Only the external QA server queues export responses.",
+      "requested": [
+        "inventory CSV",
+        "state JSON"
+      ],
+      "delivery": "last response first, then first response",
+      "generated": [
+        {
+          "filename": "BLOODFLOW_state.json",
+          "mime": "application/json",
+          "bytes": 61129
+        },
+        {
+          "filename": "BLOODFLOW_state.json",
+          "mime": "application/json",
+          "bytes": 61129
+        }
+      ],
+      "missing": "Requested inventory CSV",
+      "productionSharedFailureObserved": false
+    }
+  },
+  "changes": [
+    "Associate each export kind with its existing eventId; match one response to one pending request. Allow different kinds to overlap and reject duplicate pending requests of the same kind.",
+    "Ten-second shared export deadline, persistent waiting/error status and manual retry. Clear on send failure, disconnect, room/role/authority changes and solo return; ignore late, unknown, missing and duplicate IDs.",
+    "Keep read requests out of mutating pending/command sequence and reconnect replay. Preserve an active export if resolving new role credentials fails before changing the active connection.",
+    "Use a new export-result event for UI request/kind metadata while retaining the legacy export event and unchanged BLOODFLOW-LAB-FILE-1 payload. Inventory button selects CSV per correlated reply.",
+    "Update tools and storage-recovery export controls without changing server code, world, revisions, logs, biological rules or statistical formulas."
+  ],
+  "automated": {
+    "app": {
+      "passed": 183,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs"
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+    },
+    "newTests": {
+      "clientRoomsAdapter": 11,
+      "nativeNetwork": 1,
+      "cases": [
+        "solo formats, legacy event/file schema and no state mutation",
+        "reversed shared replies with distinct formats and unchanged command sequence/revision/logs",
+        "same-kind duplicate and invalid-kind rejection",
+        "timeout, ignored old reply and manual retry without automatic resend",
+        "duplicate, unknown and missing reply IDs",
+        "disconnect clears exports while lost-ACK mutating step replays exactly once",
+        "room/role/solo transition cancellation",
+        "authority change cancellation",
+        "correlated error isolation",
+        "send failure cleanup and retry",
+        "credential-read failure preserves current export/socket"
+      ]
+    },
+    "nativeNetwork": "Two actual LabClients and an unmodified child Node server use HTTP create and native WebSocket joins. Nationwide 12h, both interpretations and N 1 day x 2 repeats x 3 policies are exported by both roles without revision/sequence changes. Actual JSON is written to a Node file, read back, validated and restored with notes/result and conserved inventory; a shared restore also preserves the biology interpretation.",
+    "regressions": "Full suite retains startup/map failures, storage/reconnect/role/draft/compute/server restart coverage and deterministic policy, inventory conservation, compatibility, expiry and statistical checks.",
+    "fixtureCorrection": "Initial native test waited for A ACK but not B receiving A notes before B submitted its notes. Wait for the peer state was added to avoid an intentional revision conflict in the fixture; native test and full 183 suite then passed. No production fix was made for that fixture timing."
+  },
+  "build": {
+    "builtAt": "2026-10-23T05:06:19.067Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "69d12c2095b119821cf47ab64c0d6180fd119d9cc6df77d72c1e748b3d2f5cd5",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 17,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1165963
+  },
+  "static": {
+    "modules": 17,
+    "staticImports": 25,
+    "relativeModuleReferences": 26,
+    "entryHTMLs": 5,
+    "cachePaths": 34,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 23,
+    "copiedTrackedStaticFiles": 35,
+    "changedOutsideBloodflow": false
+  },
+  "browser": {
+    "environment": "Two Chrome tabs with actual Node/WebSocket roles and unchanged application server apart from external QA-only export response hold/release/disconnect controls. Separate IndexedDB and Blob observation script are outside git.",
+    "shared": {
+      "network": "nationwide",
+      "hours": 12,
+      "roles": [
+        "engineering",
+        "biology"
+      ],
+      "notes": [
+        "내보내기에 보존할 산업공학 해석",
+        "내보내기에 보존할 생명과학 해석"
+      ],
+      "result": "N 1 day x 2 repeats x 3 policies, executed by biology, 100 nodes/17 fixed regions"
+    },
+    "reversedReplies": {
+      "bothKindButtonsDisabledWhilePending": true,
+      "generated": [
+        {
+          "filename": "BLOODFLOW_state.json",
+          "mime": "application/json",
+          "bytes": 1951575,
+          "format": "BLOODFLOW-LAB-FILE-1",
+          "network": "nationwide",
+          "hours": 12,
+          "bothInterpretations": true,
+          "hasResult": true
+        },
+        {
+          "filename": "BLOODFLOW_inventory.csv",
+          "mime": "text/csv;charset=utf-8",
+          "bytes": 183131,
+          "rowsExcludingHeader": 1781,
+          "header": "id,kind,bloodType,status,node,createdHours,expiryHours,temperature,syntheticTemperature,review,reviewReason"
+        }
+      ]
+    },
+    "timeout": {
+      "persistentNotice": true,
+      "stateButtonReenabled": true,
+      "blobCountBeforeLateReply": 2,
+      "blobCountAfterLateReply": 2,
+      "normalManualRetryAddedStateJSON": true
+    },
+    "biologyExports": [
+      "BLOODFLOW_inventory.csv with 1781 rows",
+      "BLOODFLOW_state.json with nationwide 12h, both notes and computed result"
+    ],
+    "disconnect": {
+      "pendingRequestCanceled": true,
+      "persistentNotice": true,
+      "automaticReconnectToLatestState": true,
+      "blobCountBeforeOldReply": 3,
+      "blobCountAfterOldReply": 3,
+      "heldQueueAfterOldReply": 0,
+      "manualRetryAddedFourthBlobStateJSON": true
+    },
+    "final": {
+      "hoursBoth": 12,
+      "bothInterpretationsRetained": true,
+      "bothFullDisplayedResultsEqualOriginalInnerText": true,
+      "inventoryConservation": true,
+      "exportNoticeClearedOnSuccess": true,
+      "engineeringCanChangeEngineeringInterpretation": true,
+      "biologyCanChangeBiologyInterpretation": true
+    },
+    "finalConsole": {
+      "A": {
+        "entries": 95,
+        "extensionExcluded": 95,
+        "appErrors": []
+      },
+      "B": {
+        "entries": 53,
+        "extensionExcluded": 53,
+        "appErrors": []
+      },
+      "production": {
+        "entries": 6,
+        "extensionExcluded": 6,
+        "appErrors": []
+      },
+      "scope": "Bounded final error/warn queries. Baseline history was reset once after failed download waiter, so no complete baseline console claim."
+    },
+    "downloadBoundary": "Actual anchor filename, MIME and Blob bytes/content were observed from application-generated Blobs. A cloud download waiter failed; native browser/OS disk completion and reopening a browser-downloaded file are NOT verified. No browser security/download setting was changed. Native Node file roundtrip is separately verified above.",
+    "observationCorrection": "A first final comparison mixed textContent with the saved innerText, producing whitespace-only differences. Using innerText for both matched the original full result in both tabs."
+  },
+  "production": {
+    "checkedAt": "2026-10-23T04:56:31.512955+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/biology/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/research",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/research/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 74410
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 12460
+      },
+      {
+        "path": "/bloodflow/modules/compute-worker.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 1240
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "type": "application/json; charset=utf-8",
+        "bytes": 38728
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "type": "application/javascript; charset=utf-8",
+        "bytes": 380,
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionBrowser": {
+    "fullPages": [
+      "nationwide",
+      "engineering",
+      "biology",
+      "research"
+    ],
+    "topLevelNavigationAndInitialization": true,
+    "nationwideRegions": 17,
+    "maps": [
+      "nationwide",
+      "engineering"
+    ],
+    "biologyCards": 3,
+    "researchInputs": 6,
+    "timeAdvanced": false,
+    "sharedRoomCreated": false
+  },
+  "preserved": [
+    "Original HTML/legacy source and example data unchanged.",
+    "Incheon 4 facilities/12 directed routes/1394 road ways and nationwide 100 nodes/17 fixed study regions unchanged.",
+    "Common simulation/biological/statistical formulas, virtual/estimated labels, equal researcher roles, four full pages and LIVE/TIMELAPSE/COMPUTE retained.",
+    "Only bloodflow/ and integrations/bloodflow-dual-lab/ changed; no server/domain/DNS/root service worker/Firebase/other PinCon paths modified.",
+    "QA control server/routes, baseline copies, Blob observer and separate DB remain outside repository."
+  ],
+  "limitations": [
+    "Production health remains 404 with empty serverOrigin. Static Pages alone does not provide shared WebSocket collaboration; approved HTTPS host and persistent disk are still needed.",
+    "No actual production 503/shared-export fault was observed. No main edit, merge or manual production deployment.",
+    "No actual Galaxy, file://, airplane mode, offline single-HTML browser execution, long-duration tablet performance or hosting-disk lifecycle test in this run.",
+    "Cloud browser disk downloads could not be confirmed; generated Blob checks and native Node disk roundtrip do not substitute for actual Galaxy download/import QA.",
+    "The deadline cancels a read request; a user must retry manually, and this does not replace server persistence or recover unconfirmed note drafts."
+  ]
+}

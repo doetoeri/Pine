@@ -1,0 +1,378 @@
+{
+  "verifiedAt": "2026-10-23T10:01:50.806790+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "priorReviewHead": "029d1c7da2d4450901d893276604daa6bad7e1af",
+    "priorReviewTree": "0f00858440936ef031c6ef6fbcf6c67f62ca8a16",
+    "pr": "https://github.com/doetoeri/Pine/pull/133",
+    "draft": true,
+    "reviews": 0,
+    "pagesRun": 39782834193,
+    "pagesConclusion": "success",
+    "otherWorktreesPreserved": true
+  },
+  "finding": {
+    "priorProductionDataFailure": "2026-10-23T07:17:49.097Z; failing browser request HTTP status was unavailable in the previous run and remains unknown.",
+    "baseline": "Prior reviewed app/loader, actual Chrome and copied Node server returning a synthetic required routes.json HTTP 503.",
+    "baselineErrorNamedFileAndStatus": true,
+    "baselineDiagnosticExportControls": 0,
+    "baselineHeaderReportControls": 0,
+    "baselineClockAbsent": true,
+    "initialRequests": {
+      "facilities.json": 1,
+      "routes.json": 1,
+      "nationwide.json": 1,
+      "roads.geojson": 1,
+      "regions.geojson": 1
+    },
+    "gap": "Before required data loaded, map diagnostics could not be opened and response metadata could not be retained/exported from the error screen.",
+    "rootCauseOfOriginal503ClaimedFixed": false
+  },
+  "changes": {
+    "existingModule": "src/data-loader.mjs",
+    "requiredFailureUIUsesTextNodes": true,
+    "diagnosticSchema": "BLOODFLOW-DATA-DIAGNOSTICS-1",
+    "recordsLimit": 30,
+    "headersAllowlist": [
+      "content-type",
+      "cache-control",
+      "age",
+      "etag",
+      "last-modified",
+      "date",
+      "server",
+      "retry-after",
+      "vary",
+      "access-control-allow-origin",
+      "x-cache"
+    ],
+    "maxCharactersPerHeader": 512,
+    "finalResponseURLRemovesCredentialsQueryAndFragment": true,
+    "contextContainsOnlyProtocolOriginAndOnlineFlag": true,
+    "httpZeroReportedAsUnknown": true,
+    "typeErrorDoesNotProveCORS": true,
+    "headerAccessFailureDoesNotBlockData": true,
+    "diagnosticSnapshotDetached": true,
+    "embeddedSourceDistinguishedFromHTTP": true,
+    "excluded": [
+      "request cookies and authorization",
+      "response cookies and unlisted headers",
+      "request/response bodies",
+      "study/world/notes/results",
+      "room codes and role tokens",
+      "page query and fragment",
+      "saved study and browser storage"
+    ],
+    "beforeInitializationExportAndManualRetry": true,
+    "exportRequestsDoNotClaimDiskCompletion": true,
+    "exportFailureKeepsRecordsAndRetry": true,
+    "automaticExternalTransmissionAdded": false,
+    "automaticRetriesAdded": false,
+    "cacheBypassAdded": false,
+    "existingPendingLoadDeduplicationAndSuccessfulAssetCacheRetained": true,
+    "existingMapDiagnosticHistoryEnriched": true,
+    "clientServerEngineOrScientificFormulaChanged": false
+  },
+  "automated": {
+    "newTests": 8,
+    "newActualHTTPServerTest": 1,
+    "focused": {
+      "passed": 22,
+      "failed": 0,
+      "durationMs": 1207.531477
+    },
+    "app": {
+      "passed": 217,
+      "failed": 0,
+      "durationMs": 33858.11182,
+      "command": "node --test tests/*.test.mjs"
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0,
+      "durationMs": 1047.635075,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+    },
+    "cases": [
+      "503 selected headers, header truncation and body/sensitive header exclusion",
+      "network failure, opaque/error response and HTTP200 invalid JSON distinctions",
+      "body timeout retains received metadata and aborts without retry",
+      "unreadable headers preserve valid data; URLs redact credentials/query/fragment",
+      "bounded history and detached snapshots",
+      "embedded data produce no HTTP requests or study content",
+      "recovery UI text insertion, diagnostic payload and exactly one explicit retry",
+      "diagnostic file construction error retains records/retry",
+      "actual Node HTTP503 and successful recovery retain history and re-request only the failed file"
+    ],
+    "priorSimulationAndCollaborationRegressionIncluded": true,
+    "newManualTwoRoleWebSocketTestClaimed": false
+  },
+  "browser": {
+    "environment": "Cloud Chrome and isolated copied Node server; separate IndexedDB, synthetic static dataset failures and QA controls outside git.",
+    "fixedRequired": {
+      "initialRequests": 5,
+      "routeHTTP503": {
+        "request": "/bloodflow/data/routes.json",
+        "responseUrl": "http://terminal.local:4173/bloodflow/data/routes.json",
+        "status": 503,
+        "headers": {
+          "content-type": "text/plain",
+          "cache-control": "no-store",
+          "server": "BLOODFLOW-QA",
+          "retry-after": "5",
+          "x-cache": "QA-MISS"
+        }
+      },
+      "diagnosticBlobMatchesDisplayedRequestRecords": true,
+      "diagnosticBlobExcludesSetCookieAndErrorBody": true,
+      "manualRetryWith503StillPresent": true,
+      "manualRetryWithHTTP200HTML": true,
+      "manualRecoveryWithValidJSON": true,
+      "routeHistory": [
+        {
+          "status": 503,
+          "error": "HTTP 503"
+        },
+        {
+          "status": 503,
+          "error": "HTTP 503"
+        },
+        {
+          "status": 200,
+          "error": "JSON 자료를 읽을 수 없음"
+        },
+        {
+          "status": 200,
+          "error": null
+        }
+      ],
+      "recoveredNationalRegions": 17,
+      "recoveredClockHours": 0,
+      "mapDiagnosticRetainedDataRequests": 8,
+      "originalFailureHeadersRetainedAfterRecovery": true,
+      "baselineAndFixedCombinedHits": {
+        "facilities.json": 2,
+        "routes.json": 5,
+        "nationwide.json": 2,
+        "roads.geojson": 2,
+        "regions.geojson": 2
+      }
+    },
+    "optionalGeometry": {
+      "file": "roads.geojson",
+      "status": 503,
+      "required": false,
+      "biologyCards": 3,
+      "clockAdvancedHours": 6,
+      "engineeringMapInitialized": true,
+      "mapExportRecordedOptional503Headers": true,
+      "manualGeometryRecoveryClearedWarning": true,
+      "clockHoursAfterRecovery": 6
+    },
+    "finalCombinedDatasetHits": {
+      "facilities.json": 3,
+      "routes.json": 6,
+      "nationwide.json": 3,
+      "roads.geojson": 4,
+      "regions.geojson": 3
+    },
+    "automaticRetryObserved": false,
+    "blobObservation": "QA-only interception of diagnostic anchor clicks reads the generated Blob. Browser-native disk download is not claimed.",
+    "console": {
+      "baseline": {
+        "entries": 1,
+        "extension": 1,
+        "application": []
+      },
+      "fixed": {
+        "entries": 20,
+        "extension": 20,
+        "application": []
+      },
+      "optional": {
+        "entries": 13,
+        "extension": 13,
+        "application": []
+      },
+      "production": {
+        "entries": 6,
+        "extension": 6,
+        "application": []
+      },
+      "limitPerTab": 1000,
+      "boundedCapture": true
+    }
+  },
+  "productionHTTP": {
+    "checkedAt": "2026-10-23T09:52:31.279085+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "url": "https://pincon.app/bloodflow/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/biology",
+        "url": "https://pincon.app/bloodflow/biology/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/research",
+        "url": "https://pincon.app/bloodflow/research/",
+        "status": 200,
+        "bytes": 838,
+        "type": "text/html; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "status": 200,
+        "bytes": 74410,
+        "type": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "status": 200,
+        "bytes": 12460,
+        "type": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/modules/compute-worker.mjs",
+        "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+        "status": 200,
+        "bytes": 1240,
+        "type": "text/javascript; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/facilities.json",
+        "url": "https://pincon.app/bloodflow/data/facilities.json",
+        "status": 200,
+        "bytes": 2985,
+        "type": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "status": 200,
+        "bytes": 38728,
+        "type": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/nationwide.json",
+        "url": "https://pincon.app/bloodflow/data/nationwide.json",
+        "status": 200,
+        "bytes": 64693,
+        "type": "application/json; charset=utf-8"
+      },
+      {
+        "path": "/bloodflow/data/roads.geojson",
+        "url": "https://pincon.app/bloodflow/data/roads.geojson",
+        "status": 200,
+        "bytes": 478606,
+        "type": "application/geo+json"
+      },
+      {
+        "path": "/bloodflow/data/regions.geojson",
+        "url": "https://pincon.app/bloodflow/data/regions.geojson",
+        "status": 200,
+        "bytes": 166883,
+        "type": "application/geo+json"
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "status": 200,
+        "bytes": 380,
+        "type": "application/javascript; charset=utf-8",
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionBrowser": {
+    "nationwideRegions": 17,
+    "nationwideAndEngineeringMap": true,
+    "biologyProducts": 3,
+    "researchNotes": 6,
+    "fourTopLevelFullPagesAndNavigation": true,
+    "hours": 0,
+    "roomCreated": false,
+    "onlineTilesEnabled": false,
+    "dataFailureObservedThisRun": false
+  },
+  "build": {
+    "builtAt": "2026-10-23T09:53:37.724Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "27ab0c75f8c77b440d0015f0c38b024bbb4fe15d6daa816e75d529e24cae8855",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 18,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1176603
+  },
+  "staticChecks": {
+    "modules": 18,
+    "staticImports": 26,
+    "relativeModuleReferences": 27,
+    "entryHTMLs": 5,
+    "cachePaths": 35,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 24,
+    "copiedTrackedStaticFiles": 36,
+    "changedOutsideBloodflow": false
+  },
+  "preserved": [
+    "Original HTMLs, legacy core and examples",
+    "Incheon 4 institutions, 12 directed routes, 1394 road ways",
+    "Nationwide100 nodes and17 fixed study regions; virtual/estimated labels",
+    "Four top-level full pages, equal researcher functions and LIVE/TIMELAPSE/COMPUTE",
+    "Client/server/engines and biological/statistical formulas",
+    "Other PinCon paths, root service worker, Firebase, DNS/domain and hosting"
+  ],
+  "verificationNotes": [
+    "An earlier HTTP check was not executed because automatic approval review was temporarily unavailable. Only the later normally approved HTTP results are reported.",
+    "An initial patch failed its context check atomically; it changed no files. The corrected patch passed all reported tests."
+  ],
+  "limits": [
+    "Review branch only; no main modification, merge or manual production deployment.",
+    "The original production503 and the prior transient data failure still have no verified failing browser HTTP status/headers; local synthetic503 is a separate controlled test.",
+    "Header values are only what the browser exposes, not a full HAR or proof of CORS/cache/server causation.",
+    "The diagnostic JSON is bounded page-local metadata and is not a restorable study file.",
+    "Generated diagnostic Blob content was inspected in Chrome; native disk download completion was not verified.",
+    "Production collaboration API remains404 with empty serverOrigin; static Pages is not a WebSocket host.",
+    "No new manual two-browser collaboration/server-restart run; existing automated collaboration regressions passed.",
+    "No physical Galaxy, file://, actual internet-disable, current standalone HTML browser run, long-duration tablet performance or real-host disk lifecycle verification.",
+    "QA endpoints/controls, Blob inspection, baseline files and isolated DB stay outside git."
+  ]
+}

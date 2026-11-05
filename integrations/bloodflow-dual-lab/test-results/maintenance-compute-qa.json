@@ -1,0 +1,257 @@
+{
+  "verifiedAt": "2026-10-22T22:58:18.713174+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "priorReviewHead": "75173cf62d40d0ef66da2fa26a543305c769dd92",
+    "priorReviewTree": "d3bccc068b5c5dc0c1ac77508e9af7709a234af4",
+    "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+    "pagesWorkflow": {
+      "conclusion": "success",
+      "url": "https://github.com/doetoeri/Pine/actions/runs/39782834193"
+    },
+    "production": {
+      "checkedAt": "2026-10-22T22:56:38.715538+00:00",
+      "http": [
+        {
+          "path": "/bloodflow",
+          "url": "https://pincon.app/bloodflow/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/nationwide",
+          "url": "https://pincon.app/bloodflow/nationwide/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/engineering",
+          "url": "https://pincon.app/bloodflow/engineering/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/biology",
+          "url": "https://pincon.app/bloodflow/biology/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/research",
+          "url": "https://pincon.app/bloodflow/research/",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/client.mjs",
+          "url": "https://pincon.app/bloodflow/modules/client.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/modules/compute-worker.mjs",
+          "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/data/routes.json",
+          "url": "https://pincon.app/bloodflow/data/routes.json",
+          "status": 200,
+          "contentType": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/bloodflow/runtime-config.js",
+          "url": "https://pincon.app/bloodflow/runtime-config.js",
+          "status": 200,
+          "contentType": "application/javascript; charset=utf-8",
+          "serverOrigin": ""
+        },
+        {
+          "path": "/bloodflow/api/health",
+          "url": "https://pincon.app/bloodflow/api/health",
+          "status": 404
+        }
+      ]
+    },
+    "production503Observed": false,
+    "productionWorkerFailureObserved": false
+  },
+  "baseline": {
+    "method": "Synthetic Node reproduction against the previous reviewed source before mutation.",
+    "lifecycle": {
+      "constructorFailure": {
+        "error": "Synthetic worker blocked",
+        "jobStillPresent": true,
+        "workerPresent": false,
+        "worldHours": 6
+      },
+      "lateError": {
+        "newJobStillPresent": false,
+        "newWorkerStillOwned": false,
+        "newWorkerTerminated": false
+      }
+    },
+    "existingNationwideResultWasAlreadyValid": {
+      "initialNetwork": "incheon",
+      "initialHours": 6,
+      "experiment": "N",
+      "resultNetwork": "nationwide",
+      "regionCount": 17,
+      "controlConservation": true,
+      "validationError": null,
+      "restoreError": null
+    },
+    "nationwideConfigNormalizationWasNotABug": true
+  },
+  "changes": {
+    "constructorAndInitialPostFailuresReleaseJob": true,
+    "ownedWorkerOnlyCleanup": true,
+    "lateCancelledWorkerCallbacksIgnored": true,
+    "messageErrorHandlerAdded": true,
+    "invalidTerminalResultRejectedBeforeReplacement": true,
+    "previousWorldNotesAndResultPreserved": true,
+    "persistentResearchErrorInCurrentTab": true,
+    "automaticComputeRetry": false,
+    "explicitRetryClearsIssue": true,
+    "activeSoloComputeBlocksSharedCreateAndJoinBeforeSideEffects": true,
+    "serverComputeLifecycleChanged": false,
+    "newBiologicalOrStatisticalFormula": false
+  },
+  "automated": {
+    "appPassed": 112,
+    "appFailed": 0,
+    "newComputeTests": 13,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "build": "passed",
+    "realNodeWorkerCases": [
+      "A",
+      "N"
+    ],
+    "realWorkerComparison": "All result fields equal runExperiment for identical config/plan/data, excluding createdAt only.",
+    "worldHoursPreserved": 6,
+    "bothInterpretationsPreserved": true,
+    "conservationPassed": true,
+    "cases": [
+      "Worker constructor SecurityError leaves no locked job; manual retry succeeds.",
+      "Initial postMessage DataCloneError terminates only the failed worker.",
+      "Cancelled worker error/messageerror/result cannot clear or replace newer work.",
+      "Active error/messageerror preserves research and enables controls.",
+      "Error, malformed result and empty result terminal messages do not overwrite prior results.",
+      "create, joinAvailable and join reject active solo jobs before health, room POST or socket side effects.",
+      "Real A and N Node worker results preserve current Incheon world and reproducible raw records/statistics."
+    ]
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome, copied Node server and native browser Workers. Synthetic constructor/postMessage exceptions and QA-only held/malformed/throwing worker scripts.",
+    "isolatedIndexedDB": "bloodflow-compute-qa-20261023",
+    "sessions": 2,
+    "actualBaseline": {
+      "experiment": "A",
+      "days": 1,
+      "repeats": 2,
+      "worldHours": 6,
+      "conservationDisplayed": true
+    },
+    "failureModes": {
+      "constructor": "Synthetic SecurityError before native constructor.",
+      "initialPostMessage": "Synthetic DataCloneError after native worker creation.",
+      "runtime": "A real native QA worker script throws during initialization.",
+      "invalidResult": "A real native QA worker sends an incomplete result."
+    },
+    "failureRecovery": {
+      "previousWorldHours": 6,
+      "bothInterpretationsPreserved": true,
+      "previousResultTextUnchanged": true,
+      "persistentErrorShown": true,
+      "startEnabled": true,
+      "cancelHidden": true
+    },
+    "sharedTransitionWhileActive": {
+      "heldProgress": 0.25,
+      "pauseAndResume": true,
+      "createAndCodeJoinShowCancelFirstMessage": true,
+      "roomPosts": 0,
+      "webSocketConnections": 0,
+      "healthGetsFromConnectionDialog": 2,
+      "workContinuedUnchanged": true
+    },
+    "lateAndMessageError": {
+      "method": "QA buttons directly invoke retained Worker event callbacks; not a real browser deserialization failure.",
+      "cancelThenNewHeldWorker": true,
+      "lateErrorCallbackCalls": 1,
+      "newWorkRemainedAtProgress": 0.25,
+      "currentMessageErrorCallbackCalls": 1,
+      "currentJobCleaned": true,
+      "previousWorldNotesAndResultPreserved": true,
+      "initialDispatchEventMessageErrorWasInconclusive": true
+    },
+    "manualRetry": {
+      "realWorker": true,
+      "sameAResultText": true,
+      "errorCleared": true,
+      "controlsReady": true
+    },
+    "nationwideCompute": {
+      "realWorker": true,
+      "days": 1,
+      "repeats": 2,
+      "policies": 3,
+      "nodes": 100,
+      "fixedRegions": 17,
+      "conservationDisplayed": true,
+      "currentIncheonWorldHoursPreserved": 6,
+      "displayedAsSeparateExperiment": true
+    },
+    "reload": {
+      "worldHours": 6,
+      "engineering": "계산 복구 검증: 산업공학 해석 보존",
+      "biology": "계산 복구 검증: 생명과학 해석 보존",
+      "entireNationwideResultDOMTextUnchanged": true,
+      "controlsReady": true
+    },
+    "console": {
+      "completeCapture": false,
+      "zeroApplicationErrorsClaimed": false,
+      "reason": "The browser session was replaced during verification before complete console collection. Injected error UI and server counters are recorded separately."
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 16,
+    "staticImports": 24,
+    "relativeModuleReferences": 25,
+    "entryHTMLs": 5,
+    "entryAssetReferences": 30,
+    "cachePaths": 33,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "dataUnchanged": true,
+    "incheonInstitutions": 4,
+    "directedRoutes": 12,
+    "roads": 1394,
+    "syntaxChecks": 20
+  },
+  "buildManifest": "test-results/build-manifest.json",
+  "preserved": [
+    "original HTML files",
+    "Incheon four institutions / twelve directed routes / 1394 road ways",
+    "nationwide 100 representative nodes and 17 fixed research regions with explicit virtual data labels",
+    "common simulation engine, biological constraints and statistical formulas",
+    "four top-level full pages, equal-role research and LIVE/TIMELAPSE/COMPUTE",
+    "other PinCon paths, root service worker, domain and Firebase rules"
+  ],
+  "limits": [
+    "Review branch only; no main mutation, merge or manual production deployment.",
+    "Production collaboration health remains 404 and serverOrigin is empty.",
+    "Faults were injected in test-only source outside the repository, not observed production failures.",
+    "messageerror and stale-error browser tests invoke callbacks directly; actual browser deserialization failure was not generated.",
+    "The complete console history was not collected; do not claim zero application console errors.",
+    "No physical Galaxy, file://, airplane mode, long wall-clock/performance or real-host disk lifecycle verification.",
+    "The standalone HTML was built but not rerun in the browser in this change.",
+    "Server-side compute worker failure recovery is unchanged and requires a separate evidenced review.",
+    "QA worker wrappers/scripts, server diagnostic counters and isolated DB changes are not published."
+  ]
+}

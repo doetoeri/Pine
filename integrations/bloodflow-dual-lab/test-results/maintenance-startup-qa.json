@@ -1,0 +1,1366 @@
+{
+  "checkedAt": "2026-10-22T17:09:19.014044+00:00",
+  "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+  "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+  "production": {
+    "pagesDeployment": "success",
+    "httpRoutes": {
+      "/bloodflow": 200,
+      "/bloodflow/nationwide": 200,
+      "/bloodflow/engineering": 200,
+      "/bloodflow/biology": 200,
+      "/bloodflow/research": 200
+    },
+    "appModule": 200,
+    "routesJSON": 200,
+    "collaborationHealth": 404,
+    "productionModule503Reproduced": false
+  },
+  "baseline": {
+    "build": "Previous reviewed tree 1eac786f6eb524bffb8e14163b7ab01930c5807f",
+    "faultPath": "/bloodflow/modules/engine.mjs",
+    "faultStatus": 503,
+    "browserText": "BLOODFLOW 연구실을 준비하고 있습니다…",
+    "clockPresent": false,
+    "recoveryButtonPresent": false
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome and isolated HTTP build fixture. Synthetic faults; not an operational PinCon outage.",
+    "dependency503": {
+      "errorHeadingVisible": true,
+      "manualReloadEnabled": true,
+      "rawImportErrorShownAsText": true,
+      "actualReloadRecovery": true,
+      "stepFromHours": 0,
+      "stepToHours": 6
+    },
+    "entry404": {
+      "errorVisible": true,
+      "actualReloadRecovery": true,
+      "restoredClock": "D0 06:00",
+      "restoredEngineeringNote": "Startup recovery note 2026-10-23",
+      "automaticSaveRestoreConnectionLabel": true,
+      "noteEnteredByKeyboardAndCommittedOnBlur": true
+    },
+    "moduleDelay": {
+      "delayMs": 30000,
+      "tenSecondNoticeObserved": true,
+      "automaticRetry": false,
+      "lateResponseContinuedIntoDataInitialization": true,
+      "requiredRoutes503RecoveryUIRetained": true,
+      "manualDataRetryRecovered": true,
+      "realIncheonMarkers": 4,
+      "stepFromHours": 6,
+      "stepToHours": 12
+    },
+    "requiredDataUI": {
+      "routes503Visible": true,
+      "dataRetryPresent": true,
+      "bootstrapReloadAbsent": true,
+      "manualDataRetryRecovered": true
+    },
+    "standalone": {
+      "format": "HTTP-served single HTML with embedded modules and data",
+      "lab": "biology",
+      "productCards": 3,
+      "stepFromHours": 0,
+      "stepToHours": 6,
+      "externalDataRequests": 0,
+      "actualFileProtocolOrAirplaneModeTested": false
+    },
+    "appScriptConsoleErrors": [],
+    "consoleLimit": "The browser log API did not expose resource-level network errors; fixture HTTP request records and the visible import error were used to verify failures. Extension errors were excluded.",
+    "requestRecords": [
+      {
+        "at": "2026-10-22T16:52:16.196Z",
+        "path": "/bloodflow/nationwide/",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.238Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.239Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.239Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.242Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.243Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.289Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.289Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.289Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 503,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.290Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.290Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.291Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.294Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.295Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:52:16.309Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.532Z",
+        "path": "/bloodflow/nationwide/",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.562Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.563Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.564Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.565Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.573Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.609Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.609Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.627Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.628Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.628Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 503,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.629Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.629Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.631Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.632Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:57:29.637Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.263Z",
+        "path": "/bloodflow/nationwide/",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.292Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.295Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.295Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.295Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.300Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.317Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.319Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.336Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.336Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.337Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.337Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.338Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.339Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.342Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.342Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.351Z",
+        "path": "/bloodflow/modules/view.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.352Z",
+        "path": "/bloodflow/modules/collaboration-availability.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.352Z",
+        "path": "/bloodflow/modules/legacy-core.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.352Z",
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.373Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.373Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.373Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.373Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.373Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T16:58:52.604Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.171Z",
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.202Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.203Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.203Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.204Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.204Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.233Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 404,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:00.233Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.542Z",
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.573Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.574Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.574Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.575Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.576Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.595Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.603Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.614Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.615Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.615Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.615Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.616Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.616Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.621Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.622Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.631Z",
+        "path": "/bloodflow/modules/view.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.632Z",
+        "path": "/bloodflow/modules/collaboration-availability.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.632Z",
+        "path": "/bloodflow/modules/legacy-core.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.633Z",
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.646Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.647Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.647Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.647Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.647Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:00:10.772Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:16.913Z",
+        "path": "/bloodflow/research",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:16.958Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:16.986Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:16.986Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:16.986Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:16.987Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:17.019Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 404,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:17.020Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.646Z",
+        "path": "/bloodflow/research",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.669Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.674Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.674Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.675Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.676Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.693Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.702Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.714Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.715Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.715Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.738Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.739Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.739Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.739Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.739Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.740Z",
+        "path": "/bloodflow/modules/view.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.745Z",
+        "path": "/bloodflow/modules/collaboration-availability.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.745Z",
+        "path": "/bloodflow/modules/legacy-core.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.750Z",
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.759Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.759Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.759Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.759Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.759Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:02:26.830Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.504Z",
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.531Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.531Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.531Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.532Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.538Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.582Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.597Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.600Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.600Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 200,
+        "delayedMs": 16000
+      },
+      {
+        "at": "2026-10-22T17:03:13.600Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.600Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.600Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.603Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.605Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.610Z",
+        "path": "/bloodflow/modules/view.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.611Z",
+        "path": "/bloodflow/modules/collaboration-availability.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:13.613Z",
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.611Z",
+        "path": "/bloodflow/modules/legacy-core.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.625Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.626Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.626Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.626Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.627Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:03:29.718Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.349Z",
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.367Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.367Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.368Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.368Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.379Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.415Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.428Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.428Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.429Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 200,
+        "delayedMs": 30000
+      },
+      {
+        "at": "2026-10-22T17:04:26.429Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.429Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.430Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.432Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.432Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.440Z",
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.440Z",
+        "path": "/bloodflow/modules/view.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:26.440Z",
+        "path": "/bloodflow/modules/collaboration-availability.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.603Z",
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.635Z",
+        "path": "/bloodflow/vendor/leaflet.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.636Z",
+        "path": "/bloodflow/app.css",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.645Z",
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.645Z",
+        "path": "/bloodflow/vendor/leaflet.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.645Z",
+        "path": "/bloodflow/startup.js",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.686Z",
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.700Z",
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.700Z",
+        "path": "/bloodflow/modules/biology.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.700Z",
+        "path": "/bloodflow/modules/experiments.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.700Z",
+        "path": "/bloodflow/modules/geography.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.700Z",
+        "path": "/bloodflow/modules/map-layer.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.703Z",
+        "path": "/bloodflow/modules/data-loader.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.705Z",
+        "path": "/bloodflow/modules/nationwide-ui.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.711Z",
+        "path": "/bloodflow/modules/view.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.711Z",
+        "path": "/bloodflow/modules/collaboration-availability.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:36.711Z",
+        "path": "/bloodflow/modules/map-requests.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.437Z",
+        "path": "/bloodflow/modules/engine.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.442Z",
+        "path": "/bloodflow/modules/legacy-core.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.444Z",
+        "path": "/bloodflow/modules/legacy-core.mjs",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.456Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.456Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 503,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.457Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.457Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.457Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.466Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.466Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 503,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.466Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.466Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:04:56.473Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:06:11.223Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:06:11.388Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:06:12.607Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:06:12.797Z",
+        "path": "/bloodflow/icon.svg",
+        "status": 200,
+        "delayedMs": 0
+      },
+      {
+        "at": "2026-10-22T17:06:13.067Z",
+        "path": "/bloodflow/offline.html",
+        "status": 200,
+        "delayedMs": 0
+      }
+    ],
+    "stageMarkers": {
+      "afterBaselineAndFixed503": 31,
+      "after503Recovery": 57,
+      "after404SavedNoteRecovery": 125,
+      "after16sLateCompletion": 150,
+      "afterDelayAndRequiredFailure": 198
+    },
+    "requestCounts": {
+      "/bloodflow/nationwide/": 3,
+      "/bloodflow/vendor/leaflet.css": 10,
+      "/bloodflow/app.css": 10,
+      "/bloodflow/runtime-config.js": 10,
+      "/bloodflow/vendor/leaflet.js": 10,
+      "/bloodflow/modules/app.mjs": 10,
+      "/bloodflow/modules/client.mjs": 8,
+      "/bloodflow/modules/biology.mjs": 8,
+      "/bloodflow/modules/engine.mjs": 8,
+      "/bloodflow/modules/experiments.mjs": 8,
+      "/bloodflow/modules/geography.mjs": 8,
+      "/bloodflow/modules/map-layer.mjs": 8,
+      "/bloodflow/modules/data-loader.mjs": 8,
+      "/bloodflow/modules/nationwide-ui.mjs": 8,
+      "/bloodflow/icon.svg": 13,
+      "/bloodflow/startup.js": 9,
+      "/bloodflow/modules/view.mjs": 6,
+      "/bloodflow/modules/collaboration-availability.mjs": 6,
+      "/bloodflow/modules/legacy-core.mjs": 6,
+      "/bloodflow/modules/map-requests.mjs": 6,
+      "/bloodflow/data/facilities.json": 6,
+      "/bloodflow/data/routes.json": 8,
+      "/bloodflow/data/nationwide.json": 6,
+      "/bloodflow/data/roads.geojson": 6,
+      "/bloodflow/data/regions.geojson": 6,
+      "/bloodflow/nationwide": 3,
+      "/bloodflow/research": 2,
+      "/bloodflow/biology": 1,
+      "/bloodflow/engineering": 1,
+      "/bloodflow/offline.html": 1
+    }
+  },
+  "automated": {
+    "appPassed": 59,
+    "appFailed": 0,
+    "pinconSelectedPassed": 58,
+    "pinconSelectedFailed": 0,
+    "newStartupTests": 6,
+    "testCases": [
+      "Rejected imports render text diagnostics and one explicit reload.",
+      "Synchronous initialization exception recovery.",
+      "10-second notice with one import and late completion.",
+      "App-owned data-recovery UI protected from a stale watchdog.",
+      "Successful UI and timer/listener cleanup.",
+      "Initialization exceptions preserve existing clock and note fields."
+    ],
+    "build": "passed",
+    "offlineBytes": 1135480
+  },
+  "staticBuildChecks": {
+    "modules": 14,
+    "relativeImports": 20,
+    "htmlEntryPaths": 5,
+    "wholePageLabs": 4,
+    "cachePaths": 31,
+    "missingPaths": 0,
+    "sourceAndGeneratedStartupMatch": true
+  },
+  "limits": [
+    "Review branch only; no production merge or deployment.",
+    "No configured production Node/WebSocket host.",
+    "The 10-second ESM watchdog shows a notice; native import cannot be aborted and is not automatically repeated.",
+    "If the classic startup script itself cannot load, the static HTML refresh/offline guide remains; dynamic diagnostics cannot run.",
+    "No physical Galaxy Tab, actual file://, airplane-mode, or long-duration wall-clock performance test."
+  ]
+}

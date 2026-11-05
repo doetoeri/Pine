@@ -1,0 +1,183 @@
+{
+  "checkedAt": "2026-10-22T16:09:06.520941+00:00",
+  "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+  "reviewPR": "https://github.com/doetoeri/Pine/pull/133",
+  "production": {
+    "pagesDeployment": "success",
+    "htmlRoutes": {
+      "/bloodflow": 200,
+      "/bloodflow/nationwide": 200,
+      "/bloodflow/engineering": 200,
+      "/bloodflow/biology": 200,
+      "/bloodflow/research": 200
+    },
+    "appModule": 200,
+    "roadsGeoJSON": 200,
+    "regionsGeoJSON": 200,
+    "collaborationHealth": 404,
+    "nationwideBrowserBoot": true,
+    "observedProduction503": false
+  },
+  "baselineReproduction": {
+    "method": "Execute the original initialization block with a synthetic roads.geojson fetch response.",
+    "file": "roads.geojson",
+    "status": 503,
+    "entireAppReplacedByError": true
+  },
+  "browser": {
+    "environment": "Managed cloud Chrome; isolated static build and synthetic data-failure HTTP server. Not a real tablet.",
+    "optionalFailure": {
+      "files": [
+        "roads.geojson",
+        "regions.geojson"
+      ],
+      "status": 503,
+      "nationwideBoot": true,
+      "clusterClickWithoutBoundsError": true,
+      "stepToHours": 6,
+      "incheonDetailsNavigation": true,
+      "realFacilityMarkers": 4,
+      "retryRequestsOnlyMissingFiles": true,
+      "metricsBefore": [
+        "16.7%",
+        "0.0%",
+        "170모형 단위",
+        "1,622.2단위"
+      ],
+      "metricsAfter": [
+        "16.7%",
+        "0.0%",
+        "170모형 단위",
+        "1,622.2단위"
+      ],
+      "clockBefore": "D0 06:00",
+      "clockAfter": "D0 06:00",
+      "warningCleared": true
+    },
+    "requiredFailure": {
+      "file": "routes.json",
+      "status": 503,
+      "initializationStopped": true,
+      "filenameAndStatusVisible": true,
+      "manualRetryFileCount": 1,
+      "recovered": true,
+      "fourTopLevelNavigationLinks": true
+    },
+    "biologyProductCards": 3,
+    "researchNoteFields": 6,
+    "researchComputeEnabled": true,
+    "standalone": {
+      "servedAs": "HTTP single-file HTML with embedded Blob modules and datasets",
+      "dataFetches": 0,
+      "stepFromHours": 6,
+      "stepToHours": 12,
+      "fileProtocolOrNetworkDisconnectionTested": false
+    },
+    "appScriptConsoleErrors": [],
+    "requestRecords": [
+      {
+        "at": "2026-10-22T16:04:45.929Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:04:45.929Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:04:45.929Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:04:45.929Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 503
+      },
+      {
+        "at": "2026-10-22T16:04:45.930Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 503
+      },
+      {
+        "at": "2026-10-22T16:06:10.675Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:06:10.677Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:06:33.783Z",
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:06:33.783Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 503
+      },
+      {
+        "at": "2026-10-22T16:06:33.783Z",
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:06:33.784Z",
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:06:33.784Z",
+        "path": "/bloodflow/data/regions.geojson",
+        "status": 200
+      },
+      {
+        "at": "2026-10-22T16:06:44.919Z",
+        "path": "/bloodflow/data/routes.json",
+        "status": 200
+      }
+    ],
+    "requestCounts": {
+      "facilities.json": 2,
+      "routes.json": 3,
+      "nationwide.json": 2,
+      "roads.geojson": 3,
+      "regions.geojson": 3
+    }
+  },
+  "automated": {
+    "app": {
+      "passed": 53,
+      "failed": 0
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0
+    },
+    "newLoaderTests": 8,
+    "incheonAndNationwide24hSnapshotEqualityWithoutBackgroundGeometry": true,
+    "massConservation": true,
+    "actualPartialHTTPBodyTimeout": true,
+    "build": "passed",
+    "buildOfflineBytes": 1134828
+  },
+  "limits": [
+    "Production code is not deployed by this review branch.",
+    "No production WebSocket host is configured.",
+    "No physical Galaxy tablet, actual file:// browser, airplane-mode test, or long-duration performance measurement in this run.",
+    "Module import failures before app.mjs can execute still need a separate bootstrap diagnostic."
+  ],
+  "staticBuildChecks": {
+    "publishedModules": 14,
+    "relativeImportsChecked": 20,
+    "wholePageRoutes": 4,
+    "serviceWorkerCachePaths": 30,
+    "missingPaths": 0,
+    "directedRoutes": 12,
+    "sourceMatchesPublished": true
+  }
+}

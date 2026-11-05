@@ -1,0 +1,450 @@
+{
+  "verifiedAt": "2026-10-23T07:22:20.418744+00:00",
+  "repository": {
+    "main": "9093baced3a386b2fe3c1c9981c3937cb208c73b",
+    "reviewHeadBeforeChange": "f5ad7dbdd0b77add4b2deed674a5dda299611469",
+    "reviewTreeBeforeChange": "d662dbeb5e717e020a9f2ef58e923fa6d3d44281",
+    "pr": "https://github.com/doetoeri/Pine/pull/133",
+    "draft": true,
+    "reviews": 0,
+    "pagesRun": 39782834193,
+    "pagesConclusion": "success",
+    "otherWorktreesUntouched": true
+  },
+  "finding": {
+    "environment": "Two real Chrome tabs, prior review app.mjs and actual copied Node/WebSocket server; isolated delayed File.text fixture.",
+    "selectionTimeHours": 12,
+    "confirmedPeerHypothesisBeforeRelease": "파일을 읽는 동안 새로 확정한 공통 가설",
+    "revisionBeforeRelease": 4,
+    "afterRelease": {
+      "hours": 0,
+      "revision": 5,
+      "hypothesis": "복원 파일의 이전 공통 가설",
+      "engineering": "복원 파일의 과거 산업공학 해석",
+      "biology": "현재 생명과학 해석"
+    },
+    "cause": "The async file callback built restore with the current revision after reading, so a stale selection passed the server revision check.",
+    "firstTrialLimit": "The first fill/Tab trial changed only local drafts. The authoritative reproduction used the existing explicit resend controls and confirmed server notes before releasing the file. Its final restore count 2 includes that earlier trial.",
+    "productionRestoreConflictObserved": false,
+    "baselineCompleteTestSuiteFailureClaimed": false,
+    "console": {
+      "A": {
+        "entries": 43,
+        "extension": 43,
+        "application": []
+      },
+      "B": {
+        "entries": 27,
+        "extension": 27,
+        "application": []
+      }
+    }
+  },
+  "change": {
+    "module": "src/file-restore.mjs",
+    "captureBeforeNativePickerOpens": true,
+    "scope": [
+      "mode",
+      "role",
+      "room code",
+      "socket identity",
+      "server authority",
+      "solo world identity",
+      "semantic revision",
+      "world time",
+      "serialized result"
+    ],
+    "cheapChangeObserver": true,
+    "deepResultComparisonOnlyAtSelectionAndReadCompletion": true,
+    "periodicServerVersionAloneAllowed": true,
+    "maxFileBytes": 25165824,
+    "readTimeoutMs": 10000,
+    "newSelectionCancelsPrevious": true,
+    "sameIntentDuplicateReadIgnored": true,
+    "lateReadAndErrorIgnored": true,
+    "manualReselectionRequired": true,
+    "persistentPageAndToolsStatus": true,
+    "ackAndRejectionCorrelatedByEventId": true,
+    "existingClientCommandServerValidationAndRolePermissionsUsed": true,
+    "clientServerEngineFilesChanged": false,
+    "underlyingFileTextAbortClaimed": false,
+    "mutatingReconnectReplayUnchanged": true
+  },
+  "automated": {
+    "app": {
+      "passed": 209,
+      "failed": 0,
+      "durationMs": 30368.410827,
+      "command": "node --test tests/*.test.mjs"
+    },
+    "pinconSelected": {
+      "passed": 58,
+      "failed": 0,
+      "durationMs": 289.29843,
+      "command": "node --test tests/*.test.mjs next/tests/contracts.test.mjs next/tests/student-auth-contract.test.mjs"
+    },
+    "newUnitAndRoomsAdapterTests": 14,
+    "newNativeServerTests": 1,
+    "cases": [
+      "valid solo full export and legacy raw snapshot",
+      "local time, notes and configuration change cancellation",
+      "confirmed peer note during read without restore transmission",
+      "both roles manual import, ACK and other-role interpretation protection",
+      "room/role/solo transitions and return to the same world",
+      "pending mutation reconnect still exactly once",
+      "server authority change on the same socket",
+      "otherwise unchanged disconnect/reconnect cancels file",
+      "new selection supersedes old read and late rejection",
+      "timeout, late body and manual retry",
+      "oversize, invalid JSON, read error and invalid result remain atomic",
+      "initialization/running/compute/disconnected/pending guards",
+      "periodic save allowed; same-createdAt replacement result rejected",
+      "duplicate selection and server role rejection remain visible"
+    ],
+    "nativeNetwork": {
+      "server": "Unmodified child Node process with native WebSocket LabClients",
+      "roles": [
+        "engineering",
+        "biology"
+      ],
+      "experiment": {
+        "type": "N",
+        "days": 1,
+        "repeats": 2,
+        "policies": 3,
+        "seed": 20261021
+      },
+      "actualExportWrittenAndReadFromDisk": true,
+      "actualFileTextUsed": true,
+      "delayedPeerChangePreservedHours": 12,
+      "delayedPeerChangePreservedOriginalResult": true,
+      "delayedPeerChangeAddedNoCommandSequence": true,
+      "manualAImportHours": 6,
+      "manualBImportPreservedNewEngineeringNote": true,
+      "savedRoomRevalidatedWithOriginalComputedResult": true,
+      "conservationPassed": true
+    }
+  },
+  "browser": {
+    "environment": "Cloud Chrome, actual two tabs and copied Node/WebSocket server; separate IndexedDB and QA endpoints outside git.",
+    "fileHarness": "QA controls constructed an actual File and FileList, suppressed native picker only for the QA selection and gated that File.text before calling the original File.text. This is not an OS picker or browser disk-upload test.",
+    "initial": {
+      "network": "nationwide",
+      "hours": 12,
+      "roles": [
+        "engineering",
+        "biology"
+      ],
+      "notes": [
+        "보존할 현재 산업공학 해석",
+        "보존할 현재 생명과학 해석"
+      ],
+      "result": "N 1 day x 2 repeats x 3 policies; full displayed result equal on both screens"
+    },
+    "canceledCases": [
+      "biology confirmed common hypothesis while engineering read was delayed",
+      "same-room engineering to biology role switch during delayed read",
+      "actual 10 second file read timeout followed by late body release"
+    ],
+    "afterCancellation": {
+      "hours": 12,
+      "restores": 0,
+      "originalFullDisplayedResultRetained": true,
+      "confirmedHypothesisAndBothNotesRetained": true,
+      "conservationPassed": true
+    },
+    "manualFreshSelections": {
+      "engineeringACKConfirmed": true,
+      "engineeringImportPreservedBiology": "보존할 현재 생명과학 해석",
+      "biologyACKConfirmed": true,
+      "biologyImportPreservedEngineering": "명시 복원 후의 최신 산업공학 기록",
+      "finalHours": 0,
+      "finalRevision": 6,
+      "restoreActions": 2,
+      "fileResultNullIntentionallyClearedOldResult": true,
+      "conservationPassed": true
+    },
+    "console": {
+      "A": {
+        "entries": 87,
+        "extension": 87,
+        "application": []
+      },
+      "B": {
+        "entries": 44,
+        "extension": 44,
+        "application": []
+      },
+      "limitPerTab": 1000,
+      "boundedCapture": true
+    }
+  },
+  "production": {
+    "checkedAt": "2026-10-23T06:59:57.066845+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/nationwide",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/nationwide/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/engineering",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/engineering/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/biology",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/biology/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/research",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/research/",
+        "type": "text/html; charset=utf-8",
+        "bytes": 838
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/app.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 74410
+      },
+      {
+        "path": "/bloodflow/modules/client.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/client.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 12460
+      },
+      {
+        "path": "/bloodflow/modules/compute-worker.mjs",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/modules/compute-worker.mjs",
+        "type": "text/javascript; charset=utf-8",
+        "bytes": 1240
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/data/routes.json",
+        "type": "application/json; charset=utf-8",
+        "bytes": 38728
+      },
+      {
+        "path": "/bloodflow/runtime-config.js",
+        "status": 200,
+        "url": "https://pincon.app/bloodflow/runtime-config.js",
+        "type": "application/javascript; charset=utf-8",
+        "bytes": 380,
+        "config": "// Public client configuration only. Never place server secrets here.\nwindow.BLOODFLOW_RUNTIME = {\n  serverOrigin: ''\n  // Optional licensed/self-hosted tile provider; automatic provider rotation is not used.\n  // ,tileProvider: {name:'Approved provider',url:'https://your-approved-host/{z}/{x}/{y}.png',\n  //  attribution:'Required attribution',maxZoom:18,termsReviewed:true}\n};\n"
+      },
+      {
+        "path": "/bloodflow/api/health",
+        "status": 404,
+        "type": "text/html; charset=utf-8"
+      }
+    ]
+  },
+  "productionDataRecheck": {
+    "checkedAt": "2026-10-23T07:18:58.727815+00:00",
+    "requests": [
+      {
+        "path": "/bloodflow/data/facilities.json",
+        "status": 200,
+        "bytes": 2985,
+        "headers": {
+          "server": "envoy",
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "cache-control": "max-age=600",
+          "age": "0",
+          "x-cache": "MISS"
+        }
+      },
+      {
+        "path": "/bloodflow/data/routes.json",
+        "status": 200,
+        "bytes": 38728,
+        "headers": {
+          "server": "envoy",
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "cache-control": "max-age=600",
+          "age": "0",
+          "x-cache": "HIT"
+        }
+      },
+      {
+        "path": "/bloodflow/data/nationwide.json",
+        "status": 200,
+        "bytes": 64693,
+        "headers": {
+          "server": "envoy",
+          "content-type": "application/json; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "cache-control": "max-age=600",
+          "age": "0",
+          "x-cache": "MISS"
+        }
+      },
+      {
+        "path": "/bloodflow/data/roads.geojson",
+        "status": 200,
+        "bytes": 478606,
+        "headers": {
+          "server": "envoy",
+          "content-type": "application/geo+json",
+          "access-control-allow-origin": "*",
+          "cache-control": "max-age=600",
+          "age": "0",
+          "x-cache": "MISS"
+        }
+      },
+      {
+        "path": "/bloodflow/modules/app.mjs",
+        "status": 200,
+        "bytes": 74410,
+        "headers": {
+          "server": "envoy",
+          "content-type": "text/javascript; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "cache-control": "max-age=600",
+          "age": "0",
+          "x-cache": "HIT"
+        },
+        "dataLoaderLine": "try{if(window.BLOODFLOW_DATA)data=window.BLOODFLOW_DATA;else{const [facilities,routes,roads,nationwide,regions]=await Promise.all(['facilities.json','routes.json','roads.geojson','nationwide.json','regions.geojson'].map(f=>fetch('/bloodflow/data/'+f).then(r=>{if(!r.ok)throw Error('지도·경로 자료를 읽을 수 없습니다.');return r.json();})));data={facilities,routes,roads,nationwide,regions};}}"
+      },
+      {
+        "path": "/bloodflow/data/regions.geojson",
+        "checkedAt": "2026-10-23T07:20:09.245756+00:00",
+        "status": 200,
+        "bytes": 166883,
+        "type": "application/geo+json"
+      }
+    ],
+    "nonApplicationProbe": [
+      {
+        "path": "/bloodflow/data/korea-regions.geojson",
+        "status": 404,
+        "headers": {
+          "server": "envoy",
+          "content-type": "text/html; charset=utf-8",
+          "access-control-allow-origin": "*",
+          "etag": "\"6abcf5c5-24a3\"",
+          "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; connect-src 'self'",
+          "x-proxy-cache": "MISS",
+          "x-github-request-id": "2FF4:10732:52777:5C7FF:6ADB0A6A",
+          "x-github-edge-region": "westus3",
+          "accept-ranges": "bytes",
+          "age": "0",
+          "date": "Fri, 23 Oct 2026 07:19:06 GMT",
+          "via": "1.1 varnish",
+          "x-served-by": "cache-lax-kwhp1940135-LAX",
+          "x-cache": "MISS",
+          "x-cache-hits": "0",
+          "x-timer": "S1792739946.135125,VS0,VE188",
+          "vary": "Accept-Encoding",
+          "x-fastly-request-id": "961f21d57917839235416973ff0f62fcb7b48503",
+          "content-length": "9379",
+          "x-envoy-upstream-service-time": "202",
+          "connection": "close"
+        },
+        "reason": "Checker used the wrong filename; the app requests regions.geojson, not korea-regions.geojson. This 404 is not an application request."
+      }
+    ]
+  },
+  "productionBrowser": {
+    "initialFailure": {
+      "observedAt": "2026-10-23T07:17:49.097Z",
+      "url": "https://pincon.app/bloodflow/nationwide/",
+      "message": "지도·경로 자료를 읽을 수 없습니다.",
+      "source": "https://pincon.app/bloodflow/modules/app.mjs:22:276; Promise.all index 1",
+      "httpStatusAndHeadersForFailedBrowserRequestAvailable": false,
+      "causeOr503Claimed": false
+    },
+    "oneReloadRecovered": true,
+    "thenVerified": {
+      "nationwideRegions": 17,
+      "nationwideAndEngineeringMap": true,
+      "biologyProductCards": 3,
+      "researchNoteInputs": 6,
+      "fourFullPagesAndTopNavigation": true,
+      "clockHours": 0,
+      "sharedRoomCreated": false,
+      "onlineTilesEnabled": false
+    },
+    "console": {
+      "entries": 8,
+      "extension": 7,
+      "application": [
+        {
+          "message": "지도·경로 자료를 읽을 수 없습니다.",
+          "timestamp": "2026-10-23T07:17:49.097Z"
+        }
+      ],
+      "boundedCapture": true
+    }
+  },
+  "staticBuildChecks": {
+    "modules": 18,
+    "staticImports": 26,
+    "relativeModuleReferences": 27,
+    "entryHTMLs": 5,
+    "cachePaths": 35,
+    "missingPaths": 0,
+    "sourcePublishedMatch": true,
+    "startupCopyMatch": true,
+    "trackedPublishedBuildMatch": true,
+    "preservedDataAndEngines": true,
+    "syntaxChecks": 24,
+    "copiedTrackedStaticFiles": 36,
+    "changedOutsideBloodflow": false
+  },
+  "buildManifest": {
+    "builtAt": "2026-10-23T07:08:48.615Z",
+    "version": "2.0.0",
+    "hashes": {
+      "dist/BLOODFLOW_Dual_Lab_Offline.html": "591593468d59978fe2473256b46b7e1092c059273ce12f09957b61dc916aab88",
+      "public/data/facilities.json": "6fb7f4313d6302cf997035440411d1d1a4c12eb3e8af0dd8c4abbe3c007ffb86",
+      "public/data/routes.json": "9924854133e5844c1d3e61704d9338a53370feaaf6db5a8b0bf5800e66c3f18c",
+      "public/data/roads.geojson": "6b797361e07ed95852aca7273da0bfb545778323a2e7eae146317102597775b9"
+    },
+    "moduleCount": 18,
+    "directedRoutes": 12,
+    "roadWays": 1394,
+    "offlineBytes": 1172808
+  },
+  "preserved": [
+    "Original HTMLs, legacy core and examples",
+    "Incheon 4 institutions, 12 directed routes, 1394 road ways",
+    "Nationwide 100 nodes, 17 fixed study regions and virtual/estimated labels",
+    "Four top-level full pages, equal researcher functions and LIVE/TIMELAPSE/COMPUTE",
+    "Shared engine, biological constraints, metric formulas, client protocol and server roles",
+    "Other PinCon routes, root service worker, Firebase, DNS and domain"
+  ],
+  "limits": [
+    "Review branch only; no main modification, merge or manual production deployment.",
+    "Production health 404 and empty serverOrigin; static GitHub Pages is not an operational WebSocket host.",
+    "The observed production data failure recovered once. The failing browser HTTP status/headers were not available; later HTTP 200 does not establish its cause.",
+    "One mistakenly named checker probe was 404; actual app regions.geojson was checked as 200.",
+    "File cancellation stops application waiting/applying, not underlying native File.text IO.",
+    "Native Node disk/File round-trip is distinct from browser-native file chooser and disk download, which were not verified.",
+    "No physical Galaxy, file://, actual internet-disable, current standalone HTML browser run, long-duration tablet performance or real-host disk lifecycle test.",
+    "Fault controls, read-only room inspector, baseline copy, selected file fixture and isolated DB remain outside git."
+  ]
+}
