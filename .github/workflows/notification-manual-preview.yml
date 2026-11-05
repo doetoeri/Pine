@@ -25,6 +25,8 @@ jobs:
           cache-dependency-path: automation/package-lock.json
       - run: npm ci
         working-directory: automation
+      - name: Verify manual preview safeguards
+        run: node --test automation/tests/manual-notification-preview.test.mjs
       - name: Preview eligibility without sending
         run: node automation/manual-notification-preview.mjs
         env:
