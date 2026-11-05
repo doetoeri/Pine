@@ -1,0 +1,32 @@
+name: Notification manual preview (no sends)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slot_index:
+        description: "Existing experiment slot index (0-5)"
+        required: true
+        type: choice
+        options: ["0", "1", "2", "3", "4", "5"]
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: automation/package-lock.json
+      - run: npm ci
+        working-directory: automation
+      - name: Preview eligibility without sending
+        run: node automation/manual-notification-preview.mjs
+        env:
+          PREVIEW_SLOT_INDEX: ${{ inputs.slot_index }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
