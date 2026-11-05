@@ -29,6 +29,15 @@ test("only the four KST clock hours are eligible, including late scheduler start
   assert.equal(currentSlot(new Date("2026-10-26T00:00:00Z")), null);
 });
 
+test("intensive slot tolerates bounded scheduler delays without crossing into the next slot", () => {
+  const config = { studyMode: "career-v3", design: "parallel-v4" };
+  assert.equal(currentSlot(new Date("2026-11-04T23:00:00Z"), config)?.index, 0);
+  assert.equal(currentSlot(new Date("2026-11-04T23:59:00Z"), config)?.index, 0);
+  assert.equal(currentSlot(new Date("2026-11-05T00:00:00Z"), config), null);
+  assert.equal(currentSlot(new Date("2026-11-05T04:10:00Z"), config)?.index, 1);
+  assert.equal(currentSlot(new Date("2026-11-05T05:10:00Z"), config), null);
+});
+
 test("same day and slot in a newer experiment version gets a new receipt", () => {
   const base = { anonymousParticipant: "participant_x", date: "2026-10-26", period: 1, slotIndex: 2, candidateKey: "check-in:assignment" };
   assert.notEqual(notificationId({ ...base, experimentVersion: 1 }), notificationId({ ...base, experimentVersion: 2 }));
@@ -50,7 +59,8 @@ test("account-wide opt-out prevents delivery via any stale device", () => {
 test("server enrollment is independent of push subscriptions and covers baseline", async () => {
   const c = await read("../automation/notification-frequency-experiment.mjs");
   assert.match(c, /root\.collection\("users"\)\.where\("status", "==", "ACTIVE"\)/);
-  assert.match(c, /const preassignment = await preassignActiveAccounts\(root, ready\.config\);[\s\S]*?if \(period\.phase !== "EXPERIMENT"/);
+  assert.match(c, /const preassignment = await preassignActiveAccounts\(root, ready\.config\);[\s\S]*?const period = conditionFor/);
+  assert.match(c, /period\.phase === "EXPERIMENT"/);
   assert.match(c, /preassignment\.accounts\.get/);
   assert.match(c, /profile\.classKey/);
   assert.match(c, /ref\.create\(record\)/);
