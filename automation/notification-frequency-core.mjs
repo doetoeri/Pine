@@ -109,14 +109,14 @@ export const SLOTS = Object.freeze([
 export function currentSlot(now = new Date(), config = {}) {
   const clock = kstClock(now);
   if (isIntensiveStudy(config)) {
-    // GitHub scheduled workflows may start late. Permit a bounded same-day
-    // grace window without changing the number or identity of study slots.
-    // A slot can never be recovered more than 60 minutes after its start.
+    // Allow a one-hour early/late window. Adjacent intensive slots overlap,
+    // so choose the closest scheduled time, breaking ties toward the earlier slot.
+    // Existing per-slot receipts still prevent duplicate delivery.
     const minuteOfDay = clock.hour * 60 + clock.minute;
-    return INTENSIVE_SLOTS.find((slot) => {
-      const elapsed = minuteOfDay - (slot.hour * 60 + slot.minute);
-      return elapsed >= 0 && elapsed < 60;
-    }) || null;
+    return INTENSIVE_SLOTS
+      .map((slot) => ({ slot, delta: minuteOfDay - (slot.hour * 60 + slot.minute) }))
+      .filter(({ delta }) => Math.abs(delta) <= 60)
+      .sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta) || a.slot.index - b.slot.index)[0]?.slot || null;
   }
   if (clock.minute > 55) return null;
   return (isCareerStudy(config) ? STUDY_SLOTS : SLOTS).find((slot) => slot.hour === clock.hour) || null;
