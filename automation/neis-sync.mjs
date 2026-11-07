@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { safeAutomationErrorCode } from "./safe-automation-error.mjs";
 import { closeExpiredClassOps, dispatchClassOpsNotifications, purgeExpiredClassOpsTrash } from "./class-ops-notifications.mjs";
 import {
   classLabel,
@@ -280,7 +281,7 @@ async function fetchComciganTimetables(start) {
         warning: "COMCIGAN_CLASS_FETCH_FAILED",
         grade,
         classNumber,
-        message: error?.message || String(error),
+        code: safeAutomationErrorCode(error),
       }));
       return [];
     }
@@ -303,7 +304,7 @@ async function fetchPreferredTimetables(start, end) {
     if (comcigan.rows.length) return comcigan;
     console.warn(JSON.stringify({ warning: "COMCIGAN_EMPTY_FALLING_BACK_TO_NEIS" }));
   } catch (error) {
-    console.warn(JSON.stringify({ warning: "COMCIGAN_FAILED_FALLING_BACK_TO_NEIS", message: error?.message || String(error) }));
+    console.warn(JSON.stringify({ warning: "COMCIGAN_FAILED_FALLING_BACK_TO_NEIS", code: safeAutomationErrorCode(error) }));
   }
   return fetchNeisTimetables(start, end);
 }
@@ -523,6 +524,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(JSON.stringify({ error: "NEIS_SYNC_FAILED", code: safeAutomationErrorCode(error) }));
   process.exitCode = 1;
 });
