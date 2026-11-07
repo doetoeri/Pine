@@ -3,6 +3,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { dispatchNotificationFrequencyExperiment } from "./notification-frequency-experiment.mjs";
 import { inspectNotificationReadiness, retireLegacyNotificationStudy } from "./notification-study-readiness.mjs";
+import { notificationFailureSummary, safeNotificationErrorCode } from "./notification-error-log.mjs";
 
 // Independent from timetable/NEIS: a failed data sync must not prevent
 // scheduled experimental notifications from being considered.
@@ -22,11 +23,11 @@ async function main() {
         ? `https://github.com/doetoeri/Pine/actions/runs/${process.env.GITHUB_RUN_ID}` : "" });
     console.log(JSON.stringify({ component: "notification-frequency", ...result, readiness }));
   } catch (error) {
-    await heartbeat.set({ status: "error", checkedAtMs: Date.now(), errorCode: String(error?.code || "dispatcher-failed").slice(0, 80) }).catch(() => {});
+    await heartbeat.set({ status: "error", checkedAtMs: Date.now(), errorCode: safeNotificationErrorCode(error) }).catch(() => {});
     throw error;
   }
 }
 main().catch((error) => {
-  console.error(error);
+  console.error(JSON.stringify(notificationFailureSummary(error)));
   process.exitCode = 1;
 });
