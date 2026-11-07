@@ -1,6 +1,7 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { groupTimetableRows } from "./neis-core.mjs";
+import { summarizeComciganError } from "./comcigan-error-log.mjs";
 
 const SCHOOL = Object.freeze({
   id: "gochon-high",
@@ -61,7 +62,7 @@ async function withRetry(label, task) {
       return await task(attempt);
     } catch (error) {
       lastError = error;
-      console.warn(JSON.stringify({ warning: "COMCIGAN_RETRY", label, attempt, message: error?.message || String(error) }));
+      console.warn(JSON.stringify({ warning: "COMCIGAN_RETRY", ...summarizeComciganError(error, { stage: label.startsWith("school-search:") ? "school-search" : "timetable", attempt }) }));
       if (attempt < MAX_ATTEMPTS) await sleep(350 * attempt);
     }
   }
@@ -275,6 +276,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("[PinCon Comcigan priority sync]", error);
+  console.error(JSON.stringify({ component: "comcigan-priority-sync", status: "error", ...summarizeComciganError(error) }));
   process.exitCode = 1;
 });
