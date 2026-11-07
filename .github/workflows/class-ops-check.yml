@@ -52,4 +52,6 @@ jobs:
           node --check notification-frequency-experiment.mjs
           node --test tests/notification-study.test.mjs
           node --check neis-sync.mjs
+          node --check comcigan-priority-sync.mjs
+          node --test tests/comcigan-error-log.test.mjs
           node --check deploy-firestore-rules.mjs
