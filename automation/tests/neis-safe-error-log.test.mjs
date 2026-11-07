@@ -23,8 +23,8 @@ test("unknown and malicious error fields are not reflected in logs", () => {
 
 test("NEIS fallback and fatal handlers never log raw exception objects or messages", async () => {
   const source = await readFile(new URL("../neis-sync.mjs", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /message:\\s*error\\?\\.message|console\\.error\\(error\\)/);
+  assert.doesNotMatch(source, /message:\s*error\?\.message|console\.error\(error\)/);
   assert.match(source, /COMCIGAN_CLASS_FETCH_FAILED/);
   assert.match(source, /COMCIGAN_FAILED_FALLING_BACK_TO_NEIS/);
-  assert.match(source, /safeAutomationErrorCode\\(error\\)/);
+  assert.match(source, /safeAutomationErrorCode\(error\)/);
 });
