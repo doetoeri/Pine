@@ -110,7 +110,7 @@ async function preassignActiveAccounts(root, config) {
         assigned += 1;
       } catch (error) {
         failed += 1;
-        console.warn(JSON.stringify({ warning: "NOTIFICATION_PREASSIGN_FAILED", uid, code: String(error?.code || "unknown") }));
+        console.warn(JSON.stringify({ warning: "NOTIFICATION_PREASSIGN_FAILED", code: String(error?.code || "unknown") }));
       }
     }
   });
