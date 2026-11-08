@@ -20,6 +20,24 @@ const EXPERIMENT_ID = "notification-frequency";
 const UI_EXPERIMENT_ID = "pincon-next-ui";
 const MAX_SEND_ATTEMPTS = 3;
 
+// Only fixed Firebase/transport categories may appear in shared CI logs.
+// Never reflect arbitrary provider-supplied codes or error messages.
+const SAFE_PREASSIGN_ERROR_CODES = new Set([
+  "permission-denied", "unauthenticated", "unavailable", "deadline-exceeded",
+  "resource-exhausted", "failed-precondition", "invalid-argument", "internal",
+  "already-exists", "not-found", "aborted", "cancelled",
+  "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN", "ECONNABORTED",
+]);
+function safePreassignErrorCode(error) {
+  try {
+    const code = error?.code;
+    return typeof code === "string" && SAFE_PREASSIGN_ERROR_CODES.has(code)
+      ? code : "PREASSIGN_FAILED";
+  } catch {
+    return "PREASSIGN_FAILED";
+  }
+}
+
 function addDays(date, amount) {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + amount);
@@ -110,7 +128,7 @@ async function preassignActiveAccounts(root, config) {
         assigned += 1;
       } catch (error) {
         failed += 1;
-        console.warn(JSON.stringify({ warning: "NOTIFICATION_PREASSIGN_FAILED", code: String(error?.code || "unknown") }));
+        console.warn(JSON.stringify({ warning: "NOTIFICATION_PREASSIGN_FAILED", code: safePreassignErrorCode(error) }));
       }
     }
   });
