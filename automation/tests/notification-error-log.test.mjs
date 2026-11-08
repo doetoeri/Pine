@@ -19,8 +19,12 @@ test("workflow failure summary excludes error messages, tokens, headers, and sta
 
 test("unsafe, missing, and non-string error codes are replaced with a fixed value", () => {
   for (const error of [null, undefined, {}, { code: 7 }, { code: "uid:private" },
-    { code: "token" + String.fromCharCode(10) + "secret" }, { code: "a".repeat(65) }]) {
+    { code: "token" + String.fromCharCode(10) + "secret" }, { code: "a".repeat(65) },
+    { code: "STUDENT_TOKEN_ABC" }, { code: "messaging/private-student-id" },
+    { get code() { throw Error("student-uid-in-getter"); } }]) {
     assert.equal(safeNotificationErrorCode(error), "dispatcher-failed");
+    assert.doesNotMatch(JSON.stringify(notificationFailureSummary(error)), /STUDENT_TOKEN|private-student|student-uid/);
   }
   assert.equal(safeNotificationErrorCode({ code: "permission-denied" }), "permission-denied");
+  assert.equal(safeNotificationErrorCode({ code: "ECONNRESET" }), "ECONNRESET");
 });
