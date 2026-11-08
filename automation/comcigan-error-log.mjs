@@ -1,9 +1,20 @@
-// Keep third-party HTTP client internals and request metadata out of public CI logs.
+// Only allow fixed, non-identifying transport error categories in CI logs.
+// Provider-supplied codes are untrusted, even when they match an uppercase pattern.
+const SAFE_CODES = new Set([
+  "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN",
+  "ECONNABORTED", "ERR_NETWORK", "ERR_BAD_RESPONSE", "ERR_CANCELED",
+]);
+const SAFE_STAGES = new Set(["school-search", "timetable", "priority-sync"]);
+
 export function summarizeComciganError(error, { stage = "priority-sync", attempt } = {}) {
-  const rawCode = typeof error?.code === "string" ? error.code : "";
-  const code = /^[A-Z][A-Z0-9_]{0,47}$/.test(rawCode) ? rawCode : "UNKNOWN";
-  const allowedStages = new Set(["school-search", "timetable", "priority-sync"]);
-  const result = { code, stage: allowedStages.has(stage) ? stage : "priority-sync" };
+  let code = "UNKNOWN";
+  try {
+    const rawCode = error?.code;
+    if (typeof rawCode === "string" && SAFE_CODES.has(rawCode)) code = rawCode;
+  } catch {
+    // A malicious or malformed error object must never break the logger.
+  }
+  const result = { code, stage: SAFE_STAGES.has(stage) ? stage : "priority-sync" };
   if (Number.isInteger(attempt) && attempt >= 1 && attempt <= 3) result.attempt = attempt;
   return result;
 }
