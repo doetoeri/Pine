@@ -190,3 +190,38 @@ test("preassignment failure logs omit student identifiers and exception messages
     console.warn = originalWarn;
   }
 });
+
+test("preassignment error logs reject untrusted codes and throwing getters", async () => {
+  const errors = [
+    Object.assign(new Error("private-uid-high"), { code: "STUDENT_TOKEN_ABC" }),
+    Object.assign(new Error("private-uid-high"), { code: "uid-high\\nSECRET" }),
+    Object.assign(new Error("private-uid-high"), { code: "X".repeat(500) }),
+    Object.defineProperty(new Error("private-uid-high"), "code", {
+      get() { throw new Error("private-uid-high"); },
+    }),
+  ];
+  const originalGet = Document.prototype.get;
+  const originalWarn = console.warn;
+  try {
+    for (const injectedError of errors) {
+      const f = fixture();
+      const warnings = [];
+      Document.prototype.get = async function () {
+        if (this.path === `${ROOT}/experimentParticipants/uid-high`) throw injectedError;
+        return originalGet.call(this);
+      };
+      console.warn = (...args) => { warnings.push(args.join(" ")); };
+      await assert.rejects(dispatchNotificationFrequencyExperiment({ ...f, now: at(8) }), /사전배정 실패/);
+      assert.equal(warnings.length, 1);
+      assert.deepEqual(JSON.parse(warnings[0]), {
+        warning: "NOTIFICATION_PREASSIGN_FAILED",
+        code: "PREASSIGN_FAILED",
+      });
+      assert.doesNotMatch(warnings[0], /uid-high|STUDENT_TOKEN|SECRET|private|X{50}/);
+      assert.equal(f.sent.length, 0);
+    }
+  } finally {
+    Document.prototype.get = originalGet;
+    console.warn = originalWarn;
+  }
+});
