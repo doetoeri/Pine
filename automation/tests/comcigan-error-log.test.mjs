@@ -18,3 +18,16 @@ test("rejects untrusted error codes, stages and attempt numbers", () => {
   assert.deepEqual(report, { code: "UNKNOWN", stage: "priority-sync" });
   assert.deepEqual(summarizeComciganError(null), { code: "UNKNOWN", stage: "priority-sync" });
 });
+
+test("does not reflect identifier-like uppercase codes even when syntactically valid", () => {
+  for (const code of ["STUDENT_10804", "SECRET_TOKEN_123", "UID_123456789", "PRIVATE_USER_ID"]) {
+    const result = summarizeComciganError({ code, message: `private-${code}` });
+    assert.deepEqual(result, { code: "UNKNOWN", stage: "priority-sync" });
+    assert.ok(!JSON.stringify(result).includes(code));
+  }
+});
+
+test("handles throwing code getters without leaking data or masking original failure", () => {
+  const result = summarizeComciganError({ get code() { throw Error("private-uid"); } }, { stage: "timetable", attempt: 3 });
+  assert.deepEqual(result, { code: "UNKNOWN", stage: "timetable", attempt: 3 });
+});
