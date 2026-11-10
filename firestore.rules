@@ -1341,6 +1341,22 @@ service cloud.firestore {
       }
     }
 
+    match /alterwayPresenceV1/{participantId} {
+      function alterwayAnonymous() {
+        return request.auth != null && request.auth.token.firebase.sign_in_provider == 'anonymous';
+      }
+
+      allow list: if alterwayAnonymous() && request.query.limit <= 150;
+
+      allow create, update: if alterwayAnonymous()
+        && request.auth.uid == participantId
+        && request.resource.data.keys().hasOnly(['seenAt', 'expiresAt'])
+        && request.resource.data.seenAt == request.time
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt < request.time + duration.value(1, 'h');
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

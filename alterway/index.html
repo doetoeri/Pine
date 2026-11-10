@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f6fa">
+  <meta name="description" content="가상 영분선을 추가하고 수도권 철도망의 경로와 이동시간을 비교해보세요.">
+  <title>ALTERWAY · 철도망 탐구</title>
+  <base href="/alterway/">
+  <script>if (location.protocol === 'file:') document.querySelector('base').href = new URL('./', location.href).href;</script>
+  <link rel="stylesheet" href="assets/alterway.css?v=1">
+  <script defer src="assets/data.js?v=1"></script>
+  <script defer src="assets/engine.js?v=1"></script>
+  <script defer src="assets/map.js?v=1"></script>
+  <script defer src="assets/study.js?v=1"></script>
+  <script defer src="assets/presence.js?v=1"></script>
+  <script defer src="assets/app.js?v=1"></script>
+</head>
+<body data-mode="explore">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 28 28"><path d="M5 22 14 5l9 17M9 16h10"/></svg></span><span>ALTERWAY<small>수도권 철도망 탐구</small></span></div>
+    <div class="header-actions">
+      <span class="connection" id="presenceStatus" role="status">접속 연결 중</span>
+      <a class="mode-link" href="p/index.html" id="modeLink">발표 화면</a>
+    </div>
+  </header>
+  <main class="layout" id="layout">
+    <section class="map-panel" aria-label="철도망 노선도">
+      <div class="map-toolbar">
+        <div class="segments" id="scenarioSwitch" aria-label="비교할 철도망">
+          <button type="button" data-scenario="0" aria-pressed="false">기존망</button>
+          <button type="button" data-scenario="B" aria-pressed="true">영분선 추가</button>
+        </div>
+        <div class="map-actions">
+          <button type="button" id="fitMap" aria-label="수도권 전체 노선도">전체</button>
+          <button type="button" id="lineFocus">영분선 보기</button>
+          <button type="button" id="panelToggle" class="primary" aria-controls="explorePanel" aria-expanded="false">내 경로 비교</button>
+        </div>
+      </div>
+      <div class="canvas-frame">
+        <canvas id="mapCanvas" aria-label="가상 수도권 철도망. 확대·축소 또는 역 검색으로 탐색할 수 있습니다."></canvas>
+        <canvas id="motionCanvas" aria-hidden="true"></canvas>
+        <div class="zoom-actions" aria-label="지도 배율">
+          <button type="button" id="zoomIn" aria-label="지도 확대">+</button>
+          <button type="button" id="zoomOut" aria-label="지도 축소">−</button>
+        </div>
+        <div id="stationInfo" class="station-info" hidden></div>
+        <div class="map-legend" id="mapLegend">
+          <span><i class="key base"></i>기존망</span>
+          <span><i class="key line"></i>영분선</span>
+          <span><i class="key person"></i>익명 접속</span>
+        </div>
+      </div>
+      <div class="map-footer"><span>2040 가상 철도망 · 역 위치를 잇는 개략도</span><span id="mapCaption">영등포–야탑 · 24개 정차역</span></div>
+    </section>
+    <aside id="explorePanel" class="explore-panel" aria-labelledby="exploreTitle" hidden>
+      <div class="panel-heading"><div><span class="eyebrow">경로 실험</span><h1 id="exploreTitle">내 이동은 얼마나 달라질까?</h1></div><button type="button" id="panelClose" aria-label="경로 비교 접기">×</button></div>
+      <form id="journeyForm">
+        <datalist id="stationOptions"></datalist>
+        <div class="field-pair">
+          <label for="fromStation">출발역<input id="fromStation" name="from" list="stationOptions" type="search" placeholder="영등포" autocomplete="off" required></label>
+          <label for="toStation">도착역<input id="toStation" name="to" list="stationOptions" type="search" placeholder="모란" autocomplete="off" required></label>
+        </div>
+        <label class="period-label" for="period">가상 운행 시간대<select id="period"><option value="peak">출퇴근</option><option value="day">낮 시간</option><option value="evening">저녁</option></select></label>
+        <button class="primary compare-button" type="submit">두 철도망 비교</button>
+      </form>
+      <div class="presets" aria-label="예시 경로">
+        <button type="button" data-preset="moran">영등포 → 모란</button>
+        <button type="button" data-preset="gimpo">김포공항 → 야탑</button>
+      </div>
+      <section id="journeyResult" aria-live="polite"></section>
+      <details class="model-details"><summary>영분선과 가상 운행</summary><p>영등포–야탑 · 24개 정차역 · 약 40.9km · 가정 건설비 약 4.35조 원</p><div class="model-controls"><button type="button" id="trainToggle" aria-pressed="false">가상 열차 재생</button><output id="trainClock">07:00</output></div><p>주행·정차, 평균 대기, 환승 보행을 더한 최단시간을 비교합니다. 2024년 출발·도착 자료를 바탕으로 만든 2040 연구 모형입니다.</p><ol id="stopList"></ol></details>
+    </aside>
+  </main>
+  <noscript>노선도를 보려면 JavaScript를 켜 주세요.</noscript>
+</body>
+</html>
