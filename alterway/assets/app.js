@@ -64,8 +64,13 @@
     let layers = [];
     if (presenting && stage === 2 && (searchStarted !== null || searchHold !== null)) {
       const elapsed = searchHold ?? (reducedMotion.matches ? duration : Math.min(duration, frameTime - searchStarted));
-      searchFinished = elapsed >= duration;
-      layers = renderCandidateAnimation(elapsed);
+      const settled = elapsed >= duration;
+      if (settled !== searchFinished) {
+        map.setBase({ mode: settled ? 'B' : '0', dim: true, focused: true });
+      }
+      searchFinished = settled;
+      const candidateLayers = renderCandidateAnimation(elapsed);
+      if (!settled) layers = candidateLayers;
     }
     const showLine = mode === 'B' || (presenting && stage === 2 && searchPhase === 3);
     const participants = audience.people;
@@ -292,6 +297,7 @@
   }
 
   function startSearch() {
+    if (searchFinished) map.setBase({ mode: '0', dim: true, focused: true });
     searchStarted = performance.now();
     searchPhase = -1;
     searchHold = null;
