@@ -126,7 +126,7 @@ input, select { width: 100%; margin: 4px 0 8px; border: 1px solid #becfe1; borde
 .story-metric strong { font-size: clamp(25px, 3.1vw, 56px); color: var(--blue); line-height: 1.12; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .story-metric small { color: var(--muted); font-size: clamp(11px, 1vw, 17px); }
 .equation { padding: 10px 12px; border-radius: 12px; background: #eef5fd; color: var(--ink); font-size: clamp(14px, 1.4vw, 25px); font-weight: 800; line-height: 1.45; }
-.equation.var { color: var(--blue); font-family: system-ui, sans-serif; white-space: nowrap; }
+.equation.var { color: var(--blue); font-family: system-ui, sans-serif; white-space: normal; overflow-wrap: anywhere; word-break: keep-all; font-size: clamp(12px, 1.15vw, 21px); max-width: 100%; }
 .path-toggle { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .path-toggle button[aria-pressed='true'] { background: #eaf3ff; color: var(--blue); border-color: #87b9e8; }
 .present-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px clamp(10px, 1.6vw, 24px); }
