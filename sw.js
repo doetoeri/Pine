@@ -1,4 +1,4 @@
-const PINCON_SW_VERSION = "20261114-school-life";
+const PINCON_SW_VERSION = "20261115-coverflow";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
@@ -83,6 +83,7 @@ const PINCON_APP_SHELL = [
   "./manifest.webmanifest",
   "./school-life/app.css",
   "./school-life/model.js",
+  "./school-life/covers.js",
   "./school-life/app.js",
   "./index.html"
 ];

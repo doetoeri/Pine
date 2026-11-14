@@ -3,8 +3,11 @@ import { test, expect } from "@playwright/test";
 const base = "http://127.0.0.1:4173";
 const today = "2026-11-13";
 const data = {
-  meals: [{ id: "lunch", date: today, mealType: "중식", dishesHtml: "밥<br/>비빔밥 (1.5.6.19)", source: "NEIS" }],
-  neisTimetables: [{ id: "fri", classKey: "1-8", date: today, source: "COMCIGAN", periods: [
+  meals: [
+    { id: "lunch", date: today, mealType: "중식", dishesHtml: "밥<br/>비빔밥 (1.5.6.19)", source: "NEIS" },
+    { id: "thu", date: "2026-11-12", mealType: "중식", dishesHtml: "검증용 목요일 식단", source: "NEIS" },
+  ],
+  neisTimetables: [{ id: "1-8-20261113", classKey: "1-8", date: today, source: "COMCIGAN", periods: [
     { period: 1, subject: "수학", startTime: "09:10", endTime: "10:00" },
     { period: 2, subject: "공통영어", startTime: "10:10", endTime: "11:00" },
   ] }],
@@ -19,11 +22,13 @@ const data = {
   events: [
     { id: "event", classKey: "1-8", date: "2026-11-12", title: "학급 행사", question: "행사 장소를 확인합니다.", status: "closed" },
     { id: "important", classKey: "1-8", date: today, title: "중요한 일정", question: "일정 세부 내용", status: "closed", scheduleOnly: true },
+    { id: "undated", classKey: "1-8", title: "날짜 미정 행사", question: "날짜를 추후 공지합니다.", status: "closed" },
     { id: "draft", classKey: "1-8", date: today, title: "비공개 행사", status: "draft" },
   ],
   academicSchedules: [{ id: today, date: today, eventsByGrade: { 1: ["1학년 행사"], 2: ["2학년 행사"] } }],
   announcements: [
     { id: "important", classKey: "1-8", title: "중요 공지를 확인하세요", priority: "urgent", body: "공지 본문입니다." },
+    { id: "second", classKey: "1-8", title: "다음 중요 공지", priority: "important", body: "다음 공지 본문." },
     { id: "draft", classKey: "1-8", title: "비공개 공지", priority: "urgent", published: false },
   ],
   content: [],
@@ -48,39 +53,110 @@ async function start(page, rows = data) {
 
 test.use({ reducedMotion: "reduce", serviceWorkers: "block" });
 
+function selected(page) {
+  return page.locator(".pc-cover[aria-pressed=true]");
+}
+
+const nav = page => page.getByRole("navigation", { name: "학교생활", exact: true });
+
 for (const width of [320, 383, 768, 1363]) {
-  test(`student tasks and reflow at ${width} CSS pixels`, async ({ page }) => {
+  test(`shared Cover Flow and student tasks at ${width} CSS pixels`, async ({ page }) => {
     await page.setViewportSize({ width, height: 840 });
     await start(page);
     const main = page.getByRole("main");
-    await expect(main.getByText("밥 · 비빔밥")).toBeVisible();
-    await expect(main.getByText("다음 수업 · 2교시 공통영어")).toBeVisible();
-    await expect(main.getByRole("link", { name: /수학 발표/ })).toContainText("D-2");
-    await expect(main.getByText("중요한 일정")).toBeVisible();
-    await expect(main.getByText("중요 공지를 확인하세요")).toBeVisible();
-    await expect(main.getByText(/비공개|다른 학급 수행|지난 수행/)).toHaveCount(0);
-    await expect(main.getByRole("link", { name: /학급 일정 관리/ })).toHaveCount(0);
+    const flow = main.locator(".pc-scene");
+    const dialog = page.locator("#school-detail");
 
-    await main.getByRole("link", { name: "식단·알레르기" }).click();
+    await expect(flow.locator(".pc-cover")).toHaveCount(6);
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "today");
+    await expect(selected(page)).toHaveAccessibleName(/밥 · 비빔밥.*2교시 공통영어.*D-2 · 수학 발표/);
+    const transform = await main.locator('[data-cover-id="timetable"]').evaluate(card => card.style.transform);
+    expect(transform).toContain("rotateY(65deg)");
+    await expect(selected(page).locator(".pc-reflection")).toHaveCount(1);
+
+    await page.getByRole("button", { name: "이전 커버", exact: true }).click();
+    await expect(selected(page)).toHaveText(/다음 수업.*2교시 공통영어/);
+    await flow.press("Home");
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "meals");
+    await selected(page).press("Enter");
+    await expect(page).toHaveURL(/#meals$/);
     await expect(main.getByRole("heading", { name: "급식", exact: true })).toBeFocused();
-    await expect(main.getByText("알레르기 표시 · 난류, 대두, 밀, 잣")).toBeVisible();
+    await expect(selected(page)).toHaveAttribute("data-cover-id", today);
+
+    await selected(page).press("Enter");
+    await expect(dialog.getByText("알레르기 표시 · 난류, 대두, 밀, 잣")).toBeVisible();
+    await expect(dialog.getByRole("heading", { level: 2 })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(selected(page)).toBeFocused();
+
+    await flow.press("ArrowLeft");
+    await expect(page).toHaveURL(/#meals\/2026-11-12$/);
+    const thursday = page.getByRole("link", { name: "11월 12일 목요일" });
+    await expect(thursday).toHaveAttribute("aria-current", "date");
+    await expect(selected(page)).toHaveAccessibleName(/검증용 목요일 식단/);
+    await thursday.click();
+    await expect(thursday).toBeFocused();
     const nextWeek = page.getByRole("link", { name: "다음 주" });
     await nextWeek.press("Enter");
-    await expect(page).toHaveURL(/#meals\/2026-11-16/);
+    await expect(page).toHaveURL(/#meals\/2026-11-16$/);
     await expect(nextWeek).toBeFocused();
     await page.goBack();
-    await expect(main.getByText("알레르기 표시 · 난류, 대두, 밀, 잣")).toBeVisible();
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "2026-11-12");
 
-    await page.getByRole("navigation", { name: "학교생활" }).getByRole("link", { name: "학급 일정" }).click();
-    await expect(main.getByText("1학년 행사")).toBeVisible();
-    await expect(main.getByText("2학년 행사")).toHaveCount(0);
-    await main.locator("summary").filter({ hasText: "중요한 일정" }).click();
-    await expect(main.getByText("일정 세부 내용")).toBeVisible();
-    await expect(main.getByText("비공개 행사")).toHaveCount(0);
+    await nav(page).getByRole("link", { name: "시간표" }).click();
+    await expect(flow.locator(".pc-cover")).toHaveCount(7);
+    await expect(selected(page)).toHaveAccessibleName(/현재 수업 1교시 수학.*다음 수업 2교시 공통영어/);
+    await selected(page).press("Enter");
+    await expect(dialog.getByRole("list", { name: "교시별 수업" }).getByRole("listitem")).toHaveCount(2);
+    await page.keyboard.press("Escape");
+    await main.getByRole("button", { name: "주간 시간표" }).click();
+    await expect(dialog.getByRole("heading", { name: "주간 시간표" })).toBeFocused();
+    await expect(dialog.getByText("공통영어", { exact: true })).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await nav(page).getByRole("link", { name: "학급 일정" }).click();
+    await expect(selected(page)).toHaveAccessibleName(/중요한 일정.*1학년 행사/);
+    await selected(page).press("Enter");
+    await expect(dialog.getByText("일정 세부 내용")).toBeVisible();
+    await expect(dialog.getByText("2학년 행사")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await main.getByRole("button", { name: "이번 주 일정" }).click();
+    await expect(dialog.getByText("행사 장소를 확인합니다.")).toBeVisible();
+    await expect(dialog.getByText("날짜 미정 행사")).toBeVisible();
+    await expect(dialog.getByText("비공개 행사")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(flow.locator('[data-cover-id="undated"]')).toHaveCount(1);
+    await flow.focus();
+    await expect(flow).toBeFocused();
+    await flow.press("End");
+    await expect(page).toHaveURL(/\/undated$/);
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "undated");
+    await expect(main.locator("[data-stage-date]")).toHaveText("날짜 미정");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
+    await nav(page).getByRole("link", { name: "공지", exact: true }).click();
+    await expect(flow.locator(".pc-cover")).toHaveCount(2);
+    await expect(selected(page)).toHaveAccessibleName(/중요 공지를 확인하세요/);
+    await page.getByRole("button", { name: "다음 커버", exact: true }).click();
+    await expect(selected(page)).toHaveAccessibleName(/다음 중요 공지/);
+    await selected(page).press("Enter");
+    await expect(dialog.getByText("다음 공지 본문.")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
     await page.getByRole("link", { name: "PinCon 홈" }).click();
-    await main.getByRole("link", { name: /수학 발표/ }).click();
+    await expect(page).toHaveURL(base + "/");
+    await flow.focus();
+    await flow.press("Home");
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "meals");
+    await flow.press("ArrowRight");
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "timetable");
+    await flow.press("ArrowRight");
+    await expect(selected(page)).toHaveAttribute("data-cover-id", "today");
+    await selected(page).press("Enter");
+    await dialog.getByRole("link", { name: /수학 발표/ }).click();
     await expect(page.locator("#detail-title")).toHaveText("수학 발표");
     await page.getByRole("button", { name: "안내문 보기" }).press("Enter");
     const attachment = page.getByRole("dialog", { name: "안내문" });
@@ -94,14 +170,45 @@ for (const width of [320, 383, 768, 1363]) {
   });
 }
 
-test("missing school data returns a retry, public users cannot open event management", async ({ page }) => {
+test("missing school data returns a retry and public users cannot open event management", async ({ page }) => {
   await start(page, null);
-  const meals = page.getByRole("region", { name: "오늘의 급식" });
-  await expect(meals.getByText("최신 자료를 불러오지 못했어요.")).toBeVisible();
-  await meals.getByRole("button", { name: "다시 시도" }).press("Enter");
-  await expect(meals.getByText("최신 자료를 불러오지 못했어요.")).toBeVisible();
+  await nav(page).getByRole("link", { name: "급식", exact: true }).click();
+  await expect(selected(page)).toHaveAccessibleName(/최신 자료를 불러오지 못했어요/);
+  await selected(page).press("Enter");
+  const dialog = page.locator("#school-detail");
+  await expect(dialog.getByText("최신 자료를 불러오지 못했어요.")).toBeVisible();
+  await dialog.getByRole("button", { name: "다시 시도" }).press("Enter");
+  await expect(dialog.getByText("최신 자료를 불러오지 못했어요.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await nav(page).getByRole("link", { name: "학급 일정" }).click();
+  await expect(page.getByRole("link", { name: "학급 일정 관리" })).toHaveCount(0);
   await page.goto(base + "/next/admin/?content=events#content-center", { waitUntil: "domcontentloaded" });
   await page.waitForURL(url => url.pathname === "/next/", { timeout: 5_000, waitUntil: "domcontentloaded" });
+});
+
+test("date covers drag, open and keep their selection after reload", async ({ page }) => {
+  await page.setViewportSize({ width: 383, height: 790 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await start(page);
+  await nav(page).getByRole("link", { name: "급식", exact: true }).click();
+  const scene = page.locator(".pc-scene");
+  await expect(scene).toHaveAttribute("data-motion", "resting");
+  const cover = await selected(page).boundingBox();
+  await page.mouse.move(cover.x + 75, cover.y + 75);
+  await page.mouse.down();
+  await page.mouse.move(cover.x + 205, cover.y + 75, { steps: 13 });
+  await page.mouse.up();
+  await expect(scene).toHaveAttribute("data-motion", "resting");
+  expect(await selected(page).getAttribute("data-cover-id")).not.toBe(today);
+  const selection = await selected(page).getAttribute("data-cover-id");
+  await expect(selected(page)).toBeVisible();
+  await selected(page).click();
+  await expect(page.locator("#school-detail")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(selected(page)).toBeFocused();
+  expect(await page.evaluate(() => document.querySelectorAll(".pc-shared-cover").length)).toBe(0);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(selected(page)).toHaveAttribute("data-cover-id", selection);
 });
 
 test("assessment calendar avoids fixed overlays and the notice editor follows visual order", async ({ page }) => {

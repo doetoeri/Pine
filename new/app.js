@@ -1,7 +1,7 @@
 import { mountBanners } from "./banners.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261011-tilt1";
+import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261115-coverflow";
 import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261114-school-life";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
