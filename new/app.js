@@ -1,16 +1,18 @@
 import { mountBanners } from "./banners.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261115-coverflow";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261114-school-life";
+import { coverListEnabled, coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261115-accessibility";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261115-accessibility";
+import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-accessibility";
+import { motionPreference } from "../accessibility/motion.js?v=20261115-accessibility";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
-import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261115-accessibility";
 import { assessmentCalendarMarkup, assessmentDate, assessmentCalendarAnchor, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261013-grid1";
-import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261013-grid1";
-import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt3";
-import { mountNoticeImage } from "./notice-image.js?v=20261013-notice2";
+import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261115-accessibility";
+import { TiltSwipe } from "./tilt-swipe.js?v=20261115-accessibility";
+import { mountNoticeImage } from "./notice-image.js?v=20261115-accessibility";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -23,6 +25,7 @@ let requestedAssignment = entry.get("assignment") || "";
 let view = "covers", month = currentCalendarMonth(), selectedDay = "", calendarAnchor = {}, stopViewMotion = () => {};
 prepareDialog($("details"), () => !saving);
 prepareDialog($("preferences"));
+mountAccessibilitySettings();
 const tilt = new TiltSwipe();
 const tiltMessages = {
   off: "휴대폰을 기울여 커버를 넘겨요. 기울일수록 더 빨라져요.",
@@ -34,7 +37,7 @@ const tiltMessages = {
   ready: "좌우로 기울이면 속도가 붙어요. 처음 자세로 돌리면 멈춰요.",
   denied: "센서 접근이 허용되지 않았어요. 브라우저에서 허용한 뒤 다시 켜 주세요.",
   unavailable: "이 기기나 브라우저에서는 기울기 센서를 사용할 수 없어요.",
-  reduced: "기기의 ‘동작 줄이기’ 설정에 따라 기울기 제어를 쉬고 있어요.",
+  reduced: "‘동작 줄이기’가 켜져 있어 기울기 제어가 쉬고 있어요.",
 };
 tilt.onchange = ({ enabled, status }) => {
   $("tilt-enabled").checked = enabled;
@@ -43,11 +46,12 @@ tilt.onchange = ({ enabled, status }) => {
 };
 $("tilt-enabled").onchange = event => tilt.setEnabled(event.target.checked);
 function syncTiltActivity() {
-  tilt.setActive(view === "covers" && !$("covers").hasAttribute("aria-busy") && !$("details").open && !$("preferences").open && !$("notice-image").open && window.PINCON_STARTUP?.finished !== false);
+  tilt.setActive(view === "covers" && !coverListEnabled() && !$("covers").hasAttribute("aria-busy")
+    && !document.querySelector("dialog[open]") && window.PINCON_STARTUP?.finished !== false);
   tilt.notify();
 }
 const tiltDialogs = new MutationObserver(syncTiltActivity);
-for (const dialog of [$("details"), $("preferences"), $("notice-image")]) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+for (const dialog of document.querySelectorAll("dialog")) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
 tiltDialogs.observe($("covers"), { attributes: true, attributeFilter: ["aria-busy"] });
 document.addEventListener("pincon-startup-end", syncTiltActivity);
 tilt.notify();
@@ -79,13 +83,14 @@ function render({ transition = false } = {}) {
   // Realtime timestamps, attachment metadata and detail-only edits must not
   // replace the scene (and interrupt an in-progress scroll) when covers match.
   const pending = !rows.length && !snapshot.ready && !snapshot.usingCache;
-  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, month, selectedDay, calendarAnchor.id, calendarAnchor.date, view === "calendar" ? seoulToday() : "", rows.map(row => [
+  const list = coverListEnabled();
+  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, list, month, selectedDay, calendarAnchor.id, calendarAnchor.date, view === "calendar" ? seoulToday() : "", rows.map(row => [
     row.id, row.title, row.subject, row.kind, row.dueDate, row.dateType,
     Boolean(row.confirmed || row.verificationStatus === "verified"),
     Boolean(row.noticeAttachment), Boolean(row.worksheetPack),
   ])]);
   if (next !== signature) {
-    const before = transition ? captureAssessmentTiles($("covers")) : [];
+    const before = transition && !list ? captureAssessmentTiles($("covers")) : [];
     stopViewMotion();
     const scrollTop = $("covers").querySelector(".pc-calendar")?.scrollTop || 0;
     signature = next;
@@ -93,7 +98,7 @@ function render({ transition = false } = {}) {
     $("covers").innerHTML = pending
       ? '<section class="pc-flow pc-flow-empty" aria-label="수행평가"><p>수행평가</p></section>'
       : view === "calendar" ? assessmentCalendarMarkup(rows, month, selectedDay, undefined, calendarAnchor) : coverflowMarkup(rows, snapshot.profile?.classKey || "");
-    $("covers").setAttribute("aria-label", view === "calendar" ? "수행평가 달력" : "수행평가 커버플로우");
+    $("covers").setAttribute("aria-label", view === "calendar" ? "수행평가 달력" : list ? "수행평가 목록" : "수행평가 커버플로우");
     if (window.PINCON_STARTUP?.mode === "full" && !window.PINCON_STARTUP.finished) {
       document.documentElement.style.setProperty("--pc-startup-elapsed", `${performance.now() - window.PINCON_STARTUP.startAt}ms`);
     }
@@ -108,7 +113,7 @@ function render({ transition = false } = {}) {
         }
       }
     }
-    if (transition) stopViewMotion = animateAssessmentView($("covers"), before);
+    if (transition && !list) stopViewMotion = animateAssessmentView($("covers"), before);
     else if (view === "calendar") $("covers").querySelector(".pc-calendar")?.scrollTo(0, scrollTop);
   }
   syncTiltActivity();
@@ -139,7 +144,7 @@ const calendarIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const coversIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7.5h3v12H3zM18 7.5h3v12h-3z"/><rect x="8.5" y="4.5" width="7" height="15" rx=".8"/></svg>';
 function updateViewButton() {
   $("view-toggle").innerHTML = view === "calendar" ? coversIcon : calendarIcon;
-  const label = view === "calendar" ? "커버 보기" : "달력 보기";
+  const label = view === "calendar" ? (coverListEnabled() ? "목록 보기" : "커버 보기") : "달력 보기";
   $("view-toggle").setAttribute("aria-label", label);
   $("view-toggle").setAttribute("title", label);
 }
@@ -153,7 +158,8 @@ $("view-toggle").onclick = () => {
   }
   view = view === "covers" ? "calendar" : "covers";
   updateViewButton(); render({ transition: true });
-  $("view-status").textContent = view === "calendar" ? `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월 달력 보기` : "커버 보기";
+  $("view-status").textContent = view === "calendar" ? `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월 달력 보기`
+    : coverListEnabled() ? "목록 보기" : "커버 보기";
 };
 $("view-toggle").disabled = false;
 
@@ -173,7 +179,7 @@ $("covers").addEventListener("click", event => {
     selectedDay = day.dataset.calendarDay; render();
     const heading = $("calendar-day-title");
     heading?.focus({ preventScroll: true });
-    heading?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    heading?.scrollIntoView({ block: "nearest", behavior: motionPreference().matches ? "instant" : "smooth" });
     return;
   }
   const tile = event.target.closest(".pc-calendar-tile");
@@ -402,10 +408,24 @@ $("google-login").onclick = () => accountAction(async () => {
 }, { signingIn: true });
 $("logout").onclick = () => accountAction(async () => { const { signOutStudent } = await import("../next/core/student-auth.js"); await signOutStudent(); });
 $("retry").onclick = () => accountAction(() => gateway.retry(), { refresh: false });
+document.querySelector(".accessibility-skip").addEventListener("click", event => {
+  event.preventDefault();
+  $("covers").focus();
+});
 mountBanners(gateway);
 mountAttachmentViewer(gateway, { requestSignIn: requestAttachmentSignIn });
 mountNoticeImage(gateway);
 gateway.addEventListener("change", render);
+document.addEventListener("pincon-layout-change", () => {
+  const focused = $("covers").contains(document.activeElement);
+  const id = document.activeElement?.dataset.assessmentId;
+  updateViewButton();
+  render();
+  if (focused && !$("covers").contains(document.activeElement) && !document.querySelector("dialog[open]")) {
+    const cover = id && $("covers").querySelector(`.pc-list-flow [data-assessment-id="${CSS.escape(id)}"]`);
+    (cover || $("covers").querySelector(".pc-cover[aria-pressed=true]") || $("covers")).focus({ preventScroll: true });
+  }
+});
 render();
 gateway.start().catch(() => render());
 let studyTrackingStarted = false;

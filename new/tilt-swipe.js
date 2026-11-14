@@ -1,4 +1,5 @@
 import { gravityTilt, tiltDrive } from "../next/assessments/tilt-physics.js?v=20261011-tilt1";
+import { motionPreference } from "../accessibility/motion.js?v=20261115-accessibility";
 
 const SETTING = "pincon-tilt-swipe-v1";
 const screenAngle = () => Number.isFinite(screen.orientation?.angle) ? screen.orientation.angle : Number(window.orientation) || 0;
@@ -14,7 +15,7 @@ export class TiltSwipe {
     this.value = 0;
     this.request = 0;
     this.blockedUntil = 0;
-    this.reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    this.reduced = motionPreference();
     this.onchange = () => {};
     this.onMotion = event => this.read(event);
     this.reduced.addEventListener("change", () => this.sync());

@@ -8,13 +8,15 @@
   <title>PinCon · 수행평가</title>
   <link rel="icon" href="../next/assets/pincon-icon.svg" type="image/svg+xml">
   <link rel="manifest" href="../manifest.webmanifest">
-  <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261115-coverflow">
+  <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261115-accessibility">
   <link rel="stylesheet" href="./app.css?v=20261114-school-life">
   <link rel="stylesheet" href="./notice-image.css?v=20261114-school-life">
-  <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261114-school-life">
+  <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261115-accessibility">
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
   <script src="../registerSW.js?v=20261013-notice2" defer></script>
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2" />
+  <link rel="stylesheet" href="../accessibility/accessibility.css?v=20261115-accessibility">
+  <script src="../accessibility/preferences.js?v=20261115-accessibility"></script>
   <style>
     /* A self-contained greeting: no image, font or module download to await. */
     .pc-startup{position:fixed;inset:0;z-index:10;pointer-events:none;background:var(--pc-scene-background,radial-gradient(ellipse at 50% 43%,#fff 0%,#f8f9fc 48%,#edf0f5 100%));animation:pc-startup-out 200ms 350ms cubic-bezier(.2,.7,.2,1) both;will-change:opacity}
@@ -32,8 +34,17 @@
   </style>
 </head>
 <body data-assessment-view="covers">
-  <header class="assessment-topbar"><a class="assessment-home" href="../">‹ PinCon 홈</a><button type="button" id="notice-open" class="notice-launch" aria-label="수행 공지 이미지 만들기" title="수행 공지 이미지 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><span>공지 이미지</span></button></header>
-  <main id="covers" aria-label="수행평가 커버플로우"><p class="empty">수행평가</p></main>
+  <a class="accessibility-skip" href="#covers">본문으로 건너뛰기</a>
+  <header class="assessment-topbar">
+    <a class="assessment-home" href="../">‹ PinCon 홈</a>
+    <div class="assessment-header-actions">
+      <button class="accessibility-trigger" type="button" data-accessibility-settings aria-label="접근성 설정" aria-haspopup="dialog" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4.5" r="2"/><path d="M4 9l8 2 8-2M12 11v4m0 0-4 6m4-6 4 6"/></svg>
+      </button>
+      <button type="button" id="notice-open" class="notice-launch" aria-label="수행 공지 이미지 만들기" title="수행 공지 이미지 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><span>공지 이미지</span></button>
+    </div>
+  </header>
+  <main id="covers" tabindex="-1" aria-label="수행평가 커버플로우"><p class="empty">수행평가</p></main>
   <div class="pc-startup" aria-hidden="true" hidden>
     <svg class="pc-startup-mark" viewBox="0 0 3310 800" fill="none" aria-hidden="true" style="--pc-startup-sweep:5296.0px" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -49,7 +60,7 @@
   <script>
     (() => {
       const root = document.documentElement, mark = document.querySelector(".pc-startup");
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      const reduced = window.PINCON_ACCESSIBILITY?.motion ?? matchMedia("(prefers-reduced-motion: reduce)");
       const day = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       let repeat = false, light = true, enabled = true;
       try {
@@ -135,6 +146,6 @@
     </div>
   </dialog>
   <noscript>PinCon을 사용하려면 JavaScript를 켜 주세요.</noscript>
-  <script type="module" src="./app.js?v=20261115-coverflow"></script>
+  <script type="module" src="./app.js?v=20261115-accessibility"></script>
 </body>
 </html>

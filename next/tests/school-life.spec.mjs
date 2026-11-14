@@ -59,6 +59,107 @@ function selected(page) {
 
 const nav = page => page.getByRole("navigation", { name: "학교생활", exact: true });
 
+test("accessibility settings persist between home, details, assessment and reload", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 780 });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await start(page);
+  const root = page.locator("html");
+  const trigger = page.getByRole("button", { name: "접근성 설정", exact: true });
+  const panel = page.getByRole("dialog", { name: "접근성 설정" });
+  await page.keyboard.press("Tab");
+  const skip = page.getByRole("link", { name: "본문으로 건너뛰기" });
+  await expect(skip).toBeFocused();
+  await skip.press("Enter");
+  await expect(page.getByRole("heading", { name: "오늘의 학교생활" })).toBeFocused();
+  await trigger.press("Enter");
+  await expect(panel.getByLabel("화면 대비")).toBeFocused();
+  await panel.getByLabel("화면 대비").selectOption("high");
+  await expect(root).toHaveAttribute("data-pc-contrast", "high");
+  await expect(selected(page).locator(":scope > .pc-face")).toHaveCSS("border-top-width", "3px");
+  await expect(selected(page).locator(":scope > .pc-reflection")).toHaveCSS("display", "none");
+  await panel.getByLabel("동작 줄이기", { exact: true }).check();
+  await expect(root).toHaveAttribute("data-pc-reduced-motion", "");
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.locator(".pc-scene").press("ArrowRight");
+  await expect(selected(page)).toHaveAttribute("data-cover-id", "assessment");
+  await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
+
+  await trigger.click();
+  await panel.getByLabel("글자 크게", { exact: true }).check();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  const home = page.getByRole("list", { name: "학교생활 목록" });
+  await expect(home.getByRole("listitem")).toHaveCount(6);
+  expect(await root.evaluate(node => getComputedStyle(node).fontSize)).toBe("20px");
+  const todayCard = home.getByRole("button", { name: /오늘 한눈에 보기/ });
+  await todayCard.press("Enter");
+  const details = page.getByRole("dialog", { name: "오늘 한눈에 보기" });
+  await expect(details.getByRole("link", { name: /수학 발표/ })).toBeVisible();
+  await expect(details).not.toHaveAttribute("data-dialog-motion", "opening");
+  await page.keyboard.press("Escape");
+  await expect(todayCard).toBeFocused();
+  expect(await root.evaluate(node => node.scrollWidth)).toBe(320);
+
+  await nav(page).getByRole("link", { name: "급식", exact: true }).click();
+  const mealList = page.getByRole("list", { name: "급식 목록" });
+  await expect(mealList.getByRole("listitem")).toHaveCount(7);
+  await page.getByRole("link", { name: "11월 12일 목요일" }).click();
+  const meal = mealList.getByRole("button", { name: /검증용 목요일 식단/ });
+  await expect(meal).toBeFocused();
+  await expect(meal).toHaveAttribute("aria-current", "date");
+  await meal.press("Enter");
+  await expect(page.getByRole("dialog", { name: "11월 12일 목요일" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(meal).toBeFocused();
+
+  await nav(page).getByRole("link", { name: "수행평가", exact: true }).click();
+  await expect(root).toHaveAttribute("data-pc-contrast", "high");
+  await expect(root).toHaveAttribute("data-pc-reduced-motion", "");
+  expect(await page.evaluate(() => window.PINCON_STARTUP.mode)).toBe("none");
+  const assignments = page.getByRole("list", { name: "수행평가 목록" });
+  const assignment = assignments.getByRole("button", { name: /수학 발표.*2026-11-15.*안내문/ });
+  await expect(assignment).toBeVisible();
+  await assignment.press("Enter");
+  await expect(page.getByRole("dialog", { name: "수학 발표" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(assignment).toBeFocused();
+  await page.getByRole("button", { name: "달력 보기", exact: true }).click();
+  await expect(page.getByRole("main", { name: "수행평가 달력" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "목록 보기", exact: true })).toBeVisible();
+  await expect(page.locator(".pc-view-transition")).toHaveCount(0);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(assignments).toBeVisible();
+  await expect(root).toHaveAttribute("data-pc-contrast", "high");
+  await trigger.click();
+  await panel.getByRole("button", { name: "기본 설정으로 되돌리기" }).click();
+  await expect(panel.getByLabel("화면 대비")).toHaveValue("system");
+  await expect(root).toHaveAttribute("data-pc-layout", "covers");
+  await expect(root).not.toHaveAttribute("data-pc-reduced-motion", "");
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+});
+
+test("system accessibility media and manual choices have the expected priority", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "Forced color emulation is exercised in Chromium");
+  await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });
+  await start(page);
+  const root = page.locator("html");
+  await expect(root).toHaveAttribute("data-pc-contrast", "high");
+  await expect(root).toHaveAttribute("data-pc-reduced-motion", "");
+  await page.getByRole("button", { name: "접근성 설정", exact: true }).click();
+  const panel = page.getByRole("dialog", { name: "접근성 설정" });
+  await panel.getByLabel("화면 대비").selectOption("normal");
+  await panel.getByLabel("목록 보기", { exact: true }).check();
+  await expect(root).toHaveAttribute("data-pc-contrast", "high");
+  await expect(root).toHaveAttribute("data-pc-layout", "list");
+  await page.emulateMedia({ forcedColors: "none", reducedMotion: "no-preference" });
+  await expect(root).toHaveAttribute("data-pc-contrast", "normal");
+  await expect(root).not.toHaveAttribute("data-pc-reduced-motion", "");
+  await expect(root).toHaveAttribute("data-pc-text", "normal");
+});
+
 for (const width of [320, 383, 768, 1363]) {
   test(`shared Cover Flow and student tasks at ${width} CSS pixels`, async ({ page }) => {
     await page.setViewportSize({ width, height: 840 });

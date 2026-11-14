@@ -1,4 +1,5 @@
 import { advanceTilt } from "./tilt-physics.js?v=20261011-tilt1";
+import { motionPreference } from "../../accessibility/motion.js?v=20261115-accessibility";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
@@ -47,13 +48,25 @@ function assessmentFace(row) {
   return `<div class="pc-face"><span class="pc-surface-light" aria-hidden="true"></span><div class="pc-head"><span>${escape(row.subject || "수행평가")}</span><span>${escape(row.kind || "수행평가")}</span></div><div class="pc-title">${escape(row.title)}</div><div class="pc-bottom"><div class="pc-deadline"><span class="pc-date">${escape(row.dueDate ? row.dueDate.slice(5).replace("-", ".") : "날짜 미정")}</span><span>${escape(assessmentDue(row.dueDate))}</span></div><div class="pc-meta"><span>${escape((row.confirmed || row.verificationStatus === "verified") ? "공식 자료 확인" : "확인 중")}</span><span>${[row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · ")}</span></div></div></div>`;
 }
 
-function flowMarkup(rows, { label, key, renderKey, layout = "", face, theme, name, action = "상세 내용을 엽니다.", attributes = () => "" }) {
+export const coverListEnabled = () => globalThis.document?.documentElement.dataset.pcLayout === "list";
+
+function flowMarkup(rows, { label, key, renderKey, layout = "", face, theme, name, action = "상세 내용을 엽니다.", attributes = () => "", currentId }) {
+  if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="${escape(renderKey)}"><p>등록된 항목이 없습니다.</p></section>`;
+  function cover(row, index, list) {
+    const front = face(row);
+    const state = list ? (row.id === currentId ? 'aria-current="date"' : "") : 'aria-pressed="false" tabindex="-1"';
+    const reflection = list ? "" : `<span class="pc-reflection" aria-hidden="true">${front}</span>`;
+    return `<button type="button" class="pc-cover pc-theme-${theme(row)}" data-index="${index}" data-cover-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey ?? row.id)}" ${attributes(row)} ${state} aria-label="${escape(name(row))}">${front}${reflection}</button>`;
+  }
+  if (coverListEnabled()) {
+    const items = [...rows].sort((a, b) => (a.listOrder ?? 0) - (b.listOrder ?? 0));
+    return `<section class="pc-flow pc-list-flow${layout}" data-render-key="${escape(renderKey)}" data-class-key="${escape(key)}" aria-label="${escape(label)}">
+      <ul role="list" aria-label="${escape(label)} 목록">${items.map((row, index) => `<li>${cover(row, index, true)}</li>`).join("")}</ul>
+    </section>`;
+  }
   return `<section class="pc-flow${layout}" data-render-key="${escape(renderKey)}" data-class-key="${escape(key)}" aria-label="${escape(label)}">
     <div class="pc-flow-viewport"><div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="${escape(label)} 커버플로우. 좌우 방향키 또는 이전·다음 버튼으로 이동합니다. 가운데 커버를 누르면 ${escape(action)}">
-      ${rows.map((row, index) => {
-        const front = face(row);
-        return `<button type="button" class="pc-cover pc-theme-${theme(row)}" data-index="${index}" data-cover-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey ?? row.id)}" ${attributes(row)} aria-pressed="false" tabindex="-1" aria-label="${escape(name(row))}">${front}<span class="pc-reflection" aria-hidden="true">${front}</span></button>`;
-      }).join("")}
+      ${rows.map((row, index) => cover(row, index, false)).join("")}
     </div></div>
     <div class="pc-caption">
       <button class="pc-step" type="button" data-flow-step="-1" aria-label="이전 커버"><span aria-hidden="true"></span></button>
@@ -68,8 +81,10 @@ export function coverflowMarkup(rows, classKey = "") {
   if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="assessment-flow"><p>등록된 수행평가가 없습니다.</p></section>`;
   return flowMarkup(rows, {
     label: "수행평가", key: classKey, renderKey: "assessment-flow", face: assessmentFace,
-    theme: row => subjectTheme(row.subject), name: row => `${row.subject || "수행평가"} · ${row.title}`,
-    attributes: row => `data-assessment-id="${escape(row.id)}" data-detail-route="classroom"`,
+    theme: row => subjectTheme(row.subject),
+    name: row => [row.subject || "수행평가", row.title, row.dueDate || "날짜 미정", assessmentDue(row.dueDate),
+      row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · "),
+    attributes: row => `data-assessment-id="${escape(row.id)}" data-detail-route="classroom" aria-haspopup="dialog"`,
   });
 }
 
@@ -83,19 +98,32 @@ function paperFace(row) {
   </span>`;
 }
 
-export function paperCoverflowMarkup(rows, label, key, action = "상세 내용을 엽니다.") {
+export function paperCoverflowMarkup(rows, label, key, action = "상세 내용을 엽니다.", currentId) {
   return flowMarkup(rows, {
-    label, key, renderKey: key, layout: " pc-paper-flow", face: paperFace, action,
+    label, key, renderKey: key, layout: " pc-paper-flow", face: paperFace, action, currentId,
     theme: row => row.theme, name: row => [row.title, row.context, ...row.lines.map(line => [line.label, line.value].filter(Boolean).join(" "))].filter(Boolean).join(" · "),
     attributes: row => (row.navigation ? "" : 'aria-haspopup="dialog"'),
   });
 }
 
 export function mountCoverflow(root, openDetail, { startup = null, tilt = null, initialId, defaultId, onSelect, horizontalWheel = false } = {}) {
-  const host = root?.querySelector(".pc-flow"), scene = host?.querySelector(".pc-scene");
-  if (!scene) return;
+  const host = root?.querySelector(".pc-flow");
+  if (!host) return;
   if (controllers.has(host)) return controllers.get(host);
-  const cards = [...scene.querySelectorAll(".pc-cover")], reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  if (host.classList.contains("pc-list-flow")) {
+    host.addEventListener("click", event => {
+      const card = event.target.closest(".pc-cover");
+      if (!card) return;
+      selections.set(host.dataset.classKey, card.dataset.coverId);
+      openDetail(card.dataset.detailKey, card);
+    });
+    const list = {};
+    controllers.set(host, list);
+    return list;
+  }
+  const scene = host.querySelector(".pc-scene");
+  if (!scene) return;
+  const cards = [...scene.querySelectorAll(".pc-cover")], reduced = motionPreference();
   if (!cards.length) return;
   const steps = [...host.querySelectorAll("[data-flow-step]")];
   const paperCovers = host.classList.contains("pc-paper-flow");
@@ -144,7 +172,7 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
   function destroy() { stopTilt(); cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
   function updateLighting() { host.dataset.lighting = lightingEnabled ? "on" : "off"; paint(); }
   function paintLight(index, yaw, x, z, visible) {
-    if (!lightingEnabled) return;
+    if (!lightingEnabled || document.documentElement.dataset.pcContrast === "high") return;
     const light = lights[index];
     let pose = light.pose, opacity = "0";
     // Only the nearest covers can catch this light. Do not allocate a large

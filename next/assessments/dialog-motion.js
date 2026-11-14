@@ -1,5 +1,7 @@
+import { motionPreference } from "../../accessibility/motion.js?v=20261115-accessibility";
+
 const motions = new WeakMap();
-const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduced = () => motionPreference().matches;
 
 // Keep the native modal/focus lifecycle; only delay close until the exit settles.
 export function prepareDialog(dialog, canDismiss = () => true) {
@@ -21,8 +23,8 @@ export function prepareDialog(dialog, canDismiss = () => true) {
     restoreSource(state);
     delete dialog.dataset.dialogMotion;
   });
-  matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", event => {
-    if (!event.matches) return;
+  motionPreference().addEventListener("change", () => {
+    if (!reduced()) return;
     const closing = dialog.dataset.dialogMotion === "closing";
     state.revision++;
     state.animation?.cancel();

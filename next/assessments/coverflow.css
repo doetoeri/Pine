@@ -71,3 +71,8 @@
 .pc-step[aria-disabled="true"] { opacity: .48; cursor: default; }
 .pc-step span { width: 9px; height: 9px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateX(-2px) rotate(-45deg); }
 .pc-step[data-flow-step="-1"] span { transform: translateX(2px) rotate(135deg); }
+.pc-cover:focus-visible > .pc-face,
+.pc-scene:focus-visible .pc-cover[aria-pressed="true"] > .pc-face {
+  outline: 3px solid #244c7b;
+  outline-offset: -5px;
+}

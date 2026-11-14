@@ -229,7 +229,11 @@ function homePapers(data, snapshot, calls, today, now) {
     paper("notices", "notices", "중요 학급 공지", "공지", "",
       hasNotice ? notices.slice(0, 3).map(row => line(row.title, row.kicker)) : notice.lines, "공지 목록"),
   ];
-  return covers.map(cover => ({ ...cover, navigation: cover.id !== "today" }));
+  return covers.map(cover => ({
+    ...cover,
+    navigation: cover.id !== "today",
+    listOrder: cover.id === "today" ? -1 : 0,
+  }));
 }
 
 export function schoolPapers(page, date, today, now, snapshot, data, calls) {

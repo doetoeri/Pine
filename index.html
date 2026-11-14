@@ -10,8 +10,10 @@
   <link rel="icon" href="./next/assets/pincon-icon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./pincon-fonts.css?v=20261010-openai-tablet2">
-  <link rel="stylesheet" href="./next/assessments/coverflow.css?v=20261115-coverflow">
+  <link rel="stylesheet" href="./next/assessments/coverflow.css?v=20261115-accessibility">
   <link rel="stylesheet" href="./school-life/app.css?v=20261115-coverflow">
+  <link rel="stylesheet" href="./accessibility/accessibility.css?v=20261115-accessibility">
+  <script src="./accessibility/preferences.js?v=20261115-accessibility"></script>
   <script src="./firebase-config.js?v=20260903-account-fallback1"></script>
   <script src="./registerSW.js?v=20261013-notice2" defer></script>
 </head>
@@ -21,6 +23,9 @@
     <a class="brand" href="./" aria-label="PinCon 홈"><img src="./next/assets/pincon-icon.svg" alt="" width="27" height="27">PinCon</a>
     <div class="site-actions">
       <button id="class-select" class="chip" type="button">학급 선택</button>
+      <button class="accessibility-trigger" type="button" data-accessibility-settings aria-label="접근성 설정" aria-haspopup="dialog" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4.5" r="2"/><path d="M4 9l8 2 8-2M12 11v4m0 0-4 6m4-6 4 6"/></svg>
+      </button>
       <a class="account-link" href="./new/?settings=account" aria-label="계정 설정">
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="3.3"/><path d="M5 20v-1.2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5V20"/></svg>
       </a>
@@ -60,6 +65,6 @@
     </nav>
   </footer>
   <noscript><p class="site-main">학교생활 요약에는 JavaScript가 필요합니다. <a href="./new/">수행평가 화면</a></p></noscript>
-  <script type="module" src="./school-life/app.js?v=20261115-coverflow"></script>
+  <script type="module" src="./school-life/app.js?v=20261115-accessibility"></script>
 </body>
 </html>

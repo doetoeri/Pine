@@ -1,8 +1,12 @@
-const PINCON_SW_VERSION = "20261115-coverflow";
+const PINCON_SW_VERSION = "20261115-accessibility";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
   "./pincon-fonts.css",
+  "./accessibility/accessibility.css",
+  "./accessibility/preferences.js",
+  "./accessibility/settings.js",
+  "./accessibility/motion.js",
   "./fonts/OpenAISansHangulVariable.woff2",
   "./material-official-loader.js",
   "./material-web.bundle.js",

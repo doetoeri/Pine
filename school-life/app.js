@@ -1,7 +1,8 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { patchPage } from "../next/core/region-renderer.js";
-import { mountCoverflow, paperCoverflowMarkup } from "../next/assessments/coverflow.js?v=20261115-coverflow";
-import { closeDialog, openDialog, prepareDialog } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
+import { coverListEnabled, mountCoverflow, paperCoverflowMarkup } from "../next/assessments/coverflow.js?v=20261115-accessibility";
+import { closeDialog, openDialog, prepareDialog } from "../next/assessments/dialog-motion.js?v=20261115-accessibility";
+import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-accessibility";
 import { calendarDate } from "../new/calendar.js?v=20261013-grid1";
 import { kstDate } from "../pincon-class-ops-core.js";
 import { schoolWeek } from "./model.js?v=20261114-school-life";
@@ -28,6 +29,7 @@ let detailMarkup = "";
 
 prepareDialog(classDialog);
 prepareDialog(detailDialog);
+mountAccessibilitySettings();
 
 function pageFromUrl() {
   const [name, date, item] = location.hash.slice(1).split("/");
@@ -107,6 +109,7 @@ function openCover(id, trigger) {
     else navigate("#" + id);
     return;
   }
+  selectDate(id);
   openPaperContent(collection.covers.find(paper => paper.id === id), trigger);
 }
 
@@ -115,9 +118,13 @@ function selectDate(id) {
   const selectedDate = calendarDate(id);
   const date = selectedDate || current.date;
   const path = `${current.page}/${date}${selectedDate ? "" : "/undated"}`;
-  history.replaceState(history.state, "", `#${path}`);
+  if (current.date !== date || current.undated !== !selectedDate) history.replaceState(history.state, "", `#${path}`);
   current = { ...current, date, undated: !selectedDate };
   updateStageDate(main, date, current.undated);
+  for (const item of main.querySelectorAll(".pc-list-flow .pc-cover")) {
+    if (selectedDate && item.dataset.coverId === selectedDate) item.setAttribute("aria-current", "date");
+    else item.removeAttribute("aria-current");
+  }
 }
 
 function activeWeekControls(page, overview) {
@@ -156,7 +163,7 @@ function render() {
   current = route;
   const openHint = page === "home" ? "해당 화면이나 상세 내용을 엽니다." : undefined;
   const markup = heading(title, date, weekly, undated) + (weekly ? weekNav(page, date, today, undated) : "")
-    + paperCoverflowMarkup(collection.covers, pages[page], flowKey, openHint) + activeWeekControls(page, collection.overview);
+    + paperCoverflowMarkup(collection.covers, pages[page], flowKey, openHint, undated ? undefined : selectedId) + activeWeekControls(page, collection.overview);
   patchPage(main, `<div class="view-enter">${markup}</div>`, samePage);
 
   syncingSelection = true;
@@ -165,10 +172,10 @@ function render() {
       initialId: selectedId, defaultId: collection.defaultId || date,
       onSelect: selectDate, horizontalWheel: true,
     });
-    if (selectedId && changedDate) flow?.select(selectedId);
+    if (selectedId && changedDate) flow?.select?.(selectedId);
     if (undated && !collection.covers.some(paper => paper.id === selectedId)) {
       syncingSelection = false;
-      flow?.select(date);
+      flow?.select?.(date);
       if (current.undated) selectDate(date);
     }
   } finally {
@@ -182,12 +189,12 @@ function render() {
   }
 }
 
-function restoreStageFocus(control, fallback = ".pc-cover[aria-pressed=true]") {
+function restoreStageFocus(control, fallback = ".pc-cover[aria-pressed=true], .pc-list-flow .pc-cover") {
   const { day, week, flowStep, coverId } = control?.dataset || {};
   const selector = day ? `[data-day="${CSS.escape(day)}"]`
     : week ? `[data-week="${CSS.escape(week)}"]`
     : flowStep ? `[data-flow-step="${CSS.escape(flowStep)}"]`
-    : coverId ? `[aria-pressed="true"][data-cover-id="${CSS.escape(coverId)}"]`
+    : coverId ? `[data-cover-id="${CSS.escape(coverId)}"]:is([aria-pressed="true"], :not([aria-pressed]))`
     : control?.hasAttribute("data-overview") ? "[data-overview]"
     : control?.matches(".pc-scene") ? ".pc-scene" : fallback;
   (main.querySelector(selector) || main.querySelector(fallback) || main.querySelector("h1"))?.focus({ preventScroll: true });
@@ -202,7 +209,10 @@ function navigate(hash, source) {
   resetDetail();
   if (hash !== location.hash) history.pushState(null, "", location.pathname + location.search + hash);
   render();
-  if (source?.dataset.week || source?.dataset.day) restoreStageFocus(source, "h1");
+  if (coverListEnabled() && (source?.dataset.day || source?.dataset.week === "today")) {
+    const id = CSS.escape(current.date);
+    main.querySelector(`.pc-list-flow [data-cover-id="${id}"]`)?.focus();
+  } else if (source?.dataset.week || source?.dataset.day) restoreStageFocus(source, "h1");
   else main.querySelector("h1").focus();
 }
 
@@ -274,6 +284,7 @@ classForm.addEventListener("submit", async event => {
 });
 
 gateway.addEventListener("change", render);
+document.addEventListener("pincon-layout-change", render);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
 setInterval(() => { if (!document.hidden) render(); }, 30_000);
 render();

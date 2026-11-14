@@ -1,12 +1,12 @@
 import { previewAttachment, ATTACHMENT_SLOTS } from "./attachments.js?v=20261009-upload2";
-import { prepareDialog, openDialog, closeDialog } from "./dialog-motion.js?v=20261009-paper1";
+import { prepareDialog, openDialog, closeDialog } from "./dialog-motion.js?v=20261115-accessibility";
 
 export function mountAttachmentViewer(gateway, { requestSignIn } = {}) {
   let dialog = null, preview = null, reader = null, readAbort = null, token = 0, trigger = null;
   const downloads = new Set();
   if (!document.querySelector('link[href*="assessments/paper-reader.css"]')) {
     const style = document.createElement("link"); style.rel = "stylesheet";
-    style.href = new URL("./paper-reader.css?v=20261009-paper1", import.meta.url).href; document.head.append(style);
+    style.href = new URL("./paper-reader.css?v=20261115-accessibility", import.meta.url).href; document.head.append(style);
   }
   function release() {
     token++; readAbort?.abort(); readAbort = null; reader?.destroy(); reader = null;
@@ -60,7 +60,7 @@ export function mountAttachmentViewer(gateway, { requestSignIn } = {}) {
       download.href = loaded.url; download.download = loaded.fileName; download.hidden = false;
       readAbort = new AbortController();
       const signal = readAbort.signal;
-      const { mountPaperReader } = await import("./paper-reader.js?v=20261009-paper1");
+      const { mountPaperReader } = await import("./paper-reader.js?v=20261115-accessibility");
       if (signal.aborted || pending !== token) return;
       const mounted = await mountPaperReader(content, loaded, { signal });
       if (pending !== token || !dialog.open || dialog.dataset.dialogMotion === "closing") { mounted.destroy(); return; }

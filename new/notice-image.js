@@ -1,6 +1,6 @@
 import { noticeDay, noticeModel } from "./notice-data.js?v=20261013-notice1";
 import { NOTICE_SIZE, noticeLayout, drawNotice } from "./notice-renderer.js?v=20261013-notice1";
-import { prepareDialog, openDialog, closeDialog } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
+import { prepareDialog, openDialog, closeDialog } from "../next/assessments/dialog-motion.js?v=20261115-accessibility";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const blobOf = canvas => new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("이미지 저장에 실패했어요. 다시 만들어 주세요.")), "image/png"));
