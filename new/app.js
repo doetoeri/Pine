@@ -155,6 +155,7 @@ $("view-toggle").onclick = () => {
   updateViewButton(); render({ transition: true });
   $("view-status").textContent = view === "calendar" ? `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월 달력 보기` : "커버 보기";
 };
+$("view-toggle").disabled = false;
 
 $("covers").addEventListener("click", event => {
   if (view !== "calendar") return;
