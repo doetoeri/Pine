@@ -228,6 +228,21 @@ export class PinconClassOpsRepository extends EventTarget {
     window.addEventListener("pagehide", this.handlePageHide);
   }
 
+  async readSchoolDates(name, { key, from, through }) {
+    const { api } = this;
+    if (!api || key !== this.state.classKey) throw new Error("학급 연결을 확인해 주세요.");
+    if (!["meals", "neisTimetables", "academicSchedules"].includes(name)) throw new Error("학교 정보 종류를 확인해 주세요.");
+    // Timetable sync stores one document per class and day. A bounded ID range
+    // reads that class's days without requiring a new production index.
+    const timetable = name === "neisTimetables";
+    const field = timetable ? api.documentId() : "date";
+    const bound = date => timetable ? `${key}-${date.replaceAll("-", "")}` : date;
+    const query = api.query(this.collectionRef(name),
+      api.where(field, ">=", bound(from)), api.where(field, "<=", bound(through)), api.limit(100));
+    const snapshot = await api.getDocsFromServer(query);
+    return rowsForProfile(name, rowsFromSnapshot(snapshot), this.state.profile);
+  }
+
   snapshot() {
     return {
       ...this.state,
@@ -450,7 +465,9 @@ export class PinconClassOpsRepository extends EventTarget {
         return result.user;
       }
     }
-    throw new Error("참여하려면 Google 로그인 또는 이름 설정이 필요합니다.");
+    const error = new Error("참여하려면 Google 로그인 또는 이름 설정이 필요합니다.");
+    error.code = "auth/sign-in-required";
+    throw error;
   }
 
   requirePresident() {

@@ -8,9 +8,9 @@
   <title>PinCon · 수행평가</title>
   <link rel="icon" href="../next/assets/pincon-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="../next/assessments/coverflow.css?v=20261010-intro1">
-  <link rel="stylesheet" href="./app.css?v=20261013-switch1">
-  <link rel="stylesheet" href="./notice-image.css?v=20261013-notice2">
-  <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261009-paper1">
+  <link rel="stylesheet" href="./app.css?v=20261114-school-life">
+  <link rel="stylesheet" href="./notice-image.css?v=20261114-school-life">
+  <link rel="stylesheet" href="../next/assessments/paper-reader.css?v=20261114-school-life">
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
   <script src="../registerSW.js?v=20261013-notice2" defer></script>
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2" />
@@ -30,7 +30,8 @@
     @media(prefers-reduced-motion:reduce){.pc-startup{display:none!important}html[data-startup="full"] .tools,html[data-startup="full"] .connection,html[data-startup="full"] .pc-caption{opacity:1;animation:none}}
   </style>
 </head>
-<body>
+<body data-assessment-view="covers">
+  <header class="assessment-topbar"><a class="assessment-home" href="../">‹ PinCon 홈</a><button type="button" id="notice-open" class="notice-launch" aria-label="수행 공지 이미지 만들기" title="수행 공지 이미지 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><span>공지 이미지</span></button></header>
   <main id="covers" aria-label="수행평가 커버플로우"><p class="empty">수행평가</p></main>
   <div class="pc-startup" aria-hidden="true" hidden>
     <svg class="pc-startup-mark" viewBox="0 0 3310 800" fill="none" aria-hidden="true" style="--pc-startup-sweep:5296.0px" xmlns="http://www.w3.org/2000/svg">
@@ -84,10 +85,12 @@
       window.addEventListener("pagehide", finish, { once: true, signal: listeners.signal });
     })();
   </script>
-  <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="view-toggle" aria-label="달력 보기" title="달력 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg></button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
-  <button type="button" id="notice-open" class="notice-launch" aria-label="수행 공지 이미지 만들기" title="수행 공지 이미지 만들기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><span>공지 이미지</span></button>
+  <footer class="assessment-footer">
+    <p id="connection" class="connection" role="status" hidden></p>
+    <div class="tools"><button type="button" id="add" aria-label="수행평가 추가" hidden>＋</button><button type="button" id="view-toggle" aria-label="달력 보기" title="달력 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg></button><button type="button" id="settings" aria-label="화면과 계정 설정">⚙</button></div>
+  </footer>
   <p id="view-status" class="sr-only" role="status" aria-live="polite"></p>
-  <p id="connection" class="connection" role="status" hidden></p>
+  <p id="assessment-link-status" class="assessment-link-status" role="status" hidden></p>
   <dialog id="details" aria-labelledby="detail-title"></dialog>
   <dialog id="notice-image" aria-labelledby="notice-title">
     <header><div><h1 id="notice-title">오늘 밤, 수행 공지</h1><p class="notice-intro">PinCon의 수행 목록을 카톡에 올릴 이미지로 만들어요.</p></div><button type="button" id="notice-close" aria-label="공지 이미지 닫기">×</button></header>
@@ -127,10 +130,10 @@
       <p class="muted"><a href="../research/">알림 연구 · 기기별 테스트</a></p>
       <p class="muted">계정 활성화와 첫 PIN 설정은 <a href="../next/">PinCon 로그인 화면</a>에서 진행해 주세요.</p>
       <button type="button" id="retry">자료 다시 연결</button>
-      <p id="preferences-status" role="status"></p>
+      <p id="preferences-status" role="status" tabindex="-1"></p>
     </div>
   </dialog>
   <noscript>PinCon을 사용하려면 JavaScript를 켜 주세요.</noscript>
-  <script type="module" src="./app.js?v=20261013-notice2"></script>
+  <script type="module" src="./app.js?v=20261114-school-life"></script>
 </body>
 </html>

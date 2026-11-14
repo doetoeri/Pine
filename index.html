@@ -1,30 +1,55 @@
 <!doctype html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f7f9f1" />
-    <meta name="description" content="PinCon 학급 허브" />
-    <meta name="robots" content="noindex" />
-    <title>PinCon</title>
-    <link rel="icon" href="./next/assets/pincon-icon.svg" type="image/svg+xml" />
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <style>
-      html, body { margin: 0; min-height: 100%; background: #f7f9f1; color: #191d16; font-family: system-ui, sans-serif; }
-      body { display: grid; min-height: 100vh; place-items: center; }
-      p { margin: 0; font-size: 14px; }
-    </style>
-    <script>
-      (() => {
-        // Temporary landing page: leave /next/ accessible, but make /new/ the default.
-        const target = new URL("./new/", location.href);
-        target.search = location.search;
-        location.replace(target.href);
-      })();
-    </script>
-  </head>
-  <body>
-    <p>PinCon을 여는 중…</p>
-    <noscript><a href="./new/">PinCon 열기</a></noscript>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f7fa">
+  <meta name="description" content="고촌고등학교의 급식, 시간표, 수행평가와 학급 일정을 한곳에서 확인하세요.">
+  <meta name="robots" content="noindex">
+  <title>PinCon · 학교생활</title>
+  <link rel="icon" href="./next/assets/pincon-icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./school-life/app.css?v=20261114-school-life">
+  <link rel="stylesheet" href="./pincon-fonts.css?v=20261010-openai-tablet2">
+  <script src="./firebase-config.js?v=20260903-account-fallback1"></script>
+  <script src="./registerSW.js?v=20261013-notice2" defer></script>
+</head>
+<body>
+  <a id="skip-content" class="skip-link" href="#main">본문으로 건너뛰기</a>
+  <header class="site-header">
+    <div class="site-bar">
+      <a class="brand" href="./" aria-label="PinCon 홈"><img src="./next/assets/pincon-icon.svg" alt="" width="32" height="32">PinCon</a>
+      <div class="site-actions">
+        <button id="class-select" class="chip" type="button">학급 선택</button>
+        <a class="account-link" href="./new/?settings=account">계정 설정</a>
+      </div>
+    </div>
+    <nav class="site-nav" aria-label="학교생활">
+      <a href="./" data-page="home" aria-current="page">홈</a>
+      <a href="./new/">수행평가</a>
+      <a href="#meals" data-page="meals">급식</a>
+      <a href="#timetable" data-page="timetable">시간표</a>
+      <a href="#schedule" data-page="schedule">학급 일정</a>
+    </nav>
+  </header>
+  <main id="main" tabindex="-1" class="site-main">
+    <h1>학교생활</h1>
+    <p role="status">오늘의 정보를 불러오는 중…</p>
+  </main>
+  <dialog id="class-dialog" aria-labelledby="class-dialog-title">
+    <form id="class-form" method="dialog">
+      <div class="dialog-heading">
+        <h2 id="class-dialog-title">학급 선택</h2>
+        <button class="chip" type="submit" value="cancel" formnovalidate>닫기</button>
+      </div>
+      <div class="class-fields">
+        <label>학년<select name="grade" autofocus><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></label>
+        <label>반<select name="classNumber"></select></label>
+      </div>
+      <button class="chip primary" type="submit" value="apply">선택하기</button>
+    </form>
+  </dialog>
+  <noscript><p class="site-main">학교생활 요약에는 JavaScript가 필요합니다. <a href="./new/">수행평가 화면</a></p></noscript>
+  <script type="module" src="./school-life/app.js?v=20261114-school-life"></script>
+</body>
 </html>

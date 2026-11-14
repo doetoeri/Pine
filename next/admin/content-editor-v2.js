@@ -1,23 +1,25 @@
 import { ATTACHMENT_ACCEPT } from "../assessments/attachments.js?v=20261009-upload2";
 import { NextDataGateway } from "../core/data-gateway.js";
-import { ContentServiceV2 } from "./content-service-v2.js?v=20261009-upload2";
+import { ContentServiceV2 } from "./content-service-v2.js?v=20261114-school-life";
 
 const root = document.querySelector("#adminApp");
 const gateway = new NextDataGateway();
 const service = new ContentServiceV2(gateway);
 let snapshot = gateway.snapshot();
 let query = "";
-let activeType = "all";
+const entry = new URLSearchParams(location.search);
+let activeType = entry.get("content") === "events" ? "events" : "all";
 let showArchive = false;
 let renderQueued = false;
 let saving = false;
-let pendingAssignment = new URLSearchParams(location.search).get("assignment") || "";
+let pendingAssignment = entry.get("assignment") || "";
+let scrollToEvents = activeType === "events" && location.hash === "#content-center";
 
 const TYPES = Object.freeze({
   announcements: { label: "공지", icon: "campaign", noun: "공지" },
   classAssignments: { label: "수행·숙제", icon: "assignment", noun: "수행·숙제" },
   evaluationPlans: { label: "평가계획서", icon: "picture_as_pdf", noun: "평가계획서" },
-  events: { label: "학급 행사", icon: "celebration", noun: "행사" },
+  events: { label: "학급 일정·행사", icon: "celebration", noun: "일정·행사" },
 });
 
 function escapeHtml(value) {
@@ -161,7 +163,8 @@ function formFields(collection, item = {}) {
 
   return `${field("행사 제목", "title", item.title, { required: true, max: 120 })}
     ${textarea("질문 또는 설명", "question", item.question, 500)}
-    <div class="ops-v2-form-grid">${field("행사 날짜", "date", dateValue(item.date), { type: "date", max: 0 })}${selectField("상태", "status", [["draft","초안"],["open","진행 중"],["closed","종료"]], item.status || "draft")}</div>
+    ${checkField("중요 일정으로 게시하기 (응답 접수 없음)", "scheduleOnly", item.scheduleOnly === true)}
+    <div class="ops-v2-form-grid">${field("날짜", "date", dateValue(item.date), { type: "date", max: 0 })}${selectField("상태", "status", [["draft","초안"],["open","진행 중 / 일정 공개"],["closed","종료 / 일정 공개"]], item.status || (item.scheduleOnly ? "closed" : "draft"))}</div>
     ${selectField("행사 형식", "kind", [["survey34","우리 반 34명에게 물었습니다"],["family-arcade","가족오락관"],["quiz","퀴즈"],["balance","밸런스 게임"],["class-vote","학급 투표"],["survey","설문"],["mini-game","미니게임"]], item.kind || "survey34")}`;
 }
 
@@ -194,7 +197,7 @@ function mainMarkup() {
   const total = counts();
   const rows = visibleRows();
   const connection = snapshot.ready && snapshot.online && !snapshot.error;
-  return `<section class="admin-card admin-card--wide ops-v2" data-managed-editor aria-labelledby="ops-v2-title">
+  return `<section id="content-center" class="admin-card admin-card--wide ops-v2" data-managed-editor aria-labelledby="ops-v2-title">
     <div class="ops-v2-hero">
       <div><span class="ops-v2-eyebrow">OPERATIONS CENTER 2.0</span><h2 id="ops-v2-title">콘텐츠 센터</h2><p>생성부터 서버 저장 확인, 수정, 복사, 보관, 복원까지 하나의 흐름으로 처리합니다.</p></div>
       <button type="button" class="ops-v2-primary" data-v2-create="announcements"><md-icon>add</md-icon><span>새 콘텐츠</span></button>
@@ -268,6 +271,7 @@ function valuesFromForm(collection, form) {
   const current = service.find(collection, form.closest("dialog")?.dataset.recordId || "");
   return {
     title: value("title"), question: value("question"), date: value("date"), status: value("status"), kind: value("kind"),
+    scheduleOnly: checked("scheduleOnly"),
     startsAtMs: Number(current?.startsAtMs || 0), resultsVisible: current?.resultsVisible === true,
     publishedResults: Array.isArray(current?.publishedResults) ? current.publishedResults : [],
   };
@@ -387,6 +391,12 @@ function render() {
   grid.insertAdjacentHTML("afterbegin", mainMarkup());
   bindCard();
   patchQuickActions();
+  if (scrollToEvents) {
+    scrollToEvents = false;
+    const heading = root.querySelector("#ops-v2-title");
+    heading.tabIndex = -1;
+    heading.focus();
+  }
   if (pendingAssignment && service.find("classAssignments", pendingAssignment)) {
     const id = pendingAssignment; pendingAssignment = "";
     openEditor("classAssignments", id);

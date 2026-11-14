@@ -118,16 +118,21 @@ function normalize(collection, values = {}) {
   if (collection === "events") {
     const title = clean(values.title, 120);
     const question = clean(values.question, 500);
+    const date = validDate(values.date);
+    const scheduleOnly = values.scheduleOnly === true;
     if (!title) throw new Error("행사 제목을 입력해 주세요.");
     if (!question) throw new Error("행사 질문 또는 설명을 입력해 주세요.");
-    const status = ["draft", "open", "closed"].includes(values.status) ? values.status : "draft";
+    if (scheduleOnly && !date) throw new Error("학급 일정의 날짜를 선택해 주세요.");
+    const status = scheduleOnly ? (values.status === "draft" ? "draft" : "closed")
+      : (["draft", "open", "closed"].includes(values.status) ? values.status : "draft");
     return {
       title,
       question,
       kind: ["survey34", "family-arcade", "quiz", "balance", "class-vote", "survey", "mini-game"].includes(values.kind)
         ? values.kind
         : "survey34",
-      date: validDate(values.date),
+      date,
+      scheduleOnly,
       status,
       acceptingResponses: status === "open",
       startsAtMs: status === "open" ? Number(values.startsAtMs || Date.now()) : Number(values.startsAtMs || 0),
