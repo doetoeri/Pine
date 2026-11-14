@@ -109,6 +109,7 @@ test("assessment calendar avoids fixed overlays and the notice editor follows vi
   await start(page);
   await page.getByRole("navigation", { name: "학교생활" }).getByRole("link", { name: "수행평가" }).click();
   await page.getByRole("button", { name: "달력 보기" }).click();
+  await expect(page.locator("#calendar-month-title")).toBeVisible();
   const layout = await page.evaluate(() => {
     const rect = selector => document.querySelector(selector).getBoundingClientRect();
     const calendar = rect(".pc-calendar"), buttons = rect(".assessment-footer");

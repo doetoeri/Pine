@@ -272,7 +272,16 @@ function render() {
     else link.removeAttribute("aria-current");
   }
   document.title = `PinCon · ${pages[page]}`;
+  const focus = main.contains(document.activeElement) ? document.activeElement : null;
+  const panelTitle = focus?.closest("section")?.querySelector(".panel-heading h2");
   patchPage(main, `<div class="view-enter">${markup}</div>`, paintedPage === page);
+  if (paintedPage === page && focus && !focus.isConnected && panelTitle?.id) {
+    const replacement = document.getElementById(panelTitle.id);
+    if (replacement) {
+      replacement.tabIndex = -1;
+      replacement.focus({ preventScroll: true });
+    }
+  }
   paintedPage = page;
 }
 
@@ -305,9 +314,6 @@ main.addEventListener("click", async event => {
   const { page, date } = pageFromUrl();
   const query = weekQuery(gateway.snapshot(), page, date, kstDate());
   for (const name of query?.names || []) weekReads.delete(`${query.id}/${name}`);
-  const target = event.target.closest("section")?.querySelector("h2")?.id;
-  document.getElementById(target || "")?.setAttribute("tabindex", "-1");
-  document.getElementById(target || "")?.focus({ preventScroll: true });
   try { await gateway.retry(); }
   finally { pendingRetry = false; render(); }
 });

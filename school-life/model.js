@@ -49,7 +49,7 @@ export function classEvents(rows, classKey) {
     .filter(row => isVisible(row, classKey) && row.status !== "draft")
     .map(row => ({
       ...row,
-      date: calendarDate(row.date),
+      date: calendarDate(row.date) || (Number.isFinite(row.startsAtMs) && row.startsAtMs > 0 ? kstDate(row.startsAtMs) : ""),
       category: row.scheduleOnly || row.important ? "중요 일정" : "학급 행사",
       body: row.description || row.question || row.body,
     }));
