@@ -1,4 +1,5 @@
 import { closeDialog, openDialog, prepareDialog } from "../next/assessments/dialog-motion.js?v=20261115-accessibility";
+import { readVisionLab } from "./vision-lab-access.js";
 
 export function mountAccessibilitySettings() {
   const triggers = document.querySelectorAll("[data-accessibility-settings]");
@@ -15,7 +16,7 @@ export function mountAccessibilitySettings() {
     <div class="pc-accessibility-option">
       <label for="pc-contrast">화면 대비</label>
       <select id="pc-contrast" name="contrast" autofocus>
-        <option value="system">기기 설정 따르기</option>
+        <option value="system">기기 설정</option>
         <option value="normal">기본</option>
         <option value="high">고대비</option>
       </select>
@@ -36,13 +37,16 @@ export function mountAccessibilitySettings() {
       <small id="pc-list-note">커버를 넘기는 대신 세로로 읽고 바로 열 수 있어요.</small>
     </div>
     <button type="button" data-reset>기본 설정으로 되돌리기</button>
+    <a class="pc-lab-link" data-vision-lab href="${new URL("../vision-lab/", import.meta.url).href}" hidden>Vision Lab · 시각 접근성 체험실</a>
     <p class="sr-only" role="status"></p>
   </div>`;
   document.body.append(dialog);
   prepareDialog(dialog);
   const contrast = dialog.querySelector("select");
   const status = dialog.querySelector('[role="status"]');
+  const lab = dialog.querySelector("[data-vision-lab]");
   let trigger;
+  let accessCheck;
 
   function sync() {
     const choices = settings.get();
@@ -59,7 +63,10 @@ export function mountAccessibilitySettings() {
   });
   dialog.querySelector("[data-close]").addEventListener("click", () => closeDialog(dialog));
   dialog.addEventListener("close", () => {
-    if (!dialog.open) trigger?.focus({ preventScroll: true });
+    if (dialog.open) return;
+    accessCheck?.abort();
+    lab.hidden = true;
+    trigger?.focus({ preventScroll: true });
   });
   document.addEventListener("pincon-accessibility-change", sync);
   for (const button of triggers) {
@@ -70,6 +77,12 @@ export function mountAccessibilitySettings() {
       status.textContent = "";
       openDialog(dialog);
       contrast.focus({ preventScroll: true });
+      accessCheck?.abort();
+      const check = new AbortController();
+      accessCheck = check;
+      readVisionLab("status", { signal: check.signal }).then(({ available }) => {
+        if (!check.signal.aborted) lab.hidden = available !== true;
+      }).catch(() => {});
     });
   }
 }

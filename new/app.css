@@ -73,3 +73,7 @@ body[data-assessment-view="calendar"] .assessment-footer .connection{position:st
 body[data-assessment-view="calendar"] .tools{position:static;flex-shrink:0}
 .assessment-link-status{position:fixed;z-index:2;bottom:80px;left:16px;right:16px;width:fit-content;max-width:calc(100% - 32px);margin:0 auto;padding:8px 13px;border-radius:8px;background:#edf1f7;color:#344963;font-size:13px}
 @media(max-width:460px){.pc-calendar-day{padding-inline:1px}.pc-calendar-number:focus-visible{outline-offset:-2px}}
+.pc-calendar-tile .pc-calendar-subject { color: #39485c; }
+.is-selected .pc-calendar-number span, .is-anchor .pc-calendar-number span { outline-color: #5c7190; }
+#login-form small { display: block; margin: 3px 0 6px; color: var(--pc-secondary, #536174); }
+#login-form input[aria-invalid="true"] { outline: 2px solid var(--pc-error, #9c2438); outline-offset: 1px; }

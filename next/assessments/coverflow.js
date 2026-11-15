@@ -52,9 +52,10 @@ export const coverListEnabled = () => globalThis.document?.documentElement.datas
 
 function flowMarkup(rows, { label, key, renderKey, layout = "", face, theme, name, action = "상세 내용을 엽니다.", attributes = () => "", currentId }) {
   if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="${escape(renderKey)}"><p>등록된 항목이 없습니다.</p></section>`;
+  const instructionsId = `pc-instructions-${encodeURIComponent(renderKey)}`;
   function cover(row, index, list) {
     const front = face(row);
-    const state = list ? (row.id === currentId ? 'aria-current="date"' : "") : 'aria-pressed="false" tabindex="-1"';
+    const state = list ? (row.id === currentId ? 'aria-current="date"' : "") : 'aria-hidden="true" tabindex="-1"';
     const reflection = list ? "" : `<span class="pc-reflection" aria-hidden="true">${front}</span>`;
     return `<button type="button" class="pc-cover pc-theme-${theme(row)}" data-index="${index}" data-cover-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey ?? row.id)}" ${attributes(row)} ${state} aria-label="${escape(name(row))}">${front}${reflection}</button>`;
   }
@@ -64,8 +65,9 @@ function flowMarkup(rows, { label, key, renderKey, layout = "", face, theme, nam
       <ul role="list" aria-label="${escape(label)} 목록">${items.map((row, index) => `<li>${cover(row, index, true)}</li>`).join("")}</ul>
     </section>`;
   }
-  return `<section class="pc-flow${layout}" data-render-key="${escape(renderKey)}" data-class-key="${escape(key)}" aria-label="${escape(label)}">
-    <div class="pc-flow-viewport"><div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="${escape(label)} 커버플로우. 좌우 방향키 또는 이전·다음 버튼으로 이동합니다. 가운데 커버를 누르면 ${escape(action)}">
+  return `<section class="pc-flow${layout}" data-render-key="${escape(renderKey)}" data-class-key="${escape(key)}" aria-label="${escape(label)}" aria-roledescription="캐러셀" aria-describedby="${instructionsId}">
+    <p class="sr-only" id="${instructionsId}">좌우 방향키 또는 이전·다음 커버 버튼으로 이동합니다. 가운데 커버를 누르면 ${escape(action)}</p>
+    <div class="pc-flow-viewport"><div class="pc-scene" tabindex="-1" role="group" aria-roledescription="슬라이드">
       ${rows.map((row, index) => cover(row, index, false)).join("")}
     </div></div>
     <div class="pc-caption">
@@ -73,7 +75,7 @@ function flowMarkup(rows, { label, key, renderKey, layout = "", face, theme, nam
       <div class="pc-caption-text" aria-hidden="true"><p class="pc-caption-title"></p><p class="pc-caption-subject"></p></div>
       <button class="pc-step" type="button" data-flow-step="1" aria-label="다음 커버"><span aria-hidden="true"></span></button>
     </div>
-    <p class="sr-only pc-announcement" aria-live="polite" aria-atomic="true"></p>
+    <p class="sr-only pc-announcement" role="status" aria-atomic="true"></p>
   </section>`;
 }
 
@@ -126,12 +128,15 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
   const cards = [...scene.querySelectorAll(".pc-cover")], reduced = motionPreference();
   if (!cards.length) return;
   const steps = [...host.querySelectorAll("[data-flow-step]")];
+  const captionTitle = host.querySelector(".pc-caption-title");
+  const captionSubject = host.querySelector(".pc-caption-subject");
+  const announcement = host.querySelector(".pc-announcement");
   const paperCovers = host.classList.contains("pc-paper-flow");
   const selectionKey = host.dataset.classKey;
   const indexOf = id => cards.findIndex(card => card.dataset.coverId === id);
   const lights = cards.map(card => ({ nodes: [...card.querySelectorAll(".pc-surface-light")], pose: "", opacity: "", hint: "" }));
   const visibility = [], hints = [], depths = [];
-  let selected = -1, width = 340, sceneWidth = 0, frame = 0, last = 0, drag = null, wheelTimer = 0;
+  let selected = -1, announced = -1, width = 340, sceneWidth = 0, frame = 0, last = 0, drag = null, wheelTimer = 0;
   const saved = indexOf(initialId ?? selections.get(selectionKey));
   let position = saved >= 0 ? saved : Math.max(0, indexOf(defaultId));
   const now = performance.now();
@@ -185,12 +190,12 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
       const facing = clamp(Math.cos(yaw - viewYaw), 0, 1);
       const shift = clamp(-mismatch * 1.5, -1.4, 1.4) * width;
       const stretch = .85 + (1 - facing) * .5;
+      pose = `translate3d(${shift.toFixed(2)}px,0,0) rotate(-18deg) scaleX(${stretch.toFixed(3)})`;
       // The rotated softbox must also intersect the cover's local clip.
       const lightHalf = width * (.33 * stretch * .9511 + .75 * .3091);
       if (Math.abs(shift) < width / 2 + lightHalf) {
         const fresnel = .04 + .96 * Math.pow(1 - facing, 5);
         const specular = Math.exp(-Math.pow(mismatch / .44, 2));
-        pose = `translate3d(${shift.toFixed(2)}px,0,0) rotate(-18deg) scaleX(${stretch.toFixed(3)})`;
         opacity = (.1 + specular * .4 + fresnel * .2).toFixed(3);
       }
     }
@@ -250,19 +255,34 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
       paintLight(i, radians, renderX, renderZ, true);
     }
     if (index !== selected) {
-      selected = index;
-      const id = cards[index].dataset.coverId;
-      selections.set(selectionKey, id);
-      cards.forEach((card, i) => { card.tabIndex = i === index ? 0 : -1; card.setAttribute("aria-pressed", String(i === index)); });
-      host.querySelector(".pc-caption-title").textContent = cards[index].querySelector(".pc-title").textContent;
+      const previous = cards[selected], card = cards[index];
       const count = `${index + 1} / ${cards.length}`;
-      const subject = cards[index].querySelector(".pc-head span").textContent;
-      host.querySelector(".pc-caption-subject").textContent = `${subject} · ${count}`;
-      host.querySelector(".pc-announcement").textContent = `${cards[index].getAttribute("aria-label")} · ${count}`;
+      const id = card.dataset.coverId;
+      scene.setAttribute("aria-label", `${cards.length}장 중 ${index + 1}번째`);
+      card.removeAttribute("aria-hidden");
+      card.setAttribute("aria-current", "true");
+      card.dataset.current = "true";
+      card.tabIndex = 0;
+      if (previous === document.activeElement) card.focus({ preventScroll: true });
+      if (previous) {
+        previous.removeAttribute("aria-current");
+        previous.removeAttribute("data-current");
+        previous.tabIndex = -1;
+        previous.setAttribute("aria-hidden", "true");
+      } else announced = index;
+      selected = index;
+      selections.set(selectionKey, id);
+      captionTitle.textContent = card.querySelector(".pc-title").textContent;
+      captionSubject.textContent = `${card.querySelector(".pc-head span").textContent} · ${count}`;
       for (const step of steps) step.setAttribute("aria-disabled", String(Number(step.dataset.flowStep) < 0 ? index === 0 : index === cards.length - 1));
       onSelect?.(id);
     }
     scene.dataset.motion = entering ? "entering" : last ? "animating" : drag ? "dragging" : "resting";
+    if (scene.dataset.motion === "resting" && announced !== index) {
+      announced = index;
+      announcement.textContent = cards[index] === document.activeElement ? ""
+        : `${captionTitle.textContent} · ${scene.getAttribute("aria-label")}`;
+    }
   }
   function animate() { if (!frame && !document.hidden) frame = requestAnimationFrame(tick); }
   function tick(now) {
@@ -299,7 +319,11 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
     entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1);
     if (reduced.matches) {
       position = target; velocity = 0; last = 0; paint();
-    } else animate();
+    } else if (!document.hidden) {
+      // Pointer input can finish before WebKit runs the first animation frame.
+      scene.dataset.motion = "animating";
+      animate();
+    }
   }
   function select(id) {
     const index = indexOf(id);
@@ -330,6 +354,9 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
   }, options);
   scene.addEventListener("pointerdown", event => {
     if (event.button !== 0 || event.isPrimary === false) return;
+    // A neighboring cover is a pointer shortcut. The current card and step
+    // buttons remain the keyboard and assistive-technology entry points.
+    event.preventDefault();
     tilt?.pause();
     entering = false; cancelAnimationFrame(frame); frame = 0; velocity = 0; clearTimeout(wheelTimer); target = position;
     drag = { id: event.pointerId, x: event.clientX, y: event.clientY, position, moved: false, samples: [{ time: performance.now(), position }], index: event.target.closest(".pc-cover")?.dataset.index };
@@ -352,20 +379,29 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
     if (scene.hasPointerCapture(event.pointerId)) scene.releasePointerCapture(event.pointerId);
     ignoreClick = performance.now() + 400;
     if (old.moved && !cancelled) { const a = old.samples[0], b = old.samples.at(-1); velocity = b.time - a.time >= 8 && performance.now() - b.time < 100 ? clamp((b.position - a.position) * 1000 / (b.time - a.time), -12, 12) : 0; go(position + velocity * .2); }
-    else if (!cancelled && old.index !== undefined) activate(Number(old.index));
+    else if (!cancelled && old.index !== undefined && Math.hypot(event.clientX - old.x, event.clientY - old.y) < 8
+      && document.elementFromPoint(event.clientX, event.clientY)?.closest(".pc-cover") === cards[Number(old.index)]) {
+      const index = Number(old.index);
+      if (index === selected) cards[index].focus({ preventScroll: true });
+      activate(index);
+    }
     else go(position);
   }
   for (const name of ["pointerup", "pointercancel", "lostpointercapture"]) scene.addEventListener(name, event => endDrag(event, name !== "pointerup"), options);
   scene.addEventListener("keydown", event => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const delta = { ArrowLeft: -1, ArrowRight: 1, PageUp: -4, PageDown: 4 }[event.key];
-    const opening = event.key === "Enter" || event.key === " ";
+    const opening = event.target === scene && (event.key === "Enter" || event.key === " ");
     if (delta || ["Home", "End"].includes(event.key) || opening) tilt?.pause();
-    if (delta) { event.preventDefault(); go(target + delta); scene.focus({ preventScroll: true }); }
-    else if (event.key === "Home" || event.key === "End") { event.preventDefault(); go(event.key === "Home" ? 0 : cards.length - 1); scene.focus({ preventScroll: true }); }
-    else if (opening) {
+    if (delta || event.key === "Home" || event.key === "End") {
       event.preventDefault();
-      if (!event.repeat) openSelected(event.target === scene ? Math.round(target) : Number(event.target.closest(".pc-cover").dataset.index));
+      const index = delta ? clamp(Math.round(target + delta), 0, cards.length - 1) : event.key === "Home" ? 0 : cards.length - 1;
+      // Settle before moving focus, so the focused button is already front-facing.
+      select(cards[index].dataset.coverId);
+      cards[index].focus({ preventScroll: true });
+    } else if (opening) {
+      event.preventDefault();
+      if (!event.repeat) openSelected(Math.round(target));
     }
   }, options);
   scene.addEventListener("wheel", event => {

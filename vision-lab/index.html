@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#f6f7fa">
+  <title>Vision Lab · PinCon</title>
+  <link rel="icon" href="../next/assets/pincon-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2">
+  <link rel="stylesheet" href="../school-life/app.css?v=20261115-adaptive-flow">
+  <link rel="stylesheet" href="../accessibility/accessibility.css?v=20261115-adaptive-flow">
+  <link rel="stylesheet" href="./lab.css">
+  <script src="../accessibility/preferences.js?v=20261115-adaptive-flow"></script>
+  <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
+  <script type="module" src="./lab.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#lab-main">본문으로 건너뛰기</a>
+  <header class="site-header">
+    <a class="brand" href="../"><img src="../next/assets/pincon-icon.svg" alt="" width="27" height="27">PinCon <span class="sr-only">홈</span></a>
+  </header>
+  <main id="lab-main" class="vision-lab" tabindex="-1">
+    <h1>Vision Lab</h1>
+    <p id="lab-status" role="status">열람 가능 여부를 확인하는 중…</p>
+    <button class="chip" id="lab-retry" type="button" hidden>다시 시도</button>
+    <section id="lab-content" hidden aria-label="시각 접근성 비교">
+      <p>같은 383 CSS px 화면에 같은 예시 내용을 담았어요. 이 체험은 화면의 색과 선명도를 바꾸어 비교하며, 장애 당사자의 시각 경험은 개인마다 달라요.</p>
+      <div class="lab-controls">
+        <label for="lab-simulation">시각 시뮬레이션</label>
+        <select id="lab-simulation">
+          <option value="normal">일반 시각</option>
+          <option value="protan">적색 계열 · 프로탄</option>
+          <option value="deutan">녹색 계열 · 듀탄</option>
+          <option value="tritan">청색 계열 · 트라이탄</option>
+          <option value="monochrome">전색맹 참고 · 명도만 보기</option>
+          <option value="blur">저시력 참고 · 흐림</option>
+          <option value="contrast">저시력 참고 · 대비 저하</option>
+        </select>
+        <button class="chip" id="lab-clear" type="button">일반 시각으로 돌아가기</button>
+        <label class="lab-contrast"><input id="lab-after-contrast" type="checkbox">개선 화면의 고대비 켜기</label>
+      </div>
+      <div class="lab-pair" data-simulation="normal">
+        <figure>
+          <figcaption><h2>개선 전</h2></figcaption>
+          <img id="lab-before" width="383" height="790" alt="개선 전 PinCon 홈. 오늘 한눈에 보기 카드와 양옆 커버가 보입니다.">
+        </figure>
+        <figure>
+          <figcaption><h2>개선 후</h2></figcaption>
+          <img id="lab-after" width="383" height="790" alt="개선 후 PinCon 홈. 같은 카드에 키보드 초점 테두리가 보입니다.">
+        </figure>
+      </div>
+      <details>
+        <summary>시뮬레이션 모델과 한계</summary>
+        <p>적색·녹색·청색 계열은 Machado, Oliveira, Fernandes(2009)의 선형 sRGB 행렬에서 가장 강한 단계(1.0)를 사용해요. 개인별 색각 이상 정도의 차이는 따로 재현하지 않아요.</p>
+        <p>전색맹 참고는 휘도 기반 회색조예요. 흐림과 대비 저하는 화면 읽기 어려움을 비교하기 위한 예시 효과예요. 시야나 눈부심을 재현하거나 의학적 판단을 하는 기능과는 범위가 달라요.</p>
+        <p><a href="https://doi.org/10.1109/TVCG.2009.113">색각 시뮬레이션 연구 원문</a></p>
+      </details>
+    </section>
+    <noscript><p>체험실의 열람 확인에는 JavaScript가 필요해요.</p></noscript>
+  </main>
+  <svg class="lab-filters" aria-hidden="true" width="0" height="0" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="lab-protan" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/>
+      </filter>
+      <filter id="lab-deutan" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/>
+      </filter>
+      <filter id="lab-tritan" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0"/>
+      </filter>
+      <filter id="lab-monochrome" color-interpolation-filters="linearRGB">
+        <feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0.2126 0.7152 0.0722 0 0  0 0 0 1 0"/>
+      </filter>
+    </defs>
+  </svg>
+</body>
+</html>

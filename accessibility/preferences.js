@@ -27,12 +27,14 @@
     };
     const highContrast = forcedColors.matches || choices.contrast === "high"
       || choices.contrast === "system" && contrastMedia.matches;
-    const nextList = choices.list || choices.largeText;
+    root.dataset.pcText = choices.largeText ? "large" : "normal";
+    const textNeedsReflow = parseFloat(getComputedStyle(root).fontSize) >= 24;
+    const nextList = choices.list || choices.largeText || textNeedsReflow;
     const layoutChanged = nextList !== readingList;
     readingList = nextList;
     root.dataset.pcContrast = highContrast ? "high" : "normal";
-    root.dataset.pcText = choices.largeText ? "large" : "normal";
     root.dataset.pcLayout = readingList ? "list" : "covers";
+    root.toggleAttribute("data-pc-text-reflow", textNeedsReflow);
     if (theme) theme.content = highContrast ? "#090e17" : themeColor;
     const nextMotion = choices.reduceMotion || motionMedia.matches;
     if (nextMotion !== reduced) {
@@ -51,6 +53,14 @@
   }
 
   apply(read());
+  if (typeof ResizeObserver === "function") document.addEventListener("DOMContentLoaded", () => {
+    const probe = document.createElement("span");
+    probe.className = "pc-text-scale-probe";
+    probe.setAttribute("aria-hidden", "true");
+    document.body.append(probe);
+    const observer = new ResizeObserver(() => apply(choices));
+    observer.observe(probe);
+  }, { once: true });
   for (const setting of [motionMedia, contrastMedia, forcedColors]) {
     const refresh = () => apply(choices);
     if (setting.addEventListener) setting.addEventListener("change", refresh);

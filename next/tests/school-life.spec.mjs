@@ -54,7 +54,7 @@ async function start(page, rows = data) {
 test.use({ reducedMotion: "reduce", serviceWorkers: "block" });
 
 function selected(page) {
-  return page.locator(".pc-cover[aria-pressed=true]");
+  return page.locator(".pc-cover[data-current=true]");
 }
 
 const nav = page => page.getByRole("navigation", { name: "학교생활", exact: true });

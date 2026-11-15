@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
+  "functions": {
+    "api/class-ops-router.mjs": { "includeFiles": "handlers/class-ops/_vision-lab/*.webp" }
+  },
   "rewrites": [
     { "source": "/.well-known/oauth-protected-resource", "destination": "/api/oauth-router?route=protected-resource" },
     { "source": "/.well-known/oauth-authorization-server", "destination": "/api/oauth-router?route=authorization-server" },
@@ -8,6 +11,8 @@
     { "source": "/oauth/authorize/complete", "destination": "/api/oauth-router?route=authorize-complete" },
     { "source": "/oauth/token", "destination": "/api/oauth-router?route=token" },
     { "source": "/oauth/register", "destination": "/api/oauth-router?route=register" },
+    { "source": "/api/v1/today", "destination": "/api/v1/agenda?agendaView=today" },
+    { "source": "/api/v1/upcoming", "destination": "/api/v1/agenda?agendaView=upcoming" },
     { "source": "/api/accounts/session", "destination": "/api/class-ops-router?route=account-session" },
     { "source": "/api/accounts/create", "destination": "/api/class-ops-router?route=account-create" },
     { "source": "/api/accounts/claim", "destination": "/api/class-ops-router?route=account-claim" },
@@ -24,6 +29,7 @@
     { "source": "/api/class-ops/settings", "destination": "/api/class-ops-router?route=settings" },
     { "source": "/api/class-ops/classroom-layout", "destination": "/api/class-ops-router?route=classroom-layout" },
     { "source": "/api/class-ops/assessment-layout", "destination": "/api/class-ops-router?route=assessment-layout" },
-    { "source": "/api/class-ops/admin-overview", "destination": "/api/class-ops-router?route=admin-overview" }
+    { "source": "/api/class-ops/admin-overview", "destination": "/api/class-ops-router?route=admin-overview" },
+    { "source": "/api/class-ops/vision-lab", "destination": "/api/class-ops-router?route=vision-lab" }
   ]
 }

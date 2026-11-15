@@ -56,7 +56,7 @@ async function enable(page) {
   await sensor(page);
   await expect(page.locator("#tilt-status")).toHaveText(/처음 자세로 돌리면 멈춰요/);
 }
-const selected = page => page.locator('.pc-cover[aria-pressed="true"]');
+const selected = page => page.locator('.pc-cover[data-current="true"]');
 const index = page => selected(page).evaluate(node => Number(node.dataset.index));
 async function idleMutations(page) {
   return page.evaluate(async () => {
