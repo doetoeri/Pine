@@ -16,7 +16,7 @@ export function mountAccessibilitySettings() {
     <div class="pc-accessibility-option">
       <label for="pc-contrast">화면 대비</label>
       <select id="pc-contrast" name="contrast" autofocus>
-        <option value="system">기기 설정 따르기</option>
+        <option value="system">기기 설정</option>
         <option value="normal">기본</option>
         <option value="high">고대비</option>
       </select>
