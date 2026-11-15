@@ -11,6 +11,8 @@
     { "source": "/oauth/authorize/complete", "destination": "/api/oauth-router?route=authorize-complete" },
     { "source": "/oauth/token", "destination": "/api/oauth-router?route=token" },
     { "source": "/oauth/register", "destination": "/api/oauth-router?route=register" },
+    { "source": "/api/v1/today", "destination": "/api/v1/agenda?agendaView=today" },
+    { "source": "/api/v1/upcoming", "destination": "/api/v1/agenda?agendaView=upcoming" },
     { "source": "/api/accounts/session", "destination": "/api/class-ops-router?route=account-session" },
     { "source": "/api/accounts/create", "destination": "/api/class-ops-router?route=account-create" },
     { "source": "/api/accounts/claim", "destination": "/api/class-ops-router?route=account-claim" },
