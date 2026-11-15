@@ -121,6 +121,11 @@ test("Lab links follow visibility and both images receive and clear the same fil
   await link.click();
   const mode = page.getByLabel("시각 시뮬레이션");
   await expect(mode).toBeVisible();
+  const contrast = page.getByRole("checkbox", { name: "개선 화면의 고대비 켜기" });
+  await expect(contrast).toBeChecked();
+  await expect(page.locator("#lab-after-caption")).toHaveText("고대비 · 노란 초점 테두리");
+  await contrast.uncheck();
+  await expect(page.locator("#lab-after-caption")).toHaveText("기본 대비 · 강조된 카드 경계");
   const filters = () => page.locator(".lab-pair img").evaluateAll(nodes => nodes.map(node => getComputedStyle(node).filter));
   for (const value of ["protan", "deutan", "tritan", "monochrome", "blur", "contrast"]) {
     await mode.selectOption(value);
@@ -131,4 +136,27 @@ test("Lab links follow visibility and both images receive and clear the same fil
   await page.getByRole("button", { name: "일반 시각으로 돌아가기" }).click();
   await expect(mode).toBeFocused();
   expect(await filters()).toEqual(["none", "none"]);
+
+  await page.setViewportSize({ width: 320, height: 760 });
+  await page.reload();
+  const afterChoice = page.getByRole("radio", { name: "개선 후" });
+  const beforeChoice = page.getByRole("radio", { name: "개선 전" });
+  const pairChoice = page.getByRole("radio", { name: "나란히" });
+  const beforeImage = page.locator("#lab-before");
+  const afterImage = page.locator("#lab-after");
+  await expect(afterChoice).toBeChecked();
+  await expect(afterImage).toBeVisible();
+  await expect(beforeImage).toBeHidden();
+  const afterBounds = await afterImage.boundingBox();
+  await afterChoice.press("ArrowLeft");
+  await expect(beforeChoice).toBeFocused();
+  await expect(beforeChoice).toBeChecked();
+  await expect(beforeImage).toBeVisible();
+  await expect(afterImage).toBeHidden();
+  expect(await beforeImage.boundingBox()).toEqual(afterBounds);
+  await beforeChoice.press("ArrowLeft");
+  await expect(pairChoice).toBeChecked();
+  await expect(beforeImage).toBeVisible();
+  await expect(afterImage).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

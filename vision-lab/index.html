@@ -10,22 +10,22 @@
   <link rel="stylesheet" href="../pincon-fonts.css?v=20261010-openai-tablet2">
   <link rel="stylesheet" href="../school-life/app.css?v=20261115-adaptive-flow">
   <link rel="stylesheet" href="../accessibility/accessibility.css?v=20261115-adaptive-flow">
-  <link rel="stylesheet" href="./lab.css">
+  <link rel="stylesheet" href="./lab.css?v=20261115-comparison">
   <script src="../accessibility/preferences.js?v=20261115-adaptive-flow"></script>
   <script src="../firebase-config.js?v=20260903-account-fallback1"></script>
-  <script type="module" src="./lab.js"></script>
+  <script type="module" src="./lab.js?v=20261115-comparison"></script>
 </head>
 <body>
   <a class="skip-link" href="#lab-main">본문으로 건너뛰기</a>
   <header class="site-header">
-    <a class="brand" href="../"><img src="../next/assets/pincon-icon.svg" alt="" width="27" height="27">PinCon <span class="sr-only">홈</span></a>
+    <a class="brand" href="../" aria-label="PinCon 홈"><img src="../next/assets/pincon-icon.svg" alt="" width="27" height="27">PinCon</a>
   </header>
   <main id="lab-main" class="vision-lab" tabindex="-1">
     <h1>Vision Lab</h1>
     <p id="lab-status" role="status">열람 가능 여부를 확인하는 중…</p>
     <button class="chip" id="lab-retry" type="button" hidden>다시 시도</button>
     <section id="lab-content" hidden aria-label="시각 접근성 비교">
-      <p>같은 383 CSS px 화면에 같은 예시 내용을 담았어요. 이 체험은 화면의 색과 선명도를 바꾸어 비교하며, 장애 당사자의 시각 경험은 개인마다 달라요.</p>
+      <p>같은 화면에서 글자와 키보드 초점 테두리를 비교해 보세요.</p>
       <div class="lab-controls">
         <label for="lab-simulation">시각 시뮬레이션</label>
         <select id="lab-simulation">
@@ -38,18 +38,27 @@
           <option value="contrast">저시력 참고 · 대비 저하</option>
         </select>
         <button class="chip" id="lab-clear" type="button">일반 시각으로 돌아가기</button>
-        <label class="lab-contrast"><input id="lab-after-contrast" type="checkbox">개선 화면의 고대비 켜기</label>
+        <label class="lab-contrast"><input id="lab-after-contrast" type="checkbox" checked>개선 화면의 고대비 켜기</label>
       </div>
-      <div class="lab-pair" data-simulation="normal">
-        <figure>
-          <figcaption><h2>개선 전</h2></figcaption>
-          <img id="lab-before" width="383" height="790" alt="개선 전 PinCon 홈. 오늘 한눈에 보기 카드와 양옆 커버가 보입니다.">
+      <fieldset class="lab-view" id="lab-view">
+        <legend>비교 보기</legend>
+        <div class="lab-view-options">
+          <label><input type="radio" name="lab-view" value="both" checked>나란히</label>
+          <label><input type="radio" name="lab-view" value="before">개선 전</label>
+          <label><input type="radio" name="lab-view" value="after">개선 후</label>
+        </div>
+      </fieldset>
+      <div class="lab-pair" data-view="both" data-simulation="normal">
+        <figure id="lab-before-figure">
+          <figcaption><h2>개선 전</h2><p>기본 대비 · 파란 초점 테두리</p></figcaption>
+          <img id="lab-before" width="383" height="790" alt="개선 전 PinCon 홈. 밝은 중앙 카드에 파란 초점 테두리가 보입니다.">
         </figure>
-        <figure>
-          <figcaption><h2>개선 후</h2></figcaption>
-          <img id="lab-after" width="383" height="790" alt="개선 후 PinCon 홈. 같은 카드에 키보드 초점 테두리가 보입니다.">
+        <figure id="lab-after-figure">
+          <figcaption><h2>개선 후</h2><p id="lab-after-caption">고대비 · 노란 초점 테두리</p></figcaption>
+          <img id="lab-after" width="383" height="790" alt="개선 후 PinCon 홈.">
         </figure>
       </div>
+      <p class="lab-note">두 캡처에 같은 383 CSS px 화면과 예시 내용을 사용했어요. 시뮬레이션은 색과 선명도를 바꾸며, 장애 당사자의 시각 경험은 개인마다 달라요.</p>
       <details>
         <summary>시뮬레이션 모델과 한계</summary>
         <p>적색·녹색·청색 계열은 Machado, Oliveira, Fernandes(2009)의 선형 sRGB 행렬에서 가장 강한 단계(1.0)를 사용해요. 개인별 색각 이상 정도의 차이는 따로 재현하지 않아요.</p>

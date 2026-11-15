@@ -6,6 +6,7 @@
 }
 .vision-lab h1 { font-size: clamp(1.65rem, 5vw, 2.4rem); }
 .vision-lab p { margin-block: .55rem; }
+.lab-status-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .lab-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-block: 16px; }
 .lab-controls select {
   min-height: 44px;
@@ -17,9 +18,29 @@
 }
 .lab-contrast { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
 .lab-contrast input { width: 26px; height: 26px; margin: 0; }
-.lab-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.lab-view { min-inline-size: 0; border: 0; padding: 0; margin: 0 0 16px; }
+.lab-view legend { padding: 0; margin-bottom: 6px; font-weight: 700; }
+.lab-view-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.lab-view-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 1px solid var(--pc-stroke, #68778a);
+  border-radius: 999px;
+  background: var(--pc-control, #fff);
+  cursor: pointer;
+}
+.lab-view-options input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--pc-selected, #344963); }
+.lab-view-options label:has(:checked) { box-shadow: inset 0 0 0 1px currentColor; }
+.lab-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 383px)); justify-content: center; gap: 16px; }
+.lab-pair:not([data-view="both"]) { grid-template-columns: minmax(0, 383px); }
 .lab-pair figure { margin: 0; min-width: 0; }
-.lab-pair h2 { margin-bottom: 6px; font-size: 1.2rem; }
+.lab-pair figcaption { margin-bottom: 8px; }
+.lab-pair h2 { font-size: 1.2rem; }
+.lab-pair figcaption p, .vision-lab .lab-note { color: var(--secondary); font-size: .9rem; }
+.lab-pair figcaption p { margin-block: 0; }
 .lab-pair img { display: block; width: 100%; height: auto; border: 1px solid var(--pc-stroke, #68778a); border-radius: 10px; }
 .lab-pair[data-simulation="protan"] img { filter: url(#lab-protan); }
 .lab-pair[data-simulation="deutan"] img { filter: url(#lab-deutan); }
@@ -30,8 +51,3 @@
 .vision-lab details { margin-block-start: 18px; border-top: 1px solid var(--pc-stroke, #68778a); }
 .vision-lab summary { min-height: 44px; padding: 9px 4px; cursor: pointer; }
 .lab-filters { position: absolute; overflow: hidden; pointer-events: none; }
-
-@media (max-width: 38rem) {
-  .lab-pair { grid-template-columns: minmax(0, 1fr); }
-  .lab-pair img { max-width: 383px; }
-}
