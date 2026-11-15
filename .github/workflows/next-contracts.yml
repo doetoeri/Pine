@@ -6,6 +6,9 @@ on:
     paths:
       - "next/**"
       - "new/**"
+      - "accessibility/**"
+      - "vision-lab/**"
+      - "integrations/pincon-ai/handlers/class-ops/vision-lab.mjs"
       - "index.html"
       - "manifest.webmanifest"
       - "sw.js"
@@ -21,6 +24,9 @@ on:
     paths:
       - "next/**"
       - "new/**"
+      - "accessibility/**"
+      - "vision-lab/**"
+      - "integrations/pincon-ai/handlers/class-ops/vision-lab.mjs"
       - "index.html"
       - "manifest.webmanifest"
       - "sw.js"
@@ -196,7 +202,7 @@ jobs:
           "node --test next/tests/assessment-file-rules.test.mjs"
 
   responsive-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: contracts
     timeout-minutes: 20
     strategy:

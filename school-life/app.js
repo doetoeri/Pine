@@ -1,8 +1,8 @@
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { patchPage } from "../next/core/region-renderer.js";
-import { coverListEnabled, mountCoverflow, paperCoverflowMarkup } from "../next/assessments/coverflow.js?v=20261115-accessibility";
+import { coverListEnabled, mountCoverflow, paperCoverflowMarkup } from "../next/assessments/coverflow.js?v=20261115-adaptive-flow";
 import { closeDialog, openDialog, prepareDialog } from "../next/assessments/dialog-motion.js?v=20261115-accessibility";
-import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-accessibility";
+import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-adaptive-flow";
 import { calendarDate } from "../new/calendar.js?v=20261013-grid1";
 import { kstDate } from "../pincon-class-ops-core.js";
 import { schoolWeek } from "./model.js?v=20261114-school-life";
@@ -189,12 +189,12 @@ function render() {
   }
 }
 
-function restoreStageFocus(control, fallback = ".pc-cover[aria-pressed=true], .pc-list-flow .pc-cover") {
+function restoreStageFocus(control, fallback = ".pc-cover[data-current=true], .pc-list-flow .pc-cover") {
   const { day, week, flowStep, coverId } = control?.dataset || {};
   const selector = day ? `[data-day="${CSS.escape(day)}"]`
     : week ? `[data-week="${CSS.escape(week)}"]`
     : flowStep ? `[data-flow-step="${CSS.escape(flowStep)}"]`
-    : coverId ? `[data-cover-id="${CSS.escape(coverId)}"]:is([aria-pressed="true"], :not([aria-pressed]))`
+    : coverId ? `[data-cover-id="${CSS.escape(coverId)}"]:not([aria-hidden="true"])`
     : control?.hasAttribute("data-overview") ? "[data-overview]"
     : control?.matches(".pc-scene") ? ".pc-scene" : fallback;
   (main.querySelector(selector) || main.querySelector(fallback) || main.querySelector("h1"))?.focus({ preventScroll: true });

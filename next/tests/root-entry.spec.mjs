@@ -14,12 +14,12 @@ test("the public root opens school life and preserves the assessment URL", async
   await page.goto("http://127.0.0.1:4173/?entry=root", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveTitle("PinCon · 학교생활");
   await expect(page.getByRole("heading", { name: "오늘의 학교생활" })).toBeVisible();
-  await page.locator(".pc-cover[aria-pressed=true]").press("Enter");
+  await page.locator(".pc-cover[data-current=true]").press("Enter");
   await expect(page.getByRole("link", { name: /수학 발표/ })).toHaveAttribute("href", "./new/?assignment=root-assessment");
   await page.keyboard.press("Escape");
   await page.getByRole("navigation", { name: "학교생활" }).getByRole("link", { name: "수행평가" }).click();
   await page.waitForURL(url => url.pathname === "/new/", { timeout: 5_000, waitUntil: "domcontentloaded" });
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "root-assessment");
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "root-assessment");
   await expect(page.getByRole("button", { name: "달력 보기", exact: true })).toBeVisible();
   await expect(page).toHaveTitle("PinCon · 수행평가");
 });

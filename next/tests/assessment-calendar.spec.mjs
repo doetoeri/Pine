@@ -50,7 +50,7 @@ for (const width of [360, 768, 1280]) {
     await expect(page.locator(".pc-calendar")).toHaveAttribute("data-month", "2027-01");
     await expect(page.locator('[data-date="2027-01-05"] [data-assessment-id="january"]')).toBeVisible();
     await page.getByRole("button", { name: "커버 보기", exact: true }).click();
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "calendar-0");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "calendar-0");
     await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
@@ -100,7 +100,7 @@ test("view motion moves real sheets, stays bounded and cleans up after rapid rev
   expect(maximumSkins).toBeLessThanOrEqual(4);
   await expect(page.locator(".pc-scene")).toBeVisible();
   await expect(page.locator(".pc-view-transition")).toHaveCount(0);
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("visibility", "visible");
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveCSS("visibility", "visible");
   await page.evaluate(() => document.querySelector("#view-toggle").click());
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator(".pc-view-transition")).toHaveCount(0);
@@ -119,14 +119,14 @@ test("every grid entry follows the current cover, including crowded days and ano
   await page.getByRole("button", { name: "다음 달", exact: true }).click();
   await page.getByRole("button", { name: "커버 보기", exact: true }).click();
   await page.locator('.pc-scene').focus(); await page.keyboard.press("PageDown");
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "calendar-4");
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "calendar-4");
   await page.getByRole("button", { name: "달력 보기", exact: true }).click();
   await expect(page.locator('.pc-calendar')).toHaveAttribute('data-month', '2026-11');
   await expect(page.locator('[data-date="2026-11-13"] [data-calendar-anchor="true"]')).toHaveAttribute('data-assessment-id', 'calendar-4');
   await expect(page.locator('[data-date="2026-11-13"] .pc-calendar-more')).toHaveText('+3개');
   await page.getByRole("button", { name: "커버 보기", exact: true }).click();
   await page.locator('.pc-scene').focus(); await page.keyboard.press("ArrowRight");
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute('data-assessment-id', 'january');
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute('data-assessment-id', 'january');
   await page.getByRole("button", { name: "달력 보기", exact: true }).click();
   await expect(page.locator('.pc-calendar')).toHaveAttribute('data-month', '2027-01');
   await expect(page.locator('[data-date="2027-01-05"] [data-calendar-anchor="true"]')).toHaveAttribute('data-assessment-id', 'january');
@@ -149,7 +149,7 @@ test("grid recognizes labelled dates and corrected date state without writing to
   expect(stored).toEqual(fixture);
   await page.getByRole('button', { name: '커버 보기', exact: true }).click();
   await page.locator('.pc-scene').focus(); await page.keyboard.press('End');
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute('data-assessment-id', 'tentative');
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute('data-assessment-id', 'tentative');
   await page.getByRole('button', { name: '달력 보기', exact: true }).click();
   await expect(page.locator('[data-calendar-anchor="true"]')).toHaveAttribute('data-assessment-id', 'tentative');
   await expect(page.locator('[data-calendar-anchor="true"]')).toBeInViewport();
@@ -181,7 +181,7 @@ test("short mobile grid scrolls to its date before the transition and lands on t
 test("editing a formerly undecided deadline updates date state and reaches its calendar cell", async ({ page }) => {
   await seed(page, [{ id: 'editable', classKey: '1-8', type: 'assessment', published: true, subject: '영어', title: '발표 평가', dueDate: '', dateType: 'undecided' }]);
   await page.goto('http://127.0.0.1:4173/new/', { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toBeVisible();
+  await expect(page.locator('.pc-cover[data-current="true"]')).toBeVisible();
   await page.evaluate(async () => {
     const gateway = new (await import('/next/core/data-gateway.js')).NextDataGateway();
     gateway.state.canArchiveContent = true; gateway.emit();
@@ -191,7 +191,7 @@ test("editing a formerly undecided deadline updates date state and reaches its c
       return { id, record: values };
     };
   });
-  await page.locator('.pc-cover[aria-pressed="true"]').click();
+  await page.locator('.pc-cover[data-current="true"]').click();
   await page.getByRole('button', { name: '내용·첨부 수정', exact: true }).click();
   await page.locator('input[name="dueDate"]').fill('2027-01-05');
   await page.getByRole('button', { name: '저장', exact: true }).click();

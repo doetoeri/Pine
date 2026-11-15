@@ -15,6 +15,7 @@ import settings from "../handlers/class-ops/settings.mjs";
 import classroomLayout from "../handlers/class-ops/classroom-layout.mjs";
 import assessmentLayout from "../handlers/class-ops/assessment-layout.mjs";
 import adminOverview from "../handlers/class-ops/admin-overview.mjs";
+import visionLab from "../handlers/class-ops/vision-lab.mjs";
 import { sendJson } from "../lib/request.mjs";
 
 // Keep account and class-operation endpoints in one Vercel Function. The public URLs stay stable through vercel.json rewrites.
@@ -36,6 +37,7 @@ const ROUTES = Object.freeze({
   "classroom-layout": classroomLayout,
   "assessment-layout": assessmentLayout,
   "admin-overview": adminOverview,
+  "vision-lab": visionLab,
 });
 
 export default async function classOpsRouter(req, res) {

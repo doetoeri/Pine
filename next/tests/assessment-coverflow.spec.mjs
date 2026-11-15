@@ -66,7 +66,7 @@ test("cached covers join the greeting and same-day visits use only the short rev
   await page.waitForFunction(() => window.PINCON_STARTUP.finished);
   expect(await page.evaluate(() => window.PINCON_STARTUP.mode)).toBe("full");
   await expect(page.locator(".pc-scene")).toHaveAttribute("data-motion", "resting");
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("opacity", "1");
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveCSS("opacity", "1");
   await expect(page.locator(".pc-caption")).toHaveCSS("opacity", "1");
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.PINCON_STARTUP.finished);
@@ -118,16 +118,16 @@ for (const width of [360, 768, 1440]) {
     await expect(scene).toBeVisible();
     await expect(page.locator(".pc-cover")).toHaveCount(16);
     await scene.press("ArrowRight");
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "cover-1");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "cover-1");
     await expect(page.locator(".pc-caption-title")).toHaveText("영어 수행평가 1");
-    await page.locator('.pc-cover[aria-pressed="true"]').click();
+    await page.locator('.pc-cover[data-current="true"]').click();
     await expect(page.locator("#detail-title")).toHaveText("영어 수행평가 1");
     await expect(page.locator("#details")).toContainText("실제 상세 내용");
     await page.locator('#details [data-close]').first().click();
     await expect(page.locator("#details")).toBeHidden();
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "cover-1");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "cover-1");
     await scene.press("End");
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "cover-15");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "cover-15");
     const result = await page.evaluate(() => ({ captionInFlow: (() => { const flow = document.querySelector(".pc-flow").getBoundingClientRect(), caption = document.querySelector(".pc-caption").getBoundingClientRect(); return caption.top >= flow.top && caption.bottom <= flow.bottom + 1; })(), overflow: document.documentElement.scrollWidth > innerWidth, hidden: [...document.querySelectorAll(".pc-cover")].filter(card => card.style.visibility === "hidden").length }));
     expect(result.captionInFlow).toBe(true);
     expect(result.overflow).toBe(false);
@@ -149,12 +149,12 @@ for (const width of [360, 1440]) {
     await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
     const scene = page.locator(".pc-scene"), viewport = page.locator(".pc-flow-viewport");
     for (let i = 0; i < 4; i++) await scene.press("PageDown");
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "edge-16");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "edge-16");
     await expect(scene).toHaveAttribute("data-motion", "resting");
     expect(await viewport.evaluate(node => getComputedStyle(node).maskImage)).toBe("none");
     expect(await viewport.evaluate(node => getComputedStyle(node, "::after").maskImage)).not.toBe("none");
     expect(await page.locator(".pc-caption").evaluate(node => node.closest(".pc-flow-viewport"))).toBeNull();
-    const selected = await page.locator('.pc-cover[aria-pressed="true"]').boundingBox();
+    const selected = await page.locator('.pc-cover[data-current="true"]').boundingBox();
     expect(selected.x).toBeGreaterThan(30);
     expect(selected.x + selected.width).toBeLessThan(width - 30);
     const far = page.locator('.pc-cover[data-index="23"]');
@@ -201,12 +201,12 @@ for (const width of [360, 768, 1440]) {
     await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
     const scene = page.locator(".pc-scene");
     for (let i = 0; i < 4; i++) await scene.press("PageDown");
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "scroll-16");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "scroll-16");
     await expect(scene).toHaveAttribute("data-motion", "resting");
 
     const result = await page.evaluate(async () => {
       const flow = document.querySelector(".pc-flow"), scene = flow.querySelector(".pc-scene");
-      const front = flow.querySelector('.pc-cover[aria-pressed="true"]');
+      const front = flow.querySelector('.pc-cover[data-current="true"]');
       const stats = { frames: 0, blankFrames: 0, depthSwitches: 0, layerSwitches: 0, maxTravel: 0 };
       const layers = [front, ...front.querySelectorAll(".pc-surface-light")];
       const previous = new Map(layers.map(node => [node, { depth: node.style.zIndex, hint: node.style.willChange }]));
@@ -214,7 +214,7 @@ for (const width of [360, 768, 1440]) {
       const sample = () => {
         if (!running) return;
         stats.frames++;
-        const selected = flow.querySelector('.pc-cover[aria-pressed="true"]');
+        const selected = flow.querySelector('.pc-cover[data-current="true"]');
         if (!flow.isConnected || !selected || selected.style.visibility === "hidden" || Number(selected.style.opacity) < .99) stats.blankFrames++;
         stats.maxTravel = Math.max(stats.maxTravel, Math.abs(new DOMMatrix(front.style.transform).m41));
         requestAnimationFrame(sample);
@@ -267,7 +267,7 @@ for (const width of [360, 768, 1440]) {
         const sample = () => {
           if (!running) return;
           frames++;
-          const selected = scene.querySelector('.pc-cover[aria-pressed="true"]');
+          const selected = scene.querySelector('.pc-cover[data-current="true"]');
           if (!scene.isConnected || !selected || selected.style.visibility === "hidden" || Number(selected.style.opacity) < .99) blankFrames++;
           requestAnimationFrame(sample);
         };
@@ -287,15 +287,15 @@ for (const width of [360, 768, 1440]) {
       expect(scroll.blankFrames).toBe(0);
       await expect(scene).toHaveAttribute("data-motion", "resting");
       const expected = lighting ? "scroll-20" : "scroll-24";
-      await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", expected);
-      await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("opacity", "1");
-      await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveCSS("visibility", "visible");
+      await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", expected);
+      await expect(page.locator('.pc-cover[data-current="true"]')).toHaveCSS("opacity", "1");
+      await expect(page.locator('.pc-cover[data-current="true"]')).toHaveCSS("visibility", "visible");
     }
     // Data must still update even though detail-only changes retain the scene.
     for (let i = 0; i < 2; i++) await scene.press("PageUp");
-    await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "scroll-16");
+    await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "scroll-16");
     await expect(scene).toHaveAttribute("data-motion", "resting");
-    await page.locator('.pc-cover[aria-pressed="true"]').click();
+    await page.locator('.pc-cover[data-current="true"]').click();
     await expect(page.locator("#details")).toContainText("Background update while scrolling");
     expect(errors).toEqual([]);
   });
@@ -313,7 +313,7 @@ test("administrators can delete assessments in new, cancel and retry safely with
   await page.route("https://www.gstatic.com/firebasejs/**", route => route.abort());
   await page.goto("http://127.0.0.1:4173/new/", { waitUntil: "domcontentloaded" });
   await expect(page.locator(".pc-cover")).toHaveCount(2);
-  await page.locator('.pc-cover[aria-pressed="true"]').click();
+  await page.locator('.pc-cover[data-current="true"]').click();
   await expect(page.locator("#delete-assessment")).toHaveCount(0);
   await page.evaluate(async () => {
     const { NextDataGateway } = await import("/next/core/data-gateway.js");
@@ -360,7 +360,7 @@ test("administrators can delete assessments in new, cancel and retry safely with
   expect(stored.logs).toHaveLength(1);
   expect(stored.logs[0].action).toBe("delete");
   expect(stored.logs[0].actorUid).toBe("delete-operator");
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toBeFocused();
+  await expect(page.locator('.pc-cover[data-current="true"]')).toBeFocused();
   await page.locator(".pc-cover").click();
   await page.locator("#delete-assessment").click();
   await page.locator("#confirm-delete").click();
@@ -608,7 +608,7 @@ test("cover lighting follows tilt, stops updating at rest and remembers the off 
   const front = page.locator('.pc-cover[data-index="0"] > .pc-face > .pc-surface-light');
   const start = await front.evaluate(node => ({ transform: node.style.transform, background: getComputedStyle(node).backgroundImage }));
   await scene.press("ArrowRight");
-  await expect(page.locator('.pc-cover[aria-pressed="true"]')).toHaveAttribute("data-assessment-id", "light-1");
+  await expect(page.locator('.pc-cover[data-current="true"]')).toHaveAttribute("data-assessment-id", "light-1");
   await expect(scene).toHaveAttribute("data-motion", "resting");
   const turned = await front.evaluate(node => ({ transform: node.style.transform, background: getComputedStyle(node).backgroundImage }));
   expect(turned.transform).not.toBe(start.transform);

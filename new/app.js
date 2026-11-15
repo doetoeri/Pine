@@ -1,9 +1,9 @@
 import { mountBanners } from "./banners.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverListEnabled, coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261115-accessibility";
+import { coverListEnabled, coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261115-adaptive-flow";
 import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261115-accessibility";
-import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-accessibility";
+import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-adaptive-flow";
 import { motionPreference } from "../accessibility/motion.js?v=20261115-accessibility";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
@@ -152,7 +152,7 @@ updateViewButton();
 $("view-toggle").onclick = () => {
   window.PINCON_STARTUP?.dismiss?.();
   if (view === "covers") {
-    const selected = $("covers").querySelector('.pc-cover[aria-pressed="true"]');
+    const selected = $("covers").querySelector('.pc-cover[data-current="true"]');
     calendarAnchor = assessmentCalendarAnchor(gateway.snapshot().data?.classAssignments || [], selected?.dataset.assessmentId);
     month = calendarAnchor.month; selectedDay = "";
   }
@@ -291,7 +291,7 @@ async function deleteAssessment() {
 $("details").addEventListener("close", () => {
   if ($("details").open) return;
   editing = false;
-  const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector(`.pc-calendar-tile[data-assessment-id="${CSS.escape(detailId)}"],.pc-cover[aria-pressed="true"]`) || (!$("add").hidden ? $("add") : $("view-toggle"));
+  const target = detailTrigger?.isConnected ? detailTrigger : $("covers").querySelector(`.pc-calendar-tile[data-assessment-id="${CSS.escape(detailId)}"],.pc-cover[data-current="true"]`) || (!$("add").hidden ? $("add") : $("view-toggle"));
   target?.focus({ preventScroll: true });
 });
 $("details").addEventListener("submit", async event => {
@@ -402,6 +402,17 @@ $("login-form").onsubmit = event => {
     saveClassProfile(session.account.grade, session.account.classNumber);
   }, { signingIn: true });
 };
+$("login-form").addEventListener("invalid", event => {
+  const field = event.target;
+  field.setAttribute("aria-invalid", "true");
+  const hint = field.name === "studentNumber" ? "학번을 숫자 5자리로" : "PIN을 숫자 6~12자리로";
+  $("preferences-status").textContent = `${hint} 입력해 주세요.`;
+}, true);
+$("login-form").addEventListener("input", event => {
+  if (!event.target.hasAttribute("aria-invalid")) return;
+  event.target.removeAttribute("aria-invalid");
+  $("preferences-status").textContent = "";
+});
 $("google-login").onclick = () => accountAction(async () => {
   await import("../pincon-guest-auth.js");
   await globalThis.PINCON_GUEST_AUTH.signInWithGoogleAndSync();
@@ -423,7 +434,7 @@ document.addEventListener("pincon-layout-change", () => {
   render();
   if (focused && !$("covers").contains(document.activeElement) && !document.querySelector("dialog[open]")) {
     const cover = id && $("covers").querySelector(`.pc-list-flow [data-assessment-id="${CSS.escape(id)}"]`);
-    (cover || $("covers").querySelector(".pc-cover[aria-pressed=true]") || $("covers")).focus({ preventScroll: true });
+    (cover || $("covers").querySelector(".pc-cover[data-current=true]") || $("covers")).focus({ preventScroll: true });
   }
 });
 render();
