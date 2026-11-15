@@ -30,13 +30,13 @@ dialog{width:min(680px,calc(100vw - 28px));max-height:calc(100dvh - 32px);paddin
 .pc-calendar-header button[data-calendar-month="today"]{font-size:14px;padding:0 12px}
 .pc-calendar-header button:hover{background:#dfe5ed80}
 .pc-calendar-weekdays,.pc-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
-.pc-calendar-weekdays{padding-bottom:10px;text-align:center;font-size:12px;font-weight:500;color:#687489}
-.pc-calendar-weekdays span:first-child{color:#98606b}.pc-calendar-weekdays span:last-child{color:#5b7093}
+.pc-calendar-weekdays{padding-bottom:10px;text-align:center;font-size:12px;font-weight:500;color:#59677b}
+.pc-calendar-weekdays span:first-child{color:#885460}.pc-calendar-weekdays span:last-child{color:#5b7093}
 .pc-calendar-grid{gap:1px;background:#9aa9bc24;border-top:1px solid #9aa9bc24;border-bottom:1px solid #9aa9bc24}
 .pc-calendar-day{min-width:0;min-height:94px;padding:0 3px 6px;background:#f8f9fc;scroll-margin:16px}
 .pc-calendar-number{display:grid;place-items:center;width:100%;min-height:44px;border:0;background:transparent;color:#536174;font-size:14px;font-variant-numeric:tabular-nums;padding:0}
 .pc-calendar-number span{display:grid;place-items:center;min-width:28px;height:28px;border-radius:50%}
-.is-outside .pc-calendar-number{color:#a4aebc}.is-today .pc-calendar-number span{background:#344963;color:#fff}.is-selected .pc-calendar-number span,.is-anchor .pc-calendar-number span{outline:1px solid #7a8fad;outline-offset:3px}
+.is-outside .pc-calendar-number{color:#5a687c}.is-today .pc-calendar-number span{background:#344963;color:#fff}.is-selected .pc-calendar-number span,.is-anchor .pc-calendar-number span{outline:1px solid #7a8fad;outline-offset:3px}
 .pc-calendar-day-tiles{display:flex;flex-direction:column;gap:4px}
 .pc-calendar-tile{--tile-paper:#d9dfe8;width:100%;min-width:0;min-height:44px;margin:0;padding:5px 4px;border:0;border-radius:3px;background:linear-gradient(125deg,#ffffffb3,var(--tile-paper));box-shadow:0 1px 3px #2739530c;display:flex;flex-direction:column;gap:3px;text-align:left;color:#344158;overflow:hidden}
 .pc-calendar-tile.pc-theme-0{--tile-paper:#c1d2f4}.pc-calendar-tile.pc-theme-1{--tile-paper:#e0c5d6}.pc-calendar-tile.pc-theme-2{--tile-paper:#bdd7ce}.pc-calendar-tile.pc-theme-3{--tile-paper:#ddc6a2}.pc-calendar-tile.pc-theme-4{--tile-paper:#cfcaed}.pc-calendar-tile.pc-theme-5{--tile-paper:#bac5d4}
@@ -49,7 +49,7 @@ dialog{width:min(680px,calc(100vw - 28px));max-height:calc(100dvh - 32px);paddin
 .pc-calendar-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
 .pc-calendar-tile-full{min-height:76px;padding:14px 16px;border-radius:5px;gap:6px}
 .pc-calendar-tile-full .pc-calendar-subject{font-size:12px}.pc-calendar-tile-full .pc-calendar-title{font-size:16px;line-height:1.4;-webkit-line-clamp:3}
-.pc-calendar-empty{text-align:center;padding:18px;font-size:14px;color:#687489}
+.pc-calendar-empty{text-align:center;padding:18px;font-size:14px;color:#59677b}
 .pc-view-transition{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden}
 .pc-view-hidden{visibility:hidden!important}
 .pc-view-proxy{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform,opacity;pointer-events:none;overflow:hidden;border-radius:1px}
@@ -58,3 +58,18 @@ dialog{width:min(680px,calc(100vw - 28px));max-height:calc(100dvh - 32px);paddin
 .pc-view-proxy .pc-face,.pc-view-proxy .pc-date{font-family:inherit}
 @media(min-width:600px){.pc-calendar{padding-left:36px;padding-right:36px}.pc-calendar-day{min-height:112px;padding-left:6px;padding-right:6px}.pc-calendar-tile{padding:8px}.pc-calendar-subject{font-size:11px}.pc-calendar-title{font-size:13px}.pc-calendar-tile-full{padding:16px}.pc-calendar-header h1 strong{font-size:42px}}
 @media(prefers-reduced-motion:reduce){.pc-view-transition{display:none}}
+
+/* Calendar tools stay outside the scroller so dates and keyboard focus remain visible. */
+.assessment-topbar{position:fixed;z-index:2;top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));display:flex;justify-content:space-between;align-items:center;gap:8px;pointer-events:none}
+.assessment-home{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;background:#e7ebf0;color:#43546b;font-size:13px;font-weight:650;text-decoration:none;pointer-events:auto}
+.assessment-home:hover{text-decoration:underline}
+body[data-assessment-view="calendar"]{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;height:100dvh}
+body[data-assessment-view="calendar"] .assessment-topbar{position:static;grid-row:1;width:min(100%,1112px);margin-inline:auto;padding:env(safe-area-inset-top) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
+body[data-assessment-view="calendar"] #pinconBanners{grid-row:2}
+body[data-assessment-view="calendar"] #covers{grid-row:3;min-height:0}
+body[data-assessment-view="calendar"] .pc-calendar{padding-top:12px;padding-bottom:26px}
+body[data-assessment-view="calendar"] .assessment-footer{grid-row:4;display:flex;justify-content:flex-end;align-items:center;gap:8px;min-height:60px;padding:6px max(12px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));border-top:1px solid #d8dfea;background:#f8f9fc}
+body[data-assessment-view="calendar"] .assessment-footer .connection{position:static;flex:1;max-width:none;color:#536174}
+body[data-assessment-view="calendar"] .tools{position:static;flex-shrink:0}
+.assessment-link-status{position:fixed;z-index:2;bottom:80px;left:16px;right:16px;width:fit-content;max-width:calc(100% - 32px);margin:0 auto;padding:8px 13px;border-radius:8px;background:#edf1f7;color:#344963;font-size:13px}
+@media(max-width:460px){.pc-calendar-day{padding-inline:1px}.pc-calendar-number:focus-visible{outline-offset:-2px}}

@@ -44,3 +44,16 @@
 .stf__outerShadow,.stf__innerShadow,.stf__hardShadow,.stf__hardInnerShadow{position:absolute;left:0;top:0;pointer-events:none}
 @media(max-width:600px){.pc-attachment-row{grid-template-columns:minmax(0,1fr) 78px}.pc-file-viewer header{gap:8px}.pc-file-heading h2{font-size:17px}.pc-file-viewer footer{padding:8px 12px}.pc-paper-stage{padding:12px}.pc-paper-controls{gap:4px}.pc-paper-help{font-size:10px}.pc-paper-controls [data-paper-zoom]{margin-left:8px}}
 @media(prefers-reduced-motion:reduce){.pc-paper-fan{display:none}.pc-paper-book.pc-paper-entering{opacity:1}}
+
+.pc-file-message{margin:0 0 10px;color:#344963;overflow-wrap:anywhere}
+.pc-attachment-status button{margin-top:5px}
+.pc-paper-transcript {
+  flex: 0 0 auto;
+  max-height: 40%;
+  overflow: auto;
+  padding: 0 14px;
+  border-top: 1px solid #d8dfea;
+}
+.pc-paper-transcript summary { display: list-item; min-height: 44px; padding: 10px 4px; color: #344963; cursor: pointer; }
+.pc-paper-transcript summary:focus-visible { outline-offset: -3px; }
+.pc-paper-transcript .pc-paper-text { margin: 0; padding: 3px 4px 14px; white-space: pre-wrap; line-height: 1.65; overflow-wrap: anywhere; }

@@ -1,4 +1,5 @@
 import { PageFlip } from "./vendor/page-flip/page-flip.module.js";
+import { motionPreference } from "../../accessibility/motion.js?v=20261115-accessibility";
 
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const cancelled = () => new DOMException("Reader closed", "AbortError");
@@ -13,7 +14,7 @@ async function pdfLibrary() {
 // Only the current sheet and nearby sheets have decoded page images.
 export async function mountPaperReader(host, attachment, { signal } = {}) {
   const listeners = new AbortController(), options = { signal: listeners.signal };
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = motionPreference();
   let disposed = false, loadingTask = null, pdf = null, book = null, resize = null;
   let current = 0, count = 1, aspect = .707, width = 0, height = 0, zoomed = false;
   let phase = "read", busy = false, pointer = null, fan = null, fanAnimations = [], interacted = false;
@@ -72,10 +73,13 @@ export async function mountPaperReader(host, attachment, { signal } = {}) {
     host.classList.add("pc-paper-reader");
     host.innerHTML = `<div class="pc-paper-stage" tabindex="0" role="region" aria-busy="true" aria-label="문서 페이지. 좌우로 밀거나 방향키로 넘길 수 있어요."><div class="pc-paper-book"></div><span class="pc-paper-loading">첫 페이지를 준비하는 중…</span></div>
       <div class="pc-paper-controls"><button type="button" data-paper-prev aria-label="이전 페이지" disabled>‹</button><label class="pc-paper-page-number"><input type="number" min="1" max="${count}" value="1" inputmode="numeric" aria-label="페이지 번호" disabled><span>/ ${count}</span></label><button type="button" data-paper-next aria-label="다음 페이지" disabled>›</button><button type="button" data-paper-zoom aria-label="페이지 확대" disabled>확대</button></div>
-      <p class="pc-paper-help">${count === 1 ? "한 장의 자료예요. 확대해서 자세히 볼 수 있어요." : "좌우로 밀거나 종이 가장자리를 눌러 넘겨 보세요."}</p><p class="pc-paper-status" role="status" aria-live="polite"></p><p class="sr-only pc-paper-announcement" aria-live="polite"></p><p class="sr-only pc-paper-text"></p>`;
+      <p class="pc-paper-help">${count === 1 ? "한 장의 자료예요. 확대해서 자세히 볼 수 있어요." : "이전·다음 버튼이나 방향키로 페이지를 넘길 수 있어요."}</p>
+      <p class="pc-paper-status" role="status" aria-live="polite"></p><p class="sr-only pc-paper-announcement" aria-live="polite"></p>
+      <details class="pc-paper-transcript"><summary>페이지 텍스트</summary><p class="pc-paper-text" role="status"></p></details>`;
     const stage = host.querySelector(".pc-paper-stage"), container = host.querySelector(".pc-paper-book");
     const previous = host.querySelector("[data-paper-prev]"), next = host.querySelector("[data-paper-next]");
     const pageNumber = host.querySelector("input"), status = host.querySelector(".pc-paper-status");
+    const transcript = host.querySelector(".pc-paper-transcript"), pageText = transcript.querySelector(".pc-paper-text");
     container.dataset.stack = count > 1 ? "multiple" : "single";
     nodes = Array.from({ length: count }, (_, index) => {
       const page = document.createElement("div");
@@ -168,12 +172,34 @@ export async function mountPaperReader(host, attachment, { signal } = {}) {
       } catch (error) { if (!disposed && error.name !== "AbortError") status.textContent = "일부 페이지를 불러오지 못했어요. 넘기면 다시 시도해요."; }
     }
     async function describe() {
-      if (!pdf) return;
+      if (!pdf) {
+        pageText.textContent = "이미지 파일에는 읽을 수 있는 텍스트 정보가 없어요. 이미지나 원본 파일을 확인해 주세요.";
+        return;
+      }
       const index = current;
+      pageText.textContent = "페이지 텍스트를 확인하는 중…";
       try {
-        const page = await pdf.getPage(index + 1), text = await page.getTextContent();
-        if (!disposed && index === current) host.querySelector(".pc-paper-text").textContent = text.items.map(item => item.str || "").join(" ");
-      } catch {}
+        const page = await pdf.getPage(index + 1);
+        // WebKit can read this stream without supporting its async iterator.
+        const reader = page.streamTextContent().getReader();
+        const chunks = [];
+        try {
+          while (!disposed && index === current) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value.items.map(item => (item.str || "") + (item.hasEOL ? "\n" : " ")).join(""));
+          }
+          if (disposed || index !== current) await reader.cancel();
+        } finally {
+          reader.releaseLock();
+        }
+        const text = chunks.join("").trim();
+        if (!disposed && index === current) {
+          pageText.textContent = text || "이 페이지에는 추출할 수 있는 텍스트가 없어요. 이미지나 원본 파일을 확인해 주세요.";
+        }
+      } catch {
+        if (!disposed && index === current) pageText.textContent = "페이지 텍스트를 불러오지 못했어요.";
+      }
     }
     async function go(index) {
       index = clamp(index, 0, count - 1);
@@ -205,6 +231,10 @@ export async function mountPaperReader(host, attachment, { signal } = {}) {
     updateControls(); describe();
     resize = new ResizeObserver(() => { stopFan(); layout(); if (phase === "read") nearby(); });
     resize.observe(stage);
+    transcript.addEventListener("toggle", () => {
+      if (transcript.open) interacted = true;
+      stopFan();
+    }, options);
     previous.addEventListener("click", () => go(current - 1), options);
     next.addEventListener("click", () => go(current + 1), options);
     pageNumber.addEventListener("change", () => { const target = Number(pageNumber.value); if (Number.isInteger(target) && target >= 1 && target <= count) go(target - 1); else pageNumber.value = String(current + 1); }, options);
@@ -263,7 +293,7 @@ export async function mountPaperReader(host, attachment, { signal } = {}) {
     stage.addEventListener("pointerup", event => endPointer(false, event), options);
     stage.addEventListener("pointercancel", event => endPointer(true, event), options);
     stage.addEventListener("lostpointercapture", event => endPointer(true, event), options);
-    reduced.addEventListener("change", event => { if (event.matches) { endPointer(true); stopFan(); book?.getRender().finishAnimation(); wake(); } }, options);
+    reduced.addEventListener("change", () => { if (reduced.matches) { endPointer(true); stopFan(); book?.getRender().finishAnimation(); wake(); } }, options);
 
     // Fan the first actual sheets, then settle them into the same reading position.
     const showFan = async () => {

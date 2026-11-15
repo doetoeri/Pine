@@ -1,25 +1,31 @@
 import { mountBanners } from "./banners.js";
 import { NextDataGateway, readClassProfile, saveClassProfile } from "../next/core/data-gateway.js";
 import { ContentServiceV2 } from "../next/admin/content-service-v2.js?v=20261009-upload2";
-import { coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261011-tilt1";
-import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261009-paper1";
+import { coverListEnabled, coverflowMarkup, mountCoverflow, coverLightingEnabled, setCoverLightingEnabled } from "../next/assessments/coverflow.js?v=20261115-accessibility";
+import { mountAttachmentViewer } from "../next/assessments/viewer.js?v=20261115-accessibility";
+import { mountAccessibilitySettings } from "../accessibility/settings.js?v=20261115-accessibility";
+import { motionPreference } from "../accessibility/motion.js?v=20261115-accessibility";
 
 import { ATTACHMENT_ACCEPT } from "../next/assessments/attachments.js?v=20261009-upload2";
 
-import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261009-paper1";
+import { prepareDialog, openDialog, closeDialog, revealDialogContent } from "../next/assessments/dialog-motion.js?v=20261115-accessibility";
 import { assessmentCalendarMarkup, assessmentDate, assessmentCalendarAnchor, currentCalendarMonth, seoulToday, shiftCalendarMonth, shiftCalendarDay } from "./calendar.js?v=20261013-grid1";
-import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261013-grid1";
-import { TiltSwipe } from "./tilt-swipe.js?v=20261011-tilt3";
-import { mountNoticeImage } from "./notice-image.js?v=20261013-notice2";
+import { captureAssessmentTiles, animateAssessmentView } from "./view-motion.js?v=20261115-accessibility";
+import { TiltSwipe } from "./tilt-swipe.js?v=20261115-accessibility";
+import { mountNoticeImage } from "./notice-image.js?v=20261115-accessibility";
 
 const $ = id => document.getElementById(id);
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 if (!readClassProfile()) saveClassProfile(1, 8);
 const gateway = new NextDataGateway(), service = new ContentServiceV2(gateway);
 let signature = "", detailId = "", detailTrigger = null, saving = false, editing = false;
+let detailMarkup = "", pendingLogin = null;
+const entry = new URLSearchParams(location.search);
+let requestedAssignment = entry.get("assignment") || "";
 let view = "covers", month = currentCalendarMonth(), selectedDay = "", calendarAnchor = {}, stopViewMotion = () => {};
 prepareDialog($("details"), () => !saving);
 prepareDialog($("preferences"));
+mountAccessibilitySettings();
 const tilt = new TiltSwipe();
 const tiltMessages = {
   off: "휴대폰을 기울여 커버를 넘겨요. 기울일수록 더 빨라져요.",
@@ -31,7 +37,7 @@ const tiltMessages = {
   ready: "좌우로 기울이면 속도가 붙어요. 처음 자세로 돌리면 멈춰요.",
   denied: "센서 접근이 허용되지 않았어요. 브라우저에서 허용한 뒤 다시 켜 주세요.",
   unavailable: "이 기기나 브라우저에서는 기울기 센서를 사용할 수 없어요.",
-  reduced: "기기의 ‘동작 줄이기’ 설정에 따라 기울기 제어를 쉬고 있어요.",
+  reduced: "‘동작 줄이기’가 켜져 있어 기울기 제어가 쉬고 있어요.",
 };
 tilt.onchange = ({ enabled, status }) => {
   $("tilt-enabled").checked = enabled;
@@ -40,11 +46,12 @@ tilt.onchange = ({ enabled, status }) => {
 };
 $("tilt-enabled").onchange = event => tilt.setEnabled(event.target.checked);
 function syncTiltActivity() {
-  tilt.setActive(view === "covers" && !$("covers").hasAttribute("aria-busy") && !$("details").open && !$("preferences").open && !$("notice-image").open && window.PINCON_STARTUP?.finished !== false);
+  tilt.setActive(view === "covers" && !coverListEnabled() && !$("covers").hasAttribute("aria-busy")
+    && !document.querySelector("dialog[open]") && window.PINCON_STARTUP?.finished !== false);
   tilt.notify();
 }
 const tiltDialogs = new MutationObserver(syncTiltActivity);
-for (const dialog of [$("details"), $("preferences"), $("notice-image")]) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+for (const dialog of document.querySelectorAll("dialog")) tiltDialogs.observe(dialog, { attributes: true, attributeFilter: ["open"] });
 tiltDialogs.observe($("covers"), { attributes: true, attributeFilter: ["aria-busy"] });
 document.addEventListener("pincon-startup-end", syncTiltActivity);
 tilt.notify();
@@ -62,7 +69,11 @@ $("startup-enabled").onchange = event => {
     if (enabled) localStorage.removeItem("pincon-startup-day-v1");
   } catch {}
 };
-const record = id => (gateway.snapshot().data?.classAssignments || []).find(row => row.id === id && !row.deleted);
+const record = id => {
+  const snapshot = gateway.snapshot();
+  return (snapshot.data?.classAssignments || []).find(row => row.id === id && !row.deleted
+    && (!row.classKey || row.classKey === snapshot.profile?.classKey));
+};
 
 function render({ transition = false } = {}) {
   const snapshot = gateway.snapshot();
@@ -72,20 +83,22 @@ function render({ transition = false } = {}) {
   // Realtime timestamps, attachment metadata and detail-only edits must not
   // replace the scene (and interrupt an in-progress scroll) when covers match.
   const pending = !rows.length && !snapshot.ready && !snapshot.usingCache;
-  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, month, selectedDay, calendarAnchor.id, calendarAnchor.date, view === "calendar" ? seoulToday() : "", rows.map(row => [
+  const list = coverListEnabled();
+  const next = JSON.stringify([snapshot.profile?.classKey, pending, view, list, month, selectedDay, calendarAnchor.id, calendarAnchor.date, view === "calendar" ? seoulToday() : "", rows.map(row => [
     row.id, row.title, row.subject, row.kind, row.dueDate, row.dateType,
     Boolean(row.confirmed || row.verificationStatus === "verified"),
     Boolean(row.noticeAttachment), Boolean(row.worksheetPack),
   ])]);
   if (next !== signature) {
-    const before = transition ? captureAssessmentTiles($("covers")) : [];
+    const before = transition && !list ? captureAssessmentTiles($("covers")) : [];
     stopViewMotion();
     const scrollTop = $("covers").querySelector(".pc-calendar")?.scrollTop || 0;
     signature = next;
+    document.body.dataset.assessmentView = view;
     $("covers").innerHTML = pending
       ? '<section class="pc-flow pc-flow-empty" aria-label="수행평가"><p>수행평가</p></section>'
       : view === "calendar" ? assessmentCalendarMarkup(rows, month, selectedDay, undefined, calendarAnchor) : coverflowMarkup(rows, snapshot.profile?.classKey || "");
-    $("covers").setAttribute("aria-label", view === "calendar" ? "수행평가 달력" : "수행평가 커버플로우");
+    $("covers").setAttribute("aria-label", view === "calendar" ? "수행평가 달력" : list ? "수행평가 목록" : "수행평가 커버플로우");
     if (window.PINCON_STARTUP?.mode === "full" && !window.PINCON_STARTUP.finished) {
       document.documentElement.style.setProperty("--pc-startup-elapsed", `${performance.now() - window.PINCON_STARTUP.startAt}ms`);
     }
@@ -100,7 +113,7 @@ function render({ transition = false } = {}) {
         }
       }
     }
-    if (transition) stopViewMotion = animateAssessmentView($("covers"), before);
+    if (transition && !list) stopViewMotion = animateAssessmentView($("covers"), before);
     else if (view === "calendar") $("covers").querySelector(".pc-calendar")?.scrollTo(0, scrollTop);
   }
   syncTiltActivity();
@@ -115,13 +128,23 @@ function render({ transition = false } = {}) {
     else closeDialog($("details"));
   }
   updateAccount();
+  const requested = requestedAssignment ? rows.find(row => row.id === requestedAssignment) : null;
+  if (requested && !$("preferences").open) {
+    const id = requestedAssignment;
+    requestedAssignment = "";
+    $("assessment-link-status").hidden = true;
+    openDetail(id, [...$("covers").querySelectorAll(".pc-cover")].find(button => button.dataset.assessmentId === id));
+  } else if (!requested && requestedAssignment && ["success", "cached", "error", "cached-error"].includes(snapshot.collectionStatus?.classAssignments)) {
+    $("assessment-link-status").textContent = "연결된 수행평가를 확인할 수 없어요. 학급 설정과 목록을 확인해 주세요.";
+    $("assessment-link-status").hidden = false;
+  }
 }
 
 const calendarIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h2M14 14h2M8 17.5h2"/></svg>';
 const coversIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 7.5h3v12H3zM18 7.5h3v12h-3z"/><rect x="8.5" y="4.5" width="7" height="15" rx=".8"/></svg>';
 function updateViewButton() {
   $("view-toggle").innerHTML = view === "calendar" ? coversIcon : calendarIcon;
-  const label = view === "calendar" ? "커버 보기" : "달력 보기";
+  const label = view === "calendar" ? (coverListEnabled() ? "목록 보기" : "커버 보기") : "달력 보기";
   $("view-toggle").setAttribute("aria-label", label);
   $("view-toggle").setAttribute("title", label);
 }
@@ -135,8 +158,10 @@ $("view-toggle").onclick = () => {
   }
   view = view === "covers" ? "calendar" : "covers";
   updateViewButton(); render({ transition: true });
-  $("view-status").textContent = view === "calendar" ? `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월 달력 보기` : "커버 보기";
+  $("view-status").textContent = view === "calendar" ? `${Number(month.slice(0, 4))}년 ${Number(month.slice(5))}월 달력 보기`
+    : coverListEnabled() ? "목록 보기" : "커버 보기";
 };
+$("view-toggle").disabled = false;
 
 $("covers").addEventListener("click", event => {
   if (view !== "calendar") return;
@@ -154,7 +179,7 @@ $("covers").addEventListener("click", event => {
     selectedDay = day.dataset.calendarDay; render();
     const heading = $("calendar-day-title");
     heading?.focus({ preventScroll: true });
-    heading?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    heading?.scrollIntoView({ block: "nearest", behavior: motionPreference().matches ? "instant" : "smooth" });
     return;
   }
   const tile = event.target.closest(".pc-calendar-tile");
@@ -171,11 +196,11 @@ $("covers").addEventListener("keydown", event => {
   event.preventDefault();
   const date = shiftCalendarDay(event.target.dataset.calendarDay, delta);
   if (!$("covers").querySelector(`.pc-calendar-number[data-calendar-day="${date}"]`)) { month = date.slice(0, 7); selectedDay = ""; render(); }
-  $("covers").querySelector(`.pc-calendar-number[data-calendar-day="${date}"]`)?.focus({ preventScroll: true });
+  $("covers").querySelector(`.pc-calendar-number[data-calendar-day="${date}"]`)?.focus();
 });
 
 function fillDetail(row) {
-  $("details").innerHTML = `<header><h1 id="detail-title">${escape(row.title)}</h1><button type="button" data-close aria-label="닫기">×</button></header><div class="dialog-body">
+  const markup = `<header><h1 id="detail-title">${escape(row.title)}</h1><button type="button" data-close aria-label="닫기">×</button></header><div class="dialog-body">
     <p class="detail-meta">${escape(row.subject || "수행평가")} · ${escape(row.evaluationMethod || "수행평가")} · ${escape(assessmentDate(row) || row.dueDate || "날짜 미정")}</p>
     <p class="detail-description">${escape(row.description || "등록된 상세 내용이 없습니다.")}</p>
     ${row.evaluationRange ? `<p><strong>평가 범위</strong><br>${escape(row.evaluationRange)}</p>` : ""}
@@ -183,11 +208,14 @@ function fillDetail(row) {
     <div class="attachments">${[["noticeAttachment", "안내문"], ["worksheetPack", "학습지팩"]].filter(([slot]) => (row[slot]?.storagePath || row[slot]?.fileId)).map(([slot, label]) => `<div class="pc-attachment-row"><button type="button" class="pc-attachment-button" data-assessment-file="${slot}" data-assessment-id="${escape(row.id)}" aria-label="${label} 보기"><strong>${label}<span>보기</span></strong><small>${escape(row[slot].fileName)}</small></button><button type="button" class="pc-attachment-download" data-assessment-download="${slot}" data-assessment-id="${escape(row.id)}" aria-label="${label} 다운로드">↓<span>다운로드</span></button><p class="pc-attachment-status" role="status" hidden></p></div>`).join("") || '<p class="muted">등록된 안내문이나 학습지팩이 없습니다.</p>'}</div>
     ${gateway.snapshot().canArchiveContent ? `<div class="dialog-actions"><button type="button" id="delete-assessment" class="danger">삭제</button><button type="button" id="edit">내용·첨부 수정</button></div>
     <section id="delete-confirmation" class="delete-confirmation" aria-labelledby="delete-title" hidden><h2 id="delete-title">이 수행평가를 삭제할까요?</h2><p>커버에서 사라지며, 내용과 첨부 자료는 관리자 보관함에서 복원할 수 있어요.</p><p id="delete-status" role="status"></p><div class="dialog-actions"><button type="button" id="cancel-delete">취소</button><button type="button" id="confirm-delete" class="danger">삭제하기</button></div></section>` : ""}</div>`;
+  if (detailMarkup === markup) return;
+  detailMarkup = markup;
+  $("details").innerHTML = markup;
 }
 
 function openDetail(id, trigger) {
   const row = record(id);
-  if (!row || row.published === false) return;
+  if (!row || row.published === false || (row.type && row.type !== "assessment")) return;
   detailId = id; detailTrigger = trigger; editing = false;
   fillDetail(row);
   openDialog($("details"), trigger);
@@ -196,6 +224,7 @@ function openDetail(id, trigger) {
 
 function openEditor(id = "") {
   if (!gateway.snapshot().canArchiveContent || saving) return;
+  detailMarkup = "";
   detailId = id || crypto.randomUUID(); editing = true;
   const wasOpen = $("details").open;
   const row = record(id) || {};
@@ -307,29 +336,61 @@ function updateAccount() {
   $("google-login").hidden = signedIn;
   $("logout").hidden = !signedIn;
 }
-$("settings").onclick = () => {
-  const profile = gateway.snapshot().profile;
+function openPreferences(focusLogin = false) {
+  const profile = gateway.snapshot().profile || readClassProfile();
   classForm.elements.grade.value = profile.grade;
   classForm.elements.classNumber.value = profile.classNumber;
   $("cover-lighting").checked = coverLightingEnabled();
   $("startup-enabled").checked = window.PINCON_STARTUP?.enabled !== false;
   tilt.notify();
-  updateAccount(); openDialog($("preferences"));
-};
+  $("preferences-status").textContent = "";
+  updateAccount();
+  openDialog($("preferences"));
+  if (focusLogin && !$("login-form").hidden) $("login-form").elements.studentNumber.focus();
+}
+function requestAttachmentSignIn(resume) {
+  pendingLogin = { resume, classKey: readClassProfile()?.classKey };
+  openPreferences(true);
+}
+$("settings").onclick = () => openPreferences();
+$("preferences").addEventListener("close", () => {
+  if (!$("preferences").open) pendingLogin = null;
+});
 $("preferences").querySelector("[data-close]").onclick = () => closeDialog($("preferences"));
+if (entry.get("settings") === "account") openPreferences(true);
 classForm.onsubmit = async event => {
   event.preventDefault();
   saveClassProfile(classForm.elements.grade.value, classForm.elements.classNumber.value);
   closeDialog($("preferences"));
   await gateway.retry();
 };
-async function accountAction(action, refresh = true) {
+async function accountAction(action, { refresh = true, signingIn = false } = {}) {
   const controls = $("preferences").querySelectorAll("button,input,select");
+  const active = document.activeElement;
+  let succeeded = false;
   controls.forEach(control => control.disabled = true);
   $("preferences-status").textContent = "계정을 확인하는 중…";
-  try { await action(); if (refresh) await gateway.retry(); $("preferences-status").textContent = "완료됐어요."; }
-  catch (error) { $("preferences-status").textContent = error?.message || "로그인을 완료하지 못했어요."; }
+  try {
+    await action();
+    if (refresh) await gateway.retry();
+    succeeded = true;
+    $("preferences-status").textContent = "완료됐어요.";
+  } catch (error) { $("preferences-status").textContent = error?.message || "로그인을 완료하지 못했어요."; }
   finally { controls.forEach(control => control.disabled = false); $("login-form").elements.pin.value = ""; updateAccount(); }
+  if (signingIn && succeeded && $("preferences").open && pendingLogin) {
+    const { resume, classKey } = pendingLogin;
+    if (classKey === readClassProfile()?.classKey) {
+      $("preferences").addEventListener("close", resume, { once: true });
+    } else {
+      const status = $("assessment-link-status");
+      status.textContent = "로그인한 학급의 수행평가 목록에서 안내문을 찾아 주세요.";
+      status.hidden = false;
+    }
+    closeDialog($("preferences"));
+  } else if ($("preferences").open) {
+    if (!succeeded) $("preferences-status").focus();
+    else if (active instanceof HTMLElement && !active.closest("[hidden]")) active.focus();
+  }
 }
 $("login-form").onsubmit = event => {
   event.preventDefault();
@@ -339,18 +400,32 @@ $("login-form").onsubmit = event => {
     const session = await signInStudent({ studentNumber: form.elements.studentNumber.value, pin: form.elements.pin.value });
     if (session.account.mustChangePin) { await signOutStudent(); throw new Error("PinCon 로그인 화면에서 첫 PIN 설정을 완료해 주세요."); }
     saveClassProfile(session.account.grade, session.account.classNumber);
-  });
+  }, { signingIn: true });
 };
 $("google-login").onclick = () => accountAction(async () => {
   await import("../pincon-guest-auth.js");
   await globalThis.PINCON_GUEST_AUTH.signInWithGoogleAndSync();
-});
+}, { signingIn: true });
 $("logout").onclick = () => accountAction(async () => { const { signOutStudent } = await import("../next/core/student-auth.js"); await signOutStudent(); });
-$("retry").onclick = () => accountAction(() => gateway.retry(), false);
+$("retry").onclick = () => accountAction(() => gateway.retry(), { refresh: false });
+document.querySelector(".accessibility-skip").addEventListener("click", event => {
+  event.preventDefault();
+  $("covers").focus();
+});
 mountBanners(gateway);
-mountAttachmentViewer(gateway);
+mountAttachmentViewer(gateway, { requestSignIn: requestAttachmentSignIn });
 mountNoticeImage(gateway);
 gateway.addEventListener("change", render);
+document.addEventListener("pincon-layout-change", () => {
+  const focused = $("covers").contains(document.activeElement);
+  const id = document.activeElement?.dataset.assessmentId;
+  updateViewButton();
+  render();
+  if (focused && !$("covers").contains(document.activeElement) && !document.querySelector("dialog[open]")) {
+    const cover = id && $("covers").querySelector(`.pc-list-flow [data-assessment-id="${CSS.escape(id)}"]`);
+    (cover || $("covers").querySelector(".pc-cover[aria-pressed=true]") || $("covers")).focus({ preventScroll: true });
+  }
+});
 render();
 gateway.start().catch(() => render());
 let studyTrackingStarted = false;

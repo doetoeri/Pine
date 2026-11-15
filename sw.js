@@ -1,8 +1,12 @@
-const PINCON_SW_VERSION = "20261102-study-v4a";
+const PINCON_SW_VERSION = "20261115-accessibility";
 const PINCON_SHELL_CACHE = `pincon-shell-${PINCON_SW_VERSION}`;
 const PINCON_APP_SHELL = [
   "./registerSW.js",
   "./pincon-fonts.css",
+  "./accessibility/accessibility.css",
+  "./accessibility/preferences.js",
+  "./accessibility/settings.js",
+  "./accessibility/motion.js",
   "./fonts/OpenAISansHangulVariable.woff2",
   "./material-official-loader.js",
   "./material-web.bundle.js",
@@ -81,6 +85,10 @@ const PINCON_APP_SHELL = [
   "./next/evaluation-plans/evaluation-plans.css",
   "./next/app.css",
   "./manifest.webmanifest",
+  "./school-life/app.css",
+  "./school-life/model.js",
+  "./school-life/covers.js",
+  "./school-life/app.js",
   "./index.html"
 ];
 try { importScripts("./firebase-messaging-sw.js?v=20260914-experiment1"); }

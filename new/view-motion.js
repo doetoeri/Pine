@@ -1,3 +1,5 @@
+import { motionPreference } from "../accessibility/motion.js?v=20261115-accessibility";
+
 const SELECTOR = ".pc-cover, .pc-calendar-tile";
 const MAX_TILES = 12;
 const DURATION = 420;
@@ -72,7 +74,7 @@ function snapshotSkins(proxy) {
 }
 
 export function captureAssessmentTiles(root) {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !globalThis.DOMMatrix) return [];
+  if (motionPreference().matches || !globalThis.DOMMatrix) return [];
   const moving = [];
   // A reversal starts at the current painted pose, not the hidden end layout.
   // Freeze the two skins' opacity once so their cross-fade also stays intact.
@@ -100,7 +102,7 @@ function skin(tile, clone, width, height) {
 // Only transform/opacity are animated. All geometry is measured once, with a
 // bounded set of sheets; no per-frame layout or permanent animation loop.
 export function animateAssessmentView(root, before) {
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduced = motionPreference();
   if (reduced.matches || document.hidden || !root.animate || !globalThis.DOMMatrix) return () => {};
   const destinations = tiles(root), after = new Map(destinations.map(tile => [tile.id, tile]));
   const layer = document.createElement("div");

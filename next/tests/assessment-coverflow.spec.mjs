@@ -466,6 +466,11 @@ test("both upload slots accept PDF/images and a failed transfer can be retried w
   await expect(stage).toHaveAttribute("data-page", "1");
   await stage.press("End");
   await expect(stage).toHaveAttribute("data-page", "6");
+  const transcript = page.locator(".pc-paper-transcript summary");
+  await transcript.press("Enter");
+  await expect(page.locator(".pc-paper-text")).toContainText("WORKSHEET - PAGE 6");
+  await expect(page.locator(".pc-paper-text")).toBeVisible();
+  await transcript.press("Enter");
   await expect(page.locator('[data-paper-next]')).toBeDisabled();
   await page.locator('[data-paper-zoom]').click();
   await expect(stage).toHaveClass(/pc-paper-zoomed/);
@@ -479,6 +484,9 @@ test("both upload slots accept PDF/images and a failed transfer can be retried w
   await expect(stage).toHaveAttribute("data-page", "1");
   await expect(page.locator(".pc-paper-fan")).toHaveCount(0);
   await expect(page.locator('[data-paper-page="1"] img')).toBeVisible();
+  await transcript.press("Enter");
+  await expect(page.locator(".pc-paper-text")).toContainText("이미지 파일에는 읽을 수 있는 텍스트 정보가 없어요.");
+  await transcript.press("Enter");
   expect(await page.locator('[data-paper-page="1"] img').evaluate(img => img.naturalWidth)).toBe(300);
   await expect(page.locator('[data-paper-next]')).toBeDisabled();
   await expect(page.locator(".pc-file-download")).toHaveAttribute("download", "학습지팩.jpg");

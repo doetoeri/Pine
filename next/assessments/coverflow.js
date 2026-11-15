@@ -1,4 +1,5 @@
 import { advanceTilt } from "./tilt-physics.js?v=20261011-tilt1";
+import { motionPreference } from "../../accessibility/motion.js?v=20261115-accessibility";
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
@@ -43,28 +44,96 @@ export function subjectTheme(subject) {
   return (hash >>> 0) % groups.length;
 }
 
-function face(row) {
+function assessmentFace(row) {
   return `<div class="pc-face"><span class="pc-surface-light" aria-hidden="true"></span><div class="pc-head"><span>${escape(row.subject || "수행평가")}</span><span>${escape(row.kind || "수행평가")}</span></div><div class="pc-title">${escape(row.title)}</div><div class="pc-bottom"><div class="pc-deadline"><span class="pc-date">${escape(row.dueDate ? row.dueDate.slice(5).replace("-", ".") : "날짜 미정")}</span><span>${escape(assessmentDue(row.dueDate))}</span></div><div class="pc-meta"><span>${escape((row.confirmed || row.verificationStatus === "verified") ? "공식 자료 확인" : "확인 중")}</span><span>${[row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · ")}</span></div></div></div>`;
+}
+
+export const coverListEnabled = () => globalThis.document?.documentElement.dataset.pcLayout === "list";
+
+function flowMarkup(rows, { label, key, renderKey, layout = "", face, theme, name, action = "상세 내용을 엽니다.", attributes = () => "", currentId }) {
+  if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="${escape(renderKey)}"><p>등록된 항목이 없습니다.</p></section>`;
+  function cover(row, index, list) {
+    const front = face(row);
+    const state = list ? (row.id === currentId ? 'aria-current="date"' : "") : 'aria-pressed="false" tabindex="-1"';
+    const reflection = list ? "" : `<span class="pc-reflection" aria-hidden="true">${front}</span>`;
+    return `<button type="button" class="pc-cover pc-theme-${theme(row)}" data-index="${index}" data-cover-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey ?? row.id)}" ${attributes(row)} ${state} aria-label="${escape(name(row))}">${front}${reflection}</button>`;
+  }
+  if (coverListEnabled()) {
+    const items = [...rows].sort((a, b) => (a.listOrder ?? 0) - (b.listOrder ?? 0));
+    return `<section class="pc-flow pc-list-flow${layout}" data-render-key="${escape(renderKey)}" data-class-key="${escape(key)}" aria-label="${escape(label)}">
+      <ul role="list" aria-label="${escape(label)} 목록">${items.map((row, index) => `<li>${cover(row, index, true)}</li>`).join("")}</ul>
+    </section>`;
+  }
+  return `<section class="pc-flow${layout}" data-render-key="${escape(renderKey)}" data-class-key="${escape(key)}" aria-label="${escape(label)}">
+    <div class="pc-flow-viewport"><div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="${escape(label)} 커버플로우. 좌우 방향키 또는 이전·다음 버튼으로 이동합니다. 가운데 커버를 누르면 ${escape(action)}">
+      ${rows.map((row, index) => cover(row, index, false)).join("")}
+    </div></div>
+    <div class="pc-caption">
+      <button class="pc-step" type="button" data-flow-step="-1" aria-label="이전 커버"><span aria-hidden="true"></span></button>
+      <div class="pc-caption-text" aria-hidden="true"><p class="pc-caption-title"></p><p class="pc-caption-subject"></p></div>
+      <button class="pc-step" type="button" data-flow-step="1" aria-label="다음 커버"><span aria-hidden="true"></span></button>
+    </div>
+    <p class="sr-only pc-announcement" aria-live="polite" aria-atomic="true"></p>
+  </section>`;
 }
 
 export function coverflowMarkup(rows, classKey = "") {
   if (!rows.length) return `<section class="pc-flow pc-flow-empty" data-render-key="assessment-flow"><p>등록된 수행평가가 없습니다.</p></section>`;
-  return `<section class="pc-flow" data-render-key="assessment-flow" data-class-key="${escape(classKey)}" aria-label="수행평가">
-    <div class="pc-flow-viewport"><div class="pc-scene" tabindex="0" role="region" aria-roledescription="캐러셀" aria-label="수행평가 커버플로우. 좌우 드래그 또는 방향키로 선택하고 가운데 커버를 누르면 상세 내용을 엽니다.">
-      ${rows.map((row, index) => `<button type="button" class="pc-cover pc-theme-${subjectTheme(row.subject)}" data-index="${index}" data-assessment-id="${escape(row.id)}" data-detail-key="${escape(row.detailKey)}" data-detail-route="classroom" aria-pressed="false" tabindex="-1" aria-label="${escape((row.subject || '수행평가') + ' · ' + row.title)}">${face(row)}<span class="pc-reflection" aria-hidden="true">${face(row)}</span></button>`).join("")}
-    </div></div><div class="pc-caption"><p class="pc-caption-title"></p><p class="pc-caption-subject"></p></div><p class="sr-only pc-announcement" aria-live="polite" aria-atomic="true"></p>
-  </section>`;
+  return flowMarkup(rows, {
+    label: "수행평가", key: classKey, renderKey: "assessment-flow", face: assessmentFace,
+    theme: row => subjectTheme(row.subject),
+    name: row => [row.subject || "수행평가", row.title, row.dueDate || "날짜 미정", assessmentDue(row.dueDate),
+      row.noticeAttachment && "안내문", row.worksheetPack && "학습지팩"].filter(Boolean).join(" · "),
+    attributes: row => `data-assessment-id="${escape(row.id)}" data-detail-route="classroom" aria-haspopup="dialog"`,
+  });
 }
 
-export function mountCoverflow(root, openDetail, { startup = null, tilt = null } = {}) {
-  const host = root?.querySelector(".pc-flow"), scene = host?.querySelector(".pc-scene");
-  if (!scene || controllers.has(host)) return;
-  const cards = [...scene.querySelectorAll(".pc-cover")], reduced = matchMedia("(prefers-reduced-motion: reduce)");
+function paperFace(row) {
+  return `<span class="pc-face"><span class="pc-surface-light" aria-hidden="true"></span>
+    <span class="pc-cover-tab" aria-hidden="true">${escape(row.kicker)}</span>
+    <span class="pc-head"><span>${escape(row.kicker)}</span><span>${escape(row.context)}</span></span>
+    <span class="pc-title">${escape(row.title)}</span>
+    <span class="pc-paper-lines">${row.lines.map(line => `<span class="pc-paper-line">${line.label ? `<span>${escape(line.label)}</span>` : ""}<b>${escape(line.value)}</b></span>`).join("")}</span>
+    <span class="pc-bottom pc-paper-foot"><span>${escape(row.footer)}</span><span aria-hidden="true">↗</span></span>
+  </span>`;
+}
+
+export function paperCoverflowMarkup(rows, label, key, action = "상세 내용을 엽니다.", currentId) {
+  return flowMarkup(rows, {
+    label, key, renderKey: key, layout: " pc-paper-flow", face: paperFace, action, currentId,
+    theme: row => row.theme, name: row => [row.title, row.context, ...row.lines.map(line => [line.label, line.value].filter(Boolean).join(" "))].filter(Boolean).join(" · "),
+    attributes: row => (row.navigation ? "" : 'aria-haspopup="dialog"'),
+  });
+}
+
+export function mountCoverflow(root, openDetail, { startup = null, tilt = null, initialId, defaultId, onSelect, horizontalWheel = false } = {}) {
+  const host = root?.querySelector(".pc-flow");
+  if (!host) return;
+  if (controllers.has(host)) return controllers.get(host);
+  if (host.classList.contains("pc-list-flow")) {
+    host.addEventListener("click", event => {
+      const card = event.target.closest(".pc-cover");
+      if (!card) return;
+      selections.set(host.dataset.classKey, card.dataset.coverId);
+      openDetail(card.dataset.detailKey, card);
+    });
+    const list = {};
+    controllers.set(host, list);
+    return list;
+  }
+  const scene = host.querySelector(".pc-scene");
+  if (!scene) return;
+  const cards = [...scene.querySelectorAll(".pc-cover")], reduced = motionPreference();
+  if (!cards.length) return;
+  const steps = [...host.querySelectorAll("[data-flow-step]")];
+  const paperCovers = host.classList.contains("pc-paper-flow");
   const selectionKey = host.dataset.classKey;
+  const indexOf = id => cards.findIndex(card => card.dataset.coverId === id);
   const lights = cards.map(card => ({ nodes: [...card.querySelectorAll(".pc-surface-light")], pose: "", opacity: "", hint: "" }));
   const visibility = [], hints = [], depths = [];
   let selected = -1, width = 340, sceneWidth = 0, frame = 0, last = 0, drag = null, wheelTimer = 0;
-  let position = Math.max(0, cards.findIndex(card => card.dataset.assessmentId === selections.get(selectionKey)));
+  const saved = indexOf(initialId ?? selections.get(selectionKey));
+  let position = saved >= 0 ? saved : Math.max(0, indexOf(defaultId));
   const now = performance.now();
   const startupEntrance = startup?.mode === "full" && !startup.finished && now < startup.startAt + startup.duration;
   const repeatReveal = startup?.mode === "short" && !reduced.matches && !introduced.has(selectionKey);
@@ -76,7 +145,7 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null }
   const center = position;
   const entranceDuration = startupEntrance ? 380 : 460, stagger = startupEntrance ? 20 : 28;
   const entranceEnd = entranceDuration + Math.min(Math.max(center, cards.length - 1 - center), 6) * stagger;
-  const controller = { destroy, updateLighting };
+  const controller = { destroy, updateLighting, select };
   controllers.set(host, controller);
   lightingControllers.add(controller);
   host.dataset.lighting = lightingEnabled ? "on" : "off";
@@ -103,7 +172,7 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null }
   function destroy() { stopTilt(); cancelAnimationFrame(frame); clearTimeout(wheelTimer); resize.disconnect(); disconnected.disconnect(); listen.abort(); controllers.delete(host); lightingControllers.delete(controller); }
   function updateLighting() { host.dataset.lighting = lightingEnabled ? "on" : "off"; paint(); }
   function paintLight(index, yaw, x, z, visible) {
-    if (!lightingEnabled) return;
+    if (!lightingEnabled || document.documentElement.dataset.pcContrast === "high") return;
     const light = lights[index];
     let pose = light.pose, opacity = "0";
     // Only the nearest covers can catch this light. Do not allocate a large
@@ -172,17 +241,26 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null }
       // every fractional scroll position. Preserve the intervening layers.
       const depth = String(1000 - Math.abs(i - index));
       if (depths[i] !== depth) { card.style.zIndex = depth; depths[i] = depth; }
+      if (paperCovers) {
+        const coverSide = i < index ? "left" : i > index ? "right" : "center";
+        if (card.dataset.flowSide !== coverSide) card.dataset.flowSide = coverSide;
+      }
       card.style.transform = `translate3d(${renderX}px,${14 * remaining * scale}px,${renderZ}px) rotateY(${yaw}deg) scale(${cardScale})`;
       card.style.opacity = String(1 - Math.pow(1 - clamp(t * 2.4, 0, 1), 3));
       paintLight(i, radians, renderX, renderZ, true);
     }
     if (index !== selected) {
       selected = index;
-      selections.set(selectionKey, cards[index].dataset.assessmentId);
+      const id = cards[index].dataset.coverId;
+      selections.set(selectionKey, id);
       cards.forEach((card, i) => { card.tabIndex = i === index ? 0 : -1; card.setAttribute("aria-pressed", String(i === index)); });
       host.querySelector(".pc-caption-title").textContent = cards[index].querySelector(".pc-title").textContent;
-      host.querySelector(".pc-caption-subject").textContent = cards[index].querySelector(".pc-head span").textContent;
-      host.querySelector(".pc-announcement").textContent = `${cards[index].getAttribute("aria-label")} · ${index + 1} / ${cards.length}`;
+      const count = `${index + 1} / ${cards.length}`;
+      const subject = cards[index].querySelector(".pc-head span").textContent;
+      host.querySelector(".pc-caption-subject").textContent = `${subject} · ${count}`;
+      host.querySelector(".pc-announcement").textContent = `${cards[index].getAttribute("aria-label")} · ${count}`;
+      for (const step of steps) step.setAttribute("aria-disabled", String(Number(step.dataset.flowStep) < 0 ? index === 0 : index === cards.length - 1));
+      onSelect?.(id);
     }
     scene.dataset.motion = entering ? "entering" : last ? "animating" : drag ? "dragging" : "resting";
   }
@@ -217,9 +295,39 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null }
       velocity = tiltSpeed * .35; tiltSpeed = 0; go(position);
     }
   }
-  function go(index) { entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1); animate(); }
-  function activate(index) { tilt?.pause(); entering = false; if (index === Math.round(position) && Math.abs(position - index) < .08) openDetail(cards[index].dataset.detailKey, cards[index]); else go(index); }
-  scene.addEventListener("click", event => { const card = event.target.closest(".pc-cover"); if (!card) return; event.stopPropagation(); if (performance.now() > ignoreClick) activate(Number(card.dataset.index)); }, options);
+  function go(index) {
+    entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1);
+    if (reduced.matches) {
+      position = target; velocity = 0; last = 0; paint();
+    } else animate();
+  }
+  function select(id) {
+    const index = indexOf(id);
+    if (index < 0 || position === index && target === index) return;
+    cancelAnimationFrame(frame); frame = 0;
+    drag = null; entering = false; clearTimeout(wheelTimer);
+    position = target = index; velocity = 0; last = 0; paint();
+  }
+  function openSelected(index) {
+    select(cards[index].dataset.coverId);
+    openDetail(cards[index].dataset.detailKey, cards[index]);
+  }
+  for (const step of steps) step.addEventListener("click", () => {
+    if (step.getAttribute("aria-disabled") === "true") return;
+    tilt?.pause();
+    go(target + Number(step.dataset.flowStep));
+  }, options);
+  function activate(index) {
+    tilt?.pause();
+    if (index === selected) openSelected(index);
+    else go(index);
+  }
+  scene.addEventListener("click", event => {
+    const card = event.target.closest(".pc-cover");
+    if (!card) return;
+    event.stopPropagation();
+    if (event.detail === 0 || performance.now() > ignoreClick) activate(Number(card.dataset.index));
+  }, options);
   scene.addEventListener("pointerdown", event => {
     if (event.button !== 0 || event.isPrimary === false) return;
     tilt?.pause();
@@ -251,13 +359,18 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null }
   scene.addEventListener("keydown", event => {
     if (event.ctrlKey || event.metaKey || event.altKey) return;
     const delta = { ArrowLeft: -1, ArrowRight: 1, PageUp: -4, PageDown: 4 }[event.key];
-    if (delta || ["Home", "End", "Enter", " "].includes(event.key)) tilt?.pause();
+    const opening = event.key === "Enter" || event.key === " ";
+    if (delta || ["Home", "End"].includes(event.key) || opening) tilt?.pause();
     if (delta) { event.preventDefault(); go(target + delta); scene.focus({ preventScroll: true }); }
-    else if (event.key === "Home" || event.key === "End") { event.preventDefault(); go(event.key === "Home" ? 0 : cards.length - 1); }
-    else if (event.target === scene && ["Enter", " "].includes(event.key)) { event.preventDefault(); activate(selected); }
+    else if (event.key === "Home" || event.key === "End") { event.preventDefault(); go(event.key === "Home" ? 0 : cards.length - 1); scene.focus({ preventScroll: true }); }
+    else if (opening) {
+      event.preventDefault();
+      if (!event.repeat) openSelected(event.target === scene ? Math.round(target) : Number(event.target.closest(".pc-cover").dataset.index));
+    }
   }, options);
   scene.addEventListener("wheel", event => {
     if (event.ctrlKey || event.metaKey || drag) return;
+    if (horizontalWheel && Math.abs(event.deltaY) > Math.abs(event.deltaX)) return;
     const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     if (!delta) return;
     tilt?.pause();
@@ -269,4 +382,5 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null }
   reduced.addEventListener("change", () => { if (reduced.matches) { delete host.dataset.startupReveal; entering = false; go(target); } }, options);
   width = cards[0].offsetWidth || 340; sceneWidth = scene.clientWidth; paint(); if (entering) animate();
   if (tilt && cards.length > 1) stopTilt = tilt.subscribe(steer);
+  return controller;
 }
