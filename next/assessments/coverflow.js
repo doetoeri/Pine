@@ -319,7 +319,11 @@ export function mountCoverflow(root, openDetail, { startup = null, tilt = null, 
     entering = false; clearTimeout(wheelTimer); target = clamp(Math.round(index), 0, cards.length - 1);
     if (reduced.matches) {
       position = target; velocity = 0; last = 0; paint();
-    } else animate();
+    } else if (!document.hidden) {
+      // Pointer input can finish before WebKit runs the first animation frame.
+      scene.dataset.motion = "animating";
+      animate();
+    }
   }
   function select(id) {
     const index = indexOf(id);
