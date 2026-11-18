@@ -1,0 +1,6 @@
+node_modules/
+dist/
+qa/
+playwright-report/
+test-results/
+__pycache__/
