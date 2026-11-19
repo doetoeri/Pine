@@ -7,10 +7,10 @@ import {
   applyReview, buildBackup, defaultExport, emptyFilter, groupByType, makeAnchor, matchingNotes, newNote,
   paragraphRanges, parseBackup, rebaseDocument, reviewHistory, reviewOrder, sentenceRanges,
 } from '../src/model';
-import { markedParts, sourceRangeBetween, textareaRange } from '../src/ranges';
+import { acceptsPenStroke, markedParts, sourceRangeBetween, textareaRange } from '../src/ranges';
 import { generatePDF, quizItems } from '../src/pdf';
 
-import { buildConfusionPrompt } from '../src/study-prompt';
+import { answerSourceKey, applyAIAnswers, buildConfusionPrompt, currentAIAnswer, parseAIAnswers } from '../src/study-prompt';
 
 test('anchor ranges identify repeated expressions, overlaps, and paragraph-spanning selections', () => {
   const text = 'An early echo fades.\n\nLater we hear a soft echo from the valley.';
@@ -110,7 +110,7 @@ test('PDF produces paginated text and preserves quiz answers separately', async 
 });
 
 
-test('pen drags in either direction keep the exact repeated occurrence and trim only its edges', () => {
+test('pen drags ignore palm touches and retain the exact occurrence in either direction', () => {
   const source = 'The first sample.\n\nA second sample reveals a pattern.';
   const start = source.lastIndexOf('sample');
   const forward = sourceRangeBetween(source, start - 1, start + 7);
@@ -119,6 +119,10 @@ test('pen drags in either direction keep the exact repeated occurrence and trim 
   assert.deepEqual(backward, forward);
   assert.equal(sourceRangeBetween(source, 17, 19), null);
   assert.deepEqual(sourceRangeBetween(source, start, start), null);
+  assert.equal(acceptsPenStroke('pen', 0), true);
+  assert.equal(acceptsPenStroke('mouse', 0), true);
+  assert.equal(acceptsPenStroke('touch', 0), false);
+  assert.equal(acceptsPenStroke('mouse', 2), false);
 });
 
 test('AI prompt includes the chosen note and all three quick fields', () => {
@@ -131,7 +135,58 @@ test('AI prompt includes the chosen note and all three quick fields', () => {
   assert.match(actual, /affect와 effect/);
   assert.match(actual, /비슷한 철자/);
   assert.match(actual, /문장에서 맡는 역할을 확인한다/);
+  assert.match(actual, /munjang-note-ai-answers.json/);
+  assert.match(actual, new RegExp(answerSourceKey(note)));
   assert.match(actual, new RegExp(note.anchors[0].quote));
   assert.equal(actual.includes(data.documents[0].text), false);
   assert.equal(actual.includes(data.annotations[1].anchors[0].quote), false);
+});
+
+test('versioned AI JSON attaches only to unchanged note IDs and survives a backup', () => {
+  const data = sampleWorkspace();
+  const [first, second, third] = data.annotations;
+  const answer = { noteId: first.id, sourceKey: answerSourceKey(first), explanation: '원문을 확인하세요.', rule: '명사의 수를 살피세요.', contextNeeded: '' };
+  const raw = {
+    format: 'munjang-note.ai-answers', version: 1,
+    answers: [answer, { ...answer, noteId: second.id }, { ...answer, noteId: 'missing' }],
+  };
+  assert.throws(() => parseAIAnswers(JSON.stringify({ ...raw, version: 2 })), /형식/);
+  assert.throws(() => parseAIAnswers(JSON.stringify({ ...raw, answers: [answer, answer] })), /두 번/);
+  assert.throws(() => parseAIAnswers(JSON.stringify({ ...raw, answers: [{ ...answer, explanation: ' ', rule: '' }] })), /비어/);
+  const result = applyAIAnswers(data, parseAIAnswers('\uFEFF' + JSON.stringify(raw)));
+  assert.equal(result.applied, 1);
+  assert.equal(result.skipped, 2);
+  const [updated, unchanged] = result.workspace.annotations;
+  assert.equal(currentAIAnswer(updated)?.rule, answer.rule);
+  assert.deepEqual(updated.fields, first.fields);
+  assert.equal(updated.state, first.state);
+  assert.equal(unchanged, second);
+  assert.equal(currentAIAnswer({ ...updated, fields: { ...updated.fields, comparison: '이전과 다른 질문' } }), undefined);
+  assert.equal(result.workspace.annotations[2], third);
+  assert.deepEqual(parseBackup(buildBackup(result.workspace)), result.workspace);
+  const { includeAI: _includeAI, ...oldExportSettings } = data.exportSettings;
+  const old = { ...data, exportSettings: oldExportSettings };
+  assert.deepEqual(parseBackup(buildBackup(old)), old);
+});
+
+test('AI explanations appear in selected PDFs and can be omitted independently', async () => {
+  const font = await readFile(new URL('../public/fonts/NotoSansKR-study.ttf', import.meta.url));
+  const data = sampleWorkspace();
+  const first = data.annotations[0];
+  const document = data.documents.find((item) => item.id === first.documentId)!;
+  const { workspace } = applyAIAnswers(data, [{
+    noteId: first.id, sourceKey: answerSourceKey(first),
+    explanation: '주어의 핵심 명사를 확인해요.', rule: '동사는 핵심 명사와 일치해요.', contextNeeded: '',
+  }]);
+  const notes = [workspace.annotations[0]];
+  for (const mode of ['passages', 'types'] as const) {
+    const pdf = await generatePDF(workspace, [document], notes, { ...defaultExport, mode, explanations: false }, font);
+    const rendered = pdf.pages.flatMap((page) => page.text.map((item) => item.text)).join(' ');
+    assert.match(rendered, /AI 참고 해설/);
+    assert.match(rendered, /주어의 핵심 명사를 확인해요/);
+    assert.match(rendered, /동사는 핵심 명사와 일치해요/);
+    assert.ok((await PDFDocument.load(pdf.bytes)).getPageCount());
+  }
+  const withoutAI = await generatePDF(workspace, [document], notes, { ...defaultExport, includeAI: false }, font);
+  assert.doesNotMatch(withoutAI.pages.flatMap((page) => page.text.map((item) => item.text)).join(' '), /AI 참고 해설/);
 });

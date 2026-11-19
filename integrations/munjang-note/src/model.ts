@@ -50,11 +50,19 @@ const fieldsSchema = z.object({
   takeaway: long, memo: long, distractor: long, writing: long, example: long,
   question: long, meaning: long, grammar: long, structure: long,
 }).strict();
+export const aiAnswerSchema = z.object({
+  sourceKey: z.string().regex(/^[a-f0-9]{16}$/),
+  explanation: z.string().trim().max(2400),
+  rule: z.string().trim().max(420),
+  contextNeeded: z.string().trim().max(480),
+}).strict();
+
 const annotationSchema = z.object({
   id, documentId: id, anchors: z.array(anchorSchema).min(1).max(12),
   tags: z.array(tagSchema).min(1).max(100), primaryCategoryId: id,
   extraTags: z.array(label).max(50), examTypes: z.array(z.enum(EXAM_TYPES)).max(EXAM_TYPES.length),
   priority: z.enum(PRIORITIES), state: z.enum(STATES), fields: fieldsSchema, createdAt: date, updatedAt: date,
+  aiAnswer: aiAnswerSchema.optional(),
 }).strict();
 const recordSchema = z.object({
   id, annotationId: id, createdAt: date, grade: z.enum(GRADES), state: z.enum(STATES),
@@ -69,7 +77,7 @@ export const exportSchema = z.object({
   paragraphSpacing: z.number().int().min(4).max(32), margin: z.number().int().min(12).max(32),
   color: z.boolean(), marks: z.enum(['full', 'underline']), explanations: z.boolean(),
   numbers: z.boolean(), pages: z.boolean(), titles: z.boolean(), sources: z.boolean(),
-  memo: z.boolean(), answerMode: z.enum(['none', 'inline', 'separate']), answerSpace: z.boolean(),
+  memo: z.boolean(), includeAI: z.boolean().optional(), answerMode: z.enum(['none', 'inline', 'separate']), answerSpace: z.boolean(),
 }).strict();
 export const workspaceSchema = z.object({
   documents: z.array(passageSchema).max(3000), annotations: z.array(annotationSchema).max(20_000),
@@ -84,6 +92,7 @@ export type Passage = z.infer<typeof passageSchema>;
 export type Anchor = z.infer<typeof anchorSchema>;
 export type Tag = z.infer<typeof tagSchema>;
 export type Annotation = z.infer<typeof annotationSchema>;
+export type AIAnswer = z.infer<typeof aiAnswerSchema>;
 export type Fields = z.infer<typeof fieldsSchema>;
 export type Category = z.infer<typeof categorySchema>;
 export type Scope = z.infer<typeof scopeSchema>;
@@ -108,12 +117,14 @@ export const defaultDisplay: DisplaySettings = { font: 'serif', fontSize: 25, se
 export const defaultExport: ExportSettings = {
   mode: 'passages', orientation: 'portrait', size: 12, lineSpacing: 1.65, paragraphSpacing: 10, margin: 18,
   color: true, marks: 'full', explanations: true, numbers: true, pages: true, titles: true, sources: true,
-  memo: false, answerMode: 'separate', answerSpace: true,
+  memo: false, includeAI: true, answerMode: 'separate', answerSpace: true,
 };
 
 function category(id: string, label: string, color: string, mark: Mark, details: string[]): Category {
   return { id, label, color, mark, details: details.map((label, index) => ({ id: id + '-' + (index + 1), label })) };
 }
+
+export const unclassifiedCategory = category('unclassified', '미분류', '#6f665d', 'highlight', []);
 
 export const defaultCategories: Category[] = [
   category('vocab', '어휘', '#2566a0', 'highlight', [
@@ -140,6 +151,7 @@ export const defaultCategories: Category[] = [
     '한국어에서 영어로 영작', '어순', '서술형 핵심 표현', '동의 표현', '문장 구조 변환', '능동·수동 전환',
     '시제 변환', '문장 결합', '자연스러운 표현', '철자 실수',
   ]),
+  unclassifiedCategory,
 ];
 
 export function blankWorkspace(): Workspace {
@@ -333,7 +345,7 @@ export function groupByType(notes: Annotation[], categories: Category[], filter 
 
 export const FIELD_LABELS: Record<keyof Fields, string> = {
   confusion: '무엇이 헷갈리나요?', reason: '헷갈리는 이유', explanation: '정확한 설명', evidence: '정답 판별 근거',
-  comparison: '헷갈리는 표현', takeaway: '구분하는 방법', memo: '개인 메모', distractor: '자주 틀리는 선택지',
+  comparison: '내 질문', takeaway: '구분하는 방법', memo: '개인 메모', distractor: '자주 틀리는 선택지',
   writing: '서술형 주의사항', example: '관련 문제·추가 예문', question: '내 복습 질문',
   meaning: '뜻·품사·문맥상 의미', grammar: '문법 개념·규칙', structure: '구조·해석',
 };

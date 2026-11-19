@@ -5,6 +5,7 @@ import {
   type Annotation, type Category, type ExportSettings, type Fields, type Filter, type Mark, type Passage, type Workspace,
 } from './model';
 import { markedParts } from './ranges';
+import { currentAIAnswer } from './study-prompt';
 
 const A4 = [595.28, 841.89] as const;
 const BLACK = '#25221f';
@@ -36,10 +37,17 @@ function hexMix(color: string, base: string, weight: number) {
 }
 
 function annotationBlocks(note: Annotation, options: ExportSettings, withAll = true): Block[] {
-  if (!options.explanations) return [];
-  const entries = withAll ? (Object.keys(FIELD_LABELS) as (keyof Fields)[])
+  const entries = !options.explanations ? [] : withAll ? (Object.keys(FIELD_LABELS) as (keyof Fields)[])
     .flatMap((key) => note.fields[key].trim() ? [[FIELD_LABELS[key], note.fields[key]]] : []) : learningAnswer(note);
-  return entries.map(([label, value]) => block('body', label + '  ' + value, { gap: 4 }));
+  const blocks = entries.map(([label, value]) => block('body', label + '  ' + value, { gap: 4 }));
+  const ai = options.includeAI !== false && currentAIAnswer(note);
+  if (ai) {
+    blocks.push(block('meta', 'AI 참고 해설', { keepNext: true }));
+    if (ai.explanation) blocks.push(block('body', ai.explanation, { gap: 4 }));
+    if (ai.rule) blocks.push(block('body', '구분법  ' + ai.rule, { gap: 4 }));
+    if (ai.contextNeeded) blocks.push(block('body', '필요한 문맥  ' + ai.contextNeeded, { gap: 4 }));
+  }
+  return blocks;
 }
 
 function originalBlocks(passage: Passage, notes: Annotation[], categories: Category[], options: ExportSettings): Block[] {
@@ -82,13 +90,15 @@ function passageBlocks(data: Workspace, documents: Passage[], notes: Annotation[
     blocks.push(block('title', options.titles ? passage.title : '지문별 분석집', { page: index > 0, keepNext: true }));
     if (options.sources && source) blocks.push(block('meta', source, { keepNext: true }));
     blocks.push(...originalBlocks(passage, relevant, data.categories, options));
-    if (options.explanations && relevant.length) {
+    const explained = relevant.map((note, index) => ({ note, index, body: annotationBlocks(note, options) }))
+      .filter((item) => options.explanations || item.body.length);
+    if (explained.length) {
       blocks.push(block('heading', '주석 해설', { keepNext: true }));
-      for (const [position, note] of relevant.entries()) {
+      for (const { index: position, note, body } of explained) {
         const name = data.categories.find((category) => category.id === note.primaryCategoryId)?.label;
         blocks.push(block('subheading', (options.numbers ? '[' + (position + 1) + '] ' : '') + note.anchors.map((anchor) => anchor.quote).join(' · '), { keepNext: true }));
         blocks.push(block('meta', [name, ...note.anchors.map(locationLabel)].filter(Boolean).join(' · '), { keepNext: true }));
-        blocks.push(...annotationBlocks(note, options));
+        blocks.push(...body);
       }
     }
     if (options.memo) {
@@ -174,12 +184,12 @@ function quizBlocks(data: Workspace, notes: Annotation[], options: ExportSetting
     if (options.answerSpace || options.memo) blocks.push({ kind: 'space', runs: [], lines: options.memo ? 4 : 2 });
     if (options.answerMode === 'none') continue;
     const answer = annotationBlocks(item.note, options, false);
-    const leadAnswer = item.answer ?? (answer.length ? '작성한 주석을 참고하세요.' : '저장된 정답이 없어요.');
+    const leadAnswer = item.answer ?? (answer.length ? '아래 해설을 참고하세요.' : '저장된 정답이 없어요.');
     const row = [block('subheading', (options.answerMode === 'separate' ? lead : '') + '정답  ' + leadAnswer, { keepNext: answer.length > 0 }), ...answer];
     if (options.answerMode === 'inline') blocks.push(...row);
     else answers.push(...row);
   }
-  if (answers.length) blocks.push(block('title', options.explanations ? '정답 및 해설' : '정답', { page: true, keepNext: true }), ...answers);
+  if (answers.length) blocks.push(block('title', options.explanations || options.includeAI !== false ? '정답 및 해설' : '정답', { page: true, keepNext: true }), ...answers);
   return blocks;
 }
 

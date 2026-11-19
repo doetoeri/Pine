@@ -1,8 +1,8 @@
 import { cloneElement, isValidElement, useEffect, useId, useRef, type ButtonHTMLAttributes, type CSSProperties, type ReactNode } from 'react';
-import { Circle, CircleCheck, CircleDot, CircleHelp, Eraser, Filter as FilterIcon, Search, X } from 'lucide-react';
+import { CircleHelp, Eraser, Filter as FilterIcon, Search, X } from 'lucide-react';
 import {
   emptyFilter, EXAM_TYPES, PRIORITIES, PRIORITY_LABELS, STATE_LABELS, STATES,
-  type Category, type Filter, type State, type Workspace,
+  type Category, type Filter, type Workspace,
 } from './model';
 
 export function Button({ variant = 'secondary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -60,12 +60,6 @@ export const colorStyle = (category: Category): CSSProperties => ({ '--category'
 export function CategoryChip({ category, children }: { category: Category; children?: ReactNode }) {
   return <span className="category-chip" style={colorStyle(category)}><span className={'mark-sample mark-' + category.mark} aria-hidden="true">Aa</span>
     {children ?? category.label}</span>;
-}
-
-const stateIcons = { unlearned: Circle, assisted: CircleDot, independent: CircleCheck, reviewed: CircleCheck };
-export function StatePill({ state }: { state: State }) {
-  const Icon = stateIcons[state];
-  return <span className={'state-pill state-' + state}><Icon size={14} aria-hidden="true" />{STATE_LABELS[state]}</span>;
 }
 
 export function FilterFields({ filter, onChange, data, hideDocument = false, compact = false }: {

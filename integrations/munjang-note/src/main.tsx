@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BookOpenText, Check, CircleAlert, FileDown, HardDrive, Layers3, PanelLeftClose, PanelLeftOpen, RotateCcw, Settings as SettingsIcon, X } from 'lucide-react';
+import { BookOpenText, Check, CircleAlert, FileDown, HardDrive, Layers3, PanelLeftClose, PanelLeftOpen, Settings as SettingsIcon, X } from 'lucide-react';
 import { Library } from './Library';
 import { Reader } from './Reader';
-import { Review, Study } from './Study';
+import { Study } from './Study';
 import { Settings, type InstallPrompt } from './Settings';
 import { ExportPage } from './ExportPage';
 import { emptyFilter, type Filter } from './model';
@@ -13,8 +13,7 @@ import './styles.css';
 
 const nav = [
   { key: 'library', label: '지문 라이브러리', short: '지문', icon: BookOpenText },
-  { key: 'notes', label: '유형별 모아보기', short: '모아보기', icon: Layers3 },
-  { key: 'review', label: '복습', short: '복습', icon: RotateCcw },
+  { key: 'notes', label: '모아보기', short: '모아보기', icon: Layers3 },
   { key: 'print', label: 'PDF 출력', short: 'PDF', icon: FileDown },
   { key: 'settings', label: '설정', short: '설정', icon: SettingsIcon },
 ] as const;
@@ -22,15 +21,19 @@ const nav = [
 function routeFromHash() {
   const [part, query = ''] = (location.hash.slice(1) || 'library').split('?');
   const [page, id = ''] = part.split('/');
-  return { page, id, query, params: new URLSearchParams(query) };
+  return { page: page === 'review' ? 'notes' : page, id, query, params: new URLSearchParams(query) };
 }
 
 function App() {
   const { data, commit, error } = useWorkspace();
   const [route, setRoute] = useState(routeFromHash);
-  const [railCollapsed, setRailCollapsed] = useState(() => {
-    try { return localStorage.getItem('munjang-note:rail-collapsed') === 'true'; } catch { return false; }
+  const [railPreference, setRailPreference] = useState<boolean | null>(() => {
+    try {
+      const item = localStorage.getItem('munjang-note:rail-collapsed');
+      return item === null ? null : item === 'true';
+    } catch { return null; }
   });
+  const railCollapsed = railPreference ?? route.page === 'reader';
   const [toast, setToast] = useState<{ text: string; error: boolean }>();
   const toastTimer = useRef<number | undefined>(undefined);
   const installPrompt = useRef<InstallPrompt | null>(null);
@@ -94,7 +97,7 @@ function App() {
           title={railCollapsed ? '사이드바 펼치기' : '사이드바 접기'} aria-expanded={!railCollapsed} aria-controls="main-navigation"
           onClick={() => {
             const next = !railCollapsed;
-            setRailCollapsed(next);
+            setRailPreference(next);
             try { localStorage.setItem('munjang-note:rail-collapsed', String(next)); } catch { /* Keep the current view. */ }
           }}>{railCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</Button>
       </div>
@@ -110,11 +113,10 @@ function App() {
         <Button onClick={() => location.reload()}>다시 열기</Button></Empty></div> :
         !data ? <div className="main-content loading" role="status">학습 공간을 여는 중…</div> :
           route.page === 'reader' ? passage ? <Reader key={passage.id} document={passage} data={data} commit={commit} report={report}
-            requestedNote={route.params.get('note') ?? ''} open={open} close={() => { location.hash = 'library'; }}
+            requestedNote={route.params.get('note') ?? ''} close={() => { location.hash = 'library'; }}
             print={(documentId) => print('passages', { documentId })} /> :
             <div className="main-content"><Empty title="지문을 찾을 수 없어요"><Button onClick={() => { location.hash = 'library'; }}>라이브러리 열기</Button></Empty></div> :
-            route.page === 'notes' ? <Study data={data} jump={open} report={report} print={(filter) => print('types', filter)} /> :
-              route.page === 'review' ? <Review data={data} jump={open} commit={commit} report={report} /> :
+            route.page === 'notes' ? <Study data={data} jump={open} commit={commit} report={report} print={(filter) => print('types', filter)} /> :
                 route.page === 'settings' ? <Settings data={data} commit={commit} report={report} installAvailable={installAvailable} install={async () => {
                   const pending = installPrompt.current;
                   if (!pending) return;

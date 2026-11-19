@@ -3,6 +3,8 @@ import { BookOpenText, ChevronLeft, ChevronRight, Download, FileDown, FileText, 
 import { emptyFilter, matchingNotes, type ExportSettings, type Filter, type Workspace } from './model';
 import type { GeneratedPDF } from './pdf';
 import { download, type Commit } from './storage';
+import { AIImport } from './AIImport';
+import { currentAIAnswer } from './study-prompt';
 import { Button, Field, FilterFields, PageIntro, reportError, type Report } from './ui';
 
 const modes = [
@@ -30,6 +32,7 @@ export function ExportPage({ data, commit, report, initialFilter = emptyFilter, 
   const docIds = new Set(selectedDocs.map((item) => item.id));
   const notes = matchingNotes(data.annotations, filter, data).filter((note) => options.mode !== 'passages' || docIds.has(note.documentId));
   const selectedNotes = notes.filter((note) => !excludedNotes.has(note.id));
+  const answerCount = selectedNotes.filter(currentAIAnswer).length;
   const key = JSON.stringify([options, filter, selectedDocs.map((item) => item.id), selectedNotes.map((item) => item.id)]);
   const preview = loaded?.data.documents === data.documents && loaded.data.annotations === data.annotations &&
     loaded.data.categories === data.categories && loaded.key === key ? loaded.pdf : undefined;
@@ -75,12 +78,13 @@ export function ExportPage({ data, commit, report, initialFilter = emptyFilter, 
   }
 
   const checks: Array<[keyof Pick<ExportSettings, 'color' | 'explanations' | 'numbers' | 'pages' | 'titles' | 'sources' | 'memo'>, string]> = [
-    ['color', '컬러 인쇄'], ['explanations', '해설 포함'], ['numbers', '주석 번호'], ['pages', '페이지 번호'],
+    ['color', '컬러 인쇄'], ['explanations', '내 주석 포함'], ['numbers', '주석 번호'], ['pages', '페이지 번호'],
     ['titles', '지문 제목'], ['sources', '출처 표시'], ['memo', '메모 공간 추가'],
   ];
 
   return <div className="main-content export-page">
-    <PageIntro context="학습 자료" title="PDF 출력" subtitle="표시할 지문과 주석을 고른 뒤 A4 자료로 저장하세요.">
+    <PageIntro title="PDF 출력">
+      <AIImport commit={commit} report={report} />
       <Button variant="primary" onClick={() => output(true)} disabled={!any || busy}><Download size={18} />PDF 다운로드</Button>
     </PageIntro>
     <div className="export-modes" aria-label="PDF 출력 모드">{modes.map(({ id, name, icon: Icon }) =>
@@ -104,12 +108,16 @@ export function ExportPage({ data, commit, report, initialFilter = emptyFilter, 
               all={() => setExcludedNotes(new Set())} none={() => setExcludedNotes(new Set(notes.map((item) => item.id)))}
               toggle={(id, checked) => toggle(id, 'notes', checked)} />
           </details>
-          <p>{options.mode === 'passages' ? '지문 ' + selectedDocs.length + '개 · ' : ''}주석 {selectedNotes.length}개 선택</p>
+          <div className="export-summary">
+            <p>{options.mode === 'passages' ? '지문 ' + selectedDocs.length + '개 · ' : ''}주석 {selectedNotes.length}개 선택</p>
+            <label className="plain-check"><input type="checkbox" checked={options.includeAI !== false}
+              onChange={(event) => set('includeAI', event.target.checked)} />AI 답변 {answerCount}개 포함</label>
+          </div>
         </section>
-        <section className="export-card" aria-labelledby="print-settings-title">
-          <h2 id="print-settings-title"><SlidersHorizontal size={18} />용지와 표시</h2>
+        <details className="export-card form-details export-settings">
+          <summary><SlidersHorizontal size={18} />용지와 표시 · A4</summary>
+          <div className="field-stack">
           <div className="form-grid">
-            <Field label="용지"><input readOnly value="A4" /></Field>
             <Field label="방향"><select value={options.orientation} onChange={(event) => set('orientation', event.target.value as ExportSettings['orientation'])}>
               <option value="portrait">세로</option><option value="landscape">가로</option></select></Field>
             <Field label="글자 크기"><select value={options.size} onChange={(event) => set('size', Number(event.target.value))}>
@@ -132,7 +140,8 @@ export function ExportPage({ data, commit, report, initialFilter = emptyFilter, 
             <label className="plain-check"><input type="checkbox" checked={options.answerSpace}
               onChange={(event) => set('answerSpace', event.target.checked)} />답안 작성 공간</label>
           </div>}
-        </section>
+          </div>
+        </details>
       </div>
       <section className="preview-panel" aria-labelledby="preview-title">
         <header className="preview-top"><h2 id="preview-title">미리보기</h2>

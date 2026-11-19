@@ -69,28 +69,39 @@ export function sourceRangeBetween(source: string, a: number, b: number): Range 
   return { start: first, end: first + quote.length };
 }
 
-export function showSourceRange(root: HTMLElement, selected: Range | null): void {
+function sourceDomRange(root: HTMLElement, selected: Range) {
   const doc = root.ownerDocument;
-  const selection = doc.getSelection();
-  selection?.removeAllRanges();
-  if (!selection || !selected) return;
   const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const range = doc.createRange();
   let base = 0;
   let started = false;
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const end = base + (node.textContent?.length ?? 0);
-    if (!started && selected.start >= base && selected.start <= end) {
+    if (!started && selected.start >= base && selected.start < end) {
       range.setStart(node, selected.start - base);
       started = true;
     }
     if (started && selected.end >= base && selected.end <= end) {
       range.setEnd(node, selected.end - base);
-      selection.addRange(range);
-      return;
+      return range;
     }
     base = end;
   }
+}
+
+export function showSourceRange(root: HTMLElement, selected: Range | null): void {
+  const selection = root.ownerDocument.getSelection();
+  selection?.removeAllRanges();
+  const range = selected && sourceDomRange(root, selected);
+  if (range) selection?.addRange(range);
+}
+
+export function topAtSourceOffset(root: HTMLElement, start: number) {
+  return sourceDomRange(root, { start, end: start + 1 })?.getBoundingClientRect().top;
+}
+
+export function acceptsPenStroke(pointerType: string, button: number): boolean {
+  return button === 0 && (pointerType === 'pen' || pointerType === 'mouse');
 }
 
 export function textareaRange(source: string, start: number, end: number): Range {
