@@ -52,4 +52,6 @@ jobs:
           node --check notification-frequency-experiment.mjs
           node --test tests/notification-study.test.mjs
           node --check neis-sync.mjs
+          node --check safe-automation-error.mjs
+          node --test tests/neis-safe-error-log.test.mjs
           node --check deploy-firestore-rules.mjs
