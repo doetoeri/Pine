@@ -29,13 +29,17 @@ test("only the four KST clock hours are eligible, including late scheduler start
   assert.equal(currentSlot(new Date("2026-10-26T00:00:00Z")), null);
 });
 
-test("intensive slot tolerates bounded scheduler delays without crossing into the next slot", () => {
+test("intensive slot accepts plus/minus one hour and resolves overlapping windows", () => {
   const config = { studyMode: "career-v3", design: "parallel-v4" };
-  assert.equal(currentSlot(new Date("2026-11-04T23:00:00Z"), config)?.index, 0);
+  assert.equal(currentSlot(new Date("2026-11-04T22:00:00Z"), config)?.index, 0); // 07:00 KST
   assert.equal(currentSlot(new Date("2026-11-04T23:59:00Z"), config)?.index, 0);
-  assert.equal(currentSlot(new Date("2026-11-05T00:00:00Z"), config), null);
+  assert.equal(currentSlot(new Date("2026-11-05T00:00:00Z"), config)?.index, 0); // 09:00 KST
+  assert.equal(currentSlot(new Date("2026-11-05T00:01:00Z"), config), null);
   assert.equal(currentSlot(new Date("2026-11-05T04:10:00Z"), config)?.index, 1);
-  assert.equal(currentSlot(new Date("2026-11-05T05:10:00Z"), config), null);
+  assert.equal(currentSlot(new Date("2026-11-05T05:10:00Z"), config)?.index, 1); // 14:10 KST
+  assert.equal(currentSlot(new Date("2026-11-05T05:11:00Z"), config), null);
+  assert.equal(currentSlot(new Date("2026-11-05T08:45:00Z"), config)?.index, 2); // 17:45 tie
+  assert.equal(currentSlot(new Date("2026-11-05T08:46:00Z"), config)?.index, 3);
 });
 
 test("same day and slot in a newer experiment version gets a new receipt", () => {
